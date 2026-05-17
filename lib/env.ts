@@ -2,6 +2,10 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
+  // Direct (non-pooled) URL used by `prisma db push` / `prisma migrate`.
+  // The runtime client never reads this — only the Prisma CLI does — so
+  // it's optional from the Next.js process's perspective.
+  DIRECT_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
