@@ -1,0 +1,274 @@
+// Gilijet — boat ticketing platform
+// See REQUIREMENTS.md §5 for design notes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============== USERS ==============
+
+model Operator {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  passwordHash      String
+  companyName       String
+  contactPerson     String
+  phoneNumber       String
+  bankAccountInfo   Json // { bankName, accountNumber, accountHolder }
+  npwp              String? // Indonesian tax ID
+  status            OperatorStatus @default(PENDING)
+  documentsVerified Boolean        @default(false)
+  commissionRate    Decimal        @default(0.08) @db.Decimal(5, 4)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  boats Boat[]
+
+  @@index([status])
+}
+
+enum OperatorStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         AdminRole @default(STAFF)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  STAFF
+}
+
+// ============== BOATS & SCHEDULES ==============
+
+model Boat {
+  id                 String     @id @default(cuid())
+  operatorId         String
+  name               String
+  registrationNumber String     @unique
+  capacity           Int
+  photos             String[] // URLs
+  description        String?
+  status             BoatStatus @default(ACTIVE)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  operator  Operator   @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  schedules Schedule[]
+
+  @@index([operatorId])
+}
+
+enum BoatStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+model Schedule {
+  id              String         @id @default(cuid())
+  boatId          String
+  originPort      String
+  destinationPort String
+  departureTime   String // "HH:MM" local time (Asia/Makassar by default)
+  durationMinutes Int
+  basePrice       Decimal        @db.Decimal(12, 2) // IDR
+  daysOfWeek      Int[] // 1=Mon ... 7=Sun
+  status          ScheduleStatus @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  boat Boat  @relation(fields: [boatId], references: [id], onDelete: Cascade)
+  legs Leg[]
+
+  @@index([boatId, status])
+  @@index([originPort, destinationPort])
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ============== LEGS (specific departures) ==============
+
+model Leg {
+  id                 String    @id @default(cuid())
+  scheduleId         String
+  departureDate      DateTime // UTC instant of this specific departure
+  totalCapacity      Int
+  availableSeats     Int
+  basePrice          Decimal   @db.Decimal(12, 2)
+  status             LegStatus @default(OPEN)
+  cancellationReason String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  schedule Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([departureDate, status])
+  @@index([scheduleId, departureDate])
+}
+
+enum LegStatus {
+  OPEN
+  FULL
+  SAILED
+  CANCELLED
+}
+
+// ============== BOOKINGS & TICKETS ==============
+
+model Booking {
+  id                  String        @id @default(cuid())
+  bookingReference    String        @unique // human-readable: BK-2026-05-000001
+  legId               String
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  customerNationality String?
+  totalAmount         Decimal       @db.Decimal(12, 2)
+  commissionAmount    Decimal       @db.Decimal(12, 2)
+  operatorAmount      Decimal       @db.Decimal(12, 2)
+  currency            String        @default("IDR")
+  status              BookingStatus @default(PENDING_PAYMENT)
+  refundDeadline      DateTime
+  paymentGatewayRef   String?
+  idempotencyKey      String?       @unique
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  leg     Leg      @relation(fields: [legId], references: [id])
+  tickets Ticket[]
+  payment Payment?
+  refund  Refund?
+
+  @@index([legId])
+  @@index([status])
+  @@index([customerEmail])
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED_BY_CUSTOMER
+  CANCELLED_BY_OPERATOR
+  EXPIRED
+}
+
+model Ticket {
+  id                String       @id @default(cuid())
+  ticketCode        String       @unique // TK-2026-05-000001-1
+  bookingId         String
+  passengerName     String
+  passengerIdNumber String?
+  qrHash            String       @unique
+  status            TicketStatus @default(ISSUED)
+  checkedInAt       DateTime?
+  checkedInBy       String?
+  createdAt         DateTime     @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([qrHash])
+}
+
+enum TicketStatus {
+  ISSUED
+  CHECKED_IN
+  NO_SHOW
+  REFUNDED
+}
+
+// ============== PAYMENTS & REFUNDS ==============
+
+model Payment {
+  id               String        @id @default(cuid())
+  bookingId        String        @unique
+  amount           Decimal       @db.Decimal(12, 2)
+  method           String // 'bank_transfer' | 'gopay' | 'ovo' | 'qris' | 'credit_card' | ...
+  status           PaymentStatus @default(PENDING)
+  gatewayProvider  String        @default("xendit")
+  gatewayReference String?
+  gatewayFee       Decimal       @default(0) @db.Decimal(12, 2)
+  paidAt           DateTime?
+  failedReason     String?
+  rawWebhookData   Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([gatewayReference])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  EXPIRED
+}
+
+model Refund {
+  id               String       @id @default(cuid())
+  bookingId        String       @unique
+  originalAmount   Decimal      @db.Decimal(12, 2)
+  refundAmount     Decimal      @db.Decimal(12, 2)
+  reason           String // 'customer_request' | 'operator_cancellation' | 'admin_override'
+  status           RefundStatus @default(PENDING)
+  gatewayReference String?
+  processedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============== AUDIT LOG ==============
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  entityType    String // 'booking' | 'payment' | 'refund' | 'leg' | 'operator' | ...
+  entityId      String
+  action        String
+  userId        String?
+  userRole      String? // 'customer' | 'operator' | 'admin' | 'system'
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
