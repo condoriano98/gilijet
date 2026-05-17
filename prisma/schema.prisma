@@ -128,8 +128,8 @@ model Leg {
   schedule Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   bookings Booking[]
 
+  @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
-  @@index([scheduleId, departureDate])
 }
 
 enum LegStatus {
