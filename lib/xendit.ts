@@ -2,31 +2,57 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "./env";
 
 /**
- * Thin Xendit wrapper. Implemented in Phase 2 (booking engine). For now we
- * expose the surface so other modules can import without breaking, and we
- * implement the webhook-signature check that Phase 2 will need on day one.
+ * Xendit REST wrapper for the payment flow.
+ *
+ *  - createInvoice : called when a customer submits a booking
+ *  - createRefund  : called when a booking is cancelled (customer or operator)
+ *  - verifyWebhookToken : guards POST /api/webhooks/xendit
+ *
+ * If XENDIT_SECRET_KEY is unset (local dev, demos), all calls throw
+ * XenditNotConfiguredError. Routes catch this and fall back to a mock-pay
+ * code path that lets the rest of the flow be exercised end-to-end.
  */
 
 export class XenditNotConfiguredError extends Error {
   constructor() {
     super("XENDIT_SECRET_KEY is not configured");
+    this.name = "XenditNotConfiguredError";
   }
 }
 
-function basicAuthHeader(): string {
+const XENDIT_BASE = "https://api.xendit.co";
+
+function authHeader(): string {
   if (!env.XENDIT_SECRET_KEY) throw new XenditNotConfiguredError();
-  const token = Buffer.from(`${env.XENDIT_SECRET_KEY}:`).toString("base64");
-  return `Basic ${token}`;
+  return `Basic ${Buffer.from(`${env.XENDIT_SECRET_KEY}:`).toString("base64")}`;
 }
 
+async function xenditFetch<T>(path: string, init: RequestInit): Promise<T> {
+  const res = await fetch(`${XENDIT_BASE}${path}`, {
+    ...init,
+    headers: {
+      ...(init.headers ?? {}),
+      Authorization: authHeader(),
+      "Content-Type": "application/json",
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Xendit ${path} ${res.status}: ${text.slice(0, 500)}`);
+  }
+  return text ? (JSON.parse(text) as T) : ({} as T);
+}
+
+// ---------- invoices ----------
+
 export type CreateInvoiceParams = {
-  externalId: string;
-  amount: number; // IDR, integer
+  externalId: string; // our bookingReference
+  amount: number; // integer IDR
   payerEmail: string;
   description: string;
   successRedirectUrl: string;
   failureRedirectUrl: string;
-  invoiceDuration?: number; // seconds
+  invoiceDuration?: number; // seconds (default 30 min)
 };
 
 export type CreateInvoiceResult = {
@@ -35,22 +61,56 @@ export type CreateInvoiceResult = {
   expiresAt: string;
 };
 
-/**
- * Stub for `POST /v2/invoices`. Phase 2 will turn this on. We keep the shape
- * here so callers can be written against it.
- */
 export async function createInvoice(
-  _params: CreateInvoiceParams,
+  params: CreateInvoiceParams,
 ): Promise<CreateInvoiceResult> {
-  if (!env.XENDIT_SECRET_KEY) throw new XenditNotConfiguredError();
-  void basicAuthHeader; // wired up in Phase 2
-  throw new Error("createInvoice() not implemented yet (Phase 2)");
+  const body = {
+    external_id: params.externalId,
+    amount: params.amount,
+    payer_email: params.payerEmail,
+    description: params.description.slice(0, 200),
+    success_redirect_url: params.successRedirectUrl,
+    failure_redirect_url: params.failureRedirectUrl,
+    invoice_duration: params.invoiceDuration ?? 1800,
+    currency: "IDR",
+  };
+  const r = await xenditFetch<{
+    id: string;
+    invoice_url: string;
+    expiry_date: string;
+  }>("/v2/invoices", { method: "POST", body: JSON.stringify(body) });
+  return { id: r.id, invoiceUrl: r.invoice_url, expiresAt: r.expiry_date };
 }
 
-/**
- * Verify Xendit webhook signature. Xendit sends `x-callback-token` matching
- * our verification token (constant-time compared here).
- */
+// ---------- refunds ----------
+
+export type CreateRefundParams = {
+  invoiceId: string; // Xendit invoice ID
+  amount: number; // integer IDR
+  reason: string;
+};
+
+export type CreateRefundResult = {
+  id: string;
+  status: string;
+};
+
+export async function createRefund(
+  params: CreateRefundParams,
+): Promise<CreateRefundResult> {
+  const r = await xenditFetch<{ id: string; status: string }>("/refunds", {
+    method: "POST",
+    body: JSON.stringify({
+      invoice_id: params.invoiceId,
+      amount: params.amount,
+      reason: params.reason,
+    }),
+  });
+  return { id: r.id, status: r.status };
+}
+
+// ---------- webhook verification ----------
+
 export function verifyWebhookToken(receivedToken: string | null): boolean {
   if (!env.XENDIT_WEBHOOK_VERIFICATION_TOKEN || !receivedToken) return false;
   const a = Buffer.from(env.XENDIT_WEBHOOK_VERIFICATION_TOKEN, "utf8");
@@ -59,10 +119,14 @@ export function verifyWebhookToken(receivedToken: string | null): boolean {
   return timingSafeEqual(a, b);
 }
 
-/** Reserved for future HMAC-based callback signing. */
 export function _hmacFingerprint(payload: string): string {
   if (!env.XENDIT_WEBHOOK_VERIFICATION_TOKEN) return "";
   return createHmac("sha256", env.XENDIT_WEBHOOK_VERIFICATION_TOKEN)
     .update(payload)
     .digest("hex");
+}
+
+/** True when we can talk to Xendit (i.e. customer-facing payment is real). */
+export function isXenditConfigured(): boolean {
+  return Boolean(env.XENDIT_SECRET_KEY);
 }
