@@ -1,3 +1,4 @@
+import "./env-shim";
 import { z } from "zod";
 
 const envSchema = z.object({
