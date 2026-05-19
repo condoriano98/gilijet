@@ -1,21 +1,16 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getCustomerSession, type CustomerSession } from "@/lib/auth";
+import { AuthNav } from "@/components/customer/auth-nav";
 
-export default async function CustomerLayout({
+// Sync layout. The auth-aware buttons live in <AuthNav>, a client
+// component that fetches /api/auth/me on mount. This keeps the
+// layout — and all child routes that don't otherwise read cookies
+// or hit the DB — fully statically renderable.
+export default function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Defensive: never let an auth issue 500 the entire customer-facing
-  // site. If the cookie is malformed, env is misconfigured, or the JWT
-  // lib throws, fall back to the logged-out UI.
-  let session: CustomerSession | null = null;
-  try {
-    session = await getCustomerSession();
-  } catch (err) {
-    console.error("[layout] getCustomerSession failed:", err);
-  }
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur">
@@ -30,22 +25,7 @@ export default async function CustomerLayout({
             <Button asChild variant="ghost" size="sm">
               <Link href="/b">Find booking</Link>
             </Button>
-            {session ? (
-              <Button asChild variant="outline" size="sm">
-                <Link href="/account">
-                  {session.fullName.split(" ")[0]}
-                </Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/account/login">Sign in</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href="/account/register">Sign up</Link>
-                </Button>
-              </>
-            )}
+            <AuthNav />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/operator/login">Operator</Link>
             </Button>
