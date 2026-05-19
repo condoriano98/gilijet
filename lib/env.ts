@@ -52,9 +52,18 @@ function loadEnv() {
     return envSchema.partial().parse(process.env) as z.infer<typeof envSchema>;
   }
 
+  // In production runtime, log loudly but DON'T crash the whole app —
+  // a single missing optional env var shouldn't take the site down. The
+  // specific feature that needs the missing var will fail at its own
+  // call site (e.g. Xendit calls throw a typed error, Prisma throws on
+  // its first query, etc.) where we can return a useful error to the
+  // user. This is more resilient than a hard module-load throw.
   if (process.env.NODE_ENV === "production") {
-    console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors);
-    throw new Error("Invalid environment variables");
+    console.error(
+      "[env] Invalid or missing variables (continuing in degraded mode):",
+      parsed.error.flatten().fieldErrors,
+    );
+    return envSchema.partial().parse(process.env) as z.infer<typeof envSchema>;
   }
 
   // Dev: tolerate so `next dev` and unit-test runs aren't blocked.

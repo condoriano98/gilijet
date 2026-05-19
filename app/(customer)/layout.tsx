@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getCustomerSession } from "@/lib/auth";
+import { getCustomerSession, type CustomerSession } from "@/lib/auth";
 
 export default async function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getCustomerSession();
+  // Defensive: never let an auth issue 500 the entire customer-facing
+  // site. If the cookie is malformed, env is misconfigured, or the JWT
+  // lib throws, fall back to the logged-out UI.
+  let session: CustomerSession | null = null;
+  try {
+    session = await getCustomerSession();
+  } catch (err) {
+    console.error("[layout] getCustomerSession failed:", err);
+  }
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur">

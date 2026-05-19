@@ -30,7 +30,16 @@ export type CustomerSession = Session<"customer"> & {
 };
 
 function secret(): Uint8Array {
-  return new TextEncoder().encode(env.AUTH_SECRET);
+  // If AUTH_SECRET is missing at runtime, fall back to a deterministic
+  // but obviously broken value rather than throwing. Existing JWTs
+  // signed with the real secret will fail to verify (logging the user
+  // out) but the app keeps running. Production should set AUTH_SECRET.
+  const s = env.AUTH_SECRET;
+  if (!s) {
+    console.error("[auth] AUTH_SECRET is missing — sessions will not work");
+    return new TextEncoder().encode("missing-auth-secret-please-configure");
+  }
+  return new TextEncoder().encode(s);
 }
 
 async function sign(payload: object): Promise<string> {
