@@ -52,48 +52,231 @@ async function main() {
   });
   console.log(`✓ operator: ${operator.email} (${operator.status})`);
 
-  const boat = await prisma.boat.upsert({
-    where: { registrationNumber: "SAMPLE-001" },
+  // A second operator so the marketplace has variety.
+  const operator2Email = "demo2@gilijet.local";
+  const operator2 = await prisma.operator.upsert({
+    where: { email: operator2Email },
     create: {
-      operatorId: operator.id,
-      name: "Sample Express I",
-      registrationNumber: "SAMPLE-001",
-      capacity: 50,
-      photos: [],
-      description: "Sample boat seeded for development.",
+      email: operator2Email,
+      passwordHash: opHash,
+      companyName: "Gili Getaway Express (sample)",
+      contactPerson: "Made Surya",
+      phoneNumber: "+6281298765432",
       status: "ACTIVE",
+      documentsVerified: true,
+      bankAccountInfo: {
+        bankName: "Mandiri",
+        accountNumber: "9876543210",
+        accountHolder: "Gili Getaway Express",
+      },
     },
     update: {},
   });
-  console.log(`✓ boat: ${boat.name} (cap ${boat.capacity})`);
+  console.log(`✓ operator: ${operator2.email} (${operator2.status})`);
 
-  let schedule = await prisma.schedule.findFirst({
-    where: { boatId: boat.id, originPort: "Sanur" },
-  });
-  if (!schedule) {
-    schedule = await prisma.schedule.create({
-      data: {
-        boatId: boat.id,
-        originPort: "Sanur",
-        destinationPort: "Nusa Penida",
-        departureTime: "09:00",
-        durationMinutes: 45,
-        basePrice: 250000,
-        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+  // -------- Boats --------
+  const BOATS: Array<{
+    operatorId: string;
+    name: string;
+    registrationNumber: string;
+    capacity: number;
+    description: string;
+  }> = [
+    {
+      operatorId: operator.id,
+      name: "Sanur Express I",
+      registrationNumber: "SAMPLE-001",
+      capacity: 50,
+      description: "Fast boat, AC cabin, life jackets included.",
+    },
+    {
+      operatorId: operator.id,
+      name: "Sanur Express II",
+      registrationNumber: "SAMPLE-002",
+      capacity: 80,
+      description: "Larger fast boat with open deck.",
+    },
+    {
+      operatorId: operator2.id,
+      name: "Gili Cat I",
+      registrationNumber: "SAMPLE-003",
+      capacity: 60,
+      description: "Premium fast boat with WiFi and snacks.",
+    },
+    {
+      operatorId: operator2.id,
+      name: "Gili Cat II",
+      registrationNumber: "SAMPLE-004",
+      capacity: 45,
+      description: "Speedboat with reclining seats.",
+    },
+  ];
+
+  const boats: Record<string, { id: string; capacity: number }> = {};
+  for (const b of BOATS) {
+    const boat = await prisma.boat.upsert({
+      where: { registrationNumber: b.registrationNumber },
+      create: {
+        operatorId: b.operatorId,
+        name: b.name,
+        registrationNumber: b.registrationNumber,
+        capacity: b.capacity,
+        photos: [],
+        description: b.description,
         status: "ACTIVE",
       },
+      update: {},
     });
-    console.log(`✓ schedule: ${schedule.originPort} → ${schedule.destinationPort}`);
-  } else {
+    boats[b.registrationNumber] = { id: boat.id, capacity: boat.capacity };
+    console.log(`✓ boat: ${boat.name} (cap ${boat.capacity})`);
+  }
+
+  // -------- Schedules --------
+  const SCHEDULES: Array<{
+    boatReg: string;
+    originPort: string;
+    destinationPort: string;
+    departureTime: string;
+    durationMinutes: number;
+    basePrice: number;
+  }> = [
+    // Sanur Fast Boats — Bali ↔ Nusa Islands
+    {
+      boatReg: "SAMPLE-001",
+      originPort: "Sanur",
+      destinationPort: "Nusa Penida",
+      departureTime: "09:00",
+      durationMinutes: 45,
+      basePrice: 250000,
+    },
+    {
+      boatReg: "SAMPLE-001",
+      originPort: "Nusa Penida",
+      destinationPort: "Sanur",
+      departureTime: "16:00",
+      durationMinutes: 45,
+      basePrice: 250000,
+    },
+    {
+      boatReg: "SAMPLE-002",
+      originPort: "Sanur",
+      destinationPort: "Nusa Lembongan",
+      departureTime: "10:30",
+      durationMinutes: 35,
+      basePrice: 200000,
+    },
+    {
+      boatReg: "SAMPLE-002",
+      originPort: "Nusa Lembongan",
+      destinationPort: "Sanur",
+      departureTime: "15:30",
+      durationMinutes: 35,
+      basePrice: 200000,
+    },
+    // Gili Getaway — Bali ↔ Gili Islands ↔ Lombok
+    {
+      boatReg: "SAMPLE-003",
+      originPort: "Padang Bai",
+      destinationPort: "Gili Trawangan",
+      departureTime: "08:00",
+      durationMinutes: 150,
+      basePrice: 425000,
+    },
+    {
+      boatReg: "SAMPLE-003",
+      originPort: "Padang Bai",
+      destinationPort: "Gili Air",
+      departureTime: "08:00",
+      durationMinutes: 135,
+      basePrice: 425000,
+    },
+    {
+      boatReg: "SAMPLE-003",
+      originPort: "Gili Trawangan",
+      destinationPort: "Padang Bai",
+      departureTime: "11:30",
+      durationMinutes: 150,
+      basePrice: 425000,
+    },
+    {
+      boatReg: "SAMPLE-004",
+      originPort: "Padang Bai",
+      destinationPort: "Lombok",
+      departureTime: "13:00",
+      durationMinutes: 180,
+      basePrice: 395000,
+    },
+    {
+      boatReg: "SAMPLE-004",
+      originPort: "Bangsal",
+      destinationPort: "Gili Trawangan",
+      departureTime: "09:30",
+      durationMinutes: 25,
+      basePrice: 85000,
+    },
+    {
+      boatReg: "SAMPLE-004",
+      originPort: "Bangsal",
+      destinationPort: "Gili Air",
+      departureTime: "12:00",
+      durationMinutes: 20,
+      basePrice: 85000,
+    },
+  ];
+
+  const allSchedules: Array<{ id: string; originPort: string; destinationPort: string }> = [];
+  for (const s of SCHEDULES) {
+    const existing = await prisma.schedule.findFirst({
+      where: {
+        boatId: boats[s.boatReg].id,
+        originPort: s.originPort,
+        destinationPort: s.destinationPort,
+        departureTime: s.departureTime,
+      },
+    });
+    const schedule =
+      existing ??
+      (await prisma.schedule.create({
+        data: {
+          boatId: boats[s.boatReg].id,
+          originPort: s.originPort,
+          destinationPort: s.destinationPort,
+          departureTime: s.departureTime,
+          durationMinutes: s.durationMinutes,
+          basePrice: s.basePrice,
+          daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+          status: "ACTIVE",
+        },
+      }));
+    allSchedules.push({
+      id: schedule.id,
+      originPort: schedule.originPort,
+      destinationPort: schedule.destinationPort,
+    });
     console.log(
-      `✓ schedule (exists): ${schedule.originPort} → ${schedule.destinationPort}`,
+      `✓ schedule: ${schedule.originPort} → ${schedule.destinationPort} @ ${s.departureTime}`,
     );
   }
 
+  // Backwards-compat: the demo booking block below expects a single named `schedule`.
+  const schedule = await prisma.schedule.findFirstOrThrow({
+    where: {
+      boatId: boats["SAMPLE-001"].id,
+      originPort: "Sanur",
+      destinationPort: "Nusa Penida",
+    },
+  });
+
   // Phase 3 needs concrete departures and a couple of test tickets so the
   // scanner has something real to validate.
-  const generated = await generateLegsForSchedule(schedule.id);
-  if (generated > 0) console.log(`✓ generated ${generated} upcoming legs`);
+  let totalGenerated = 0;
+  for (const s of allSchedules) {
+    const n = await generateLegsForSchedule(s.id);
+    totalGenerated += n;
+  }
+  if (totalGenerated > 0) {
+    console.log(`✓ generated ${totalGenerated} upcoming legs across ${allSchedules.length} schedules`);
+  }
 
   if (process.env.SEED_DEMO_BOOKINGS !== "0") {
     const upcomingLeg = await prisma.leg.findFirst({
