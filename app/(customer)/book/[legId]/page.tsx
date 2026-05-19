@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PassengerFields } from "@/components/customer/passenger-fields";
 import { BookingProgress } from "@/components/customer/booking-progress";
+import { getCustomerSession } from "@/lib/auth";
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -77,6 +78,9 @@ async function submitBookingAction(formData: FormData) {
     );
   }
 
+  // If the user is signed in, link the booking to their account.
+  const session = await getCustomerSession();
+
   let created: { bookingId: string; bookingReference: string };
   try {
     created = await reserveSeatsAndCreateBooking({
@@ -92,6 +96,7 @@ async function submitBookingAction(formData: FormData) {
         idNumber: passengerIds[idx] || null,
       })),
       notes: fields.data.notes || null,
+      customerId: session?.sub ?? null,
     });
   } catch (err) {
     if (err instanceof BookingError) {
@@ -137,11 +142,19 @@ export default async function BookPage({
     Math.min(10, Number(passengersRaw ?? 1) || 1),
   );
 
-  const leg = await prisma.leg.findUnique({
-    where: { id: legId },
-    include: { schedule: { include: { boat: true } } },
-  });
+  const [leg, session] = await Promise.all([
+    prisma.leg.findUnique({
+      where: { id: legId },
+      include: { schedule: { include: { boat: true } } },
+    }),
+    getCustomerSession(),
+  ]);
   if (!leg) notFound();
+
+  // If logged in, pull the customer record for prefill.
+  const customer = session
+    ? await prisma.customer.findUnique({ where: { id: session.sub } })
+    : null;
 
   if (leg.status !== "OPEN" || leg.departureDate.getTime() <= Date.now()) {
     return (
@@ -206,6 +219,32 @@ export default async function BookPage({
             </p>
           ) : null}
 
+          {customer ? (
+            <p className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900">
+              Booking as <strong>{customer.fullName}</strong> ({customer.email}).
+              This trip will appear in your{" "}
+              <Link href="/account" className="underline">account</Link>.
+            </p>
+          ) : (
+            <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              Booking as a guest.{" "}
+              <Link
+                href={`/account/login?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
+                className="font-medium text-sky-700 hover:underline"
+              >
+                Sign in
+              </Link>{" "}
+              or{" "}
+              <Link
+                href={`/account/register?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
+                className="font-medium text-sky-700 hover:underline"
+              >
+                create an account
+              </Link>{" "}
+              to save this trip and skip the form next time.
+            </p>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Passengers</CardTitle>
@@ -235,6 +274,7 @@ export default async function BookPage({
                   required
                   minLength={NAMES_MIN}
                   autoComplete="name"
+                  defaultValue={customer?.fullName ?? ""}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -246,6 +286,7 @@ export default async function BookPage({
                     type="email"
                     required
                     autoComplete="email"
+                    defaultValue={customer?.email ?? ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -259,6 +300,7 @@ export default async function BookPage({
                     required
                     minLength={PHONE_MIN}
                     autoComplete="tel"
+                    defaultValue={customer?.phoneNumber ?? ""}
                   />
                 </div>
               </div>
@@ -270,6 +312,7 @@ export default async function BookPage({
                   id="customerNationality"
                   name="customerNationality"
                   placeholder="e.g. Indonesia"
+                  defaultValue={customer?.nationality ?? ""}
                 />
               </div>
               <div className="space-y-2">

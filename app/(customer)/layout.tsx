@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getCustomerSession } from "@/lib/auth";
 
-export default function CustomerLayout({
+export default async function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getCustomerSession();
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur">
@@ -20,7 +22,23 @@ export default function CustomerLayout({
             <Button asChild variant="ghost" size="sm">
               <Link href="/b">Find booking</Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
+            {session ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/account">
+                  {session.fullName.split(" ")[0]}
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/account/login">Sign in</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/account/register">Sign up</Link>
+                </Button>
+              </>
+            )}
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/operator/login">Operator</Link>
             </Button>
           </nav>

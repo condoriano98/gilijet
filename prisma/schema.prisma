@@ -18,6 +18,21 @@ datasource db {
 
 // ============== USERS ==============
 
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  phoneNumber  String?
+  nationality  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@index([email])
+}
+
 model Operator {
   id                String         @id @default(cuid())
   email             String         @unique
@@ -145,6 +160,7 @@ model Booking {
   id                  String        @id @default(cuid())
   bookingReference    String        @unique // human-readable: BK-2026-05-000001
   legId               String
+  customerId          String?
   customerName        String
   customerEmail       String
   customerPhone       String
@@ -161,14 +177,16 @@ model Booking {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  leg     Leg      @relation(fields: [legId], references: [id])
-  tickets Ticket[]
-  payment Payment?
-  refund  Refund?
+  leg      Leg       @relation(fields: [legId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tickets  Ticket[]
+  payment  Payment?
+  refund   Refund?
 
   @@index([legId])
   @@index([status])
   @@index([customerEmail])
+  @@index([customerId])
 }
 
 enum BookingStatus {

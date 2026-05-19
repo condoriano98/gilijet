@@ -44,6 +44,7 @@ export type CreateBookingArgs = {
   passengers: BookingPassenger[];
   idempotencyKey?: string | null;
   notes?: string | null;
+  customerId?: string | null;
 };
 
 /**
@@ -120,6 +121,7 @@ export async function reserveSeatsAndCreateBooking(
           data: {
             bookingReference,
             legId: leg.id,
+            customerId: args.customerId ?? null,
             customerName: args.customer.name,
             customerEmail: args.customer.email.toLowerCase(),
             customerPhone: args.customer.phone,

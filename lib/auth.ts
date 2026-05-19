@@ -12,6 +12,7 @@ import { env } from "./env";
 
 const OPERATOR_COOKIE = "gilijet_op";
 const ADMIN_COOKIE = "gilijet_admin";
+const CUSTOMER_COOKIE = "gilijet_cust";
 const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24h (see §9.1)
 
 type Session<Role extends string> = {
@@ -23,6 +24,9 @@ type Session<Role extends string> = {
 export type OperatorSession = Session<"operator">;
 export type AdminSession = Session<"admin"> & {
   adminRole: "SUPER_ADMIN" | "STAFF";
+};
+export type CustomerSession = Session<"customer"> & {
+  fullName: string;
 };
 
 function secret(): Uint8Array {
@@ -125,4 +129,30 @@ export async function requireSuperAdmin(): Promise<AdminSession> {
 export async function clearAdminSession(): Promise<void> {
   const jar = await cookies();
   jar.delete(ADMIN_COOKIE);
+}
+
+// ---------- customer session ----------
+
+export async function setCustomerSession(s: CustomerSession): Promise<void> {
+  const token = await sign(s);
+  const jar = await cookies();
+  jar.set(CUSTOMER_COOKIE, token, cookieOptions());
+}
+
+export async function getCustomerSession(): Promise<CustomerSession | null> {
+  const jar = await cookies();
+  const token = jar.get(CUSTOMER_COOKIE)?.value;
+  if (!token) return null;
+  return verify<CustomerSession>(token);
+}
+
+export async function requireCustomer(): Promise<CustomerSession> {
+  const s = await getCustomerSession();
+  if (!s) redirect("/account/login");
+  return s;
+}
+
+export async function clearCustomerSession(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(CUSTOMER_COOKIE);
 }
