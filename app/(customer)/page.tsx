@@ -7,16 +7,23 @@ import { SearchForm } from "@/components/customer/search-form";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const schedules = await prisma.schedule.findMany({
-    where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
-    select: { originPort: true, destinationPort: true },
-  });
-  const origins = Array.from(
-    new Set(schedules.map((s) => s.originPort)),
-  ).sort();
-  const destinations = Array.from(
-    new Set(schedules.map((s) => s.destinationPort)),
-  ).sort();
+  // If the DB is unreachable or env vars are missing, render the empty
+  // state rather than 500-ing the entire site. Logged so the issue still
+  // surfaces in Vercel runtime logs.
+  let origins: string[] = [];
+  let destinations: string[] = [];
+  try {
+    const schedules = await prisma.schedule.findMany({
+      where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
+      select: { originPort: true, destinationPort: true },
+    });
+    origins = Array.from(new Set(schedules.map((s) => s.originPort))).sort();
+    destinations = Array.from(
+      new Set(schedules.map((s) => s.destinationPort)),
+    ).sort();
+  } catch (err) {
+    console.error("[home] failed to load schedules — rendering empty state", err);
+  }
 
   return (
     <>
