@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BookingProgress } from "@/components/customer/booking-progress";
 
 async function mockPayAction(formData: FormData) {
   "use server";
@@ -102,6 +103,7 @@ export default async function PayPage({
   return (
     <div className="container py-10">
       <div className="mx-auto max-w-xl">
+        <BookingProgress currentStep={3} />
         <Card>
           <CardHeader>
             <CardTitle>Complete payment</CardTitle>

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PassengerFields } from "@/components/customer/passenger-fields";
+import { BookingProgress } from "@/components/customer/booking-progress";
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -164,6 +165,7 @@ export default async function BookPage({
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-3xl">
+        <BookingProgress currentStep={2} />
         <Link
           href={`/search?origin=${encodeURIComponent(leg.schedule.originPort)}&destination=${encodeURIComponent(leg.schedule.destinationPort)}`}
           className="text-sm text-muted-foreground hover:underline"

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BookingProgress } from "@/components/customer/booking-progress";
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -198,6 +199,7 @@ export default async function BookingLookupPage({
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-2xl space-y-6">
+        {booking.status === "CONFIRMED" && <BookingProgress currentStep={4} />}
         <div>
           <Link
             href="/"

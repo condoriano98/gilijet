@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/customer/search-form";
+import { BookingProgress } from "@/components/customer/booking-progress";
 import { formatIDR } from "@/lib/utils";
 
 const querySchema = z.object({
@@ -87,6 +88,7 @@ export default async function SearchPage({
 
   return (
     <div className="container py-8">
+      <BookingProgress currentStep={1} />
       <div className="mb-6">
         <SearchForm
           origins={origins}
