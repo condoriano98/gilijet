@@ -240,7 +240,7 @@ function ContactStep({
   onChange,
 }: {
   contact: { name: string; email: string; phone: string };
-  onChange: (contact: typeof contact) => void;
+  onChange: (contact: { name: string; email: string; phone: string }) => void;
 }) {
   return (
     <div className="space-y-4">
