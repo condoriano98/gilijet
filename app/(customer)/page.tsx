@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
 import { SearchForm } from "@/components/customer/search-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-export const dynamic = "force-dynamic";
 
 // Fallback ports if the DB is empty so the landing page always renders
 // with usable dropdowns. Real ports merge in on top of these.
@@ -64,25 +61,13 @@ const TRUST_BADGES = [
   { title: "Secure Payment", desc: "Powered by Xendit, BI licensed" },
 ];
 
-export default async function HomePage() {
-  let origins: string[] = SEED_ORIGINS;
-  let destinations: string[] = SEED_DESTINATIONS;
-  try {
-    const schedules = await prisma.schedule.findMany({
-      where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
-      select: { originPort: true, destinationPort: true },
-    });
-    const dbOrigins = schedules.map((s) => s.originPort);
-    const dbDestinations = schedules.map((s) => s.destinationPort);
-    if (dbOrigins.length > 0) {
-      origins = Array.from(new Set([...SEED_ORIGINS, ...dbOrigins])).sort();
-      destinations = Array.from(
-        new Set([...SEED_DESTINATIONS, ...dbDestinations]),
-      ).sort();
-    }
-  } catch (err) {
-    console.error("[home] failed to load schedules — using seed list", err);
-  }
+// The landing page is a marketing surface — fully static for max
+// reliability. Ports come from a hardcoded list of popular Indonesian
+// destinations. The dropdowns on the search form post to /search,
+// which is where the live DB query happens.
+export default function HomePage() {
+  const origins = SEED_ORIGINS;
+  const destinations = SEED_DESTINATIONS;
 
   return (
     <>

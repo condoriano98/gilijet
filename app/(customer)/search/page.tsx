@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   formatLocalDate,
@@ -35,14 +36,29 @@ export default async function SearchPage({
   const raw = await searchParams;
   const parsed = querySchema.safeParse(raw);
 
-  const schedules = await prisma.schedule.findMany({
-    where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
-    select: { originPort: true, destinationPort: true },
-  });
-  const origins = Array.from(new Set(schedules.map((s) => s.originPort))).sort();
-  const destinations = Array.from(
-    new Set(schedules.map((s) => s.destinationPort)),
-  ).sort();
+  // Fallback ports so search renders even if the DB is unreachable.
+  const SEED = [
+    "Sanur", "Padang Bai", "Bangsal", "Nusa Penida", "Nusa Lembongan",
+    "Gili Trawangan", "Gili Air", "Lombok", "Labuan Bajo",
+  ];
+  let origins = SEED;
+  let destinations = SEED;
+  try {
+    const schedules = await prisma.schedule.findMany({
+      where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
+      select: { originPort: true, destinationPort: true },
+    });
+    if (schedules.length > 0) {
+      origins = Array.from(
+        new Set([...SEED, ...schedules.map((s) => s.originPort)]),
+      ).sort();
+      destinations = Array.from(
+        new Set([...SEED, ...schedules.map((s) => s.destinationPort)]),
+      ).sort();
+    }
+  } catch (err) {
+    console.error("[search] schedules query failed:", err);
+  }
 
   if (!parsed.success) {
     return (
@@ -58,33 +74,48 @@ export default async function SearchPage({
 
   const { origin, destination, date, passengers } = parsed.data;
 
-  // Lazy expiry sweep so freed seats show up in the next render.
-  await expireStalePendingBookings();
+  // Lazy expiry sweep so freed seats show up in the next render. Don't
+  // let a sweep failure block the page.
+  try {
+    await expireStalePendingBookings();
+  } catch (err) {
+    console.error("[search] expireStalePendingBookings failed:", err);
+  }
 
   // The user's selected day, expressed as the UTC window from local 00:00
   // to local 23:59:59 in WITA.
   const startUtc = localDateTimeToUtc(date, "00:00");
   const endUtc = localDateTimeToUtc(date, "23:59");
 
-  const legs = await prisma.leg.findMany({
-    where: {
-      departureDate: { gte: startUtc, lte: endUtc },
-      status: { in: ["OPEN"] },
-      availableSeats: { gte: passengers },
-      schedule: {
-        is: {
-          originPort: { equals: origin, mode: "insensitive" },
-          destinationPort: { equals: destination, mode: "insensitive" },
-          status: "ACTIVE",
+  type LegWithSchedule = Prisma.LegGetPayload<{
+    include: { schedule: { include: { boat: true } } };
+  }>;
+  let legs: LegWithSchedule[] = [];
+  let legsError = false;
+  try {
+    legs = await prisma.leg.findMany({
+      where: {
+        departureDate: { gte: startUtc, lte: endUtc },
+        status: { in: ["OPEN"] },
+        availableSeats: { gte: passengers },
+        schedule: {
+          is: {
+            originPort: { equals: origin, mode: "insensitive" },
+            destinationPort: { equals: destination, mode: "insensitive" },
+            status: "ACTIVE",
+          },
         },
       },
-    },
-    include: {
-      schedule: { include: { boat: true } },
-    },
-    orderBy: { departureDate: "asc" },
-    take: 50,
-  });
+      include: {
+        schedule: { include: { boat: true } },
+      },
+      orderBy: { departureDate: "asc" },
+      take: 50,
+    });
+  } catch (err) {
+    console.error("[search] legs query failed:", err);
+    legsError = true;
+  }
 
   return (
     <div className="container py-8">
@@ -110,7 +141,14 @@ export default async function SearchPage({
         </p>
       </div>
 
-      {legs.length === 0 ? (
+      {legsError ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            We&apos;re having trouble loading departures right now. Please try
+            again in a moment.
+          </CardContent>
+        </Card>
+      ) : legs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             No departures match. Try a different date or route.
