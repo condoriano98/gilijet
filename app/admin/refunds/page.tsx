@@ -1,5 +1,9 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { audit } from "@/lib/audit";
+import { createRefund, isXenditConfigured } from "@/lib/xendit";
 import {
   Card,
   CardContent,
@@ -16,15 +20,159 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDateTimeID, formatIDR } from "@/lib/utils";
 
-export default async function AdminRefundsPage() {
+async function approveRefundAction(formData: FormData) {
+  "use server";
+  const session = await requireAdmin();
+  const refundId = String(formData.get("refundId") ?? "");
+  if (!refundId) redirect("/admin/refunds");
+
+  const refund = await prisma.refund.findUnique({
+    where: { id: refundId },
+    include: { booking: { include: { payment: true } } },
+  });
+  if (!refund) redirect("/admin/refunds?error=missing");
+  if (refund.status !== "PENDING") {
+    redirect(`/admin/refunds?error=already_${refund.status.toLowerCase()}`);
+  }
+
+  // Try to process via Xendit if the invoice was actually paid through it.
+  let gatewayReference: string | null = refund.gatewayReference ?? null;
+  let newStatus: "APPROVED" | "PROCESSING" | "COMPLETED" = "APPROVED";
+
+  if (
+    isXenditConfigured() &&
+    refund.booking.payment?.status === "SUCCESSFUL" &&
+    refund.booking.payment.gatewayReference &&
+    !gatewayReference
+  ) {
+    try {
+      const r = await createRefund({
+        invoiceId: refund.booking.payment.gatewayReference,
+        amount: Math.round(Number(refund.refundAmount)),
+        reason: refund.reason || "admin_approved",
+      });
+      gatewayReference = r.id;
+      newStatus = "PROCESSING";
+    } catch (err) {
+      console.error("[admin-refunds] xendit refund failed:", err);
+      // Fall through — admin will retry from the same screen.
+      redirect(`/admin/refunds?error=gateway_failed`);
+    }
+  }
+
+  await prisma.refund.update({
+    where: { id: refund.id },
+    data: {
+      status: newStatus,
+      gatewayReference,
+      approvedBy: session.sub,
+      approvedAt: new Date(),
+      processedAt: newStatus !== "APPROVED" ? new Date() : null,
+    },
+  });
+
+  await audit({
+    entityType: "refund",
+    entityId: refund.id,
+    action: "approved",
+    userRole: "admin",
+    userId: session.sub,
+    newState: { status: newStatus, gatewayReference },
+  });
+
+  redirect(`/admin/refunds?ok=approved`);
+}
+
+async function rejectRefundAction(formData: FormData) {
+  "use server";
+  const session = await requireAdmin();
+  const refundId = String(formData.get("refundId") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  if (!refundId) redirect("/admin/refunds");
+
+  const refund = await prisma.refund.findUnique({ where: { id: refundId } });
+  if (!refund) redirect("/admin/refunds?error=missing");
+  if (refund.status !== "PENDING") {
+    redirect(`/admin/refunds?error=already_${refund.status.toLowerCase()}`);
+  }
+
+  await prisma.refund.update({
+    where: { id: refund.id },
+    data: {
+      status: "REJECTED",
+      approvedBy: session.sub,
+      approvedAt: new Date(),
+      adminNote: note || null,
+    },
+  });
+
+  await audit({
+    entityType: "refund",
+    entityId: refund.id,
+    action: "rejected",
+    userRole: "admin",
+    userId: session.sub,
+    newState: { status: "REJECTED", note },
+  });
+
+  redirect(`/admin/refunds?ok=rejected`);
+}
+
+function statusVariant(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "success" as const;
+    case "PROCESSING":
+    case "APPROVED":
+      return "default" as const;
+    case "PENDING":
+      return "warning" as const;
+    case "REJECTED":
+    case "FAILED":
+      return "destructive" as const;
+    default:
+      return "outline" as const;
+  }
+}
+
+export default async function AdminRefundsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string; filter?: string }>;
+}) {
   await requireAdmin();
+  const { ok, error, filter } = await searchParams;
+
+  const pendingCount = await prisma.refund.count({
+    where: { status: "PENDING" },
+  });
+  const totalPaid = await prisma.refund.aggregate({
+    where: { status: { in: ["COMPLETED", "PROCESSING"] } },
+    _sum: { refundAmount: true },
+  });
+
+  const where =
+    filter === "pending"
+      ? { status: "PENDING" as const }
+      : filter === "completed"
+        ? { status: "COMPLETED" as const }
+        : {};
 
   const refunds = await prisma.refund.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { booking: true },
+    where,
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 100,
+    include: {
+      booking: {
+        include: {
+          payment: true,
+          leg: { include: { schedule: true } },
+        },
+      },
+    },
   });
 
   return (
@@ -32,33 +180,79 @@ export default async function AdminRefundsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Refunds</h1>
         <p className="text-sm text-muted-foreground">
-          Manual approval workflow ships in Phase 4.
+          Review pending refund requests and approve or reject them.
         </p>
+      </div>
+
+      {ok ? (
+        <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+          Refund {ok}.
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Error: {error.replace(/_/g, " ")}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Pending approval</CardDescription>
+            <CardTitle className="text-3xl">{pendingCount}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total refunded</CardDescription>
+            <CardTitle className="text-3xl">
+              {formatIDR(Number(totalPaid._sum.refundAmount ?? 0))}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Filter</CardDescription>
+            <CardContent className="px-0 pt-2 pb-0">
+              <div className="flex gap-2">
+                <Button asChild size="sm" variant={!filter ? "default" : "outline"}>
+                  <Link href="/admin/refunds">All</Link>
+                </Button>
+                <Button asChild size="sm" variant={filter === "pending" ? "default" : "outline"}>
+                  <Link href="/admin/refunds?filter=pending">Pending</Link>
+                </Button>
+                <Button asChild size="sm" variant={filter === "completed" ? "default" : "outline"}>
+                  <Link href="/admin/refunds?filter=completed">Done</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </CardHeader>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent refund requests</CardTitle>
+          <CardTitle>Refund requests</CardTitle>
           <CardDescription>
-            {refunds.length === 0
-              ? "No refunds yet."
-              : `${refunds.length} most recent`}
+            {refunds.length === 0 ? "No refunds match." : `${refunds.length} shown`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {refunds.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
-              Refund requests will appear here once Phase 2 (bookings) is live.
+              Nothing here.
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Booking</TableHead>
+                  <TableHead>Route</TableHead>
                   <TableHead>Reason</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -67,13 +261,39 @@ export default async function AdminRefundsPage() {
                     <TableCell className="font-mono text-xs">
                       {r.booking.bookingReference}
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {r.booking.leg.schedule.originPort} →{" "}
+                      {r.booking.leg.schedule.destinationPort}
+                    </TableCell>
                     <TableCell className="text-sm">{r.reason}</TableCell>
-                    <TableCell>{formatIDR(Number(r.refundAmount))}</TableCell>
+                    <TableCell className="font-medium">
+                      {formatIDR(Number(r.refundAmount))}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{r.status}</Badge>
+                      <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatDateTimeID(r.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {r.status === "PENDING" ? (
+                        <div className="flex justify-end gap-2">
+                          <form action={approveRefundAction}>
+                            <input type="hidden" name="refundId" value={r.id} />
+                            <Button type="submit" size="sm">
+                              Approve
+                            </Button>
+                          </form>
+                          <form action={rejectRefundAction}>
+                            <input type="hidden" name="refundId" value={r.id} />
+                            <Button type="submit" size="sm" variant="outline">
+                              Reject
+                            </Button>
+                          </form>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

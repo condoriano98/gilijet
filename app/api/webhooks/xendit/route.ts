@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { verifyWebhookToken } from "@/lib/xendit";
 import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
 import { releaseBookingSeats } from "@/lib/booking-engine";
 import { sendBookingConfirmation } from "@/lib/email";
+
+// Schemas: Xendit's payloads are wide and inconsistent across event types,
+// so we validate only the fields we touch and let the rest pass through.
+const invoicePaidSchema = z.object({
+  external_id: z.string().min(1),
+  id: z.string().optional(),
+  invoice_id: z.string().optional(),
+  status: z.string().optional(),
+  paid_at: z.string().optional(),
+  payment_method: z.string().optional(),
+  fees_paid_amount: z.number().optional(),
+});
+
+const invoiceExpiredSchema = z.object({
+  external_id: z.string().min(1),
+});
+
+const refundEventSchema = z.object({
+  id: z.string().min(1),
+  created: z.string().optional(),
+});
 
 /**
  * Xendit posts invoice + refund events here. Validates the x-callback-token
@@ -75,14 +97,16 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleInvoicePaid(body: Record<string, unknown>) {
-  const externalId = String(body.external_id ?? "");
-  const invoiceId = String(body.id ?? body.invoice_id ?? "");
-  if (!externalId) {
+  const parsed = invoicePaidSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { ok: false, error: "Missing external_id" },
+      { ok: false, error: "Invalid invoice.paid payload" },
       { status: 400 },
     );
   }
+  const data = parsed.data;
+  const externalId = data.external_id;
+  const invoiceId = data.id ?? data.invoice_id ?? "";
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: externalId },
@@ -102,14 +126,10 @@ async function handleInvoicePaid(body: Record<string, unknown>) {
   // Idempotent: confirmPaymentAndIssueTickets short-circuits if already done.
   const result = await confirmPaymentAndIssueTickets({
     bookingId: booking.id,
-    paidAt:
-      typeof body.paid_at === "string" ? new Date(body.paid_at) : new Date(),
-    method: typeof body.payment_method === "string" ? body.payment_method : "xendit",
+    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
+    method: data.payment_method ?? "xendit",
     gatewayReference: invoiceId || null,
-    gatewayFee:
-      typeof body.fees_paid_amount === "number"
-        ? body.fees_paid_amount
-        : null,
+    gatewayFee: data.fees_paid_amount ?? null,
   });
 
   // Persist the raw webhook for debugging — small JSON, useful in disputes.
@@ -143,9 +163,14 @@ async function handleInvoicePaid(body: Record<string, unknown>) {
 }
 
 async function handleInvoiceExpired(body: Record<string, unknown>) {
-  const externalId = String(body.external_id ?? "");
-  if (!externalId)
-    return NextResponse.json({ ok: false }, { status: 400 });
+  const parsed = invoiceExpiredSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid invoice.expired payload" },
+      { status: 400 },
+    );
+  }
+  const externalId = parsed.data.external_id;
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: externalId },
@@ -169,8 +194,14 @@ async function handleInvoiceExpired(body: Record<string, unknown>) {
 }
 
 async function handleRefundSucceeded(body: Record<string, unknown>) {
-  const refundId = String(body.id ?? "");
-  if (!refundId) return NextResponse.json({ ok: false }, { status: 400 });
+  const parsed = refundEventSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid refund payload" },
+      { status: 400 },
+    );
+  }
+  const refundId = parsed.data.id;
 
   const refund = await prisma.refund.findFirst({
     where: { gatewayReference: refundId },
@@ -181,16 +212,23 @@ async function handleRefundSucceeded(body: Record<string, unknown>) {
     where: { id: refund.id },
     data: {
       status: "COMPLETED",
-      processedAt:
-        typeof body.created === "string" ? new Date(body.created) : new Date(),
+      processedAt: parsed.data.created
+        ? new Date(parsed.data.created)
+        : new Date(),
     },
   });
   return NextResponse.json({ ok: true });
 }
 
 async function handleRefundFailed(body: Record<string, unknown>) {
-  const refundId = String(body.id ?? "");
-  if (!refundId) return NextResponse.json({ ok: false }, { status: 400 });
+  const parsed = refundEventSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid refund payload" },
+      { status: 400 },
+    );
+  }
+  const refundId = parsed.data.id;
   const refund = await prisma.refund.findFirst({
     where: { gatewayReference: refundId },
   });

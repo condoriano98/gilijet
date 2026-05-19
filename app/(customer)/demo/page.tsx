@@ -235,12 +235,14 @@ function PassengerStep({
   );
 }
 
+type ContactInfo = { name: string; email: string; phone: string };
+
 function ContactStep({
   contact,
   onChange,
 }: {
-  contact: { name: string; email: string; phone: string };
-  onChange: (contact: { name: string; email: string; phone: string }) => void;
+  contact: ContactInfo;
+  onChange: (contact: ContactInfo) => void;
 }) {
   return (
     <div className="space-y-4">

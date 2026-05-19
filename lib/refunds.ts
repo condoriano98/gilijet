@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
  * Refund policy (see REQUIREMENTS.md §6.4).
  *
  *  7+ days before departure       → 100% refund
- *  3-6 days before departure      → 50% refund
+ *  4-6 days before departure      → 50% refund
  *  0-3 days before departure      → 0%   (no refund)
  *  Operator cancels (any window)  → 100% refund
  */
@@ -18,7 +18,7 @@ export function refundTierForCustomer(
   const ms = departure.getTime() - now.getTime();
   const days = ms / (1000 * 60 * 60 * 24);
   if (days >= 7) return "FULL";
-  if (days >= 3) return "PARTIAL";
+  if (days > 3) return "PARTIAL";
   return "NONE";
 }
 

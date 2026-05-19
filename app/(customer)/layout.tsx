@@ -27,9 +27,87 @@ export default function CustomerLayout({
         </div>
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="border-t py-6">
-        <div className="container text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Gilijet · Boat tickets across Indonesia
+      <footer className="border-t bg-white">
+        <div className="container py-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <div>
+              <div className="font-semibold text-slate-900">Gilijet</div>
+              <p className="mt-2 text-xs text-slate-600">
+                Boat tickets across Indonesia. Verified operators, transparent
+                prices, fair refunds.
+              </p>
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Company</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>
+                  <Link href="/about" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/operator/login" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    For operators
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Legal</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>
+                  <Link href="/terms" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refunds" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Refund Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Support</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>
+                  <Link href="/b" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Find my booking
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="mailto:support@gilijet.com"
+                    className="text-slate-600 hover:text-sky-700 hover:underline"
+                  >
+                    support@gilijet.com
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://wa.me/6281234567890"
+                    className="text-slate-600 hover:text-sky-700 hover:underline"
+                  >
+                    WhatsApp
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-8 border-t pt-4 text-center text-xs text-slate-500">
+            © {new Date().getFullYear()} PT Gilijet Nusantara · Payments
+            processed by Xendit, licensed by Bank Indonesia
+          </div>
         </div>
       </footer>
     </div>

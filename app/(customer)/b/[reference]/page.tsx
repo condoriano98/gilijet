@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
+import { CopyButton } from "@/components/customer/payment-countdown";
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -212,6 +213,7 @@ export default async function BookingLookupPage({
               <h1 className="text-2xl font-bold tracking-tight">Booking</h1>
               <p className="font-mono text-sm text-muted-foreground">
                 {booking.bookingReference}
+                <CopyButton value={booking.bookingReference} />
               </p>
             </div>
             <Badge variant={statusBadge(booking.status)} className="text-sm">

@@ -43,12 +43,21 @@ export function verifyQrPayload(payload: string): ParsedQr {
   if (provided.length !== expected.length) {
     return { ok: false, reason: "BAD_SIGNATURE" };
   }
-  if (
-    !timingSafeEqual(
-      Buffer.from(provided, "utf8"),
-      Buffer.from(expected, "utf8"),
-    )
-  ) {
+  // Decode both as base64url so we compare raw signature bytes, not their
+  // string encoding. Bad input (non-base64url chars) throws or yields an
+  // empty buffer; treat that as a bad signature.
+  let providedBuf: Buffer;
+  let expectedBuf: Buffer;
+  try {
+    providedBuf = Buffer.from(provided, "base64url");
+    expectedBuf = Buffer.from(expected, "base64url");
+  } catch {
+    return { ok: false, reason: "BAD_SIGNATURE" };
+  }
+  if (providedBuf.length !== expectedBuf.length || providedBuf.length === 0) {
+    return { ok: false, reason: "BAD_SIGNATURE" };
+  }
+  if (!timingSafeEqual(providedBuf, expectedBuf)) {
     return { ok: false, reason: "BAD_SIGNATURE" };
   }
   return { ok: true, ticketCode };

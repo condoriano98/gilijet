@@ -27,21 +27,69 @@ export default async function OperatorDashboardPage() {
   startOfDay.setUTCHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-  const [todayLegs, upcomingLegs, scheduleCount] = await Promise.all([
-    getOperatorLegs(session.sub, {
-      fromUtc: startOfDay,
-      toUtc: endOfDay,
-      take: 20,
-    }),
-    getOperatorLegs(session.sub, {
-      fromUtc: endOfDay,
-      toUtc: new Date(endOfDay.getTime() + 7 * 24 * 60 * 60 * 1000),
-      take: 20,
-    }),
-    prisma.schedule.count({
-      where: { boat: { operatorId: session.sub }, status: "ACTIVE" },
-    }),
-  ]);
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setUTCDate(startOfWeek.getUTCDate() - 6);
+  const startOfMonth = new Date(startOfDay);
+  startOfMonth.setUTCDate(1);
+
+  const [todayLegs, upcomingLegs, scheduleCount, todayRevenue, weekRevenue, monthRevenue, pendingPayout] =
+    await Promise.all([
+      getOperatorLegs(session.sub, {
+        fromUtc: startOfDay,
+        toUtc: endOfDay,
+        take: 20,
+      }),
+      getOperatorLegs(session.sub, {
+        fromUtc: endOfDay,
+        toUtc: new Date(endOfDay.getTime() + 7 * 24 * 60 * 60 * 1000),
+        take: 20,
+      }),
+      prisma.schedule.count({
+        where: { boat: { operatorId: session.sub }, status: "ACTIVE" },
+      }),
+      // Today's confirmed bookings - operator earnings
+      prisma.booking.aggregate({
+        where: {
+          status: "CONFIRMED",
+          leg: { schedule: { boat: { operatorId: session.sub } } },
+          createdAt: { gte: startOfDay, lt: endOfDay },
+        },
+        _sum: { operatorAmount: true },
+        _count: true,
+      }),
+      // 7-day rolling revenue
+      prisma.booking.aggregate({
+        where: {
+          status: "CONFIRMED",
+          leg: { schedule: { boat: { operatorId: session.sub } } },
+          createdAt: { gte: startOfWeek, lt: endOfDay },
+        },
+        _sum: { operatorAmount: true },
+        _count: true,
+      }),
+      // Month-to-date
+      prisma.booking.aggregate({
+        where: {
+          status: "CONFIRMED",
+          leg: { schedule: { boat: { operatorId: session.sub } } },
+          createdAt: { gte: startOfMonth, lt: endOfDay },
+        },
+        _sum: { operatorAmount: true },
+        _count: true,
+      }),
+      // Awaiting settlement (CONFIRMED, departure passed, not yet paid out)
+      prisma.booking.aggregate({
+        where: {
+          status: "CONFIRMED",
+          leg: {
+            schedule: { boat: { operatorId: session.sub } },
+            departureDate: { lt: now },
+          },
+        },
+        _sum: { operatorAmount: true },
+        _count: true,
+      }),
+    ]);
 
   const todayBooked = todayLegs.reduce(
     (acc, l) => acc + (l.totalCapacity - l.availableSeats),
@@ -51,6 +99,8 @@ export default async function OperatorDashboardPage() {
     (acc, l) => acc + l.totalCapacity,
     0,
   );
+  const formatRupiah = (v: number) =>
+    `IDR ${Math.round(v).toLocaleString("id-ID")}`;
 
   return (
     <div className="space-y-6">
@@ -61,6 +111,55 @@ export default async function OperatorDashboardPage() {
         <p className="text-sm text-muted-foreground">{operator.companyName}</p>
       </div>
 
+      {/* Revenue at a glance */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Today&apos;s earnings</CardDescription>
+            <CardTitle className="text-2xl">
+              {formatRupiah(Number(todayRevenue._sum.operatorAmount ?? 0))}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {todayRevenue._count} confirmed booking{todayRevenue._count === 1 ? "" : "s"}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Last 7 days</CardDescription>
+            <CardTitle className="text-2xl">
+              {formatRupiah(Number(weekRevenue._sum.operatorAmount ?? 0))}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {weekRevenue._count} confirmed
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Month to date</CardDescription>
+            <CardTitle className="text-2xl">
+              {formatRupiah(Number(monthRevenue._sum.operatorAmount ?? 0))}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {monthRevenue._count} confirmed
+          </CardContent>
+        </Card>
+        <Card className="bg-amber-50 border-amber-200">
+          <CardHeader className="pb-2">
+            <CardDescription>Pending payout</CardDescription>
+            <CardTitle className="text-2xl">
+              {formatRupiah(Number(pendingPayout._sum.operatorAmount ?? 0))}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Settles weekly · {pendingPayout._count} trip{pendingPayout._count === 1 ? "" : "s"}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Operations at a glance */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
+import { PaymentCountdown } from "@/components/customer/payment-countdown";
 
 async function mockPayAction(formData: FormData) {
   "use server";
@@ -113,6 +114,10 @@ export default async function PayPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
+            <PaymentCountdown
+              createdAtIso={booking.createdAt.toISOString()}
+              holdMinutes={env.BOOKING_HOLD_MINUTES ?? 30}
+            />
             <div className="rounded-md bg-slate-50 p-3">
               <div className="font-medium">
                 {booking.leg.schedule.originPort} →{" "}

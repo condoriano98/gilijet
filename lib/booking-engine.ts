@@ -174,17 +174,14 @@ export async function reserveSeatsAndCreateBooking(
       },
     });
 
-    // Flip leg to FULL if we just consumed the last seat.
-    const refreshed = await tx.leg.findUniqueOrThrow({
-      where: { id: leg.id },
-      select: { availableSeats: true },
+    // Flip leg to FULL atomically only when WE consumed the last seat. The
+    // updateMany guard ensures we never race another booking that just
+    // freed seats — if availableSeats moved away from 0 between the
+    // reservation and this check, no rows match and we don't downgrade.
+    await tx.leg.updateMany({
+      where: { id: leg.id, availableSeats: 0, status: "OPEN" },
+      data: { status: "FULL" },
     });
-    if (refreshed.availableSeats === 0) {
-      await tx.leg.update({
-        where: { id: leg.id },
-        data: { status: "FULL" },
-      });
-    }
 
     await tx.auditLog.create({
       data: {

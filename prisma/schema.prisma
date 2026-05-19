@@ -243,6 +243,9 @@ model Refund {
   status           RefundStatus @default(PENDING)
   gatewayReference String?
   processedAt      DateTime?
+  approvedBy       String? // Admin.id who approved/rejected
+  approvedAt       DateTime?
+  adminNote        String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
