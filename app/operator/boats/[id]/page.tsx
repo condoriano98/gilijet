@@ -162,11 +162,16 @@ export default async function EditBoatPage({
               />
             </div>
           </CardContent>
-          <CardFooter className="justify-end gap-2">
-            <Button asChild variant="ghost">
-              <Link href="/operator/boats">Cancel</Link>
+          <CardFooter className="justify-between gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/operator/boats/${boat.id}/seat-map`}>Seat map</Link>
             </Button>
-            <Button type="submit">Save changes</Button>
+            <div className="flex gap-2">
+              <Button asChild variant="ghost">
+                <Link href="/operator/boats">Cancel</Link>
+              </Button>
+              <Button type="submit">Save changes</Button>
+            </div>
           </CardFooter>
         </Card>
       </form>

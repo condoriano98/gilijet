@@ -22,6 +22,82 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTimeID, formatIDR } from "@/lib/utils";
+import { refundTierForCustomer } from "@/lib/refunds";
+import { sendCancellationEmail, sendRefundProcessedEmail } from "@/lib/email";
+import { env } from "@/lib/env";
+
+/**
+ * Automatically approves all PENDING refunds where the customer is still in
+ * the FULL-refund window (7+ days before departure). Safe to call as a
+ * background action.
+ */
+async function autoApproveEligibleRefunds() {
+  "use server";
+  await requireAdmin();
+
+  const pending = await prisma.refund.findMany({
+    where: { status: "PENDING" },
+    include: {
+      booking: {
+        include: {
+          payment: true,
+          leg: true,
+        },
+      },
+    },
+    take: 50,
+  });
+
+  let approved = 0;
+  for (const refund of pending) {
+    const tier = refundTierForCustomer(new Date(), refund.booking.leg.departureDate);
+    if (tier !== "FULL") continue;
+
+    let gatewayReference = refund.gatewayReference ?? null;
+    let newStatus: "APPROVED" | "PROCESSING" = "APPROVED";
+
+    if (
+      isXenditConfigured() &&
+      refund.booking.payment?.status === "SUCCESSFUL" &&
+      refund.booking.payment.gatewayReference
+    ) {
+      try {
+        const r = await createRefund({
+          invoiceId: refund.booking.payment.gatewayReference,
+          amount: Math.round(Number(refund.refundAmount)),
+          reason: "customer_request",
+        });
+        gatewayReference = r.id;
+        newStatus = "PROCESSING";
+      } catch (err) {
+        console.error("[auto-approve] xendit refund failed:", err);
+        continue;
+      }
+    }
+
+    await prisma.refund.update({
+      where: { id: refund.id },
+      data: {
+        status: newStatus,
+        gatewayReference,
+        approvedBy: "system-auto",
+        approvedAt: new Date(),
+      },
+    });
+
+    sendRefundProcessedEmail({
+      to: refund.booking.customerEmail,
+      customerName: refund.booking.customerName,
+      bookingReference: refund.booking.bookingReference,
+      refundAmount: Number(refund.refundAmount),
+      lookupUrl: `${env.APP_BASE_URL}/b/${refund.booking.bookingReference}`,
+    }).catch(() => {});
+
+    approved++;
+  }
+
+  redirect(`/admin/refunds?ok=auto_approved_${approved}`);
+}
 
 async function approveRefundAction(formData: FormData) {
   "use server";
@@ -200,6 +276,13 @@ export default async function AdminRefundsPage({
           <CardHeader className="pb-2">
             <CardDescription>Pending approval</CardDescription>
             <CardTitle className="text-3xl">{pendingCount}</CardTitle>
+            {pendingCount > 0 ? (
+              <form action={autoApproveEligibleRefunds} className="mt-2">
+                <Button type="submit" size="sm" variant="outline">
+                  Auto-approve eligible
+                </Button>
+              </form>
+            ) : null}
           </CardHeader>
         </Card>
         <Card>

@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { generateLegsForSchedule } from "../lib/legs";
+import { generateSeatLayout, parseSeatLayout } from "../lib/seat-map";
 import { buildQrPayload, signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
 import { computeBookingPrice } from "../lib/pricing";
@@ -114,6 +115,7 @@ async function main() {
 
   const boats: Record<string, { id: string; capacity: number }> = {};
   for (const b of BOATS) {
+    const seatLayout = generateSeatLayout(b.capacity);
     const boat = await prisma.boat.upsert({
       where: { registrationNumber: b.registrationNumber },
       create: {
@@ -124,8 +126,9 @@ async function main() {
         photos: [],
         description: b.description,
         status: "ACTIVE",
+        seatLayout,
       },
-      update: {},
+      update: { seatLayout },
     });
     boats[b.registrationNumber] = { id: boat.id, capacity: boat.capacity };
     console.log(`✓ boat: ${boat.name} (cap ${boat.capacity})`);
@@ -234,6 +237,11 @@ async function main() {
         departureTime: s.departureTime,
       },
     });
+    // Yield pricing: prices increase when >50% full (+10%) or >80% full (+25%)
+    const pricingTiers = [
+      { minOccupancyPct: 50, multiplier: 1.1 },
+      { minOccupancyPct: 80, multiplier: 1.25 },
+    ];
     const schedule =
       existing ??
       (await prisma.schedule.create({
@@ -246,6 +254,7 @@ async function main() {
           basePrice: s.basePrice,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
           status: "ACTIVE",
+          pricingTiers,
         },
       }));
     allSchedules.push({
@@ -276,6 +285,40 @@ async function main() {
   }
   if (totalGenerated > 0) {
     console.log(`✓ generated ${totalGenerated} upcoming legs across ${allSchedules.length} schedules`);
+  }
+
+  // Populate LegSeat rows for legs on boats that have a seat map.
+  const legsWithSeatMaps = await prisma.leg.findMany({
+    where: {
+      status: "OPEN",
+      seats: { none: {} }, // no seats yet
+    },
+    include: {
+      schedule: { include: { boat: true } },
+    },
+    take: 200,
+  });
+  let seatsCreated = 0;
+  for (const leg of legsWithSeatMaps) {
+    const layout = parseSeatLayout((leg.schedule.boat as { seatLayout?: unknown }).seatLayout);
+    if (!layout) continue;
+    const bookedCount = leg.totalCapacity - leg.availableSeats;
+    const availableLabels = layout.seats.map((s) => s.seatLabel ?? s.label).slice(bookedCount);
+    const seatData = layout.seats.map((s, idx) => ({
+      legId: leg.id,
+      seatLabel: s.label,
+      row: s.row,
+      col: s.col,
+      status:
+        idx < bookedCount
+          ? ("BOOKED" as const)
+          : ("AVAILABLE" as const),
+    }));
+    await prisma.legSeat.createMany({ data: seatData, skipDuplicates: true });
+    seatsCreated += seatData.length;
+  }
+  if (seatsCreated > 0) {
+    console.log(`✓ created ${seatsCreated} LegSeat rows`);
   }
 
   if (process.env.SEED_DEMO_BOOKINGS !== "0") {
