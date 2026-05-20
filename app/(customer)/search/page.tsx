@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/customer/search-form";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { formatIDR } from "@/lib/utils";
+import { findConnections } from "@/lib/connection-search";
+import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 
 const querySchema = z.object({
   origin: z.string().min(2),
@@ -117,6 +119,29 @@ export default async function SearchPage({
     legsError = true;
   }
 
+  // Apply yield-adjusted pricing to each leg
+  const legsWithAdjustedPricing = legs.map((leg) => {
+    const tiers = parsePricingTiers((leg.schedule as { pricingTiers?: unknown }).pricingTiers);
+    const adjustedPrice = computeYieldAdjustedPrice({
+      basePrice: leg.basePrice,
+      totalCapacity: leg.totalCapacity,
+      availableSeats: leg.availableSeats,
+      tiers,
+    });
+    const isPriceSurged = adjustedPrice.greaterThan(leg.basePrice);
+    return { ...leg, adjustedPrice, isPriceSurged };
+  });
+
+  // Connection search (only when no direct legs found, or always show as alternative)
+  let connections: Awaited<ReturnType<typeof findConnections>> = [];
+  if (!legsError) {
+    try {
+      connections = await findConnections(origin, destination, startUtc, endUtc, passengers);
+    } catch (err) {
+      console.error("[search] connection search failed:", err);
+    }
+  }
+
   return (
     <div className="container py-8">
       <BookingProgress currentStep={1} />
@@ -156,7 +181,7 @@ export default async function SearchPage({
         </Card>
       ) : (
         <div className="space-y-3">
-          {legs.map((leg) => (
+          {legsWithAdjustedPricing.map((leg) => (
             <Card key={leg.id}>
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -171,8 +196,11 @@ export default async function SearchPage({
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold">
-                      {formatIDR(Number(leg.basePrice))}
+                      {formatIDR(Number(leg.adjustedPrice))}
                     </div>
+                    {leg.isPriceSurged ? (
+                      <div className="text-xs text-amber-600">High demand</div>
+                    ) : null}
                     <div className="text-xs text-muted-foreground">
                       per passenger
                     </div>
@@ -194,12 +222,69 @@ export default async function SearchPage({
                     aria-disabled={leg.availableSeats < passengers}
                   >
                     Book {passengers} ·{" "}
-                    {formatIDR(Number(leg.basePrice) * passengers)}
+                    {formatIDR(Number(leg.adjustedPrice) * passengers)}
                   </Link>
                 </Button>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Connection results */}
+      {!legsError && connections.length > 0 && (
+        <div className="mt-8">
+          <h2 className="mb-3 text-base font-semibold text-slate-700">
+            Via connections
+          </h2>
+          <div className="space-y-3">
+            {connections.map((conn) => (
+              <Card
+                key={`${conn.leg1.id}-${conn.leg2.id}`}
+                className="border-dashed"
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {formatLocalTime(conn.leg1.departureDate)}{" "}
+                        <span className="text-sm font-normal text-muted-foreground">
+                          → {conn.transferPort} →
+                        </span>{" "}
+                        {formatLocalTime(conn.leg2.departureDate)}
+                      </CardTitle>
+                      <CardDescription>
+                        Transfer at {conn.transferPort} ·{" "}
+                        {conn.transferWaitMinutes} min wait ·{" "}
+                        ~{Math.round(conn.totalDurationMinutes / 60)}h{" "}
+                        {conn.totalDurationMinutes % 60}m total
+                      </CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold">
+                        {formatIDR(conn.totalPrice * passengers)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatIDR(conn.totalPrice)} per pax · 2 legs
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    {conn.leg1.schedule.boat.name} + {conn.leg2.schedule.boat.name}
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link
+                      href={`/book/${conn.leg1.id}?passengers=${passengers}`}
+                    >
+                      Book leg 1 first
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </div>
