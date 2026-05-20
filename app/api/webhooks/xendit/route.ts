@@ -1,43 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
 import { verifyWebhookToken } from "@/lib/xendit";
-import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
-import { releaseBookingSeats } from "@/lib/booking-engine";
-import { sendBookingConfirmation } from "@/lib/email";
-
-// Schemas: Xendit's payloads are wide and inconsistent across event types,
-// so we validate only the fields we touch and let the rest pass through.
-const invoicePaidSchema = z.object({
-  external_id: z.string().min(1),
-  id: z.string().optional(),
-  invoice_id: z.string().optional(),
-  status: z.string().optional(),
-  paid_at: z.string().optional(),
-  payment_method: z.string().optional(),
-  fees_paid_amount: z.number().optional(),
-});
-
-const invoiceExpiredSchema = z.object({
-  external_id: z.string().min(1),
-});
-
-const refundEventSchema = z.object({
-  id: z.string().min(1),
-  created: z.string().optional(),
-});
+import { dispatchWebhookPayload } from "@/lib/webhook-processor";
 
 /**
- * Xendit posts invoice + refund events here. Validates the x-callback-token
- * header against XENDIT_WEBHOOK_VERIFICATION_TOKEN; everything else (DB
- * mutations, email) is idempotent so re-delivery is safe.
- *
- * Events handled:
- *  - invoice.paid    → confirm booking, issue tickets, send email
- *  - invoice.expired → release seats, mark EXPIRED
- *  - refund.succeeded → mark Refund COMPLETED
- *  - refund.failed   → mark Refund FAILED (admin will manual-handle)
+ * Xendit webhook endpoint.
+ * 1. Verify token
+ * 2. Persist raw payload as WebhookEvent (enables retry on failure)
+ * 3. Process immediately
+ * 4. Mark event PROCESSED or FAILED
  */
 export async function POST(req: NextRequest) {
   const token = req.headers.get("x-callback-token");
@@ -65,177 +36,85 @@ export async function POST(req: NextRequest) {
   }
 
   const body = payload as Record<string, unknown>;
-
-  // Xendit sends a top-level `status` for invoices ("PAID"/"EXPIRED"). For
-  // refund webhooks the event-style key is `event` ("refund.succeeded").
   const status = String(body.status ?? "").toUpperCase();
   const event = String(body.event ?? "").toLowerCase();
 
-  try {
-    if (status === "PAID") {
-      return await handleInvoicePaid(body);
-    }
-    if (status === "EXPIRED" || event === "invoice.expired") {
-      return await handleInvoiceExpired(body);
-    }
-    if (event === "refund.succeeded") {
-      return await handleRefundSucceeded(body);
-    }
-    if (event === "refund.failed") {
-      return await handleRefundFailed(body);
-    }
+  // Derive a human-readable event type and external ref for the retry queue.
+  let eventType = "unknown";
+  let externalRef = "";
 
-    // Unknown event — ack so Xendit doesn't keep retrying.
-    return NextResponse.json({ ok: true, ignored: true });
+  if (status === "PAID") {
+    eventType = "invoice.paid";
+    externalRef = String(body.external_id ?? "");
+  } else if (status === "EXPIRED" || event === "invoice.expired") {
+    eventType = "invoice.expired";
+    externalRef = String(body.external_id ?? "");
+  } else if (event === "refund.succeeded") {
+    eventType = "refund.succeeded";
+    externalRef = String(body.id ?? "");
+  } else if (event === "refund.failed") {
+    eventType = "refund.failed";
+    externalRef = String(body.id ?? "");
+  }
+
+  // Idempotency: skip if we already PROCESSED this event.
+  if (externalRef) {
+    const existing = await prisma.webhookEvent.findFirst({
+      where: { provider: "xendit", eventType, externalRef, status: "PROCESSED" },
+    });
+    if (existing) {
+      return NextResponse.json({ ok: true, idempotent: true });
+    }
+  }
+
+  // Persist event for retry queue.
+  const webhookEvent = await prisma.webhookEvent.create({
+    data: {
+      provider: "xendit",
+      eventType,
+      externalRef,
+      rawPayload: body as never,
+      status: "PROCESSING",
+      attempts: 1,
+      lastAttemptAt: new Date(),
+    },
+  });
+
+  try {
+    const result = await dispatchWebhookPayload(body);
+
+    await prisma.webhookEvent.update({
+      where: { id: webhookEvent.id },
+      data: {
+        status: result.ok ? "PROCESSED" : "FAILED",
+        processedAt: result.ok ? new Date() : undefined,
+        errorMessage: result.ok ? null : (result as { error: string }).error,
+      },
+    });
+
+    if (!result.ok && (result as { httpStatus?: number }).httpStatus === 404) {
+      // Ack 404s so Xendit doesn't endlessly retry for missing bookings.
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, error: (result as { error: string }).error },
+        { status: (result as { httpStatus?: number }).httpStatus ?? 500 },
+      );
+    }
+    return NextResponse.json({ ok: true, status: (result as { status: string }).status });
   } catch (err) {
     console.error("[xendit-webhook] handler error:", err);
+    await prisma.webhookEvent.update({
+      where: { id: webhookEvent.id },
+      data: {
+        status: "FAILED",
+        errorMessage: err instanceof Error ? err.message : String(err),
+      },
+    }).catch(() => {});
     return NextResponse.json(
       { ok: false, error: "Handler error" },
       { status: 500 },
     );
   }
-}
-
-async function handleInvoicePaid(body: Record<string, unknown>) {
-  const parsed = invoicePaidSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid invoice.paid payload" },
-      { status: 400 },
-    );
-  }
-  const data = parsed.data;
-  const externalId = data.external_id;
-  const invoiceId = data.id ?? data.invoice_id ?? "";
-
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: externalId },
-    include: {
-      leg: { include: { schedule: { include: { boat: true } } } },
-      tickets: true,
-      payment: true,
-    },
-  });
-  if (!booking) {
-    return NextResponse.json(
-      { ok: false, error: "Booking not found" },
-      { status: 404 },
-    );
-  }
-
-  // Idempotent: confirmPaymentAndIssueTickets short-circuits if already done.
-  const result = await confirmPaymentAndIssueTickets({
-    bookingId: booking.id,
-    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
-    method: data.payment_method ?? "xendit",
-    gatewayReference: invoiceId || null,
-    gatewayFee: data.fees_paid_amount ?? null,
-  });
-
-  // Persist the raw webhook for debugging — small JSON, useful in disputes.
-  if (booking.payment) {
-    await prisma.payment.update({
-      where: { bookingId: booking.id },
-      data: { rawWebhookData: body as never },
-    });
-  }
-
-  if (!result.alreadyIssued) {
-    await sendBookingConfirmation({
-      to: booking.customerEmail,
-      customerName: booking.customerName,
-      bookingReference: result.bookingReference,
-      route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
-      },
-      boatName: booking.leg.schedule.boat.name,
-      departureDate: booking.leg.departureDate,
-      totalAmount: Number(booking.totalAmount),
-      lookupUrl: `${env.APP_BASE_URL}/b/${result.bookingReference}`,
-      tickets: result.tickets,
-    }).catch((err) =>
-      console.error("[xendit-webhook] email send failed:", err),
-    );
-  }
-
-  return NextResponse.json({ ok: true, status: "confirmed" });
-}
-
-async function handleInvoiceExpired(body: Record<string, unknown>) {
-  const parsed = invoiceExpiredSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid invoice.expired payload" },
-      { status: 400 },
-    );
-  }
-  const externalId = parsed.data.external_id;
-
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: externalId },
-  });
-  if (!booking)
-    return NextResponse.json({ ok: false }, { status: 404 });
-  if (booking.status !== "PENDING_PAYMENT") {
-    return NextResponse.json({ ok: true, noop: true });
-  }
-
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: { status: "EXPIRED" },
-  });
-  await prisma.payment.updateMany({
-    where: { bookingId: booking.id, status: "PENDING" },
-    data: { status: "EXPIRED" },
-  });
-  await releaseBookingSeats(booking.id, "expired");
-  return NextResponse.json({ ok: true, status: "expired" });
-}
-
-async function handleRefundSucceeded(body: Record<string, unknown>) {
-  const parsed = refundEventSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid refund payload" },
-      { status: 400 },
-    );
-  }
-  const refundId = parsed.data.id;
-
-  const refund = await prisma.refund.findFirst({
-    where: { gatewayReference: refundId },
-  });
-  if (!refund) return NextResponse.json({ ok: true, ignored: true });
-
-  await prisma.refund.update({
-    where: { id: refund.id },
-    data: {
-      status: "COMPLETED",
-      processedAt: parsed.data.created
-        ? new Date(parsed.data.created)
-        : new Date(),
-    },
-  });
-  return NextResponse.json({ ok: true });
-}
-
-async function handleRefundFailed(body: Record<string, unknown>) {
-  const parsed = refundEventSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid refund payload" },
-      { status: 400 },
-    );
-  }
-  const refundId = parsed.data.id;
-  const refund = await prisma.refund.findFirst({
-    where: { gatewayReference: refundId },
-  });
-  if (!refund) return NextResponse.json({ ok: true, ignored: true });
-  await prisma.refund.update({
-    where: { id: refund.id },
-    data: { status: "FAILED" },
-  });
-  return NextResponse.json({ ok: true });
 }
