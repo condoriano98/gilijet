@@ -303,7 +303,7 @@ async function main() {
     const layout = parseSeatLayout((leg.schedule.boat as { seatLayout?: unknown }).seatLayout);
     if (!layout) continue;
     const bookedCount = leg.totalCapacity - leg.availableSeats;
-    const availableLabels = layout.seats.map((s) => s.seatLabel ?? s.label).slice(bookedCount);
+    void bookedCount; // unused — index-based status below
     const seatData = layout.seats.map((s, idx) => ({
       legId: leg.id,
       seatLabel: s.label,
