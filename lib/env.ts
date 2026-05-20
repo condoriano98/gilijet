@@ -18,6 +18,16 @@ const envSchema = z.object({
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),
 
+  MIDTRANS_SERVER_KEY: z.string().optional(),
+  MIDTRANS_CLIENT_KEY: z.string().optional(),
+  MIDTRANS_IS_PRODUCTION: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .default("false"),
+
+  CRON_SECRET: z.string().optional(),
+
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().email().optional(),
 

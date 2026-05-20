@@ -6,10 +6,10 @@ import { computeBookingPrice } from "./pricing";
 import { computeRefundDeadline } from "./refunds";
 import { newBookingReference } from "./references";
 import {
-  createInvoice,
   isXenditConfigured,
   XenditNotConfiguredError,
 } from "./xendit";
+import { createPayment, isAnyPSPConfigured } from "./psp";
 
 export class BookingError extends Error {
   constructor(
@@ -45,6 +45,8 @@ export type CreateBookingArgs = {
   idempotencyKey?: string | null;
   notes?: string | null;
   customerId?: string | null;
+  /** Specific seat labels to reserve (e.g. ["A1","A2"]). Optional — only used when boat has a seat map. */
+  selectedSeats?: string[] | null;
 };
 
 /**
@@ -163,6 +165,27 @@ export async function reserveSeatsAndCreateBooking(
       );
     }
 
+    // Reserve specific seats if the leg's boat has a seat map and seats were selected.
+    if (args.selectedSeats && args.selectedSeats.length > 0) {
+      const seatReservation = await tx.legSeat.updateMany({
+        where: {
+          legId: leg.id,
+          seatLabel: { in: args.selectedSeats },
+          status: "AVAILABLE",
+        },
+        data: {
+          status: "BOOKED",
+          bookingId: booking.id,
+        },
+      });
+      if (seatReservation.count !== args.selectedSeats.length) {
+        throw new BookingError(
+          "SOLD_OUT",
+          "One or more selected seats are no longer available",
+        );
+      }
+    }
+
     // Store passenger names on the Booking via a follow-up: tickets are not
     // issued yet, but we want the names persisted for the manifest preview
     // and email. Store them on `notes` as JSON for now.
@@ -224,37 +247,43 @@ export async function startPaymentForBooking(
     return { invoiceUrl: null, mock: false };
   }
 
-  if (!isXenditConfigured()) {
+  if (!isAnyPSPConfigured()) {
     return { invoiceUrl: null, mock: true };
   }
 
   const lookupUrl = `${env.APP_BASE_URL}/b/${booking.bookingReference}`;
   try {
-    const invoice = await createInvoice({
-      externalId: booking.bookingReference,
+    const result = await createPayment({
+      bookingReference: booking.bookingReference,
       amount: Math.round(Number(booking.totalAmount)),
       payerEmail: booking.customerEmail,
+      payerName: booking.customerName,
+      payerPhone: booking.customerPhone,
       description: `Gilijet booking ${booking.bookingReference}`,
-      successRedirectUrl: lookupUrl,
-      failureRedirectUrl: lookupUrl,
-      invoiceDuration: env.BOOKING_HOLD_MINUTES * 60,
+      successUrl: lookupUrl,
+      failureUrl: lookupUrl,
+      durationSeconds: (env.BOOKING_HOLD_MINUTES ?? 30) * 60,
     });
     await prisma.booking.update({
       where: { id: booking.id },
-      data: { paymentGatewayRef: invoice.id },
+      data: { paymentGatewayRef: result.gatewayReference },
     });
     await prisma.payment.update({
       where: { bookingId: booking.id },
-      data: { gatewayReference: invoice.id, method: "xendit_invoice" },
+      data: {
+        gatewayReference: result.gatewayReference,
+        method: result.provider === "midtrans" ? "midtrans_snap" : "xendit_invoice",
+        gatewayProvider: result.provider,
+      },
     });
     await audit({
       entityType: "booking",
       entityId: booking.id,
-      action: "invoice_created",
+      action: "payment_initiated",
       userRole: "system",
-      newState: { gatewayReference: invoice.id, invoiceUrl: invoice.invoiceUrl },
+      newState: { provider: result.provider, gatewayReference: result.gatewayReference },
     });
-    return { invoiceUrl: invoice.invoiceUrl, mock: false };
+    return { invoiceUrl: result.redirectUrl, mock: false };
   } catch (err) {
     if (err instanceof XenditNotConfiguredError) {
       return { invoiceUrl: null, mock: true };

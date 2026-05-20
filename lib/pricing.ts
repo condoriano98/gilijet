@@ -40,3 +40,50 @@ export function computeBookingPrice(args: {
     operatorAmount,
   };
 }
+
+export type PricingTier = {
+  minOccupancyPct: number; // 0–100
+  multiplier: number;      // e.g. 1.2 = +20%
+};
+
+export function parsePricingTiers(raw: unknown): PricingTier[] | null {
+  if (!Array.isArray(raw)) return null;
+  const tiers: PricingTier[] = [];
+  for (const item of raw) {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as Record<string, unknown>).minOccupancyPct === "number" &&
+      typeof (item as Record<string, unknown>).multiplier === "number"
+    ) {
+      tiers.push(item as PricingTier);
+    }
+  }
+  return tiers.length > 0 ? tiers : null;
+}
+
+/**
+ * Applies yield-management multiplier based on how full the leg is.
+ * Returns base price if no tiers configured or no thresholds exceeded.
+ */
+export function computeYieldAdjustedPrice(args: {
+  basePrice: Prisma.Decimal | string | number;
+  totalCapacity: number;
+  availableSeats: number;
+  tiers?: PricingTier[] | null;
+}): Prisma.Decimal {
+  const base = new Prisma.Decimal(args.basePrice);
+  if (!args.tiers || args.tiers.length === 0 || args.totalCapacity <= 0) {
+    return base;
+  }
+  const occupiedPct =
+    ((args.totalCapacity - args.availableSeats) / args.totalCapacity) * 100;
+
+  // Find the highest threshold that has been exceeded.
+  const applicable = args.tiers
+    .filter((t) => occupiedPct >= t.minOccupancyPct)
+    .sort((a, b) => b.minOccupancyPct - a.minOccupancyPct);
+
+  if (applicable.length === 0) return base;
+  return base.mul(applicable[0].multiplier).toDecimalPlaces(0);
+}
