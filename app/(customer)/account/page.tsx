@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { requireCustomer, clearCustomerSession } from "@/lib/auth";
+import {
+  requireCustomer,
+  clearCustomerSession,
+  hashPassword,
+  verifyPassword,
+} from "@/lib/auth";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
 import {
@@ -13,6 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const metadata = { title: "My account · Gilijet" };
 
@@ -20,6 +28,63 @@ async function logoutAction() {
   "use server";
   await clearCustomerSession();
   redirect("/");
+}
+
+const profileSchema = z.object({
+  fullName: z.string().min(2).max(120),
+  phoneNumber: z.string().max(40).optional().or(z.literal("")),
+  nationality: z.string().max(80).optional().or(z.literal("")),
+});
+
+async function updateProfileAction(formData: FormData) {
+  "use server";
+  const session = await requireCustomer();
+  const parsed = profileSchema.safeParse({
+    fullName: formData.get("fullName"),
+    phoneNumber: formData.get("phoneNumber"),
+    nationality: formData.get("nationality"),
+  });
+  if (!parsed.success) {
+    redirect(`/account?error=${encodeURIComponent(parsed.error.issues[0].message)}`);
+  }
+  await prisma.customer.update({
+    where: { id: session.sub },
+    data: {
+      fullName: parsed.data.fullName.trim(),
+      phoneNumber: parsed.data.phoneNumber?.trim() || null,
+      nationality: parsed.data.nationality?.trim() || null,
+    },
+  });
+  redirect("/account?ok=profile_updated");
+}
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(120),
+});
+
+async function changePasswordAction(formData: FormData) {
+  "use server";
+  const session = await requireCustomer();
+  const parsed = passwordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+  });
+  if (!parsed.success) {
+    redirect("/account?error=password_invalid");
+  }
+  const customer = await prisma.customer.findUnique({
+    where: { id: session.sub },
+  });
+  if (!customer) redirect("/account/login");
+  const ok = await verifyPassword(parsed.data.currentPassword, customer.passwordHash);
+  if (!ok) redirect("/account?error=wrong_password");
+  const newHash = await hashPassword(parsed.data.newPassword);
+  await prisma.customer.update({
+    where: { id: session.sub },
+    data: { passwordHash: newHash },
+  });
+  redirect("/account?ok=password_changed");
 }
 
 function statusVariant(status: string) {
@@ -37,7 +102,12 @@ function statusVariant(status: string) {
   }
 }
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string }>;
+}) {
+  const { error, ok } = await searchParams;
   const session = await requireCustomer();
 
   const customer = await prisma.customer.findUnique({
@@ -59,12 +129,14 @@ export default async function AccountPage() {
     },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      review: true,
     },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
 
   const now = Date.now();
+  const REVIEW_WINDOW_MS = 2 * 60 * 60 * 1000;
   const upcoming = bookings.filter(
     (b) => b.status === "CONFIRMED" && b.leg.departureDate.getTime() > now,
   );
@@ -87,6 +159,17 @@ export default async function AccountPage() {
             </Button>
           </form>
         </div>
+
+        {ok ? (
+          <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            {ok.replace(/_/g, " ")} ✓
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error.replace(/_/g, " ")}
+          </p>
+        ) : null}
 
         {/* Quick stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
@@ -137,12 +220,106 @@ export default async function AccountPage() {
               Booking history
             </h2>
             <div className="space-y-3">
-              {past.map((b) => (
-                <BookingCard key={b.id} booking={b} muted />
-              ))}
+              {past.map((b) => {
+                const canReview =
+                  b.status === "CONFIRMED" &&
+                  !b.review &&
+                  b.leg.departureDate.getTime() < now - REVIEW_WINDOW_MS;
+                return (
+                  <BookingCard
+                    key={b.id}
+                    booking={b}
+                    canReview={canReview}
+                    hasReview={!!b.review}
+                    muted
+                  />
+                );
+              })}
             </div>
           </>
         )}
+
+        {/* Profile editing */}
+        <h2 className="mt-10 mb-3 text-lg font-bold tracking-tight">Profile</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Personal details</CardTitle>
+              <CardDescription>Used to prefill new bookings.</CardDescription>
+            </CardHeader>
+            <form action={updateProfileAction}>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="fullName">Full name</Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    defaultValue={customer.fullName}
+                    required
+                    minLength={2}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="phoneNumber">Phone (WhatsApp preferred)</Label>
+                  <Input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    defaultValue={customer.phoneNumber ?? ""}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <Input
+                    id="nationality"
+                    name="nationality"
+                    defaultValue={customer.nationality ?? ""}
+                  />
+                </div>
+                <Button type="submit" size="sm">
+                  Save changes
+                </Button>
+              </CardContent>
+            </form>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Change password</CardTitle>
+              <CardDescription>
+                You&apos;ll stay signed in on this device.
+              </CardDescription>
+            </CardHeader>
+            <form action={changePasswordAction}>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="currentPassword">Current password</Label>
+                  <Input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="newPassword">New password</Label>
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <Button type="submit" size="sm" variant="outline">
+                  Update password
+                </Button>
+              </CardContent>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -166,12 +343,16 @@ type BookingWithLeg = {
 function BookingCard({
   booking,
   muted,
+  canReview,
+  hasReview,
 }: {
   booking: BookingWithLeg;
   muted?: boolean;
+  canReview?: boolean;
+  hasReview?: boolean;
 }) {
   return (
-    <Card className={muted ? "opacity-70" : ""}>
+    <Card className={muted ? "opacity-90" : ""}>
       <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
         <div>
           <div className="flex items-center gap-2">
@@ -182,6 +363,11 @@ function BookingCard({
             <Badge variant={statusVariant(booking.status)} className="text-xs">
               {booking.status.replace(/_/g, " ")}
             </Badge>
+            {hasReview ? (
+              <Badge variant="outline" className="text-xs">
+                Reviewed
+              </Badge>
+            ) : null}
           </div>
           <div className="mt-1 text-sm text-slate-600">
             {formatLocalDate(booking.leg.departureDate, "EEE, dd MMM yyyy")}{" "}
@@ -194,6 +380,14 @@ function BookingCard({
           <div className="mt-1 font-mono text-xs text-slate-500">
             {booking.bookingReference}
           </div>
+          {canReview ? (
+            <Link
+              href={`/reviews/new?bookingId=${booking.id}`}
+              className="mt-2 inline-block text-sm font-medium text-amber-700 hover:underline"
+            >
+              ★ Rate your trip →
+            </Link>
+          ) : null}
         </div>
         <div className="text-right">
           <div className="font-semibold">

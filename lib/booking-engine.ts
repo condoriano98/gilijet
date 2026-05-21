@@ -2,9 +2,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { env } from "./env";
 import { audit } from "./audit";
-import { computeBookingPrice } from "./pricing";
+import {
+  computeBookingPriceWithTypes,
+  type PassengerType,
+} from "./pricing";
 import { computeRefundDeadline } from "./refunds";
 import { newBookingReference } from "./references";
+import { validatePromoCode, applyPromoCode } from "./promotions";
 import {
   isXenditConfigured,
   XenditNotConfiguredError,
@@ -18,7 +22,8 @@ export class BookingError extends Error {
       | "LEG_CLOSED"
       | "LEG_PAST"
       | "SOLD_OUT"
-      | "INVALID_INPUT",
+      | "INVALID_INPUT"
+      | "PROMO_INVALID",
     message: string,
   ) {
     super(message);
@@ -36,6 +41,7 @@ export type BookingCustomer = {
 export type BookingPassenger = {
   name: string;
   idNumber?: string | null;
+  type?: PassengerType;
 };
 
 export type CreateBookingArgs = {
@@ -45,6 +51,7 @@ export type CreateBookingArgs = {
   idempotencyKey?: string | null;
   notes?: string | null;
   customerId?: string | null;
+  promoCode?: string | null;
   /** Specific seat labels to reserve (e.g. ["A1","A2"]). Optional — only used when boat has a seat map. */
   selectedSeats?: string[] | null;
 };
@@ -79,6 +86,18 @@ export async function reserveSeatsAndCreateBooking(
     }
   }
 
+  // Default passengers without explicit type to ADULT.
+  const passengerTypes: PassengerType[] = args.passengers.map(
+    (p) => p.type ?? "ADULT",
+  );
+  const seatCount = passengerTypes.filter((t) => t !== "INFANT").length;
+  if (seatCount < 1) {
+    throw new BookingError(
+      "INVALID_INPUT",
+      "At least one non-infant passenger required",
+    );
+  }
+
   return prisma.$transaction(async (tx) => {
     const leg = await tx.leg.findUnique({
       where: { id: args.legId },
@@ -90,28 +109,51 @@ export async function reserveSeatsAndCreateBooking(
     if (leg.departureDate.getTime() <= Date.now()) {
       throw new BookingError("LEG_PAST", "Departure has already left");
     }
-    if (leg.availableSeats < args.passengers.length) {
+    if (leg.availableSeats < seatCount) {
       throw new BookingError("SOLD_OUT", "Not enough seats available");
     }
 
-    // Atomic decrement guarded by row-level availableSeats >= quantity.
+    // Atomic decrement guarded by row-level availableSeats >= seatCount.
     const reservation = await tx.leg.updateMany({
       where: {
         id: leg.id,
         status: "OPEN",
-        availableSeats: { gte: args.passengers.length },
+        availableSeats: { gte: seatCount },
       },
       data: {
-        availableSeats: { decrement: args.passengers.length },
+        availableSeats: { decrement: seatCount },
       },
     });
     if (reservation.count === 0) {
       throw new BookingError("SOLD_OUT", "Just sold out — try another time");
     }
 
-    const price = computeBookingPrice({
+    // Compute base total (pre-promo) to validate promo against
+    const preDiscount = computeBookingPriceWithTypes({
       unitPrice: leg.basePrice,
-      quantity: args.passengers.length,
+      passengerTypes,
+    });
+
+    // Apply promo if provided
+    let promotionId: string | null = null;
+    let discountAmount = 0;
+    if (args.promoCode && args.promoCode.trim()) {
+      const validation = await validatePromoCode(
+        args.promoCode,
+        Number(preDiscount.totalAmount),
+      );
+      if (!validation.valid) {
+        throw new BookingError("PROMO_INVALID", validation.error);
+      }
+      promotionId = validation.promotion.id;
+      discountAmount = validation.discountAmount;
+      await applyPromoCode(promotionId, tx);
+    }
+
+    const price = computeBookingPriceWithTypes({
+      unitPrice: leg.basePrice,
+      passengerTypes,
+      discountAmount,
     });
 
     let bookingReference: string;
@@ -131,6 +173,8 @@ export async function reserveSeatsAndCreateBooking(
             totalAmount: price.totalAmount,
             commissionAmount: price.commissionAmount,
             operatorAmount: price.operatorAmount,
+            promotionId,
+            discountAmount: new Prisma.Decimal(discountAmount),
             status: "PENDING_PAYMENT",
             refundDeadline: computeRefundDeadline(leg.departureDate),
             idempotencyKey: args.idempotencyKey ?? null,
@@ -218,7 +262,13 @@ export async function reserveSeatsAndCreateBooking(
           bookingReference: booking.bookingReference,
           legId: booking.legId,
           quantity: args.passengers.length,
+          seatCount,
+          adultCount: price.adultCount,
+          childCount: price.childCount,
+          infantCount: price.infantCount,
           totalAmount: price.totalAmount.toString(),
+          discountAmount: discountAmount.toString(),
+          promotionId,
         },
       },
     });
@@ -308,13 +358,19 @@ export async function releaseBookingSeats(
     });
     if (!booking) return;
 
-    // Count quantity from tickets if issued, else from stored passengers list.
+    // Count seats from tickets if issued (tickets only exist for non-infant
+    // passengers), else from stored passengers list filtering out infants.
     let quantity = booking.tickets.length;
     if (quantity === 0 && booking.notes) {
       try {
-        const parsed = JSON.parse(booking.notes) as { passengers?: unknown[] };
-        if (Array.isArray(parsed.passengers))
-          quantity = parsed.passengers.length;
+        const parsed = JSON.parse(booking.notes) as {
+          passengers?: Array<{ type?: string }>;
+        };
+        if (Array.isArray(parsed.passengers)) {
+          quantity = parsed.passengers.filter(
+            (p) => p.type !== "INFANT",
+          ).length;
+        }
       } catch {
         // Notes might be free-text — ignore.
       }

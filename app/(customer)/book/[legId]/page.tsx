@@ -24,11 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PassengerFields } from "@/components/customer/passenger-fields";
+import { PromoCodeInput } from "@/components/customer/promo-code-input";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { getCustomerSession } from "@/lib/auth";
 import { SeatPicker } from "@/components/customer/seat-picker";
 import { parseSeatLayout } from "@/lib/seat-map";
 import type { SeatInfo } from "@/components/customer/seat-picker";
+import type { PassengerType } from "@/lib/pricing";
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -55,7 +57,13 @@ async function submitBookingAction(formData: FormData) {
 
   const passengerNames = clampPassengerCount(formData.getAll("passengerName"));
   const passengerIds = formData.getAll("passengerIdNumber").map((v) => String(v).trim());
+  const passengerTypesRaw = formData.getAll("passengerType").map((v) => String(v).trim());
+  const passengerTypes: PassengerType[] = passengerNames.map((_, idx) => {
+    const t = passengerTypesRaw[idx];
+    return t === "CHILD" || t === "INFANT" ? t : "ADULT";
+  });
   const selectedSeats = formData.getAll("selectedSeat").map((v) => String(v).trim()).filter(Boolean);
+  const promoCode = String(formData.get("promoCode") ?? "").trim() || null;
 
   if (passengerNames.length === 0 || passengerNames.some((n) => n.length < NAMES_MIN)) {
     redirect(
@@ -98,10 +106,12 @@ async function submitBookingAction(formData: FormData) {
       passengers: passengerNames.map((name, idx) => ({
         name,
         idNumber: passengerIds[idx] || null,
+        type: passengerTypes[idx],
       })),
       notes: fields.data.notes || null,
       customerId: session?.sub ?? null,
       selectedSeats: selectedSeats.length > 0 ? selectedSeats : null,
+      promoCode,
     });
   } catch (err) {
     if (err instanceof BookingError) {
@@ -369,6 +379,18 @@ export default async function BookPage({
           </Card>
 
           <Card>
+            <CardHeader>
+              <CardTitle>Promo code</CardTitle>
+              <CardDescription>
+                Have a discount code? Apply it here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PromoCodeInput baseAmount={unitPrice * initialPassengers} />
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="space-y-3 pt-6">
               <label className="flex items-start gap-2 text-sm">
                 <input
@@ -380,7 +402,7 @@ export default async function BookPage({
                 />
                 <span>
                   I agree to the refund policy: 7+ days before departure, 100%
-                  refund · 3-6 days, 50% · 0-3 days, no refund. Operator
+                  refund · 4-6 days, 50% · 0-3 days, no refund. Operator
                   cancellations are always 100% refunded.
                 </span>
               </label>

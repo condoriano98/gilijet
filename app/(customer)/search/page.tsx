@@ -18,16 +18,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/customer/search-form";
+import { SearchFilters } from "@/components/customer/search-filters";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { formatIDR } from "@/lib/utils";
 import { findConnections } from "@/lib/connection-search";
 import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
+import { getSeaCondition } from "@/lib/sea-conditions";
 
 const querySchema = z.object({
   origin: z.string().min(2),
   destination: z.string().min(2),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   passengers: z.coerce.number().int().min(1).max(10).default(1),
+  sortBy: z.enum(["time", "price", "duration"]).default("time"),
+  timeSlot: z.enum(["any", "morning", "afternoon", "evening"]).default("any"),
+  maxPrice: z.coerce.number().int().positive().optional(),
 });
 
 export default async function SearchPage({
@@ -74,7 +80,9 @@ export default async function SearchPage({
     );
   }
 
-  const { origin, destination, date, passengers } = parsed.data;
+  const { origin, destination, date, returnDate, passengers, sortBy, timeSlot, maxPrice } =
+    parsed.data;
+  const seaCondition = getSeaCondition(origin, destination);
 
   // Lazy expiry sweep so freed seats show up in the next render. Don't
   // let a sweep failure block the page.
@@ -120,7 +128,7 @@ export default async function SearchPage({
   }
 
   // Apply yield-adjusted pricing to each leg
-  const legsWithAdjustedPricing = legs.map((leg) => {
+  let legsWithAdjustedPricing = legs.map((leg) => {
     const tiers = parsePricingTiers((leg.schedule as { pricingTiers?: unknown }).pricingTiers);
     const adjustedPrice = computeYieldAdjustedPrice({
       basePrice: leg.basePrice,
@@ -131,6 +139,61 @@ export default async function SearchPage({
     const isPriceSurged = adjustedPrice.greaterThan(leg.basePrice);
     return { ...leg, adjustedPrice, isPriceSurged };
   });
+
+  // Apply time-slot filter
+  if (timeSlot !== "any") {
+    legsWithAdjustedPricing = legsWithAdjustedPricing.filter((leg) => {
+      const hour = Number(formatLocalTime(leg.departureDate).split(":")[0]);
+      if (timeSlot === "morning") return hour >= 6 && hour < 12;
+      if (timeSlot === "afternoon") return hour >= 12 && hour < 17;
+      return hour >= 17 || hour < 6; // evening (incl. very early morning)
+    });
+  }
+
+  // Apply max-price filter
+  if (maxPrice && maxPrice > 0) {
+    legsWithAdjustedPricing = legsWithAdjustedPricing.filter(
+      (leg) => Number(leg.adjustedPrice) <= maxPrice,
+    );
+  }
+
+  // Apply sort
+  legsWithAdjustedPricing.sort((a, b) => {
+    if (sortBy === "price") {
+      return Number(a.adjustedPrice) - Number(b.adjustedPrice);
+    }
+    if (sortBy === "duration") {
+      return a.schedule.durationMinutes - b.schedule.durationMinutes;
+    }
+    return a.departureDate.getTime() - b.departureDate.getTime();
+  });
+
+  // Batch-fetch review aggregates for displayed schedules
+  const scheduleIds = Array.from(
+    new Set(legsWithAdjustedPricing.map((l) => l.scheduleId)),
+  );
+  let ratingsByScheduleId: Map<
+    string,
+    { avg: number; count: number }
+  > = new Map();
+  if (scheduleIds.length > 0) {
+    try {
+      const ratings = await prisma.review.groupBy({
+        by: ["scheduleId"],
+        where: { scheduleId: { in: scheduleIds } },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      ratingsByScheduleId = new Map(
+        ratings.map((r) => [
+          r.scheduleId,
+          { avg: Number(r._avg.rating ?? 0), count: r._count.rating },
+        ]),
+      );
+    } catch (err) {
+      console.error("[search] review aggregates failed:", err);
+    }
+  }
 
   // Connection search (only when no direct legs found, or always show as alternative)
   let connections: Awaited<ReturnType<typeof findConnections>> = [];
@@ -152,19 +215,41 @@ export default async function SearchPage({
           defaultOrigin={origin}
           defaultDestination={destination}
           defaultDate={date}
+          defaultReturnDate={returnDate}
           defaultPassengers={passengers}
+          defaultTripType={returnDate ? "round_trip" : "one_way"}
         />
       </div>
 
-      <div className="mb-3 flex items-baseline justify-between">
-        <h1 className="text-xl font-bold tracking-tight">
-          {origin} → {destination}
-        </h1>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold tracking-tight">
+            {origin} → {destination}
+          </h1>
+          {seaCondition ? (
+            <Badge variant={seaCondition.tone}>{seaCondition.label}</Badge>
+          ) : null}
+        </div>
         <p className="text-sm text-muted-foreground">
           {formatLocalDate(startUtc, "EEEE, dd MMM yyyy")} ·{" "}
           {passengers} passenger{passengers === 1 ? "" : "s"}
+          {returnDate ? (
+            <>
+              {" "}· returning {formatLocalDate(localDateTimeToUtc(returnDate, "00:00"), "dd MMM")}
+            </>
+          ) : null}
         </p>
       </div>
+
+      {!legsError && legs.length > 0 ? (
+        <div className="mb-4">
+          <SearchFilters
+            sortBy={sortBy}
+            timeSlot={timeSlot}
+            maxPrice={maxPrice ?? null}
+          />
+        </div>
+      ) : null}
 
       {legsError ? (
         <Card>
@@ -181,53 +266,72 @@ export default async function SearchPage({
         </Card>
       ) : (
         <div className="space-y-3">
-          {legsWithAdjustedPricing.map((leg) => (
-            <Card key={leg.id}>
-              <CardHeader className="pb-2">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-2xl">
-                      {formatLocalTime(leg.departureDate)}
-                    </CardTitle>
-                    <CardDescription>
-                      {leg.schedule.boat.name} ·{" "}
-                      {leg.schedule.durationMinutes} min
-                    </CardDescription>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">
-                      {formatIDR(Number(leg.adjustedPrice))}
-                    </div>
-                    {leg.isPriceSurged ? (
-                      <div className="text-xs text-amber-600">High demand</div>
-                    ) : null}
-                    <div className="text-xs text-muted-foreground">
-                      per passenger
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="success">{leg.availableSeats} seats left</Badge>
-                  {leg.availableSeats < passengers ? (
-                    <span className="text-red-600">
-                      Not enough seats for {passengers}
-                    </span>
-                  ) : null}
-                </div>
-                <Button asChild disabled={leg.availableSeats < passengers}>
-                  <Link
-                    href={`/book/${leg.id}?passengers=${passengers}`}
-                    aria-disabled={leg.availableSeats < passengers}
-                  >
-                    Book {passengers} ·{" "}
-                    {formatIDR(Number(leg.adjustedPrice) * passengers)}
-                  </Link>
-                </Button>
+          {legsWithAdjustedPricing.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                No departures match your filters. Try widening the time or price
+                range.
               </CardContent>
             </Card>
-          ))}
+          ) : null}
+          {legsWithAdjustedPricing.map((leg) => {
+            const rating = ratingsByScheduleId.get(leg.scheduleId);
+            return (
+              <Card key={leg.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-2xl">
+                        {formatLocalTime(leg.departureDate)}
+                      </CardTitle>
+                      <CardDescription>
+                        {leg.schedule.boat.name} ·{" "}
+                        {leg.schedule.durationMinutes} min
+                        {rating && rating.count > 0 ? (
+                          <>
+                            {" "}· <span className="text-amber-600">★ {rating.avg.toFixed(1)}</span>{" "}
+                            <span className="text-muted-foreground">
+                              ({rating.count} review{rating.count === 1 ? "" : "s"})
+                            </span>
+                          </>
+                        ) : null}
+                      </CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">
+                        {formatIDR(Number(leg.adjustedPrice))}
+                      </div>
+                      {leg.isPriceSurged ? (
+                        <div className="text-xs text-amber-600">High demand</div>
+                      ) : null}
+                      <div className="text-xs text-muted-foreground">
+                        per passenger
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="success">{leg.availableSeats} seats left</Badge>
+                    {leg.availableSeats < passengers ? (
+                      <span className="text-red-600">
+                        Not enough seats for {passengers}
+                      </span>
+                    ) : null}
+                  </div>
+                  <Button asChild disabled={leg.availableSeats < passengers}>
+                    <Link
+                      href={`/book/${leg.id}?passengers=${passengers}`}
+                      aria-disabled={leg.availableSeats < passengers}
+                    >
+                      Book {passengers} ·{" "}
+                      {formatIDR(Number(leg.adjustedPrice) * passengers)}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

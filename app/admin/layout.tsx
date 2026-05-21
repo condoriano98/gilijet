@@ -32,6 +32,8 @@ export default async function AdminLayout({
     { href: "/admin/operators", label: "Operators" },
     { href: "/admin/bookings", label: "Bookings" },
     { href: "/admin/refunds", label: "Refunds" },
+    { href: "/admin/reschedules", label: "Reschedules" },
+    { href: "/admin/promos", label: "Promos" },
   ];
 
   return (

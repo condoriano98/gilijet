@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 /**
- * One row per passenger. Each emits two inputs:
- *   passengerName[]    — required
+ * One row per passenger. Each emits three inputs:
+ *   passengerName[]     — required
  *   passengerIdNumber[] — optional in MVP (KTP / passport)
+ *   passengerType[]     — ADULT (full) | CHILD (50%) | INFANT (free, no seat)
  */
 export function PassengerFields({
   initialCount = 1,
@@ -26,7 +27,7 @@ export function PassengerFields({
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
-          className="grid gap-2 rounded-md border bg-card p-3 sm:grid-cols-[1fr_220px]"
+          className="grid gap-2 rounded-md border bg-card p-3 sm:grid-cols-[1fr_160px_180px]"
         >
           <div className="space-y-1">
             <Label htmlFor={`passengerName-${i}`}>
@@ -38,6 +39,19 @@ export function PassengerFields({
               required
               autoComplete="off"
             />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`passengerType-${i}`}>Type</Label>
+            <select
+              id={`passengerType-${i}`}
+              name="passengerType"
+              defaultValue="ADULT"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="ADULT">Adult (full price)</option>
+              <option value="CHILD">Child 3-12 (50% off)</option>
+              <option value="INFANT">Infant &lt;3 (free)</option>
+            </select>
           </div>
           <div className="space-y-1">
             <Label htmlFor={`passengerId-${i}`}>
@@ -73,6 +87,11 @@ export function PassengerFields({
           </Button>
         ) : null}
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Children get a 50% discount. Infants under 3 travel free and share a
+        seat with an accompanying adult.
+      </p>
     </div>
   );
 }

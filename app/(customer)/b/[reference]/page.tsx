@@ -25,6 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { CopyButton } from "@/components/customer/payment-countdown";
+import { ShareButtons } from "@/components/customer/share-buttons";
+import { getPortInfo } from "@/lib/port-info";
+import { env } from "@/lib/env";
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -166,13 +169,52 @@ export default async function BookingLookupPage({
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     include: {
-      leg: { include: { schedule: { include: { boat: true } } } },
+      leg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
       tickets: { orderBy: { ticketCode: "asc" } },
       refund: true,
       payment: true,
+      rescheduleRequest: true,
+      review: true,
     },
   });
   if (!booking) notFound();
+
+  // Look up return-leg suggestions for future confirmed bookings.
+  let returnLegs: Array<{
+    id: string;
+    departureDate: Date;
+    basePrice: unknown;
+    availableSeats: number;
+    schedule: { originPort: string; destinationPort: string; durationMinutes: number; boat: { name: string } };
+  }> = [];
+  if (booking.status === "CONFIRMED" && booking.leg.departureDate.getTime() > Date.now()) {
+    try {
+      returnLegs = await prisma.leg.findMany({
+        where: {
+          status: "OPEN",
+          departureDate: { gt: booking.leg.departureDate },
+          availableSeats: { gte: Math.max(1, booking.tickets.length) },
+          schedule: {
+            originPort: booking.leg.schedule.destinationPort,
+            destinationPort: booking.leg.schedule.originPort,
+            status: "ACTIVE",
+          },
+        },
+        include: { schedule: { include: { boat: true } } },
+        orderBy: { departureDate: "asc" },
+        take: 3,
+      });
+    } catch (err) {
+      console.error("[booking] return leg query failed:", err);
+    }
+  }
+
+  const portInfo = getPortInfo(booking.leg.schedule.originPort);
+  const lookupUrl = `${env.APP_BASE_URL ?? ""}/b/${booking.bookingReference}`;
 
   // Pre-render QR SVGs for the confirmed-ticket case.
   const ticketSvgs: Array<{ ticketCode: string; passengerName: string; svg: string }> =
@@ -287,10 +329,24 @@ export default async function BookingLookupPage({
         {booking.status === "CONFIRMED" && ticketSvgs.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Boarding passes</CardTitle>
-              <CardDescription>
-                Show each QR at the dock. Operators scan once per passenger.
-              </CardDescription>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle>Boarding passes</CardTitle>
+                  <CardDescription>
+                    Show each QR at the dock. Operators scan once per passenger.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link
+                      href={`/print/b/${booking.bookingReference}`}
+                      target="_blank"
+                    >
+                      Download PDF
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               {ticketSvgs.map((t) => (
@@ -308,6 +364,126 @@ export default async function BookingLookupPage({
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {booking.status === "CONFIRMED" ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Before you board</CardTitle>
+                <CardDescription>
+                  Arrive at {booking.leg.schedule.originPort} dock at least{" "}
+                  <strong>{portInfo.arrivalBuffer} minutes</strong> before
+                  departure.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <KV label="Dock address" value={portInfo.address} />
+                <p className="text-xs text-muted-foreground">{portInfo.dockTip}</p>
+                <KV
+                  label="Operator"
+                  value={booking.leg.schedule.boat.operator.companyName}
+                />
+                <KV
+                  label="Contact"
+                  value={booking.leg.schedule.boat.operator.phoneNumber}
+                />
+                <p className="pt-2 text-xs text-muted-foreground">
+                  Bring: a government ID matching each passenger name, motion
+                  sickness tablets if you need them, a light jacket for the
+                  crossing.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Share this booking</CardTitle>
+                <CardDescription>
+                  Send the reference to a travel companion or save the link.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ShareButtons
+                  bookingReference={booking.bookingReference}
+                  origin={booking.leg.schedule.originPort}
+                  destination={booking.leg.schedule.destinationPort}
+                  date={formatLocalDate(booking.leg.departureDate, "dd MMM yyyy")}
+                  lookupUrl={lookupUrl}
+                />
+              </CardContent>
+            </Card>
+
+            {returnLegs.length > 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Book your return: {booking.leg.schedule.destinationPort} →{" "}
+                    {booking.leg.schedule.originPort}
+                  </CardTitle>
+                  <CardDescription>
+                    Available departures after your outbound trip.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {returnLegs.map((rl) => (
+                    <div
+                      key={rl.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {formatLocalDate(rl.departureDate, "EEE, dd MMM")} ·{" "}
+                          <span className="font-mono">
+                            {formatLocalTime(rl.departureDate)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {rl.schedule.boat.name} ·{" "}
+                          {rl.schedule.durationMinutes} min ·{" "}
+                          {formatIDR(Number(rl.basePrice))}
+                        </div>
+                      </div>
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          href={`/book/${rl.id}?passengers=${Math.max(1, booking.tickets.length)}`}
+                        >
+                          Book return
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        ) : null}
+
+        {booking.status === "CONFIRMED" &&
+        departureFuture &&
+        booking.leg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Change of plans?</CardTitle>
+              <CardDescription>
+                Request a different date or time on the same route. Subject to
+                operator approval and seat availability.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {booking.rescheduleRequest?.status === "PENDING" ? (
+                <p className="text-sm text-amber-900">
+                  Reschedule request pending operator review.
+                </p>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/b/${booking.bookingReference}/reschedule`}>
+                    Request date change
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : null}

@@ -62,6 +62,72 @@ export function parsePricingTiers(raw: unknown): PricingTier[] | null {
   return tiers.length > 0 ? tiers : null;
 }
 
+export type PassengerType = "ADULT" | "CHILD" | "INFANT";
+
+export const TRAVELER_MULTIPLIERS: Record<PassengerType, number> = {
+  ADULT: 1.0,
+  CHILD: 0.5,
+  INFANT: 0.0,
+};
+
+export type PriceBreakdownWithTypes = PriceBreakdown & {
+  adultCount: number;
+  childCount: number;
+  infantCount: number;
+  seatCount: number; // seats actually consumed (infants don't take seats)
+};
+
+/**
+ * Per-passenger pricing using traveler-type multipliers.
+ * Adult = full, Child = 50%, Infant = free (and no seat consumed).
+ * Discount (e.g. promo) is subtracted before commission split.
+ */
+export function computeBookingPriceWithTypes(args: {
+  unitPrice: Prisma.Decimal | string | number;
+  passengerTypes: PassengerType[];
+  commissionRate?: Prisma.Decimal | number;
+  discountAmount?: Prisma.Decimal | string | number;
+}): PriceBreakdownWithTypes {
+  const unitPrice = new Prisma.Decimal(args.unitPrice);
+  const commissionRate = new Prisma.Decimal(
+    args.commissionRate ?? env.PLATFORM_COMMISSION_RATE,
+  );
+  if (args.passengerTypes.length < 1) {
+    throw new Error("at least one passenger required");
+  }
+
+  let adultCount = 0;
+  let childCount = 0;
+  let infantCount = 0;
+  let total = new Prisma.Decimal(0);
+
+  for (const type of args.passengerTypes) {
+    if (type === "ADULT") adultCount++;
+    else if (type === "CHILD") childCount++;
+    else infantCount++;
+    total = total.add(unitPrice.mul(TRAVELER_MULTIPLIERS[type]));
+  }
+
+  const discount = new Prisma.Decimal(args.discountAmount ?? 0);
+  const totalAfterDiscount = Prisma.Decimal.max(total.sub(discount), new Prisma.Decimal(0));
+  const commissionAmount = totalAfterDiscount.mul(commissionRate).toDecimalPlaces(0);
+  const operatorAmount = totalAfterDiscount.sub(commissionAmount);
+  const seatCount = adultCount + childCount;
+
+  return {
+    unitPrice,
+    quantity: args.passengerTypes.length,
+    totalAmount: totalAfterDiscount,
+    commissionRate,
+    commissionAmount,
+    operatorAmount,
+    adultCount,
+    childCount,
+    infantCount,
+    seatCount,
+  };
+}
+
 /**
  * Applies yield-management multiplier based on how full the leg is.
  * Returns base price if no tiers configured or no thresholds exceeded.
