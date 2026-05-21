@@ -74,10 +74,13 @@ async function retryInvoiceAction(formData: FormData) {
 
 export default async function PayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const { reference } = await params;
+  const { failed } = await searchParams;
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     include: {
@@ -97,6 +100,12 @@ export default async function PayPage({
   }
 
   const mockMode = !env.XENDIT_SECRET_KEY;
+  // In mock mode the checkout UI lives at /checkout/[ref] (the
+  // Xendit-style hosted invoice replica). Drop straight in there unless
+  // the user just bounced back from a simulated failure.
+  if (mockMode && failed !== "1") {
+    redirect(`/checkout/${reference}`);
+  }
   const invoiceUrl = booking.payment?.gatewayReference
     ? `https://invoice.xendit.co/web/invoices/${booking.payment.gatewayReference}`
     : null;
@@ -136,9 +145,9 @@ export default async function PayPage({
             </div>
 
             {mockMode ? (
-              <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-900">
-                Demo mode — no Xendit key is configured. Click below to
-                simulate a successful payment for development.
+              <div className="rounded-md bg-red-50 p-3 text-xs text-red-900">
+                Your previous payment attempt was cancelled. Click below to
+                try again at the GilijetPay checkout.
               </div>
             ) : (
               <div className="rounded-md bg-sky-50 p-3 text-xs text-sky-900">
@@ -149,16 +158,11 @@ export default async function PayPage({
           </CardContent>
           <CardFooter className="flex-col gap-2">
             {mockMode ? (
-              <form action={mockPayAction} className="w-full">
-                <input
-                  type="hidden"
-                  name="reference"
-                  value={booking.bookingReference}
-                />
-                <Button type="submit" size="lg" className="w-full">
-                  Pay {formatIDR(Number(booking.totalAmount))} (demo)
-                </Button>
-              </form>
+              <Button asChild size="lg" className="w-full">
+                <Link href={`/checkout/${booking.bookingReference}`}>
+                  Retry payment · {formatIDR(Number(booking.totalAmount))}
+                </Link>
+              </Button>
             ) : (
               <>
                 {invoiceUrl ? (
