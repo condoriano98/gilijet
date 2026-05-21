@@ -120,13 +120,9 @@ async function submitBookingAction(formData: FormData) {
     throw err;
   }
 
+  let payment: { invoiceUrl: string | null; mock: boolean };
   try {
-    const result = await startPaymentForBooking(created.bookingId);
-    if (result.invoiceUrl) {
-      redirect(result.invoiceUrl);
-    }
-    // Demo / mock-pay path: land on the pay page.
-    redirect(`/pay/${created.bookingReference}`);
+    payment = await startPaymentForBooking(created.bookingId);
   } catch (err) {
     // Roll back the reservation so seats aren't held forever.
     await releaseBookingSeats(created.bookingId, "payment_failed").catch(
@@ -141,6 +137,15 @@ async function submitBookingAction(formData: FormData) {
     const message = err instanceof Error ? err.message : "Payment setup failed";
     redirect(`/book/${legId}?error=${encodeURIComponent(message)}`);
   }
+
+  // Redirect outside try/catch — `redirect()` throws NEXT_REDIRECT which
+  // must bubble up to Next.js. Inside a catch it would trigger the
+  // rollback path even though the booking succeeded.
+  if (payment.invoiceUrl) {
+    redirect(payment.invoiceUrl);
+  }
+  // Demo / mock-pay path: land on the pay page.
+  redirect(`/pay/${created.bookingReference}`);
 }
 
 export default async function BookPage({
