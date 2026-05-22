@@ -87,8 +87,6 @@ model Boat {
   photos             String[] // URLs
   description        String?
   status             BoatStatus @default(ACTIVE)
-  // Seat layout JSON: { rows: number, cols: number, seats: [{label, row, col}][] }
-  seatLayout         Json?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -148,7 +146,6 @@ model Leg {
 
   schedule              Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   bookings              Booking[]
-  seats                 LegSeat[]
   reschedulesAsOriginal RescheduleRequest[] @relation("OriginalLeg")
   reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
 
@@ -196,7 +193,6 @@ model Booking {
   refund            Refund?
   review            Review?
   rescheduleRequest RescheduleRequest?
-  seats             LegSeat[]
 
   @@index([legId])
   @@index([status])
@@ -295,33 +291,6 @@ enum RefundStatus {
   PROCESSING
   COMPLETED
   FAILED
-}
-
-// ============== SEAT MAPS ==============
-
-model LegSeat {
-  id        String     @id @default(cuid())
-  legId     String
-  seatLabel String     // "A1", "B3"
-  row       Int
-  col       Int
-  status    SeatStatus @default(AVAILABLE)
-  bookingId String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  leg     Leg      @relation(fields: [legId], references: [id], onDelete: Cascade)
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-
-  @@unique([legId, seatLabel])
-  @@index([legId, status])
-}
-
-enum SeatStatus {
-  AVAILABLE
-  HELD
-  BOOKED
-  BLOCKED
 }
 
 // ============== WEBHOOK EVENTS (retry queue) ==============

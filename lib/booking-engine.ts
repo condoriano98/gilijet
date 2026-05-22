@@ -50,8 +50,6 @@ export type CreateBookingArgs = {
   notes?: string | null;
   customerId?: string | null;
   promoCode?: string | null;
-  /** Specific seat labels to reserve (e.g. ["A1","A2"]). Optional — only used when boat has a seat map. */
-  selectedSeats?: string[] | null;
 };
 
 /**
@@ -206,27 +204,6 @@ export async function reserveSeatsAndCreateBooking(
         "INVALID_INPUT",
         "Failed to mint booking reference",
       );
-    }
-
-    // Reserve specific seats if the leg's boat has a seat map and seats were selected.
-    if (args.selectedSeats && args.selectedSeats.length > 0) {
-      const seatReservation = await tx.legSeat.updateMany({
-        where: {
-          legId: leg.id,
-          seatLabel: { in: args.selectedSeats },
-          status: "AVAILABLE",
-        },
-        data: {
-          status: "BOOKED",
-          bookingId: booking.id,
-        },
-      });
-      if (seatReservation.count !== args.selectedSeats.length) {
-        throw new BookingError(
-          "SOLD_OUT",
-          "One or more selected seats are no longer available",
-        );
-      }
     }
 
     // Store passenger names on the Booking via a follow-up: tickets are not

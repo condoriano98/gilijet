@@ -27,9 +27,6 @@ import { PassengerFields } from "@/components/customer/passenger-fields";
 import { PromoCodeInput } from "@/components/customer/promo-code-input";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { getCustomerSession } from "@/lib/auth";
-import { SeatPicker } from "@/components/customer/seat-picker";
-import { parseSeatLayout } from "@/lib/seat-map";
-import type { SeatInfo } from "@/components/customer/seat-picker";
 import type { PassengerType } from "@/lib/pricing";
 
 const NAMES_MIN = 2;
@@ -62,7 +59,6 @@ async function submitBookingAction(formData: FormData) {
     const t = passengerTypesRaw[idx];
     return t === "CHILD" || t === "INFANT" ? t : "ADULT";
   });
-  const selectedSeats = formData.getAll("selectedSeat").map((v) => String(v).trim()).filter(Boolean);
   const promoCode = String(formData.get("promoCode") ?? "").trim() || null;
 
   if (passengerNames.length === 0 || passengerNames.some((n) => n.length < NAMES_MIN)) {
@@ -110,7 +106,6 @@ async function submitBookingAction(formData: FormData) {
       })),
       notes: fields.data.notes || null,
       customerId: session?.sub ?? null,
-      selectedSeats: selectedSeats.length > 0 ? selectedSeats : null,
       promoCode,
     });
   } catch (err) {
@@ -167,25 +162,11 @@ export default async function BookPage({
       where: { id: legId },
       include: {
         schedule: { include: { boat: true } },
-        seats: true,
       },
     }),
     getCustomerSession(),
   ]);
   if (!leg) notFound();
-
-  const seatLayout = parseSeatLayout((leg!.schedule.boat as { seatLayout?: unknown }).seatLayout);
-  const seatInfos: SeatInfo[] = seatLayout
-    ? seatLayout.seats.map((def) => {
-        const legSeat = leg!.seats.find((s) => s.seatLabel === def.label);
-        return {
-          label: def.label,
-          row: def.row,
-          col: def.col,
-          status: (legSeat?.status as SeatInfo["status"]) ?? "AVAILABLE",
-        };
-      })
-    : [];
 
   // If logged in, pull the customer record for prefill.
   const customer = session
@@ -293,26 +274,6 @@ export default async function BookPage({
               <PassengerFields initialCount={initialPassengers} max={10} />
             </CardContent>
           </Card>
-
-          {seatLayout && seatInfos.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Choose your seats</CardTitle>
-                <CardDescription>
-                  Select {initialPassengers} seat{initialPassengers !== 1 ? "s" : ""}.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SeatPicker
-                  seats={seatInfos}
-                  rows={seatLayout.rows}
-                  cols={seatLayout.cols}
-                  maxSelect={initialPassengers}
-                  name="selectedSeat"
-                />
-              </CardContent>
-            </Card>
-          ) : null}
 
           <Card>
             <CardHeader>

@@ -14,7 +14,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { generateLegsForSchedule } from "./legs";
-import { generateSeatLayout } from "./seat-map";
 
 const PORT_PADANGBAI = "Padang Bai";
 
@@ -179,7 +178,6 @@ export async function seedRealData(opts: {
   for (const b of BOATS) {
     const opId = operatorIds[b.operatorKey];
     if (!opId) continue;
-    const seatLayout = generateSeatLayout(b.capacity);
     const row = await prisma.boat.upsert({
       where: { registrationNumber: b.reg },
       create: {
@@ -190,14 +188,12 @@ export async function seedRealData(opts: {
         photos: [],
         description: b.description,
         status: "ACTIVE",
-        seatLayout,
       },
       update: {
         operatorId: opId,
         name: b.name,
         capacity: b.capacity,
         description: b.description,
-        seatLayout,
         status: "ACTIVE",
       },
     });
