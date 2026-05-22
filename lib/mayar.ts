@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "./env";
 
 /**
@@ -6,7 +5,6 @@ import { env } from "./env";
  *
  *  - createInvoice : called when a customer submits a booking
  *  - createRefund  : called when a booking is cancelled
- *  - verifyWebhookSignature : guards POST /api/webhooks/mayar
  *
  * If MAYAR_API_KEY is unset (local dev), all calls throw
  * MayarNotConfiguredError. The PSP layer catches this and falls back
@@ -93,9 +91,7 @@ export async function createInvoice(
     mobile: params.payerPhone.replace(/[^\d+]/g, ""),
     description: params.description.slice(0, 200),
     redirectUrl: params.successRedirectUrl,
-    expiredAt: params.expiresAt
-      ? Math.floor(params.expiresAt.getTime() / 1000)
-      : undefined,
+    expiredAt: params.expiresAt ? params.expiresAt.toISOString() : undefined,
     items: [
       {
         description: params.description.slice(0, 200),
@@ -151,38 +147,6 @@ export async function createRefund(
     id: r.data.id ?? params.transactionId,
     status: r.data.status ?? "PENDING",
   };
-}
-
-// ---------- webhook verification ----------
-
-/**
- * Mayar webhooks are signed by an HMAC-SHA256 of the raw request body
- * using the configured webhook secret. The signature arrives in the
- * `x-callback-token` header (token-based) or `x-mayar-signature`
- * (HMAC-based, newer style). We support both.
- */
-export function verifyWebhookSignature(
-  rawBody: string,
-  receivedSignature: string | null,
-): boolean {
-  if (!env.MAYAR_WEBHOOK_SECRET || !receivedSignature) return false;
-
-  // Token-style: secret is sent verbatim (simpler, used by some Mayar tenants)
-  if (receivedSignature === env.MAYAR_WEBHOOK_SECRET) {
-    const a = Buffer.from(env.MAYAR_WEBHOOK_SECRET, "utf8");
-    const b = Buffer.from(receivedSignature, "utf8");
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-  }
-
-  // HMAC-SHA256 of raw body
-  const expected = createHmac("sha256", env.MAYAR_WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest("hex");
-  const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(receivedSignature.replace(/^sha256=/, ""), "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
 }
 
 /** True when we can talk to Mayar (i.e. customer-facing payment is real). */

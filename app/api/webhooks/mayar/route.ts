@@ -1,103 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { verifyWebhookSignature } from "@/lib/mayar";
 import { dispatchWebhookPayload } from "@/lib/webhook-processor";
 
 /**
  * Mayar webhook endpoint.
- * 1. Verify HMAC signature (or token-style fallback)
- * 2. Normalize Mayar's payload → generic webhook shape
- * 3. Persist raw payload as WebhookEvent (enables retry on failure)
- * 4. Dispatch through the shared processor
- * 5. Mark event PROCESSED or FAILED
  *
- * Mayar event names we care about (verify in dashboard → Webhooks):
- *   payment.received / invoice.paid    → status: PAID
- *   payment.expired / invoice.expired  → status: EXPIRED
- *   refund.succeeded                   → refund completed
- *   refund.failed                      → refund failed
+ * Mayar sends a POST with JSON on events like payment.received.
+ * They do not document a request-side signature header, so we verify
+ * by looking up the payment in our DB using data.id (the invoice ID
+ * we stored as gatewayReference when creating the Mayar invoice).
+ *
+ * Webhook payload shape (payment.received):
+ *   event: "payment.received"
+ *   data.id          — Mayar invoice/transaction ID
+ *   data.status      — e.g. "paid"
+ *   data.amount      — integer IDR
+ *   data.customerName / customerEmail / customerMobile
+ *   data.productId / productName
+ *
+ * We map data.id → our booking via Payment.gatewayReference,
+ * then inject external_id = booking.bookingReference so the shared
+ * webhook-processor can find and confirm the booking.
  */
-
-function normalizeMayarPayload(
-  body: Record<string, unknown>,
-): Record<string, unknown> {
-  const data = (body.data ?? {}) as Record<string, unknown>;
-
-  const rawEvent = String(body.event ?? body.type ?? "").toLowerCase();
-  const rawStatus = String(
-    body.status ?? data.status ?? "",
-  ).toUpperCase();
-
-  // Mayar bookingReference is stored in our `email` field (or referenceId)
-  // depending on tenant config. Check the common spots.
-  const externalRef =
-    data.referenceId ??
-    data.reference_id ??
-    body.referenceId ??
-    body.reference_id ??
-    data.externalId ??
-    body.externalId ??
-    data.email ??
-    "";
-
-  const invoiceId =
-    data.id ?? data.transaction_id ?? data.transactionId ?? body.id ?? "";
-
-  // Map Mayar status/event → the values dispatchWebhookPayload expects
-  let normalizedStatus = rawStatus;
-  let normalizedEvent = rawEvent;
-  if (
-    rawStatus === "SUCCESS" ||
-    rawStatus === "PAID" ||
-    rawEvent === "payment.received" ||
-    rawEvent === "invoice.paid"
-  ) {
-    normalizedStatus = "PAID";
-  } else if (
-    rawStatus === "EXPIRED" ||
-    rawEvent === "payment.expired" ||
-    rawEvent === "invoice.expired"
-  ) {
-    normalizedStatus = "EXPIRED";
-    normalizedEvent = "invoice.expired";
-  } else if (rawEvent === "refund.succeeded") {
-    normalizedEvent = "refund.succeeded";
-  } else if (rawEvent === "refund.failed") {
-    normalizedEvent = "refund.failed";
-  }
-
-  return {
-    external_id: String(externalRef),
-    id: String(invoiceId),
-    invoice_id: String(invoiceId),
-    status: normalizedStatus,
-    event: normalizedEvent,
-    paid_at: data.paidAt ?? data.paid_at ?? body.paidAt ?? body.paid_at,
-    payment_method:
-      data.paymentMethod ?? data.payment_method ?? body.paymentMethod ?? "mayar",
-    fees_paid_amount: data.fee ?? body.fee ?? 0,
-    _raw: body,
-  };
-}
-
 export async function POST(req: NextRequest) {
-  // Read raw body BEFORE parsing — HMAC verification needs the exact bytes
-  const rawBody = await req.text();
-  const signature =
-    req.headers.get("x-mayar-signature") ??
-    req.headers.get("x-callback-token") ??
-    req.headers.get("x-signature");
-
-  if (!verifyWebhookSignature(rawBody, signature)) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid signature" },
-      { status: 401 },
-    );
-  }
-
   let payload: unknown;
   try {
-    payload = JSON.parse(rawBody);
+    payload = await req.json();
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid JSON" },
@@ -112,24 +40,70 @@ export async function POST(req: NextRequest) {
   }
 
   const body = payload as Record<string, unknown>;
-  const normalized = normalizeMayarPayload(body);
+  const data = (body.data ?? {}) as Record<string, unknown>;
 
-  // Derive event type for the retry queue
-  const status = String(normalized.status ?? "").toUpperCase();
-  const event = String(normalized.event ?? "").toLowerCase();
+  const rawEvent = String(body.event ?? body.type ?? "").toLowerCase();
+  const mayarId = String(data.id ?? body.id ?? "");
+
+  if (!mayarId) {
+    return NextResponse.json(
+      { ok: false, error: "Missing data.id" },
+      { status: 400 },
+    );
+  }
+
+  // Resolve our booking by the Mayar invoice ID we stored at payment creation.
+  let externalRef = "";
+  if (rawEvent === "payment.received" || rawEvent === "payment.reminder") {
+    const payment = await prisma.payment.findFirst({
+      where: { gatewayReference: mayarId, gatewayProvider: "mayar" },
+      select: { booking: { select: { bookingReference: true } } },
+    });
+    externalRef = payment?.booking?.bookingReference ?? "";
+  } else {
+    // For other events (refund.*, etc.) use mayarId as externalRef directly
+    externalRef = mayarId;
+  }
+
+  // Normalize to the shape dispatchWebhookPayload understands.
+  const rawStatus = String(data.status ?? "").toLowerCase();
+  let normalizedStatus = "";
+  let normalizedEvent = rawEvent;
+
+  if (rawEvent === "payment.received" || rawStatus === "paid" || rawStatus === "success") {
+    normalizedStatus = "PAID";
+    normalizedEvent = "invoice.paid";
+  } else if (rawEvent === "payment.expired" || rawStatus === "expired") {
+    normalizedStatus = "EXPIRED";
+    normalizedEvent = "invoice.expired";
+  } else if (rawEvent === "refund.succeeded") {
+    normalizedEvent = "refund.succeeded";
+  } else if (rawEvent === "refund.failed") {
+    normalizedEvent = "refund.failed";
+  }
+
+  const normalized: Record<string, unknown> = {
+    external_id: externalRef,
+    id: mayarId,
+    invoice_id: mayarId,
+    status: normalizedStatus,
+    event: normalizedEvent,
+    paid_at: data.paidAt ?? data.paid_at ?? data.createdAt,
+    payment_method: data.paymentMethod ?? data.payment_method ?? "mayar",
+    fees_paid_amount: 0,
+    _raw: body,
+  };
+
+  // Derive eventType for the retry queue
   let eventType = "unknown";
-  let externalRef = String(normalized.external_id ?? "");
-
-  if (status === "PAID") {
+  if (normalizedStatus === "PAID") {
     eventType = "invoice.paid";
-  } else if (status === "EXPIRED" || event === "invoice.expired") {
+  } else if (normalizedStatus === "EXPIRED" || normalizedEvent === "invoice.expired") {
     eventType = "invoice.expired";
-  } else if (event === "refund.succeeded") {
+  } else if (normalizedEvent === "refund.succeeded") {
     eventType = "refund.succeeded";
-    externalRef = String(normalized.id ?? "");
-  } else if (event === "refund.failed") {
+  } else if (normalizedEvent === "refund.failed") {
     eventType = "refund.failed";
-    externalRef = String(normalized.id ?? "");
   }
 
   // Idempotency: skip if we already PROCESSED this event.
