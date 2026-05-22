@@ -87,15 +87,15 @@ type MayarInvoiceResponse = {
 export async function createInvoice(
   params: CreateInvoiceParams,
 ): Promise<CreateInvoiceResult> {
-  // Mock mode for testing without API approval. Return a local checkout URL
-  // instead of hitting the real Mayar API. The /checkout page simulates payment.
+  // Mock mode for testing without API approval. Return a relative checkout URL
+  // so it works on any domain without needing APP_BASE_URL set correctly.
   if (
     env.MAYAR_API_KEY?.startsWith("test_") ||
     env.MAYAR_API_KEY === "mock"
   ) {
     return {
-      id: `mock_${params.externalId}_${Date.now()}`,
-      invoiceUrl: `${env.APP_BASE_URL}/checkout/${params.externalId}`,
+      id: `mock_${params.externalId}`,
+      invoiceUrl: `/checkout/${params.externalId}`,
       expiresAt: params.expiresAt?.toISOString() ?? null,
     };
   }

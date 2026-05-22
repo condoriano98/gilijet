@@ -99,20 +99,23 @@ export default async function PayPage({
     redirect(`/b/${reference}`);
   }
 
-  const mockMode = !env.MAYAR_API_KEY && !env.XENDIT_SECRET_KEY;
-  // In mock mode the checkout UI lives at /checkout/[ref] (the
-  // hosted invoice replica). Drop straight in there unless the user
-  // just bounced back from a simulated failure.
+  const isMockMayar =
+    env.MAYAR_API_KEY === "mock" ||
+    Boolean(env.MAYAR_API_KEY?.startsWith("test_"));
+  const mockMode =
+    isMockMayar || (!env.MAYAR_API_KEY && !env.XENDIT_SECRET_KEY);
+  // In mock mode the checkout UI lives at /checkout/[ref].
+  // Drop straight in there unless the user just bounced back from a failure.
   if (mockMode && failed !== "1") {
     redirect(`/checkout/${reference}`);
   }
-  // Build the gateway URL based on which PSP is configured. Mayar's
-  // createInvoice already returns a full URL — we just stored its ID,
-  // so reconstruct via the Mayar payment domain.
+  // Build the gateway URL. Mock IDs start with "mock_" — always use /checkout.
   const gatewayRef = booking.payment?.gatewayReference ?? null;
   let invoiceUrl: string | null = null;
   if (gatewayRef) {
-    if (gatewayRef.startsWith("http")) {
+    if (gatewayRef.startsWith("mock_") || isMockMayar) {
+      invoiceUrl = `/checkout/${reference}`;
+    } else if (gatewayRef.startsWith("http")) {
       invoiceUrl = gatewayRef;
     } else if (env.MAYAR_API_KEY) {
       const mayarHost = env.MAYAR_IS_PRODUCTION ? "mayar.id" : "mayar.club";
