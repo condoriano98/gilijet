@@ -1,12 +1,15 @@
 /**
  * Payment Service Provider abstraction.
- * Routes to Xendit (default) or Midtrans (credit card when configured).
+ * Routes to Mayar (preferred), Xendit, or Midtrans (credit card).
  */
 import { createInvoice, isXenditConfigured } from "./xendit";
 import { createSnapToken, isMidtransConfigured } from "./midtrans";
-import { env } from "./env";
+import {
+  createInvoice as createMayarInvoice,
+  isMayarConfigured,
+} from "./mayar";
 
-export type PSPProvider = "xendit" | "midtrans";
+export type PSPProvider = "mayar" | "xendit" | "midtrans";
 
 export type CreatePaymentArgs = {
   bookingReference: string;
@@ -31,9 +34,11 @@ export type CreatePaymentResult = {
 };
 
 export function selectPSP(preferredMethod?: string): PSPProvider {
+  // Credit-card preference still routes to Midtrans (richer card UX)
   if (preferredMethod === "CREDIT_CARD" && isMidtransConfigured()) {
     return "midtrans";
   }
+  if (isMayarConfigured()) return "mayar";
   if (isXenditConfigured()) return "xendit";
   if (isMidtransConfigured()) return "midtrans";
   throw new Error("No payment provider configured");
@@ -43,6 +48,25 @@ export async function createPayment(
   args: CreatePaymentArgs,
 ): Promise<CreatePaymentResult> {
   const provider = selectPSP(args.preferredMethod);
+
+  if (provider === "mayar") {
+    const expiresAt = new Date(Date.now() + args.durationSeconds * 1000);
+    const invoice = await createMayarInvoice({
+      externalId: args.bookingReference,
+      amount: args.amount,
+      payerEmail: args.payerEmail,
+      payerName: args.payerName,
+      payerPhone: args.payerPhone,
+      description: args.description,
+      successRedirectUrl: args.successUrl,
+      expiresAt,
+    });
+    return {
+      provider: "mayar",
+      redirectUrl: invoice.invoiceUrl,
+      gatewayReference: invoice.id,
+    };
+  }
 
   if (provider === "xendit") {
     const invoice = await createInvoice({
@@ -80,5 +104,7 @@ export async function createPayment(
 }
 
 export function isAnyPSPConfigured(): boolean {
-  return isXenditConfigured() || isMidtransConfigured();
+  return (
+    isMayarConfigured() || isXenditConfigured() || isMidtransConfigured()
+  );
 }

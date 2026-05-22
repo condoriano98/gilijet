@@ -32,7 +32,7 @@ export default function TermsPage() {
         <h2 className="mt-6 text-xl font-semibold">3. Booking and Payment</h2>
         <ul>
           <li>Prices are displayed in Indonesian Rupiah (IDR) including taxes.</li>
-          <li>Payment is processed by our gateway partner, Xendit. We do not store full card details on our servers.</li>
+          <li>Payment is processed by our gateway partner, Mayar. We do not store full card details on our servers.</li>
           <li>A booking is only confirmed once payment has been received and an e-ticket has been issued.</li>
           <li>Pending bookings hold seats for 30 minutes before automatically expiring.</li>
         </ul>

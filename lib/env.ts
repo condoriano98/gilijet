@@ -14,6 +14,14 @@ const envSchema = z.object({
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
   XENDIT_CALLBACK_URL: z.string().url().optional(),
 
+  MAYAR_API_KEY: z.string().optional(),
+  MAYAR_WEBHOOK_SECRET: z.string().optional(),
+  MAYAR_IS_PRODUCTION: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .default("false"),
+
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),

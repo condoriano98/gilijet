@@ -9,7 +9,7 @@ import {
   refundTierForCustomer,
 } from "@/lib/refunds";
 import { audit } from "@/lib/audit";
-import { createRefund, isXenditConfigured } from "@/lib/xendit";
+import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
 import { renderQrSvg } from "@/lib/qr-render";
 import { buildQrPayload } from "@/lib/qr";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
@@ -101,29 +101,32 @@ async function cancelAction(formData: FormData) {
     () => {},
   );
 
-  // Best-effort Xendit refund call (if invoice was paid).
+  // Best-effort gateway refund call (if the invoice was paid).
   if (
     amount.gt(0) &&
-    isXenditConfigured() &&
+    isAnyRefundGatewayConfigured() &&
     booking.payment?.status === "SUCCESSFUL" &&
     booking.payment.gatewayReference
   ) {
     try {
-      const r = await createRefund({
-        invoiceId: booking.payment.gatewayReference,
+      const r = await refundViaGateway({
+        gatewayProvider: booking.payment.gatewayProvider,
+        gatewayReference: booking.payment.gatewayReference,
         amount: Math.round(Number(amount)),
         reason: `customer_cancellation_${tier.toLowerCase()}`,
       });
-      await prisma.refund.update({
-        where: { bookingId: booking.id },
-        data: {
-          status: "PROCESSING",
-          gatewayReference: r.id,
-          processedAt: new Date(),
-        },
-      });
+      if (r) {
+        await prisma.refund.update({
+          where: { bookingId: booking.id },
+          data: {
+            status: "PROCESSING",
+            gatewayReference: r.id,
+            processedAt: new Date(),
+          },
+        });
+      }
     } catch (err) {
-      console.error("[cancel] xendit refund failed:", err);
+      console.error("[cancel] gateway refund failed:", err);
       // Admin will pick it up from the pending queue.
     }
   }

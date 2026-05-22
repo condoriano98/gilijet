@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <h2 className="mt-6 text-xl font-semibold">1. Data We Collect</h2>
         <ul>
           <li><strong>Booking data:</strong> Names, email, phone, nationality, ID/passport numbers of the booker and passengers.</li>
-          <li><strong>Payment data:</strong> Method (QRIS, e-wallet, etc.), amount, timestamp. Card numbers and PINs are handled by Xendit; we never see them.</li>
+          <li><strong>Payment data:</strong> Method (QRIS, e-wallet, etc.), amount, timestamp. Card numbers and PINs are handled by Mayar; we never see them.</li>
           <li><strong>Technical data:</strong> Anonymized IP, browser type, and pages visited to improve performance.</li>
         </ul>
 
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
         <h2 className="mt-6 text-xl font-semibold">3. Who We Share With</h2>
         <ul>
           <li><strong>Boat operators:</strong> Only the data necessary for transport (passenger names, departure, contact phone in case of disruption).</li>
-          <li><strong>Xendit (payment gateway):</strong> Payment details so the transaction can be processed.</li>
+          <li><strong>Mayar (payment gateway):</strong> Payment details so the transaction can be processed.</li>
           <li><strong>Email provider (Resend):</strong> Recipient email and ticket details to deliver e-tickets.</li>
           <li><strong>Law enforcement:</strong> When required by valid legal request under Indonesian law.</li>
         </ul>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         <p>
           We use industry-standard encryption (HTTPS/TLS) for all data in
           transit. Database access is restricted, payment data is tokenized via
-          Xendit, and we log every administrative action. Despite this, no
+          Mayar, and we log every administrative action. Despite this, no
           internet service can be guaranteed 100% secure.
         </p>
 

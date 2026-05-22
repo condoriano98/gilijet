@@ -99,16 +99,28 @@ export default async function PayPage({
     redirect(`/b/${reference}`);
   }
 
-  const mockMode = !env.XENDIT_SECRET_KEY;
+  const mockMode = !env.MAYAR_API_KEY && !env.XENDIT_SECRET_KEY;
   // In mock mode the checkout UI lives at /checkout/[ref] (the
-  // Xendit-style hosted invoice replica). Drop straight in there unless
-  // the user just bounced back from a simulated failure.
+  // hosted invoice replica). Drop straight in there unless the user
+  // just bounced back from a simulated failure.
   if (mockMode && failed !== "1") {
     redirect(`/checkout/${reference}`);
   }
-  const invoiceUrl = booking.payment?.gatewayReference
-    ? `https://invoice.xendit.co/web/invoices/${booking.payment.gatewayReference}`
-    : null;
+  // Build the gateway URL based on which PSP is configured. Mayar's
+  // createInvoice already returns a full URL — we just stored its ID,
+  // so reconstruct via the Mayar payment domain.
+  const gatewayRef = booking.payment?.gatewayReference ?? null;
+  let invoiceUrl: string | null = null;
+  if (gatewayRef) {
+    if (gatewayRef.startsWith("http")) {
+      invoiceUrl = gatewayRef;
+    } else if (env.MAYAR_API_KEY) {
+      const mayarHost = env.MAYAR_IS_PRODUCTION ? "mayar.id" : "mayar.club";
+      invoiceUrl = `https://${mayarHost}/payment/${gatewayRef}`;
+    } else {
+      invoiceUrl = `https://invoice.xendit.co/web/invoices/${gatewayRef}`;
+    }
+  }
 
   return (
     <div className="container py-10">
@@ -151,7 +163,7 @@ export default async function PayPage({
               </div>
             ) : (
               <div className="rounded-md bg-sky-50 p-3 text-xs text-sky-900">
-                You&apos;ll be redirected to Xendit&apos;s secure checkout to
+                You&apos;ll be redirected to {env.MAYAR_API_KEY ? "Mayar" : "Xendit"}&apos;s secure checkout to
                 pay via QRIS, e-wallet, bank transfer, or card.
               </div>
             )}
@@ -168,7 +180,7 @@ export default async function PayPage({
                 {invoiceUrl ? (
                   <Button asChild size="lg" className="w-full">
                     <a href={invoiceUrl}>
-                      Pay {formatIDR(Number(booking.totalAmount))} via Xendit
+                      Pay {formatIDR(Number(booking.totalAmount))} via {env.MAYAR_API_KEY ? "Mayar" : "Xendit"}
                     </a>
                   </Button>
                 ) : null}

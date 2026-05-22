@@ -9,10 +9,8 @@ import {
 import { computeRefundDeadline } from "./refunds";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
-import {
-  isXenditConfigured,
-  XenditNotConfiguredError,
-} from "./xendit";
+import { XenditNotConfiguredError } from "./xendit";
+import { MayarNotConfiguredError } from "./mayar";
 import { createPayment, isAnyPSPConfigured } from "./psp";
 
 export class BookingError extends Error {
@@ -184,7 +182,8 @@ export async function reserveSeatsAndCreateBooking(
                 amount: price.totalAmount,
                 method: "pending",
                 status: "PENDING",
-                gatewayProvider: "xendit",
+                // gatewayProvider is set when startPaymentForBooking
+                // selects a PSP. Lets the DB default ("mayar") apply here.
               },
             },
           },
@@ -322,7 +321,12 @@ export async function startPaymentForBooking(
       where: { bookingId: booking.id },
       data: {
         gatewayReference: result.gatewayReference,
-        method: result.provider === "midtrans" ? "midtrans_snap" : "xendit_invoice",
+        method:
+          result.provider === "midtrans"
+            ? "midtrans_snap"
+            : result.provider === "mayar"
+              ? "mayar_invoice"
+              : "xendit_invoice",
         gatewayProvider: result.provider,
       },
     });
@@ -336,6 +340,9 @@ export async function startPaymentForBooking(
     return { invoiceUrl: result.redirectUrl, mock: false };
   } catch (err) {
     if (err instanceof XenditNotConfiguredError) {
+      return { invoiceUrl: null, mock: true };
+    }
+    if (err instanceof MayarNotConfiguredError) {
       return { invoiceUrl: null, mock: true };
     }
     throw err;

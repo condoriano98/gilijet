@@ -58,7 +58,7 @@ const TRUST_BADGES = [
   { title: "Best Price Guaranteed", desc: "No hidden fees, transparent pricing" },
   { title: "24/7 Customer Support", desc: "WhatsApp +62 812 3456 7890" },
   { title: "Instant E-Ticket", desc: "QR code delivered to your email" },
-  { title: "Secure Payment", desc: "Powered by Xendit, BI licensed" },
+  { title: "Secure Payment", desc: "Powered by Mayar, BI licensed gateway" },
 ];
 
 // The landing page is a marketing surface — fully static for max
@@ -338,7 +338,7 @@ export default function HomePage() {
               Secure, verified, regulated
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              <span>🔒 Payments by Xendit (Bank Indonesia licensed)</span>
+              <span>🔒 Payments by Mayar (Bank Indonesia licensed)</span>
               <span>·</span>
               <span>✓ All operators KYC verified</span>
               <span>·</span>

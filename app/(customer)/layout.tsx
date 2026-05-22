@@ -112,7 +112,7 @@ export default function CustomerLayout({
           </div>
           <div className="mt-8 border-t pt-4 text-center text-xs text-slate-500">
             © {new Date().getFullYear()} PT Gilijet Nusantara · Payments
-            processed by Xendit, licensed by Bank Indonesia
+            processed by Mayar, licensed by Bank Indonesia
           </div>
         </div>
       </footer>

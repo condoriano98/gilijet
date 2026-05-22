@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
-import { createRefund, isXenditConfigured } from "@/lib/xendit";
+import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
 import {
   Card,
   CardContent,
@@ -57,20 +57,23 @@ async function autoApproveEligibleRefunds() {
     let newStatus: "APPROVED" | "PROCESSING" = "APPROVED";
 
     if (
-      isXenditConfigured() &&
+      isAnyRefundGatewayConfigured() &&
       refund.booking.payment?.status === "SUCCESSFUL" &&
       refund.booking.payment.gatewayReference
     ) {
       try {
-        const r = await createRefund({
-          invoiceId: refund.booking.payment.gatewayReference,
+        const r = await refundViaGateway({
+          gatewayProvider: refund.booking.payment.gatewayProvider,
+          gatewayReference: refund.booking.payment.gatewayReference,
           amount: Math.round(Number(refund.refundAmount)),
           reason: "customer_request",
         });
-        gatewayReference = r.id;
-        newStatus = "PROCESSING";
+        if (r) {
+          gatewayReference = r.id;
+          newStatus = "PROCESSING";
+        }
       } catch (err) {
-        console.error("[auto-approve] xendit refund failed:", err);
+        console.error("[auto-approve] gateway refund failed:", err);
         continue;
       }
     }
@@ -114,27 +117,29 @@ async function approveRefundAction(formData: FormData) {
     redirect(`/admin/refunds?error=already_${refund.status.toLowerCase()}`);
   }
 
-  // Try to process via Xendit if the invoice was actually paid through it.
+  // Try to process via the original gateway if the invoice was actually paid through it.
   let gatewayReference: string | null = refund.gatewayReference ?? null;
   let newStatus: "APPROVED" | "PROCESSING" | "COMPLETED" = "APPROVED";
 
   if (
-    isXenditConfigured() &&
+    isAnyRefundGatewayConfigured() &&
     refund.booking.payment?.status === "SUCCESSFUL" &&
     refund.booking.payment.gatewayReference &&
     !gatewayReference
   ) {
     try {
-      const r = await createRefund({
-        invoiceId: refund.booking.payment.gatewayReference,
+      const r = await refundViaGateway({
+        gatewayProvider: refund.booking.payment.gatewayProvider,
+        gatewayReference: refund.booking.payment.gatewayReference,
         amount: Math.round(Number(refund.refundAmount)),
         reason: refund.reason || "admin_approved",
       });
-      gatewayReference = r.id;
-      newStatus = "PROCESSING";
+      if (r) {
+        gatewayReference = r.id;
+        newStatus = "PROCESSING";
+      }
     } catch (err) {
-      console.error("[admin-refunds] xendit refund failed:", err);
-      // Fall through — admin will retry from the same screen.
+      console.error("[admin-refunds] gateway refund failed:", err);
       redirect(`/admin/refunds?error=gateway_failed`);
     }
   }
