@@ -3,6 +3,10 @@ import { env } from "./env";
 /**
  * Mayar REST wrapper for the payment flow.
  *
+ * MOCK MODE: Set MAYAR_API_KEY to "test_anything" or "mock" to bypass the
+ * real API and use local /checkout flow for testing. Useful while awaiting
+ * API approval (~3 days).
+ *
  *  - createInvoice : called when a customer submits a booking
  *  - createRefund  : called when a booking is cancelled
  *
@@ -83,8 +87,21 @@ type MayarInvoiceResponse = {
 export async function createInvoice(
   params: CreateInvoiceParams,
 ): Promise<CreateInvoiceResult> {
+  // Mock mode for testing without API approval. Return a local checkout URL
+  // instead of hitting the real Mayar API. The /checkout page simulates payment.
+  if (
+    env.MAYAR_API_KEY?.startsWith("test_") ||
+    env.MAYAR_API_KEY === "mock"
+  ) {
+    return {
+      id: `mock_${params.externalId}_${Date.now()}`,
+      invoiceUrl: `${env.APP_BASE_URL}/checkout/${params.externalId}`,
+      expiresAt: params.expiresAt?.toISOString() ?? null,
+    };
+  }
+
   // Mayar "Generate Invoice" endpoint. Field names follow Mayar's
-  // Headless API: https://documenter.getpostman.com/view/29782505/2s9YsGiCxs
+  // Headless API: https://docs.mayar.id/api-reference/invoice/create
   const body = {
     name: params.payerName.slice(0, 100),
     email: params.payerEmail,
@@ -131,6 +148,17 @@ export type CreateRefundResult = {
 export async function createRefund(
   params: CreateRefundParams,
 ): Promise<CreateRefundResult> {
+  // Mock mode for testing without API approval
+  if (
+    env.MAYAR_API_KEY?.startsWith("test_") ||
+    env.MAYAR_API_KEY === "mock"
+  ) {
+    return {
+      id: `mock_refund_${params.transactionId}`,
+      status: "PROCESSING",
+    };
+  }
+
   const r = await mayarFetch<{
     statusCode: number;
     messages: string;
