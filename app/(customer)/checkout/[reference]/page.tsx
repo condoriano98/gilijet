@@ -1,10 +1,12 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
 import { sendBookingConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
+import { BookingProgress } from "@/components/customer/booking-progress";
 import { DummyCheckoutForm } from "@/components/checkout/dummy-checkout-form";
 
 export const dynamic = "force-dynamic";
@@ -88,60 +90,62 @@ export default async function CheckoutPage({
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-      <header className="border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-600 text-xs font-bold text-white">
-              G
-            </div>
-            <span className="text-sm font-semibold text-slate-800">
-              Gilijet
-            </span>
+    <div className="container py-8">
+      <div className="mx-auto max-w-lg">
+        <BookingProgress currentStep={3} />
+
+        {failed === "1" && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Payment was cancelled. Please try again.
           </div>
+        )}
+
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-start justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-slate-900">
+                {booking.leg.schedule.originPort} →{" "}
+                {booking.leg.schedule.destinationPort}
+              </h1>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {formatLocalDateTime(booking.leg.departureDate)} WITA ·{" "}
+                {booking.leg.schedule.boat.name}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Ref{" "}
+                <span className="font-mono">{booking.bookingReference}</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-slate-900">
+                {formatIDR(Number(booking.totalAmount))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-5">
+            <DummyCheckoutForm
+              reference={booking.bookingReference}
+              amount={Number(booking.totalAmount)}
+              customerEmail={booking.customerEmail}
+              expiresAtIso={expiresAt.toISOString()}
+              simulateAction={simulatePayment}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <Link
+            href={`/b/${booking.bookingReference}`}
+            className="text-xs text-slate-400 hover:text-slate-600 hover:underline"
+          >
+            View booking status
+          </Link>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
             Test Mode
           </span>
         </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-8">
-        {failed === "1" && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Payment failed. Please try again.
-          </div>
-        )}
-
-        <div className="mb-6 space-y-1">
-          <div className="text-sm text-slate-500">
-            {booking.leg.schedule.originPort} →{" "}
-            {booking.leg.schedule.destinationPort}
-          </div>
-          <div className="text-xs text-slate-400">
-            {formatLocalDateTime(booking.leg.departureDate)} WITA ·{" "}
-            {booking.leg.schedule.boat.name}
-          </div>
-        </div>
-
-        <div className="mb-8 flex items-baseline justify-between">
-          <span className="text-sm text-slate-500">Total</span>
-          <span className="text-3xl font-bold text-slate-900">
-            {formatIDR(Number(booking.totalAmount))}
-          </span>
-        </div>
-
-        <DummyCheckoutForm
-          reference={booking.bookingReference}
-          amount={Number(booking.totalAmount)}
-          customerEmail={booking.customerEmail}
-          expiresAtIso={expiresAt.toISOString()}
-          simulateAction={simulatePayment}
-        />
-
-        <p className="mt-6 text-center text-xs text-slate-400">
-          This is a demo checkout. No real payment is processed.
-        </p>
-      </main>
+      </div>
     </div>
   );
 }

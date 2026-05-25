@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PassengerFields } from "@/components/customer/passenger-fields";
 import { PromoCodeInput } from "@/components/customer/promo-code-input";
 import { BookingProgress } from "@/components/customer/booking-progress";
+import { SubmitBookingButton } from "@/components/customer/submit-booking-button";
 import { getCustomerSession } from "@/lib/auth";
 import type { PassengerType } from "@/lib/pricing";
 
@@ -373,9 +374,7 @@ export default async function BookPage({
               </label>
             </CardContent>
             <CardFooter>
-              <Button type="submit" size="lg" className="w-full">
-                Continue to payment
-              </Button>
+              <SubmitBookingButton amount={unitPrice * initialPassengers} />
             </CardFooter>
           </Card>
         </form>
