@@ -1,17 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
 import { sendBookingConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
-import { CheckoutMethods } from "@/components/checkout/methods";
-import { CheckoutCountdown } from "@/components/checkout/countdown";
-
-// Dummy Xendit-style hosted invoice page. The whole route lives outside
-// the (customer) layout so there's no Gilijet header/footer — same as
-// a real PSP checkout takes over the viewport.
+import { DummyCheckoutForm } from "@/components/checkout/dummy-checkout-form";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +13,7 @@ async function simulatePayment(formData: FormData) {
   "use server";
   const reference = String(formData.get("reference") ?? "");
   const outcome = String(formData.get("outcome") ?? "success");
-  const method = String(formData.get("method") ?? "qris");
+  const method = String(formData.get("method") ?? "card");
   if (!reference) redirect("/");
 
   const booking = await prisma.booking.findUnique({
@@ -32,15 +26,15 @@ async function simulatePayment(formData: FormData) {
   }
 
   if (outcome === "fail") {
-    redirect(`/pay/${reference}?failed=1`);
+    redirect(`/checkout/${reference}?failed=1`);
   }
 
   const result = await confirmPaymentAndIssueTickets({
     bookingId: booking.id,
     paidAt: new Date(),
-    method,
+    method: `demo_${method}`,
     gatewayFee: 0,
-    gatewayReference: `MOCK-${Date.now()}`,
+    gatewayReference: `DEMO-${Date.now()}`,
   });
 
   await sendBookingConfirmation({
@@ -63,10 +57,13 @@ async function simulatePayment(formData: FormData) {
 
 export default async function CheckoutPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const { reference } = await params;
+  const { failed } = await searchParams;
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     include: {
@@ -91,101 +88,60 @@ export default async function CheckoutPage({
   );
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+      <header className="border-b bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-bold text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-600 text-xs font-bold text-white">
               G
             </div>
-            <span className="text-sm font-semibold tracking-tight text-slate-900">
-              GilijetPay
-            </span>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-              Demo
+            <span className="text-sm font-semibold text-slate-800">
+              Gilijet
             </span>
           </div>
-          <div className="hidden text-xs text-slate-500 sm:block">
-            Secure checkout · 256-bit TLS
-          </div>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+            Test Mode
+          </span>
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-          {/* Order summary */}
-          <aside className="space-y-4">
-            <div className="rounded-xl border bg-white p-5 shadow-sm">
-              <div className="text-xs uppercase tracking-wide text-slate-500">
-                Invoice
-              </div>
-              <div className="mt-1 text-sm font-mono text-slate-900">
-                {booking.bookingReference}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">Merchant · Gilijet</div>
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 py-8">
+        {failed === "1" && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Payment failed. Please try again.
+          </div>
+        )}
 
-              <div className="mt-4 border-t pt-4 text-sm">
-                <div className="font-semibold text-slate-900">
-                  {booking.leg.schedule.originPort} →{" "}
-                  {booking.leg.schedule.destinationPort}
-                </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {formatLocalDateTime(booking.leg.departureDate)} WITA
-                </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {booking.leg.schedule.boat.name}
-                </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  Passenger · {booking.customerName}
-                </div>
-              </div>
-
-              <div className="mt-4 border-t pt-4">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-sm text-slate-500">Amount due</span>
-                  <span className="text-2xl font-bold text-slate-900">
-                    {formatIDR(Number(booking.totalAmount))}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                <CheckoutCountdown expiresAtIso={expiresAt.toISOString()} />
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-white p-4 text-xs text-slate-500">
-              <div className="mb-2 font-semibold text-slate-700">
-                Need help?
-              </div>
-              <div>WhatsApp +62 812-3456-7890</div>
-              <div className="mt-1">support@gilijet.com</div>
-            </div>
-          </aside>
-
-          {/* Method selector */}
-          <main className="rounded-xl border bg-white p-5 shadow-sm">
-            <h1 className="text-lg font-semibold text-slate-900">
-              Choose payment method
-            </h1>
-            <p className="mt-1 text-xs text-slate-500">
-              This is a demo checkout — no real money moves. Pick a method and
-              click <strong>I have paid</strong> to confirm.
-            </p>
-
-            <CheckoutMethods
-              reference={booking.bookingReference}
-              amount={Number(booking.totalAmount)}
-              simulateAction={simulatePayment}
-            />
-          </main>
+        <div className="mb-6 space-y-1">
+          <div className="text-sm text-slate-500">
+            {booking.leg.schedule.originPort} →{" "}
+            {booking.leg.schedule.destinationPort}
+          </div>
+          <div className="text-xs text-slate-400">
+            {formatLocalDateTime(booking.leg.departureDate)} WITA ·{" "}
+            {booking.leg.schedule.boat.name}
+          </div>
         </div>
 
-        <footer className="mx-auto max-w-5xl px-2 py-6 text-center text-xs text-slate-400">
-          Powered by GilijetPay (demo) · This screen mimics a hosted invoice
-          checkout for testing.
-        </footer>
-      </div>
+        <div className="mb-8 flex items-baseline justify-between">
+          <span className="text-sm text-slate-500">Total</span>
+          <span className="text-3xl font-bold text-slate-900">
+            {formatIDR(Number(booking.totalAmount))}
+          </span>
+        </div>
+
+        <DummyCheckoutForm
+          reference={booking.bookingReference}
+          amount={Number(booking.totalAmount)}
+          customerEmail={booking.customerEmail}
+          expiresAtIso={expiresAt.toISOString()}
+          simulateAction={simulatePayment}
+        />
+
+        <p className="mt-6 text-center text-xs text-slate-400">
+          This is a demo checkout. No real payment is processed.
+        </p>
+      </main>
     </div>
   );
 }

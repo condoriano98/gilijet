@@ -133,13 +133,12 @@ async function submitBookingAction(formData: FormData) {
     redirect(`/book/${legId}?error=${encodeURIComponent(message)}`);
   }
 
-  // Redirect outside try/catch — `redirect()` throws NEXT_REDIRECT which
-  // must bubble up to Next.js. Inside a catch it would trigger the
-  // rollback path even though the booking succeeded.
   if (payment.invoiceUrl) {
     redirect(payment.invoiceUrl);
   }
-  // Demo / mock-pay path: land on the pay page.
+  if (payment.mock) {
+    redirect(`/checkout/${created.bookingReference}`);
+  }
   redirect(`/pay/${created.bookingReference}`);
 }
 
