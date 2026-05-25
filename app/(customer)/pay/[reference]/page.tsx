@@ -166,8 +166,8 @@ export default async function PayPage({
               </div>
             ) : (
               <div className="rounded-md bg-sky-50 p-3 text-xs text-sky-900">
-                You&apos;ll be redirected to {env.MAYAR_API_KEY ? "Mayar" : "Xendit"}&apos;s secure checkout to
-                pay via QRIS, e-wallet, bank transfer, or card.
+                You&apos;ll be redirected to a secure checkout to pay via
+                QRIS, e-wallet, bank transfer, or card.
               </div>
             )}
           </CardContent>
@@ -183,7 +183,7 @@ export default async function PayPage({
                 {invoiceUrl ? (
                   <Button asChild size="lg" className="w-full">
                     <a href={invoiceUrl}>
-                      Pay {formatIDR(Number(booking.totalAmount))} via {env.MAYAR_API_KEY ? "Mayar" : "Xendit"}
+                      Pay {formatIDR(Number(booking.totalAmount))}
                     </a>
                   </Button>
                 ) : null}

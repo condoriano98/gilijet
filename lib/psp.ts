@@ -9,7 +9,17 @@ import {
   isMayarConfigured,
 } from "./mayar";
 
+import { env } from "./env";
+
 export type PSPProvider = "mayar" | "xendit" | "midtrans";
+
+function isMayarReal(): boolean {
+  return (
+    isMayarConfigured() &&
+    env.MAYAR_API_KEY !== "mock" &&
+    !env.MAYAR_API_KEY?.startsWith("test_")
+  );
+}
 
 export type CreatePaymentArgs = {
   bookingReference: string;
@@ -34,13 +44,15 @@ export type CreatePaymentResult = {
 };
 
 export function selectPSP(preferredMethod?: string): PSPProvider {
-  // Credit-card preference still routes to Midtrans (richer card UX)
   if (preferredMethod === "CREDIT_CARD" && isMidtransConfigured()) {
     return "midtrans";
   }
-  if (isMayarConfigured()) return "mayar";
+  // Real gateways first; mock Mayar is only a fallback when nothing
+  // else is configured.
+  if (isMayarReal()) return "mayar";
   if (isXenditConfigured()) return "xendit";
   if (isMidtransConfigured()) return "midtrans";
+  if (isMayarConfigured()) return "mayar"; // mock/test Mayar
   throw new Error("No payment provider configured");
 }
 
