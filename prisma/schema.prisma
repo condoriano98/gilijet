@@ -182,6 +182,7 @@ model Booking {
   notes               String?
   promotionId         String?
   discountAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  reminderSentAt      DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -393,6 +394,19 @@ enum RescheduleStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+// ============== PASSWORD RESET ==============
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
 }
 
 // ============== AUDIT LOG ==============

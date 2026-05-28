@@ -31,76 +31,142 @@ export default async function OperatorDashboardPage() {
   startOfWeek.setUTCDate(startOfWeek.getUTCDate() - 6);
   const startOfMonth = new Date(startOfDay);
   startOfMonth.setUTCDate(1);
+  const start14d = new Date(startOfDay.getTime() - 13 * 24 * 60 * 60 * 1000);
 
-  const [todayLegs, upcomingLegs, scheduleCount, todayRevenue, weekRevenue, monthRevenue, pendingPayout] =
-    await Promise.all([
-      getOperatorLegs(session.sub, {
-        fromUtc: startOfDay,
-        toUtc: endOfDay,
-        take: 20,
-      }),
-      getOperatorLegs(session.sub, {
-        fromUtc: endOfDay,
-        toUtc: new Date(endOfDay.getTime() + 7 * 24 * 60 * 60 * 1000),
-        take: 20,
-      }),
-      prisma.schedule.count({
-        where: { boat: { operatorId: session.sub }, status: "ACTIVE" },
-      }),
-      // Today's confirmed bookings - operator earnings
-      prisma.booking.aggregate({
-        where: {
-          status: "CONFIRMED",
-          leg: { schedule: { boat: { operatorId: session.sub } } },
-          createdAt: { gte: startOfDay, lt: endOfDay },
+  const [
+    todayLegs,
+    upcomingLegs,
+    scheduleCount,
+    todayRevenue,
+    weekRevenue,
+    monthRevenue,
+    pendingPayout,
+    recentPayments,
+    monthBookings,
+  ] = await Promise.all([
+    getOperatorLegs(session.sub, { fromUtc: startOfDay, toUtc: endOfDay, take: 20 }),
+    getOperatorLegs(session.sub, {
+      fromUtc: endOfDay,
+      toUtc: new Date(endOfDay.getTime() + 7 * 24 * 60 * 60 * 1000),
+      take: 20,
+    }),
+    prisma.schedule.count({
+      where: { boat: { operatorId: session.sub }, status: "ACTIVE" },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        status: "CONFIRMED",
+        leg: { schedule: { boat: { operatorId: session.sub } } },
+        createdAt: { gte: startOfDay, lt: endOfDay },
+      },
+      _sum: { operatorAmount: true },
+      _count: true,
+    }),
+    prisma.booking.aggregate({
+      where: {
+        status: "CONFIRMED",
+        leg: { schedule: { boat: { operatorId: session.sub } } },
+        createdAt: { gte: startOfWeek, lt: endOfDay },
+      },
+      _sum: { operatorAmount: true },
+      _count: true,
+    }),
+    prisma.booking.aggregate({
+      where: {
+        status: "CONFIRMED",
+        leg: { schedule: { boat: { operatorId: session.sub } } },
+        createdAt: { gte: startOfMonth, lt: endOfDay },
+      },
+      _sum: { operatorAmount: true },
+      _count: true,
+    }),
+    prisma.booking.aggregate({
+      where: {
+        status: "CONFIRMED",
+        leg: {
+          schedule: { boat: { operatorId: session.sub } },
+          departureDate: { lt: now },
         },
-        _sum: { operatorAmount: true },
-        _count: true,
-      }),
-      // 7-day rolling revenue
-      prisma.booking.aggregate({
-        where: {
-          status: "CONFIRMED",
-          leg: { schedule: { boat: { operatorId: session.sub } } },
-          createdAt: { gte: startOfWeek, lt: endOfDay },
-        },
-        _sum: { operatorAmount: true },
-        _count: true,
-      }),
-      // Month-to-date
-      prisma.booking.aggregate({
-        where: {
-          status: "CONFIRMED",
-          leg: { schedule: { boat: { operatorId: session.sub } } },
-          createdAt: { gte: startOfMonth, lt: endOfDay },
-        },
-        _sum: { operatorAmount: true },
-        _count: true,
-      }),
-      // Awaiting settlement (CONFIRMED, departure passed, not yet paid out)
-      prisma.booking.aggregate({
-        where: {
-          status: "CONFIRMED",
-          leg: {
-            schedule: { boat: { operatorId: session.sub } },
-            departureDate: { lt: now },
-          },
-        },
-        _sum: { operatorAmount: true },
-        _count: true,
-      }),
-    ]);
+      },
+      _sum: { operatorAmount: true },
+      _count: true,
+    }),
+    // 14-day daily revenue (for chart)
+    prisma.payment.findMany({
+      where: {
+        status: "SUCCESSFUL",
+        paidAt: { gte: start14d },
+        booking: { leg: { schedule: { boat: { operatorId: session.sub } } } },
+      },
+      select: { paidAt: true, amount: true },
+    }),
+    // Month bookings for top routes
+    prisma.booking.findMany({
+      where: {
+        status: "CONFIRMED",
+        leg: { schedule: { boat: { operatorId: session.sub } } },
+        createdAt: { gte: startOfMonth, lt: endOfDay },
+      },
+      select: {
+        operatorAmount: true,
+        leg: { select: { schedule: { select: { originPort: true, destinationPort: true } } } },
+      },
+    }),
+  ]);
 
-  const todayBooked = todayLegs.reduce(
-    (acc, l) => acc + (l.totalCapacity - l.availableSeats),
-    0,
-  );
-  const todayCapacity = todayLegs.reduce(
-    (acc, l) => acc + l.totalCapacity,
-    0,
-  );
-  const formatRupiah = (v: number) =>
-    `IDR ${Math.round(v).toLocaleString("id-ID")}`;
+  const todayBooked = todayLegs.reduce((acc, l) => acc + (l.totalCapacity - l.availableSeats), 0);
+  const todayCapacity = todayLegs.reduce((acc, l) => acc + l.totalCapacity, 0);
+
+  // Upcoming occupancy
+  const upcomingBooked = upcomingLegs.reduce((acc, l) => acc + (l.totalCapacity - l.availableSeats), 0);
+  const upcomingCapacity = upcomingLegs.reduce((acc, l) => acc + l.totalCapacity, 0);
+  const occupancyPct = upcomingCapacity > 0 ? Math.round((upcomingBooked / upcomingCapacity) * 100) : 0;
+
+  // Build 14-day revenue chart data
+  const dailyMap = new Map<string, number>();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(start14d.getTime() + i * 24 * 60 * 60 * 1000);
+    dailyMap.set(d.toISOString().slice(0, 10), 0);
+  }
+  for (const p of recentPayments) {
+    if (!p.paidAt) continue;
+    const key = p.paidAt.toISOString().slice(0, 10);
+    if (dailyMap.has(key)) {
+      dailyMap.set(key, (dailyMap.get(key) ?? 0) + Number(p.amount));
+    }
+  }
+  const chartDays = Array.from(dailyMap.entries()).map(([dateStr, revenue]) => ({
+    dateStr,
+    revenue,
+    label: new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-ID", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+    }),
+  }));
+  const maxRevenue = Math.max(...chartDays.map((d) => d.revenue), 1);
+
+  // Top routes this month
+  const routeMap = new Map<string, { count: number; total: number }>();
+  for (const b of monthBookings) {
+    const key = `${b.leg.schedule.originPort} → ${b.leg.schedule.destinationPort}`;
+    const prev = routeMap.get(key) ?? { count: 0, total: 0 };
+    routeMap.set(key, {
+      count: prev.count + 1,
+      total: prev.total + Number(b.operatorAmount),
+    });
+  }
+  const topRoutes = Array.from(routeMap.entries())
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 5);
+  const maxRouteTotal = Math.max(...topRoutes.map((r) => r[1].total), 1);
+
+  const formatRupiah = (v: number) => `IDR ${Math.round(v).toLocaleString("id-ID")}`;
+
+  const CHART_W = 308;
+  const CHART_H = 80;
+  const barWidth = 18;
+  const barGap = 4;
 
   return (
     <div className="space-y-6">
@@ -146,7 +212,7 @@ export default async function OperatorDashboardPage() {
             {monthRevenue._count} confirmed
           </CardContent>
         </Card>
-        <Card className="bg-amber-50 border-amber-200">
+        <Card className="border-amber-200 bg-amber-50">
           <CardHeader className="pb-2">
             <CardDescription>Pending payout</CardDescription>
             <CardTitle className="text-2xl">
@@ -159,7 +225,7 @@ export default async function OperatorDashboardPage() {
         </Card>
       </div>
 
-      {/* Operations at a glance */}
+      {/* Operations */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -181,6 +247,15 @@ export default async function OperatorDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
+            <CardDescription>Next 7 days occupancy</CardDescription>
+            <CardTitle className="text-3xl">{occupancyPct}%</CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {upcomingBooked}/{upcomingCapacity} seats booked
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
             <CardDescription>Active schedules</CardDescription>
             <CardTitle className="text-3xl">{scheduleCount}</CardTitle>
           </CardHeader>
@@ -188,21 +263,105 @@ export default async function OperatorDashboardPage() {
             <Link href="/operator/schedules" className="underline">
               Manage
             </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Your boats</CardDescription>
-            <CardTitle className="text-3xl">{operator._count.boats}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
+            {" · "}
             <Link href="/operator/boats" className="underline">
-              Manage
+              {operator._count.boats} boat{operator._count.boats === 1 ? "" : "s"}
             </Link>
           </CardContent>
         </Card>
       </div>
 
+      {/* Revenue chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue — last 14 days</CardTitle>
+          <CardDescription>Your share after platform commission</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {maxRevenue <= 1 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No payments received in the last 14 days.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <svg
+                viewBox={`0 0 ${CHART_W} ${CHART_H + 24}`}
+                width={CHART_W}
+                height={CHART_H + 24}
+                aria-label="14-day revenue chart"
+              >
+                {chartDays.map((d, i) => {
+                  const barH = Math.max(
+                    2,
+                    Math.round((d.revenue / maxRevenue) * CHART_H),
+                  );
+                  const x = i * (barWidth + barGap);
+                  const y = CHART_H - barH;
+                  return (
+                    <g key={d.dateStr}>
+                      <rect
+                        x={x}
+                        y={y}
+                        width={barWidth}
+                        height={barH}
+                        fill={d.revenue > 0 ? "#0ea5e9" : "#e2e8f0"}
+                        rx={2}
+                      >
+                        <title>
+                          {d.label}: {formatRupiah(d.revenue)}
+                        </title>
+                      </rect>
+                      {i % 2 === 0 && (
+                        <text
+                          x={x + barWidth / 2}
+                          y={CHART_H + 16}
+                          fontSize={7}
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                        >
+                          {d.label}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Top routes */}
+      {topRoutes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top routes this month</CardTitle>
+            <CardDescription>By your earnings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {topRoutes.map(([route, { count, total }]) => (
+                <li key={route}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium">{route}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {count} booking{count === 1 ? "" : "s"} · {formatRupiah(total)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100">
+                    <div
+                      className="h-1.5 rounded-full bg-sky-400"
+                      style={{ width: `${Math.round((total / maxRouteTotal) * 100)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Today's departures */}
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -231,16 +390,12 @@ export default async function OperatorDashboardPage() {
                 >
                   <div>
                     <div className="font-medium">
-                      <span className="font-mono">
-                        {formatLocalTime(leg.departureDate)}
-                      </span>{" "}
-                      · {leg.schedule.originPort} →{" "}
-                      {leg.schedule.destinationPort}
+                      <span className="font-mono">{formatLocalTime(leg.departureDate)}</span>{" "}
+                      · {leg.schedule.originPort} → {leg.schedule.destinationPort}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {leg.schedule.boat.name} ·{" "}
-                      {leg.totalCapacity - leg.availableSeats}/
-                      {leg.totalCapacity} booked
+                      {leg.totalCapacity - leg.availableSeats}/{leg.totalCapacity} booked
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -266,6 +421,7 @@ export default async function OperatorDashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Coming up */}
       <Card>
         <CardHeader>
           <CardTitle>Coming up</CardTitle>
@@ -288,8 +444,7 @@ export default async function OperatorDashboardPage() {
                       {formatLocalDate(leg.departureDate)}{" "}
                       {formatLocalTime(leg.departureDate)}
                     </span>{" "}
-                    · {leg.schedule.originPort} →{" "}
-                    {leg.schedule.destinationPort}
+                    · {leg.schedule.originPort} → {leg.schedule.destinationPort}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {leg.totalCapacity - leg.availableSeats}/{leg.totalCapacity}

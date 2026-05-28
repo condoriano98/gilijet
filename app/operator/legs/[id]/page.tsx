@@ -183,6 +183,11 @@ export default async function LegManifestPage({
         <Button asChild>
           <Link href={`/operator/scanner?legId=${leg.id}`}>Open scanner</Link>
         </Button>
+        <Button asChild variant="outline">
+          <a href={`/api/operator/manifest/${leg.id}/csv`} download>
+            Download CSV
+          </a>
+        </Button>
         {!cancelled && leg.status !== "SAILED" ? (
           <details className="group rounded-md border bg-card">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-destructive">
