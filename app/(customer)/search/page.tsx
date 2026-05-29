@@ -6,6 +6,7 @@ import {
   formatLocalDate,
   formatLocalTime,
   localDateTimeToUtc,
+  ymdInZone,
 } from "@/lib/datetime";
 import { expireStalePendingBookings } from "@/lib/booking-expiry";
 import {
@@ -28,7 +29,9 @@ import { getSeaCondition } from "@/lib/sea-conditions";
 const querySchema = z.object({
   origin: z.string().min(2),
   destination: z.string().min(2),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // Optional: a popular-route link only carries origin + destination. When
+  // absent we default to today (WITA) so results show immediately.
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   passengers: z.coerce.number().int().min(1).max(10).default(1),
   sortBy: z.enum(["time", "price", "duration"]).default("time"),
@@ -72,7 +75,12 @@ export default async function SearchPage({
     return (
       <div className="container py-10">
         <h1 className="mb-6 text-2xl font-bold tracking-tight">Find a boat</h1>
-        <SearchForm origins={origins} destinations={destinations} />
+        <SearchForm
+          origins={origins}
+          destinations={destinations}
+          defaultOrigin={raw.origin}
+          defaultDestination={raw.destination}
+        />
         <p className="mt-4 text-sm text-red-700">
           Please fill in the search form to see results.
         </p>
@@ -80,8 +88,9 @@ export default async function SearchPage({
     );
   }
 
-  const { origin, destination, date, returnDate, passengers, sortBy, timeSlot, maxPrice } =
+  const { origin, destination, returnDate, passengers, sortBy, timeSlot, maxPrice } =
     parsed.data;
+  const date = parsed.data.date ?? ymdInZone(new Date());
   const seaCondition = getSeaCondition(origin, destination);
 
   // Lazy expiry sweep so freed seats show up in the next render. Don't
