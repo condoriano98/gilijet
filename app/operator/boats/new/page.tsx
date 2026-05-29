@@ -28,6 +28,14 @@ const newBoatSchema = z.object({
   description: z.string().max(1000).optional().or(z.literal("")),
 });
 
+function parsePhotoUrls(raw: string): string[] {
+  return raw
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\/.+/i.test(s))
+    .slice(0, 8);
+}
+
 async function createBoatAction(formData: FormData) {
   "use server";
   const session = await requireOperator();
@@ -43,6 +51,8 @@ async function createBoatAction(formData: FormData) {
     );
   }
 
+  const photos = parsePhotoUrls(String(formData.get("photos") ?? ""));
+
   try {
     const boat = await prisma.boat.create({
       data: {
@@ -51,7 +61,7 @@ async function createBoatAction(formData: FormData) {
         registrationNumber: parsed.data.registrationNumber,
         capacity: parsed.data.capacity,
         description: parsed.data.description || null,
-        photos: [],
+        photos,
         status: "ACTIVE",
       },
     });
@@ -149,6 +159,19 @@ export default async function NewBoatPage({
                 rows={3}
                 placeholder="What's on board, amenities, etc."
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="photos">Photo URLs (optional)</Label>
+              <Textarea
+                id="photos"
+                name="photos"
+                rows={3}
+                placeholder={"One URL per line, e.g.\nhttps://example.com/boat-1.jpg"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Paste up to 8 image links. They appear on search results and
+                booking pages.
+              </p>
             </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">

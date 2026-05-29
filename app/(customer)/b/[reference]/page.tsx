@@ -341,6 +341,11 @@ export default async function BookingLookupPage({
                 </div>
                 <div className="flex items-center gap-2">
                   <Button asChild variant="outline" size="sm">
+                    <a href={`/api/bookings/${booking.bookingReference}/ics`} download>
+                      Add to calendar
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
                     <Link
                       href={`/print/b/${booking.bookingReference}`}
                       target="_blank"
@@ -383,6 +388,19 @@ export default async function BookingLookupPage({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                {booking.leg.schedule.boat.photos.length > 0 ? (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {booking.leg.schedule.boat.photos.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={url}
+                        alt={booking.leg.schedule.boat.name}
+                        className="h-28 w-44 flex-shrink-0 rounded-md border object-cover"
+                      />
+                    ))}
+                  </div>
+                ) : null}
                 <KV label="Dock address" value={portInfo.address} />
                 <p className="text-xs text-muted-foreground">{portInfo.dockTip}</p>
                 <KV

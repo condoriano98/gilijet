@@ -280,7 +280,16 @@ export default async function SearchPage({
               <Card key={leg.id}>
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                    <div className="flex items-start gap-3">
+                      {leg.schedule.boat.photos.length > 0 ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={leg.schedule.boat.photos[0]}
+                          alt={leg.schedule.boat.name}
+                          className="h-16 w-20 rounded-md border object-cover"
+                        />
+                      ) : null}
+                      <div>
                       <CardTitle className="text-2xl">
                         {formatLocalTime(leg.departureDate)}
                       </CardTitle>
@@ -296,6 +305,7 @@ export default async function SearchPage({
                           </>
                         ) : null}
                       </CardDescription>
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">

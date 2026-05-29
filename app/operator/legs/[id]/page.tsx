@@ -188,6 +188,11 @@ export default async function LegManifestPage({
             Download CSV
           </a>
         </Button>
+        <Button asChild variant="outline">
+          <Link href={`/print/manifest/${leg.id}`} target="_blank">
+            Print manifest
+          </Link>
+        </Button>
         {!cancelled && leg.status !== "SAILED" ? (
           <details className="group rounded-md border bg-card">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-destructive">

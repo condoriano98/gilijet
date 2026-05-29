@@ -27,6 +27,14 @@ const updateBoatSchema = z.object({
   status: z.nativeEnum(BoatStatus),
 });
 
+function parsePhotoUrls(raw: string): string[] {
+  return raw
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\/.+/i.test(s))
+    .slice(0, 8);
+}
+
 async function updateBoatAction(formData: FormData) {
   "use server";
   const session = await requireOperator();
@@ -47,6 +55,8 @@ async function updateBoatAction(formData: FormData) {
   const existing = await getOperatorBoat(session.sub, parsed.data.id);
   if (!existing) redirect("/operator/boats");
 
+  const photos = parsePhotoUrls(String(formData.get("photos") ?? ""));
+
   const updated = await prisma.boat.update({
     where: { id: parsed.data.id },
     data: {
@@ -54,6 +64,7 @@ async function updateBoatAction(formData: FormData) {
       capacity: parsed.data.capacity,
       description: parsed.data.description || null,
       status: parsed.data.status,
+      photos,
     },
   });
 
@@ -160,6 +171,32 @@ export default async function EditBoatPage({
                 rows={3}
                 defaultValue={boat.description ?? ""}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="photos">Photo URLs</Label>
+              <Textarea
+                id="photos"
+                name="photos"
+                rows={3}
+                defaultValue={boat.photos.join("\n")}
+                placeholder={"One URL per line, e.g.\nhttps://example.com/boat-1.jpg"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Up to 8 image links, one per line.
+              </p>
+              {boat.photos.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {boat.photos.map((url) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={url}
+                      src={url}
+                      alt="Boat"
+                      className="h-16 w-24 rounded-md border object-cover"
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </CardContent>
           <CardFooter className="justify-between gap-2">
