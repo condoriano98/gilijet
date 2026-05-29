@@ -21,6 +21,7 @@ export function DummyCheckoutForm({
   const [tab, setTab] = useState<Tab>("card");
   const [isPending, startTransition] = useTransition();
   const [timeLeft, setTimeLeft] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     const expires = new Date(expiresAtIso).getTime();
@@ -36,6 +37,7 @@ export function DummyCheckoutForm({
   }, [expiresAtIso]);
 
   function handleSubmit(outcome: "success" | "fail") {
+    if (outcome === "success" && !agreed) return;
     const fd = new FormData();
     fd.set("reference", reference);
     fd.set("outcome", outcome);
@@ -164,14 +166,41 @@ export function DummyCheckoutForm({
         </span>
       </div>
 
+      {/* Terms agreement gate */}
+      <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 h-4 w-4 flex-shrink-0"
+        />
+        <span>
+          I have read and agree to the{" "}
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-sky-700 underline"
+          >
+            Terms &amp; Conditions and Refund Policy
+          </a>
+          . By paying I accept the cancellation schedule and confirm my booking
+          details are correct.
+        </span>
+      </label>
+
       {/* Buttons */}
       <button
         type="button"
-        disabled={isPending}
+        disabled={isPending || !agreed}
         onClick={() => handleSubmit("success")}
-        className="w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isPending ? "Processing..." : `Pay ${formatIDR(amount)}`}
+        {isPending
+          ? "Processing..."
+          : agreed
+            ? `Pay ${formatIDR(amount)}`
+            : "Accept the terms to pay"}
       </button>
       <button
         type="button"
