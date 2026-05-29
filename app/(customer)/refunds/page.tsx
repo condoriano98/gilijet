@@ -25,15 +25,15 @@ export default function RefundsPage() {
             </thead>
             <tbody className="divide-y">
               <tr>
-                <td className="px-4 py-3">7 days or more</td>
+                <td className="px-4 py-3">More than 7 days (168 hrs)</td>
                 <td className="px-4 py-3 text-green-700 font-semibold">100%</td>
               </tr>
               <tr>
-                <td className="px-4 py-3">4 to 6 days</td>
+                <td className="px-4 py-3">48 hours to 7 days</td>
                 <td className="px-4 py-3 text-amber-700 font-semibold">50%</td>
               </tr>
               <tr>
-                <td className="px-4 py-3">0 to 3 days</td>
+                <td className="px-4 py-3">Less than 48 hours</td>
                 <td className="px-4 py-3 text-red-700 font-semibold">No refund</td>
               </tr>
             </tbody>

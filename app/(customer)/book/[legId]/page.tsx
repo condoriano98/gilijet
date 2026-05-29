@@ -367,9 +367,10 @@ export default async function BookPage({
                   className="mt-0.5 h-4 w-4"
                 />
                 <span>
-                  I agree to the refund policy: 7+ days before departure, 100%
-                  refund · 4-6 days, 50% · 0-3 days, no refund. Operator
-                  cancellations are always 100% refunded.
+                  I agree to the refund policy: more than 7 days before
+                  departure, 100% refund · 48 hours–7 days, 50% · less than 48
+                  hours, no refund. Operator cancellations are always 100%
+                  refunded.
                 </span>
               </label>
             </CardContent>

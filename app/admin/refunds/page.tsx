@@ -28,8 +28,8 @@ import { env } from "@/lib/env";
 
 /**
  * Automatically approves all PENDING refunds where the customer is still in
- * the FULL-refund window (7+ days before departure). Safe to call as a
- * background action.
+ * the FULL-refund window (more than 7 days before departure). Safe to call as
+ * a background action.
  */
 async function autoApproveEligibleRefunds() {
   "use server";

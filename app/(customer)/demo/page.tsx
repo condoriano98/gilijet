@@ -384,7 +384,7 @@ function ReviewStep({
           className="mt-1 h-4 w-4"
         />
         <span className="text-xs text-slate-600">
-          I agree to the refund policy: 7+ days before departure, 100% refund · 3-6 days, 50% · 0-3 days, no refund.
+          I agree to the refund policy: more than 7 days before departure, 100% refund · 48 hours–7 days, 50% · less than 48 hours, no refund.
         </span>
       </label>
     </div>

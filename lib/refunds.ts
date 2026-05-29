@@ -1,12 +1,12 @@
 import { Prisma } from "@prisma/client";
 
 /**
- * Refund policy (see REQUIREMENTS.md §6.4).
+ * Refund policy (see gilibali.com Terms & Conditions §5.1).
  *
- *  7+ days before departure       → 100% refund
- *  4-6 days before departure      → 50% refund
- *  0-3 days before departure      → 0%   (no refund)
- *  Operator cancels (any window)  → 100% refund
+ *  More than 7 days (168 hrs) before departure → 100% refund
+ *  48 hours – 7 days before departure          → 50%  refund
+ *  Less than 48 hours before departure         → 0%   (no refund)
+ *  Operator cancels (any window)               → 100% refund
  */
 
 export type CustomerRefundTier = "FULL" | "PARTIAL" | "NONE";
@@ -16,10 +16,10 @@ export function refundTierForCustomer(
   departure: Date,
 ): CustomerRefundTier {
   const ms = departure.getTime() - now.getTime();
-  const days = ms / (1000 * 60 * 60 * 24);
-  if (days >= 7) return "FULL";
-  if (days > 3) return "PARTIAL";
-  return "NONE";
+  const hours = ms / (1000 * 60 * 60);
+  if (hours > 168) return "FULL"; // more than 7 days
+  if (hours >= 48) return "PARTIAL"; // 48 hours to 7 days
+  return "NONE"; // less than 48 hours
 }
 
 export function refundAmountForCustomer(args: {
@@ -41,11 +41,12 @@ export function refundAmountForCustomer(args: {
 
 /**
  * The refund deadline is the latest moment at which a customer can still
- * receive any money back (i.e. the start of the 0-3 day window). We store
- * this on the Booking so we can disable the cancel button precisely.
+ * receive any money back (i.e. the start of the no-refund window, 48 hours
+ * before departure). We store this on the Booking so we can disable the
+ * cancel button precisely.
  */
 export function computeRefundDeadline(departure: Date): Date {
-  return new Date(departure.getTime() - 3 * 24 * 60 * 60 * 1000);
+  return new Date(departure.getTime() - 48 * 60 * 60 * 1000);
 }
 
 /** Operator-triggered cancellation is always a full refund. */

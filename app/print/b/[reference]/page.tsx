@@ -154,7 +154,7 @@ export default async function PrintTicketPage({
 
         <div className="print-footer">
           Operator contact: {booking.leg.schedule.boat.operator.phoneNumber} ·
-          Refund policy: 7+ days = full · 4-6 days = 50% · 0-3 days = none. This
+          Refund policy: 7+ days = full · 48h-7 days = 50% · under 48h = none. This
           ticket is valid only for the date, time, and route printed above.
         </div>
       </div>
