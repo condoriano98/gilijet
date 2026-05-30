@@ -90,6 +90,7 @@ export default async function SearchPage({
 
   const { origin, destination, returnDate, passengers, sortBy, timeSlot, maxPrice } =
     parsed.data;
+  const dateProvided = Boolean(parsed.data.date);
   const date = parsed.data.date ?? ymdInZone(new Date());
   const seaCondition = getSeaCondition(origin, destination);
 
@@ -101,10 +102,13 @@ export default async function SearchPage({
     console.error("[search] expireStalePendingBookings failed:", err);
   }
 
-  // The user's selected day, expressed as the UTC window from local 00:00
-  // to local 23:59:59 in WITA.
-  const startUtc = localDateTimeToUtc(date, "00:00");
-  const endUtc = localDateTimeToUtc(date, "23:59");
+  // When the user picks a date, search just that day (local 00:00 – 23:59 WITA).
+  // When no date is given (e.g. landing from a "Popular routes" link), broaden
+  // to the next 14 days so something always shows up instead of an empty page.
+  const startUtc = dateProvided ? localDateTimeToUtc(date, "00:00") : new Date();
+  const endUtc = dateProvided
+    ? localDateTimeToUtc(date, "23:59")
+    : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
   type LegWithSchedule = Prisma.LegGetPayload<{
     include: { schedule: { include: { boat: true } } };
@@ -240,8 +244,10 @@ export default async function SearchPage({
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
-          {formatLocalDate(startUtc, "EEEE, dd MMM yyyy")} ·{" "}
-          {passengers} passenger{passengers === 1 ? "" : "s"}
+          {dateProvided
+            ? formatLocalDate(startUtc, "EEEE, dd MMM yyyy")
+            : "Upcoming departures · next 14 days"}{" "}
+          · {passengers} passenger{passengers === 1 ? "" : "s"}
           {returnDate ? (
             <>
               {" "}· returning {formatLocalDate(localDateTimeToUtc(returnDate, "00:00"), "dd MMM")}
@@ -270,7 +276,9 @@ export default async function SearchPage({
       ) : legs.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            No departures match. Try a different date or route.
+            {dateProvided
+              ? "No departures on this date. Try a different day."
+              : "No upcoming departures for this route in the next 14 days."}
           </CardContent>
         </Card>
       ) : (
@@ -301,6 +309,11 @@ export default async function SearchPage({
                       <div>
                       <CardTitle className="text-2xl">
                         {formatLocalTime(leg.departureDate)}
+                        {!dateProvided ? (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            {formatLocalDate(leg.departureDate, "EEE dd MMM")}
+                          </span>
+                        ) : null}
                       </CardTitle>
                       <CardDescription>
                         {leg.schedule.boat.name} ·{" "}
