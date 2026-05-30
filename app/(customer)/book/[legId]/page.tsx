@@ -358,19 +358,27 @@ export default async function BookPage({
 
           <Card>
             <CardContent className="space-y-3 pt-6">
-              <label className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
                 <input
                   type="checkbox"
                   name="agreedToTerms"
                   value="1"
                   required
-                  className="mt-0.5 h-4 w-4"
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
                 />
                 <span>
-                  I agree to the refund policy: more than 7 days before
-                  departure, 100% refund · 48 hours–7 days, 50% · less than 48
-                  hours, no refund. Operator cancellations are always 100%
-                  refunded.
+                  I have read and agree to the{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-sky-700 underline"
+                  >
+                    Terms &amp; Conditions and Refund Policy
+                  </Link>
+                  . I confirm my booking details are correct and accept the
+                  cancellation schedule (100% refund &gt;7 days · 50% refund
+                  48h–7 days · no refund &lt;48h before departure).
                 </span>
               </label>
             </CardContent>
