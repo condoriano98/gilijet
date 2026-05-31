@@ -15,6 +15,10 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:real": "tsx prisma/seed-real.ts",
+    "seed:qa": "tsx scripts/seed-qa.ts",
+    "qc": "pnpm lint && pnpm typecheck",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "deploy": "bash scripts/deploy.sh",
     "postinstall": "prisma generate"
   },
@@ -46,6 +50,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.5",
     "@types/qrcode": "1.5.6",
