@@ -120,10 +120,10 @@ async function submitRescheduleAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "booking",
+    entityType: "BOOKING",
     entityId: booking.id,
     action: "reschedule_requested",
-    userRole: "customer",
+    userRole: "CUSTOMER",
     newState: {
       originalLegId: booking.legId,
       requestedLegId: parsed.data.requestedLegId,

@@ -30,7 +30,7 @@ export async function GET(
   });
 
   if (!leg) return new Response("Not found", { status: 404 });
-  if (leg.schedule.boat.operatorId !== session.sub)
+  if (leg.operatorId !== session.sub)
     return new Response("Forbidden", { status: 403 });
 
   const header = ["Ticket Code", "Passenger Name", "ID Number", "Status", "Booking Reference"];

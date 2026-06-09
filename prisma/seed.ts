@@ -331,6 +331,7 @@ async function seedDemoBooking(
     unitPrice: number;
   },
 ): Promise<void> {
+  const leg = await prisma.leg.findUniqueOrThrow({ where: { id: legId } });
   const price = computeBookingPrice({
     unitPrice: args.unitPrice,
     quantity: args.passengers.length,
@@ -341,6 +342,7 @@ async function seedDemoBooking(
     data: {
       bookingReference: ref,
       legId,
+      operatorId: leg.operatorId,
       customerName: args.customerName,
       customerEmail: "demo@gilijet.local",
       customerPhone: "+6281200000000",
@@ -352,10 +354,10 @@ async function seedDemoBooking(
       payment: {
         create: {
           amount: price.totalAmount,
-          method: "qris",
+          method: "QRIS",
           status: "SUCCESSFUL",
           paidAt: new Date(),
-          gatewayProvider: "xendit",
+          gatewayProvider: "XENDIT",
         },
       },
     },

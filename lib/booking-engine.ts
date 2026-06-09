@@ -6,7 +6,7 @@ import {
   computeBookingPriceWithTypes,
   type PassengerType,
 } from "./pricing";
-import { computeRefundDeadline } from "./refunds";
+import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
 import { XenditNotConfiguredError } from "./xendit";
@@ -161,6 +161,7 @@ export async function reserveSeatsAndCreateBooking(
           data: {
             bookingReference,
             legId: leg.id,
+            operatorId: leg.operatorId,
             customerId: args.customerId ?? null,
             customerName: args.customer.name,
             customerEmail: args.customer.email.toLowerCase(),
@@ -173,15 +174,17 @@ export async function reserveSeatsAndCreateBooking(
             discountAmount: new Prisma.Decimal(discountAmount),
             status: "PENDING_PAYMENT",
             refundDeadline: computeRefundDeadline(leg.departureDate),
+            refundPolicySnapshot: snapshotCurrentPolicy({
+              departure: leg.departureDate,
+              deadline: computeRefundDeadline(leg.departureDate),
+            }),
             idempotencyKey: args.idempotencyKey ?? null,
             notes: args.notes ?? null,
             payment: {
               create: {
                 amount: price.totalAmount,
-                method: "pending",
+                method: "BANK_TRANSFER",
                 status: "PENDING",
-                // gatewayProvider is set when startPaymentForBooking
-                // selects a PSP. Lets the DB default ("mayar") apply here.
               },
             },
           },
@@ -230,10 +233,10 @@ export async function reserveSeatsAndCreateBooking(
 
     await tx.auditLog.create({
       data: {
-        entityType: "booking",
+        entityType: "BOOKING",
         entityId: booking.id,
         action: "created",
-        userRole: "customer",
+        userRole: "CUSTOMER",
         newState: {
           bookingReference: booking.bookingReference,
           legId: booking.legId,
@@ -299,19 +302,19 @@ export async function startPaymentForBooking(
       data: {
         gatewayReference: result.gatewayReference,
         method:
-          result.provider === "midtrans"
-            ? "midtrans_snap"
-            : result.provider === "mayar"
-              ? "mayar_invoice"
-              : "xendit_invoice",
+          result.provider === "MIDTRANS"
+            ? "CREDIT_CARD"
+            : result.provider === "MAYAR"
+              ? "BANK_TRANSFER"
+              : "BANK_TRANSFER",
         gatewayProvider: result.provider,
       },
     });
     await audit({
-      entityType: "booking",
+      entityType: "BOOKING",
       entityId: booking.id,
       action: "payment_initiated",
-      userRole: "system",
+      userRole: "SYSTEM",
       newState: { provider: result.provider, gatewayReference: result.gatewayReference },
     });
     return { invoiceUrl: result.redirectUrl, mock: false };
@@ -372,10 +375,10 @@ export async function releaseBookingSeats(
 
     await tx.auditLog.create({
       data: {
-        entityType: "booking",
+        entityType: "BOOKING",
         entityId: booking.id,
         action: `seats_released_${reason}`,
-        userRole: "system",
+        userRole: "SYSTEM",
         newState: { quantity },
       },
     });

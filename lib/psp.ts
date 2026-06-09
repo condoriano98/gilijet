@@ -2,6 +2,7 @@
  * Payment Service Provider abstraction.
  * Routes to Mayar (preferred), Xendit, or Midtrans (credit card).
  */
+import { PaymentProvider, PaymentMethod } from "@prisma/client";
 import { createInvoice, isXenditConfigured } from "./xendit";
 import { createSnapToken, isMidtransConfigured } from "./midtrans";
 import {
@@ -11,7 +12,7 @@ import {
 
 import { env } from "./env";
 
-export type PSPProvider = "mayar" | "xendit" | "midtrans";
+export type PSPProvider = PaymentProvider;
 
 function isMayarReal(): boolean {
   return (
@@ -31,7 +32,6 @@ export type CreatePaymentArgs = {
   successUrl: string;
   failureUrl: string;
   durationSeconds: number;
-  /** Hint: 'CREDIT_CARD' routes to Midtrans if configured. */
   preferredMethod?: string;
 };
 
@@ -39,20 +39,17 @@ export type CreatePaymentResult = {
   provider: PSPProvider;
   redirectUrl: string;
   gatewayReference: string;
-  /** Midtrans Snap token (for embedded payment UI). */
   snapToken?: string;
 };
 
 export function selectPSP(preferredMethod?: string): PSPProvider {
   if (preferredMethod === "CREDIT_CARD" && isMidtransConfigured()) {
-    return "midtrans";
+    return PaymentProvider.MIDTRANS;
   }
-  // Real gateways first; mock Mayar is only a fallback when nothing
-  // else is configured.
-  if (isMayarReal()) return "mayar";
-  if (isXenditConfigured()) return "xendit";
-  if (isMidtransConfigured()) return "midtrans";
-  if (isMayarConfigured()) return "mayar"; // mock/test Mayar
+  if (isMayarReal()) return PaymentProvider.MAYAR;
+  if (isXenditConfigured()) return PaymentProvider.XENDIT;
+  if (isMidtransConfigured()) return PaymentProvider.MIDTRANS;
+  if (isMayarConfigured()) return PaymentProvider.MAYAR;
   throw new Error("No payment provider configured");
 }
 
@@ -61,7 +58,7 @@ export async function createPayment(
 ): Promise<CreatePaymentResult> {
   const provider = selectPSP(args.preferredMethod);
 
-  if (provider === "mayar") {
+  if (provider === PaymentProvider.MAYAR) {
     const expiresAt = new Date(Date.now() + args.durationSeconds * 1000);
     const invoice = await createMayarInvoice({
       externalId: args.bookingReference,
@@ -74,13 +71,13 @@ export async function createPayment(
       expiresAt,
     });
     return {
-      provider: "mayar",
+      provider: PaymentProvider.MAYAR,
       redirectUrl: invoice.invoiceUrl,
       gatewayReference: invoice.id,
     };
   }
 
-  if (provider === "xendit") {
+  if (provider === PaymentProvider.XENDIT) {
     const invoice = await createInvoice({
       externalId: args.bookingReference,
       amount: args.amount,
@@ -91,13 +88,12 @@ export async function createPayment(
       invoiceDuration: args.durationSeconds,
     });
     return {
-      provider: "xendit",
+      provider: PaymentProvider.XENDIT,
       redirectUrl: invoice.invoiceUrl,
       gatewayReference: invoice.id,
     };
   }
 
-  // Midtrans
   const snap = await createSnapToken({
     orderId: args.bookingReference,
     amount: args.amount,
@@ -108,7 +104,7 @@ export async function createPayment(
     finishUrl: args.successUrl,
   });
   return {
-    provider: "midtrans",
+    provider: PaymentProvider.MIDTRANS,
     redirectUrl: snap.redirectUrl,
     gatewayReference: args.bookingReference,
     snapToken: snap.token,
@@ -119,4 +115,41 @@ export function isAnyPSPConfigured(): boolean {
   return (
     isMayarConfigured() || isXenditConfigured() || isMidtransConfigured()
   );
+}
+
+/**
+ * Normalise a raw payment method string from a gateway webhook into a
+ * PaymentMethod enum. Throws on unknown values so new methods are
+ * never silently dropped.
+ */
+export function normalizePaymentMethod(raw: string): PaymentMethod {
+  const upper = raw.toUpperCase();
+  const mapping: Record<string, PaymentMethod> = {
+    BANK_TRANSFER: PaymentMethod.BANK_TRANSFER,
+    VA_BCA: PaymentMethod.VA_BCA,
+    VA_BNI: PaymentMethod.VA_BNI,
+    VA_BRI: PaymentMethod.VA_BRI,
+    VA_MANDIRI: PaymentMethod.VA_MANDIRI,
+    VA_PERMATA: PaymentMethod.VA_PERMATA,
+    BCA: PaymentMethod.VA_BCA,
+    BNI: PaymentMethod.VA_BNI,
+    BRI: PaymentMethod.VA_BRI,
+    MANDIRI: PaymentMethod.VA_MANDIRI,
+    PERMATA: PaymentMethod.VA_PERMATA,
+    GOPAY: PaymentMethod.GOPAY,
+    OVO: PaymentMethod.OVO,
+    DANA: PaymentMethod.DANA,
+    SHOPEEPAY: PaymentMethod.SHOPEEPAY,
+    LINKAJA: PaymentMethod.LINKAJA,
+    QRIS: PaymentMethod.QRIS,
+    CREDIT_CARD: PaymentMethod.CREDIT_CARD,
+    MAYAR: PaymentMethod.BANK_TRANSFER,
+    MAYAR_INVOICE: PaymentMethod.BANK_TRANSFER,
+    MIDTRANS: PaymentMethod.BANK_TRANSFER,
+    MIDTRANS_SNAP: PaymentMethod.CREDIT_CARD,
+    XENDIT_INVOICE: PaymentMethod.BANK_TRANSFER,
+    PENDING: PaymentMethod.BANK_TRANSFER,
+  };
+  if (mapping[upper]) return mapping[upper];
+  throw new Error(`Unknown payment method: ${raw}`);
 }

@@ -15,7 +15,7 @@ import { generateLegsForSchedule } from "../lib/legs";
 import { signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
 import { computeBookingPrice } from "../lib/pricing";
-import { computeRefundDeadline } from "../lib/refunds";
+import { computeRefundDeadline, snapshotCurrentPolicy } from "../lib/refunds";
 
 const prisma = new PrismaClient();
 
@@ -166,6 +166,7 @@ async function main() {
         data: {
           bookingReference: ref,
           legId: firstLeg.id,
+          operatorId: operator.id,
           customerId: customer.id,
           customerName: customer.fullName,
           customerEmail: QA.customerEmail,
@@ -175,13 +176,17 @@ async function main() {
           operatorAmount: price.operatorAmount,
           status: "CONFIRMED",
           refundDeadline: computeRefundDeadline(firstLeg.departureDate),
+          refundPolicySnapshot: snapshotCurrentPolicy({
+            departure: firstLeg.departureDate,
+            deadline: computeRefundDeadline(firstLeg.departureDate),
+          }),
           payment: {
             create: {
               amount: price.totalAmount,
-              method: "qris",
+              method: "QRIS",
               status: "SUCCESSFUL",
               paidAt: new Date(),
-              gatewayProvider: "xendit",
+              gatewayProvider: "XENDIT",
             },
           },
         },
@@ -222,7 +227,7 @@ async function main() {
             bookingId,
             originalAmount: booking.totalAmount,
             refundAmount: booking.totalAmount,
-            reason: "customer_request",
+            reason: "CUSTOMER_REQUEST",
             status: "PENDING",
           },
         });

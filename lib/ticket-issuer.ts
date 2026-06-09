@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PaymentMethod } from "@prisma/client";
 import { prisma } from "./db";
 import { buildQrPayload, signTicketCode } from "./qr";
 import { newTicketCode } from "./references";
@@ -27,7 +27,7 @@ export async function confirmPaymentAndIssueTickets(args: {
   bookingId: string;
   paidAt?: Date;
   gatewayReference?: string | null;
-  method?: string | null;
+  method?: PaymentMethod | null;
   gatewayFee?: number | null;
 }): Promise<IssueResult> {
   return prisma.$transaction(async (tx) => {
@@ -73,7 +73,7 @@ export async function confirmPaymentAndIssueTickets(args: {
           paidAt: args.paidAt ?? new Date(),
           gatewayReference:
             args.gatewayReference ?? booking.payment.gatewayReference,
-          method: args.method ?? booking.payment.method ?? "xendit",
+          method: args.method ?? booking.payment.method ?? ("BANK_TRANSFER" as PaymentMethod),
           gatewayFee:
             args.gatewayFee != null
               ? new Prisma.Decimal(args.gatewayFee)
@@ -111,10 +111,10 @@ export async function confirmPaymentAndIssueTickets(args: {
 
     await tx.auditLog.create({
       data: {
-        entityType: "booking",
+        entityType: "BOOKING",
         entityId: booking.id,
         action: "confirmed_and_ticketed",
-        userRole: "system",
+        userRole: "SYSTEM",
         newState: {
           tickets: issued.map((t) => t.ticketCode),
           method: args.method ?? "unknown",

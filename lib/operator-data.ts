@@ -6,16 +6,19 @@ import { prisma } from "./db";
  * compromised session can't reach another operator's data.
  */
 
+export const activeBoat = { deletedAt: null };
+export const activeSchedule = { deletedAt: null };
+
 export async function getOperatorBoats(operatorId: string) {
   return prisma.boat.findMany({
-    where: { operatorId },
+    where: { operatorId, deletedAt: null },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getOperatorBoat(operatorId: string, boatId: string) {
   return prisma.boat.findFirst({
-    where: { id: boatId, operatorId },
+    where: { id: boatId, operatorId, deletedAt: null },
   });
 }
 
@@ -26,7 +29,8 @@ export async function getOperatorSchedules(
   return prisma.schedule.findMany({
     where: {
       ...where,
-      boat: { operatorId },
+      boat: { operatorId, deletedAt: null },
+      deletedAt: null,
     },
     include: { boat: true, _count: { select: { legs: true } } },
     orderBy: [{ originPort: "asc" }, { departureTime: "asc" }],
@@ -35,14 +39,14 @@ export async function getOperatorSchedules(
 
 export async function getOperatorSchedule(operatorId: string, scheduleId: string) {
   return prisma.schedule.findFirst({
-    where: { id: scheduleId, boat: { operatorId } },
+    where: { id: scheduleId, boat: { operatorId, deletedAt: null }, deletedAt: null },
     include: { boat: true },
   });
 }
 
 export async function getOperatorLeg(operatorId: string, legId: string) {
   return prisma.leg.findFirst({
-    where: { id: legId, schedule: { boat: { operatorId } } },
+    where: { id: legId, operatorId },
     include: {
       schedule: { include: { boat: true } },
       bookings: {
@@ -64,7 +68,7 @@ export async function getOperatorLegs(
 ) {
   return prisma.leg.findMany({
     where: {
-      schedule: { boat: { operatorId } },
+      operatorId,
       ...(args.fromUtc || args.toUtc
         ? {
             departureDate: {

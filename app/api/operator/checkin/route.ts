@@ -99,7 +99,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
         };
       }
       const leg = ticket.booking.leg;
-      if (leg.schedule.boat.operatorId !== session.sub) {
+      if (leg.operatorId !== session.sub) {
         return {
           ok: false as const,
           reason: "WRONG_OPERATOR" as const,
@@ -168,11 +168,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
       }
       await tx.auditLog.create({
         data: {
-          entityType: "ticket",
-          entityId: ticket.id,
-          action: "checked_in_qr",
-          userId: session.sub,
-          userRole: "operator",
+        entityType: "TICKET",
+        entityId: ticket.id,
+        action: "checked_in_qr",
+        userId: session.sub,
+        userRole: "OPERATOR",
           newState: { status: "CHECKED_IN", method: "qr" },
         },
       });

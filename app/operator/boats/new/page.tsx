@@ -67,11 +67,11 @@ async function createBoatAction(formData: FormData) {
     });
 
     await audit({
-      entityType: "boat",
+      entityType: "BOAT",
       entityId: boat.id,
       action: "created",
       userId: session.sub,
-      userRole: "operator",
+      userRole: "OPERATOR",
       newState: { name: boat.name, capacity: boat.capacity },
     });
 

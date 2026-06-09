@@ -37,7 +37,7 @@ export async function GET(
   }
 
   // Ensure this leg belongs to the requesting operator
-  if (leg.schedule.boat.operatorId !== session.sub) {
+  if (leg.operatorId !== session.sub) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
 

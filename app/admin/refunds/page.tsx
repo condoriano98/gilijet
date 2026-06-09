@@ -66,7 +66,7 @@ async function autoApproveEligibleRefunds() {
           gatewayProvider: refund.booking.payment.gatewayProvider,
           gatewayReference: refund.booking.payment.gatewayReference,
           amount: Math.round(Number(refund.refundAmount)),
-          reason: "customer_request",
+          reason: "CUSTOMER_REQUEST",
         });
         if (r) {
           gatewayReference = r.id;
@@ -132,7 +132,7 @@ async function approveRefundAction(formData: FormData) {
         gatewayProvider: refund.booking.payment.gatewayProvider,
         gatewayReference: refund.booking.payment.gatewayReference,
         amount: Math.round(Number(refund.refundAmount)),
-        reason: refund.reason || "admin_approved",
+        reason: refund.reason || "ADMIN_OVERRIDE",
       });
       if (r) {
         gatewayReference = r.id;
@@ -156,10 +156,10 @@ async function approveRefundAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "refund",
+    entityType: "REFUND",
     entityId: refund.id,
     action: "approved",
-    userRole: "admin",
+    userRole: "ADMIN",
     userId: session.sub,
     newState: { status: newStatus, gatewayReference },
   });
@@ -191,10 +191,10 @@ async function rejectRefundAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "refund",
+    entityType: "REFUND",
     entityId: refund.id,
     action: "rejected",
-    userRole: "admin",
+    userRole: "ADMIN",
     userId: session.sub,
     newState: { status: "REJECTED", note },
   });

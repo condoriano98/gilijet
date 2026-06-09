@@ -83,11 +83,11 @@ async function createPromoAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "promotion",
+    entityType: "PROMOTION",
     entityId: promo.id,
     action: "created",
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
     newState: { code: promo.code },
   });
 

@@ -35,11 +35,11 @@ async function toggleActiveAction(formData: FormData) {
     data: { isActive: next },
   });
   await audit({
-    entityType: "promotion",
+    entityType: "PROMOTION",
     entityId: id,
     action: next ? "activated" : "deactivated",
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
   });
   redirect("/admin/promos");
 }

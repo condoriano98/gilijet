@@ -111,11 +111,11 @@ async function approveAction(formData: FormData) {
   }
 
   await audit({
-    entityType: "booking",
+    entityType: "BOOKING",
     entityId: request.bookingId,
     action: "reschedule_approved",
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
     newState: {
       originalLegId: request.originalLegId,
       requestedLegId: request.requestedLegId,
@@ -151,11 +151,11 @@ async function rejectAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "booking",
+    entityType: "BOOKING",
     entityId: request.bookingId,
     action: "reschedule_rejected",
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
     newState: { reason: adminNote },
   });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dispatchWebhookPayload } from "@/lib/webhook-processor";
+import { normalizePaymentMethod } from "@/lib/psp";
 
 /**
  * Mayar webhook endpoint.
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
   let externalRef = "";
   if (rawEvent === "payment.received" || rawEvent === "payment.reminder") {
     const payment = await prisma.payment.findFirst({
-      where: { gatewayReference: mayarId, gatewayProvider: "mayar" },
+      where: { gatewayReference: mayarId, gatewayProvider: "MAYAR" },
       select: { booking: { select: { bookingReference: true } } },
     });
     externalRef = payment?.booking?.bookingReference ?? "";
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
     status: normalizedStatus,
     event: normalizedEvent,
     paid_at: data.paidAt ?? data.paid_at ?? data.createdAt,
-    payment_method: data.paymentMethod ?? data.payment_method ?? "mayar",
+    payment_method: normalizePaymentMethod(String(data.paymentMethod ?? data.payment_method ?? "BANK_TRANSFER")),
     fees_paid_amount: 0,
     _raw: body,
   };

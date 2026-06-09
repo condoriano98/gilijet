@@ -91,7 +91,7 @@ async function cancelAction(formData: FormData) {
           bookingId: booking.id,
           originalAmount: booking.totalAmount,
           refundAmount: amount,
-          reason: "customer_request",
+          reason: "CUSTOMER_REQUEST",
           status: "PENDING",
         },
       });
@@ -132,10 +132,10 @@ async function cancelAction(formData: FormData) {
   }
 
   await audit({
-    entityType: "booking",
+    entityType: "BOOKING",
     entityId: booking.id,
     action: "cancelled_by_customer",
-    userRole: "customer",
+    userRole: "CUSTOMER",
     newState: { tier, refundAmount: amount.toString() },
   });
 

@@ -6,6 +6,8 @@ import { sendBookingConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
+import { normalizePaymentMethod } from "@/lib/psp";
+import { PaymentMethod } from "@prisma/client";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { DummyCheckoutForm } from "@/components/checkout/dummy-checkout-form";
 
@@ -31,10 +33,18 @@ async function simulatePayment(formData: FormData) {
     redirect(`/checkout/${reference}?failed=1`);
   }
 
+  const methodEnum = (() => {
+    try {
+      return normalizePaymentMethod(method);
+    } catch {
+      return PaymentMethod.BANK_TRANSFER;
+    }
+  })();
+
   const result = await confirmPaymentAndIssueTickets({
     bookingId: booking.id,
     paidAt: new Date(),
-    method: `demo_${method}`,
+    method: methodEnum,
     gatewayFee: 0,
     gatewayReference: `DEMO-${Date.now()}`,
   });

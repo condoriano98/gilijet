@@ -69,11 +69,11 @@ async function updateBoatAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "boat",
+    entityType: "BOAT",
     entityId: updated.id,
     action: "updated",
     userId: session.sub,
-    userRole: "operator",
+    userRole: "OPERATOR",
     previousState: {
       name: existing.name,
       capacity: existing.capacity,

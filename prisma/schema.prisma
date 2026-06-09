@@ -16,6 +16,58 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ============== ENUMS ==============
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  VA_BCA
+  VA_BNI
+  VA_BRI
+  VA_MANDIRI
+  VA_PERMATA
+  GOPAY
+  OVO
+  DANA
+  SHOPEEPAY
+  LINKAJA
+  QRIS
+  CREDIT_CARD
+}
+
+enum PaymentProvider {
+  XENDIT
+  MAYAR
+  MIDTRANS
+}
+
+enum RefundReason {
+  CUSTOMER_REQUEST
+  OPERATOR_CANCELLATION
+  WEATHER
+  ADMIN_OVERRIDE
+}
+
+enum AuditEntityType {
+  BOOKING
+  PAYMENT
+  REFUND
+  LEG
+  SCHEDULE
+  BOAT
+  OPERATOR
+  CUSTOMER
+  TICKET
+  PROMOTION
+  RESCHEDULE_REQUEST
+}
+
+enum AuditUserRole {
+  CUSTOMER
+  OPERATOR
+  ADMIN
+  SYSTEM
+}
+
 // ============== USERS ==============
 
 model Customer {
@@ -46,10 +98,13 @@ model Operator {
   status            OperatorStatus @default(PENDING)
   documentsVerified Boolean        @default(false)
   commissionRate    Decimal        @default(0.08) @db.Decimal(5, 4)
+  deletedAt         DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  boats Boat[]
+  boats    Boat[]
+  legs     Leg[]
+  bookings Booking[]
 
   @@index([status])
 }
@@ -87,10 +142,11 @@ model Boat {
   photos             String[] // URLs
   description        String?
   status             BoatStatus @default(ACTIVE)
+  deletedAt          DateTime?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  operator  Operator   @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  operator  Operator   @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   schedules Schedule[]
 
   @@index([operatorId])
@@ -112,12 +168,12 @@ model Schedule {
   basePrice       Decimal        @db.Decimal(12, 2) // IDR
   daysOfWeek      Int[] // 1=Mon ... 7=Sun
   status          ScheduleStatus @default(ACTIVE)
-  // Yield pricing tiers JSON: [{minOccupancyPct: number, multiplier: number}]
   pricingTiers    Json?
+  deletedAt       DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  boat    Boat     @relation(fields: [boatId], references: [id], onDelete: Cascade)
+  boat    Boat     @relation(fields: [boatId], references: [id], onDelete: Restrict)
   legs    Leg[]
   reviews Review[]
 
@@ -135,6 +191,7 @@ enum ScheduleStatus {
 model Leg {
   id                 String    @id @default(cuid())
   scheduleId         String
+  operatorId         String
   departureDate      DateTime // UTC instant of this specific departure
   totalCapacity      Int
   availableSeats     Int
@@ -144,13 +201,15 @@ model Leg {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  schedule              Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule              Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  operator              Operator            @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   bookings              Booking[]
   reschedulesAsOriginal RescheduleRequest[] @relation("OriginalLeg")
   reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
 
   @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
+  @@index([operatorId, departureDate])
 }
 
 enum LegStatus {
@@ -167,6 +226,7 @@ model Booking {
   bookingReference    String        @unique // human-readable: BK-2026-05-000001
   legId               String
   customerId          String?
+  operatorId          String
   customerName        String
   customerEmail       String
   customerPhone       String
@@ -177,6 +237,7 @@ model Booking {
   currency            String        @default("IDR")
   status              BookingStatus @default(PENDING_PAYMENT)
   refundDeadline      DateTime
+  refundPolicySnapshot Json?
   paymentGatewayRef   String?
   idempotencyKey      String?       @unique
   notes               String?
@@ -188,6 +249,7 @@ model Booking {
 
   leg               Leg                @relation(fields: [legId], references: [id])
   customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   promotion         Promotion?         @relation(fields: [promotionId], references: [id])
   tickets           Ticket[]
   payment           Payment?
@@ -200,6 +262,8 @@ model Booking {
   @@index([customerEmail])
   @@index([customerId])
   @@index([promotionId])
+  @@index([operatorId, status])
+  @@index([operatorId, createdAt])
 }
 
 enum BookingStatus {
@@ -222,7 +286,7 @@ model Ticket {
   checkedInBy       String?
   createdAt         DateTime     @default(now())
 
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([bookingId])
   @@index([qrHash])
@@ -238,21 +302,21 @@ enum TicketStatus {
 // ============== PAYMENTS & REFUNDS ==============
 
 model Payment {
-  id               String        @id @default(cuid())
-  bookingId        String        @unique
-  amount           Decimal       @db.Decimal(12, 2)
-  method           String // 'bank_transfer' | 'gopay' | 'ovo' | 'qris' | 'credit_card' | ...
-  status           PaymentStatus @default(PENDING)
-  gatewayProvider  String        @default("xendit") // 'xendit' | 'mayar' | 'midtrans'
+  id               String         @id @default(cuid())
+  bookingId        String         @unique
+  amount           Decimal        @db.Decimal(12, 2)
+  method           PaymentMethod
+  status           PaymentStatus  @default(PENDING)
+  gatewayProvider  PaymentProvider @default(XENDIT)
   gatewayReference String?
-  gatewayFee       Decimal       @default(0) @db.Decimal(12, 2)
+  gatewayFee       Decimal        @default(0) @db.Decimal(12, 2)
   paidAt           DateTime?
   failedReason     String?
   rawWebhookData   Json?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([status])
   @@index([gatewayReference])
@@ -270,7 +334,7 @@ model Refund {
   bookingId        String       @unique
   originalAmount   Decimal      @db.Decimal(12, 2)
   refundAmount     Decimal      @db.Decimal(12, 2)
-  reason           String // 'customer_request' | 'operator_cancellation' | 'admin_override'
+  reason           RefundReason
   status           RefundStatus @default(PENDING)
   gatewayReference String?
   processedAt      DateTime?
@@ -280,7 +344,7 @@ model Refund {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([status])
 }
@@ -412,17 +476,17 @@ model PasswordResetToken {
 // ============== AUDIT LOG ==============
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  entityType    String // 'booking' | 'payment' | 'refund' | 'leg' | 'operator' | ...
+  id            String          @id @default(cuid())
+  entityType    AuditEntityType
   entityId      String
   action        String
   userId        String?
-  userRole      String? // 'customer' | 'operator' | 'admin' | 'system'
+  userRole      AuditUserRole?
   previousState Json?
   newState      Json?
   ipAddress     String?
   userAgent     String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime        @default(now())
 
   @@index([entityType, entityId])
   @@index([createdAt])

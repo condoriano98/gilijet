@@ -78,11 +78,11 @@ async function updateScheduleAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "schedule",
+    entityType: "SCHEDULE",
     entityId: updated.id,
     action: "updated",
     userId: session.sub,
-    userRole: "operator",
+    userRole: "OPERATOR",
     previousState: {
       route: `${existing.originPort} → ${existing.destinationPort}`,
       time: existing.departureTime,

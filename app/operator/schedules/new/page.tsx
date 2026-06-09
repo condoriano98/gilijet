@@ -85,11 +85,11 @@ async function createScheduleAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "schedule",
+    entityType: "SCHEDULE",
     entityId: schedule.id,
     action: "created",
     userId: session.sub,
-    userRole: "operator",
+    userRole: "OPERATOR",
     newState: {
       route: `${schedule.originPort} → ${schedule.destinationPort}`,
       time: schedule.departureTime,

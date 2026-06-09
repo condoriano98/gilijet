@@ -4,6 +4,7 @@ import { env } from "./env";
 import { confirmPaymentAndIssueTickets } from "./ticket-issuer";
 import { releaseBookingSeats } from "./booking-engine";
 import { sendBookingConfirmation } from "./email";
+import { normalizePaymentMethod } from "./psp";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export async function processInvoicePaid(
   const result = await confirmPaymentAndIssueTickets({
     bookingId: booking.id,
     paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
-    method: data.payment_method ?? "xendit",
+    method: normalizePaymentMethod(data.payment_method ?? "BANK_TRANSFER"),
     gatewayReference: invoiceId || null,
     gatewayFee: data.fees_paid_amount ?? null,
   });

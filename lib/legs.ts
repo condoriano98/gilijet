@@ -47,6 +47,7 @@ export async function generateLegsForSchedule(
       await prisma.leg.create({
         data: {
           scheduleId: schedule.id,
+          operatorId: schedule.boat.operatorId,
           departureDate: departureUtc,
           totalCapacity: schedule.boat.capacity,
           availableSeats: schedule.boat.capacity,
@@ -90,10 +91,9 @@ export async function cancelLeg(args: {
   return prisma.$transaction(async (tx) => {
     const leg = await tx.leg.findUnique({
       where: { id: legId },
-      include: { schedule: { include: { boat: true } } },
     });
     if (!leg) throw new Error("Leg not found");
-    if (leg.schedule.boat.operatorId !== operatorId) {
+    if (leg.operatorId !== operatorId) {
       throw new Error("Not authorised for this leg");
     }
     if (leg.status === "CANCELLED") {
@@ -131,7 +131,7 @@ export async function cancelLeg(args: {
             bookingId: booking.id,
             originalAmount: booking.totalAmount,
             refundAmount: booking.totalAmount, // 100% per §6.4
-            reason: "operator_cancellation",
+            reason: "OPERATOR_CANCELLATION",
             status: "PENDING",
           },
         });
@@ -140,11 +140,11 @@ export async function cancelLeg(args: {
 
     await tx.auditLog.create({
       data: {
-        entityType: "leg",
+        entityType: "LEG",
         entityId: legId,
         action: "cancelled",
         userId: operatorId,
-        userRole: "operator",
+        userRole: "OPERATOR",
         previousState: { status: leg.status },
         newState: { status: "CANCELLED", reason },
       },

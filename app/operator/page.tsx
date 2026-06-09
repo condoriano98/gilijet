@@ -56,7 +56,7 @@ export default async function OperatorDashboardPage() {
     prisma.booking.aggregate({
       where: {
         status: "CONFIRMED",
-        leg: { schedule: { boat: { operatorId: session.sub } } },
+        operatorId: session.sub,
         createdAt: { gte: startOfDay, lt: endOfDay },
       },
       _sum: { operatorAmount: true },
@@ -65,7 +65,7 @@ export default async function OperatorDashboardPage() {
     prisma.booking.aggregate({
       where: {
         status: "CONFIRMED",
-        leg: { schedule: { boat: { operatorId: session.sub } } },
+        operatorId: session.sub,
         createdAt: { gte: startOfWeek, lt: endOfDay },
       },
       _sum: { operatorAmount: true },
@@ -74,7 +74,7 @@ export default async function OperatorDashboardPage() {
     prisma.booking.aggregate({
       where: {
         status: "CONFIRMED",
-        leg: { schedule: { boat: { operatorId: session.sub } } },
+        operatorId: session.sub,
         createdAt: { gte: startOfMonth, lt: endOfDay },
       },
       _sum: { operatorAmount: true },
@@ -83,10 +83,8 @@ export default async function OperatorDashboardPage() {
     prisma.booking.aggregate({
       where: {
         status: "CONFIRMED",
-        leg: {
-          schedule: { boat: { operatorId: session.sub } },
-          departureDate: { lt: now },
-        },
+        operatorId: session.sub,
+        leg: { departureDate: { lt: now } },
       },
       _sum: { operatorAmount: true },
       _count: true,
@@ -96,7 +94,7 @@ export default async function OperatorDashboardPage() {
       where: {
         status: "SUCCESSFUL",
         paidAt: { gte: start14d },
-        booking: { leg: { schedule: { boat: { operatorId: session.sub } } } },
+        booking: { operatorId: session.sub },
       },
       select: { paidAt: true, amount: true },
     }),
@@ -104,7 +102,7 @@ export default async function OperatorDashboardPage() {
     prisma.booking.findMany({
       where: {
         status: "CONFIRMED",
-        leg: { schedule: { boat: { operatorId: session.sub } } },
+        operatorId: session.sub,
         createdAt: { gte: startOfMonth, lt: endOfDay },
       },
       select: {

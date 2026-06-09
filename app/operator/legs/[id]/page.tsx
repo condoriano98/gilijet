@@ -68,7 +68,7 @@ async function manualCheckinAction(formData: FormData) {
   if (!ticketId || !legId) redirect(`/operator/legs/${legId}`);
 
   const ticket = await prisma.ticket.findFirst({
-    where: { id: ticketId, booking: { legId, leg: { schedule: { boat: { operatorId: session.sub } } } } },
+    where: { id: ticketId, booking: { legId, operatorId: session.sub } },
   });
   if (!ticket || ticket.status !== "ISSUED") {
     redirect(`/operator/legs/${legId}?error=ticket_not_checkinable`);
@@ -82,11 +82,11 @@ async function manualCheckinAction(formData: FormData) {
     },
   });
   await audit({
-    entityType: "ticket",
+    entityType: "TICKET",
     entityId: ticket.id,
     action: "checked_in_manual",
     userId: session.sub,
-    userRole: "operator",
+    userRole: "OPERATOR",
     newState: { status: "CHECKED_IN" },
   });
   redirect(`/operator/legs/${legId}?ok=checkedin`);

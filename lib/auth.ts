@@ -165,3 +165,17 @@ export async function clearCustomerSession(): Promise<void> {
   const jar = await cookies();
   jar.delete(CUSTOMER_COOKIE);
 }
+
+// ---------- operator scoping ----------
+
+/**
+ * Returns a `{ operatorId }` guard that every operator-facing Prisma query
+ * should spread into its `where` clause. Keeps the tenant-scoping rule in
+ * one place and is grep-able.
+ *
+ * Use it like:
+ *   where: { ...operatorScope(session), status: "OPEN" }
+ */
+export function operatorScope(session: OperatorSession) {
+  return { operatorId: session.sub } as const;
+}

@@ -6,6 +6,7 @@ import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
 import { releaseBookingSeats } from "@/lib/booking-engine";
 import { sendBookingConfirmation } from "@/lib/email";
 import { env } from "@/lib/env";
+import { normalizePaymentMethod } from "@/lib/psp";
 
 const notificationSchema = z.object({
   order_id: z.string().min(1),
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const result = await confirmPaymentAndIssueTickets({
       bookingId: booking.id,
       paidAt: data.transaction_time ? new Date(data.transaction_time) : new Date(),
-      method: data.payment_type ?? "midtrans",
+      method: normalizePaymentMethod(data.payment_type ?? "BANK_TRANSFER"),
       gatewayReference: data.order_id,
     });
 

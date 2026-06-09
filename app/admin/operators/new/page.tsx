@@ -75,11 +75,11 @@ async function createOperatorAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "operator",
+    entityType: "OPERATOR",
     entityId: operator.id,
     action: "created",
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
     newState: { email: operator.email, companyName: operator.companyName },
   });
 

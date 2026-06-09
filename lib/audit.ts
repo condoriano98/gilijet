@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import type { AuditEntityType, AuditUserRole } from "@prisma/client";
 
 /**
  * Append an audit log entry. Never throws — auditing must not break the
@@ -6,11 +7,11 @@ import { prisma } from "./db";
  * the audit row to share a transaction with the entity write.
  */
 export async function audit(args: {
-  entityType: string;
+  entityType: AuditEntityType;
   entityId: string;
   action: string;
   userId?: string | null;
-  userRole?: "customer" | "operator" | "admin" | "system" | null;
+  userRole?: AuditUserRole | null;
   previousState?: unknown;
   newState?: unknown;
   ipAddress?: string | null;

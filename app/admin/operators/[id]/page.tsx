@@ -43,11 +43,11 @@ async function transitionAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "operator",
+    entityType: "OPERATOR",
     entityId: id,
     action: `status_${next.toLowerCase()}`,
     userId: session.sub,
-    userRole: "admin",
+    userRole: "ADMIN",
     previousState: { status: prev.status },
     newState: { status: updated.status },
   });
