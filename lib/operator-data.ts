@@ -46,10 +46,15 @@ export async function getOperatorSchedule(operatorId: string, scheduleId: string
 
 export async function getOperatorLeg(operatorId: string, legId: string) {
   return prisma.leg.findFirst({
-    where: { id: legId, operatorId },
+    where: {
+      id: legId,
+      operatorId,
+      schedule: { deletedAt: null, boat: { deletedAt: null } },
+    },
     include: {
       schedule: { include: { boat: true } },
       bookings: {
+        where: { status: "CONFIRMED" },
         include: { tickets: true },
         orderBy: { createdAt: "asc" },
       },
@@ -69,6 +74,7 @@ export async function getOperatorLegs(
   return prisma.leg.findMany({
     where: {
       operatorId,
+      schedule: { deletedAt: null, boat: { deletedAt: null } },
       ...(args.fromUtc || args.toUtc
         ? {
             departureDate: {

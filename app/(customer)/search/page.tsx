@@ -126,6 +126,8 @@ export default async function SearchPage({
             originPort: { equals: origin, mode: "insensitive" },
             destinationPort: { equals: destination, mode: "insensitive" },
             status: "ACTIVE",
+            deletedAt: null,
+            boat: { deletedAt: null },
           },
         },
       },
