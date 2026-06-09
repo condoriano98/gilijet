@@ -3,11 +3,9 @@ import { SearchForm } from "@/components/customer/search-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { prisma } from "@/lib/db";
-import { RecentBookings, getRandomRecentBookings } from "@/components/customer/recent-bookings";
 
-export const revalidate = 3600;
-
+// Fallback ports if the DB is empty so the landing page always renders
+// with usable dropdowns. Real ports merge in on top of these.
 const SEED_ORIGINS = [
   "Sanur",
   "Padang Bai",
@@ -20,7 +18,7 @@ const SEED_ORIGINS = [
 ];
 const SEED_DESTINATIONS = SEED_ORIGINS;
 
-const DEFAULT_ROUTES = [
+const POPULAR_ROUTES = [
   { from: "Sanur", to: "Nusa Penida", price: 250000, duration: "45m", image: "🏝️" },
   { from: "Padang Bai", to: "Gili Trawangan", price: 425000, duration: "2h 30m", image: "🌴" },
   { from: "Sanur", to: "Nusa Lembongan", price: 200000, duration: "35m", image: "⛵" },
@@ -63,64 +61,17 @@ const TRUST_BADGES = [
   { title: "Secure Payment", desc: "Powered by Mayar, BI licensed gateway" },
 ];
 
-async function getDynamicPrices(): Promise<Map<string, number>> {
-  const prices = new Map<string, number>();
-  try {
-    const routes = DEFAULT_ROUTES.map((r) => ({
-      origin: r.from,
-      destination: r.to,
-    }));
-
-    const schedules = await prisma.schedule.findMany({
-      where: {
-        status: "ACTIVE",
-        boat: { status: "ACTIVE" },
-        OR: routes.map((r) => ({
-          originPort: { equals: r.origin, mode: "insensitive" },
-          destinationPort: { equals: r.destination, mode: "insensitive" },
-        })),
-      },
-      select: {
-        originPort: true,
-        destinationPort: true,
-        basePrice: true,
-      },
-    });
-
-    schedules.forEach((s) => {
-      const key = `${s.originPort}-${s.destinationPort}`;
-      const price = Number(s.basePrice);
-      const existing = prices.get(key);
-      if (!existing || price < existing) {
-        prices.set(key, price);
-      }
-    });
-  } catch (err) {
-    console.error("[landing] dynamic pricing query failed:", err);
-  }
-  return prices;
-}
-
-export default async function HomePage() {
-  const [dynamicPrices, recentBookings] = await Promise.all([
-    getDynamicPrices(),
-    Promise.resolve(getRandomRecentBookings(5)),
-  ]);
-
-  const routesWithPrices = DEFAULT_ROUTES.map((route) => {
-    const key = `${route.from}-${route.to}`;
-    const dynamicPrice = dynamicPrices.get(key);
-    return {
-      ...route,
-      price: dynamicPrice ?? route.price,
-    };
-  });
-
+// The landing page is a marketing surface — fully static for max
+// reliability. Ports come from a hardcoded list of popular Indonesian
+// destinations. The dropdowns on the search form post to /search,
+// which is where the live DB query happens.
+export default function HomePage() {
   const origins = SEED_ORIGINS;
   const destinations = SEED_DESTINATIONS;
 
   return (
     <>
+      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-sky-600 via-sky-500 to-cyan-500 pb-24 pt-12 sm:pt-16">
         <div className="absolute inset-0 opacity-10">
           <div
@@ -134,7 +85,7 @@ export default async function HomePage() {
         <div className="container relative">
           <div className="mx-auto max-w-3xl text-center text-white">
             <Badge className="bg-white/20 text-white hover:bg-white/30">
-              Indonesia&apos;s #1 boat ticketing platform
+              Indonesia's #1 boat ticketing platform
             </Badge>
             <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Island-hop with confidence
@@ -146,20 +97,19 @@ export default async function HomePage() {
             </p>
           </div>
 
+          {/* Search bar */}
           <div className="mx-auto mt-8 max-w-5xl">
             <div className="rounded-2xl bg-white p-2 shadow-2xl">
               <SearchForm origins={origins} destinations={destinations} />
             </div>
-            <div className="mt-3 space-y-2">
-              <p className="text-center text-xs text-sky-50">
-                Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
-              </p>
-              <RecentBookings bookings={recentBookings} />
-            </div>
+            <p className="mt-3 text-center text-xs text-sky-50">
+              Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
+            </p>
           </div>
         </div>
       </section>
 
+      {/* PROMO BANNER */}
       <section className="container -mt-12 mb-12">
         <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -185,6 +135,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* POPULAR ROUTES */}
       <section className="container mb-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex items-end justify-between">
@@ -205,7 +156,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {routesWithPrices.map((route) => (
+            {POPULAR_ROUTES.map((route) => (
               <Link
                 key={`${route.from}-${route.to}`}
                 href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}`}
@@ -240,6 +191,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* FEATURED DESTINATIONS */}
       <section className="bg-slate-50 py-16">
         <div className="container">
           <div className="mx-auto max-w-6xl">
@@ -286,6 +238,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* WHY BOOK WITH US */}
       <section className="container py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 text-center">
@@ -317,6 +270,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* HOW IT WORKS */}
       <section className="bg-sky-50 py-16">
         <div className="container">
           <div className="mx-auto max-w-5xl">
@@ -351,6 +305,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* OPERATOR CTA */}
       <section className="container py-16">
         <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white sm:p-12">
           <div className="grid items-center gap-6 sm:grid-cols-2">
@@ -375,6 +330,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* TRUST FOOTER STRIP */}
       <section className="border-t bg-white py-8">
         <div className="container">
           <div className="mx-auto max-w-5xl text-center text-xs text-slate-600">

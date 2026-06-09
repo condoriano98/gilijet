@@ -50,7 +50,6 @@ export type CreateBookingArgs = {
   notes?: string | null;
   customerId?: string | null;
   promoCode?: string | null;
-  agentId?: string | null;
 };
 
 /**
@@ -153,14 +152,6 @@ export async function reserveSeatsAndCreateBooking(
       discountAmount,
     });
 
-    let agentCommissionAmount = 0;
-    if (args.agentId) {
-      const agent = await tx.agent.findUnique({ where: { id: args.agentId } });
-      if (agent && agent.status === "ACTIVE") {
-        agentCommissionAmount = Number(price.totalAmount) * Number(agent.commissionRate);
-      }
-    }
-
     let bookingReference: string;
     let booking;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -189,8 +180,6 @@ export async function reserveSeatsAndCreateBooking(
             }),
             idempotencyKey: args.idempotencyKey ?? null,
             notes: args.notes ?? null,
-            agentId: args.agentId ?? null,
-            agentCommissionAmount: new Prisma.Decimal(agentCommissionAmount),
             payment: {
               create: {
                 amount: price.totalAmount,
@@ -207,6 +196,7 @@ export async function reserveSeatsAndCreateBooking(
           err.code === "P2002" &&
           attempt < 4
         ) {
+          // Rare reference collision — regenerate.
           continue;
         }
         throw err;

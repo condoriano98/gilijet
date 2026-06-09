@@ -80,9 +80,8 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  bookings  Booking[]
-  reviews   Review[]
-  travelers Traveler[]
+  bookings Booking[]
+  reviews  Review[]
 
   @@index([email])
 }
@@ -135,18 +134,17 @@ enum AdminRole {
 // ============== BOATS & SCHEDULES ==============
 
 model Boat {
-  id                  String     @id @default(cuid())
-  operatorId          String
-  name                String
-  registrationNumber  String     @unique
-  capacity            Int
-  photos              String[] // URLs
-  description         String?
-  status              BoatStatus @default(ACTIVE)
-  layoutConfiguration Json?     // { rows: [{ id, label, seats: [{ id, label, type }] }] }
-  deletedAt           DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id                 String     @id @default(cuid())
+  operatorId         String
+  name               String
+  registrationNumber String     @unique
+  capacity           Int
+  photos             String[] // URLs
+  description        String?
+  status             BoatStatus @default(ACTIVE)
+  deletedAt          DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   operator  Operator   @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   schedules Schedule[]
@@ -208,7 +206,6 @@ model Leg {
   bookings              Booking[]
   reschedulesAsOriginal RescheduleRequest[] @relation("OriginalLeg")
   reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
-  seatLocks             SeatLock[]
 
   @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
@@ -247,13 +244,6 @@ model Booking {
   promotionId         String?
   discountAmount      Decimal       @default(0) @db.Decimal(12, 2)
   reminderSentAt      DateTime?
-  insuranceAmount     Decimal       @default(0) @db.Decimal(12, 2)
-  pickupZone          String?
-  pickupFee           Decimal       @default(0) @db.Decimal(12, 2)
-  whatsappNumber      String?
-  whatsappOptIn       Boolean       @default(false)
-  agentId             String?
-  agentCommissionAmount Decimal     @default(0) @db.Decimal(12, 2)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -261,7 +251,6 @@ model Booking {
   customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
   operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   promotion         Promotion?         @relation(fields: [promotionId], references: [id])
-  agent             Agent?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
   tickets           Ticket[]
   payment           Payment?
   refund            Refund?
@@ -273,7 +262,6 @@ model Booking {
   @@index([customerEmail])
   @@index([customerId])
   @@index([promotionId])
-  @@index([agentId])
   @@index([operatorId, status])
   @@index([operatorId, createdAt])
 }
@@ -293,7 +281,6 @@ model Ticket {
   passengerName     String
   passengerIdNumber String?
   qrHash            String       @unique
-  seatId            String?
   status            TicketStatus @default(ISSUED)
   checkedInAt       DateTime?
   checkedInBy       String?
@@ -503,90 +490,4 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
-}
-
-// ============== TRAVELERS (saved passengers) ==============
-
-model Traveler {
-  id          String        @id @default(cuid())
-  customerId  String
-  fullName    String
-  idNumber    String?
-  type        PassengerType @default(ADULT)
-  phoneNumber String?
-  nationality String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@index([customerId])
-}
-
-enum PassengerType {
-  ADULT
-  CHILD
-  INFANT
-}
-
-// ============== SEAT LOCKS ==============
-
-model SeatLock {
-  id               String   @id @default(cuid())
-  legId            String
-  seatId           String
-  bookingSessionId String
-  lockedAt         DateTime @default(now())
-  expiresAt        DateTime
-
-  leg Leg @relation(fields: [legId], references: [id], onDelete: Cascade)
-
-  @@unique([legId, seatId])
-  @@index([expiresAt])
-}
-
-// ============== SEA CONDITIONS ==============
-
-model SeaCondition {
-  id        String    @id @default(cuid())
-  routeKey  String    @unique // "Sanur-Nusa Penida"
-  status    SeaStatus @default(NORMAL)
-  message   String?
-  updatedAt DateTime  @default(now())
-  updatedBy String?
-
-  @@index([routeKey])
-}
-
-enum SeaStatus {
-  NORMAL
-  ROUGH
-  DANGEROUS
-}
-
-// ============== AGENTS (B2B affiliates) ==============
-
-model Agent {
-  id              String      @id @default(cuid())
-  companyName     String
-  contactPerson   String
-  email           String      @unique
-  passwordHash    String
-  apiKeyHash      String      @unique
-  commissionRate  Decimal     @default(0.03) @db.Decimal(5, 4)
-  status          AgentStatus @default(PENDING)
-  bankAccountInfo Json
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  bookings Booking[]
-
-  @@index([status])
-}
-
-enum AgentStatus {
-  PENDING
-  ACTIVE
-  SUSPENDED
-  REJECTED
 }

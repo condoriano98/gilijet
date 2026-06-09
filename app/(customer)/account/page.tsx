@@ -10,9 +10,6 @@ import {
 } from "@/lib/auth";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
-import { refundAmountForCustomer } from "@/lib/refunds";
-import { releaseBookingSeats } from "@/lib/booking-engine";
-import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
 import {
   Card,
   CardContent,
@@ -88,78 +85,6 @@ async function changePasswordAction(formData: FormData) {
     data: { passwordHash: newHash },
   });
   redirect("/account?ok=password_changed");
-}
-
-async function requestRefundAction(formData: FormData) {
-  "use server";
-  const session = await requireCustomer();
-  const bookingRef = formData.get("bookingReference") as string;
-  if (!bookingRef) redirect("/account?error=invalid_booking");
-
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: bookingRef },
-    include: { leg: true, payment: true, refund: true },
-  });
-  if (!booking) redirect("/account?error=booking_not_found");
-  if (booking.customerId !== session.sub && booking.customerEmail !== session.email) {
-    redirect("/account?error=unauthorized");
-  }
-  if (booking.status !== "CONFIRMED") {
-    redirect("/account?error=not_confirmed");
-  }
-
-  const now = new Date();
-  const { tier, amount } = refundAmountForCustomer({
-    now,
-    departure: booking.leg.departureDate,
-    paidAmount: booking.totalAmount,
-  });
-
-  if (tier === "NONE") {
-    redirect("/account?error=refund_window_closed");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.booking.update({
-      where: { id: booking.id },
-      data: { status: "CANCELLED_BY_CUSTOMER" },
-    });
-
-    if (!booking.refund && amount.gt(0)) {
-      await tx.refund.create({
-        data: {
-          bookingId: booking.id,
-          originalAmount: booking.totalAmount,
-          refundAmount: amount,
-          reason: "CUSTOMER_REQUEST",
-          status: "PENDING",
-        },
-      });
-    }
-  });
-
-  await releaseBookingSeats(booking.id, "cancelled_by_customer").catch(() => {});
-
-  if (isAnyRefundGatewayConfigured() && booking.payment?.status === "SUCCESSFUL") {
-    try {
-      const r = await refundViaGateway({
-        gatewayProvider: booking.payment.gatewayProvider ?? null,
-        gatewayReference: booking.payment.gatewayReference ?? "",
-        amount: Number(amount),
-        reason: `customer_cancellation_${tier.toLowerCase()}`,
-      });
-      if (r) {
-        await prisma.refund.update({
-          where: { bookingId: booking.id },
-          data: { status: r.status === "SUCCESSFUL" ? "APPROVED" : "FAILED", gatewayReference: r.id },
-        });
-      }
-    } catch (err) {
-      console.error("[account-refund] gateway refund failed:", err);
-    }
-  }
-
-  redirect("/account?ok=refund_requested");
 }
 
 function statusVariant(status: string) {
@@ -247,7 +172,7 @@ export default async function AccountPage({
         ) : null}
 
         {/* Quick stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Upcoming trips</CardDescription>
@@ -258,16 +183,6 @@ export default async function AccountPage({
             <CardHeader className="pb-2">
               <CardDescription>Total bookings</CardDescription>
               <CardTitle className="text-3xl">{bookings.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Saved travelers</CardDescription>
-              <CardContent className="px-0 pt-2 pb-0">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                  <Link href="/account/travelers">Manage</Link>
-                </Button>
-              </CardContent>
             </CardHeader>
           </Card>
           <Card>
@@ -436,10 +351,6 @@ function BookingCard({
   canReview?: boolean;
   hasReview?: boolean;
 }) {
-  const canRefund =
-    booking.status === "CONFIRMED" &&
-    booking.leg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000;
-
   return (
     <Card className={muted ? "opacity-90" : ""}>
       <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
@@ -482,28 +393,9 @@ function BookingCard({
           <div className="font-semibold">
             {formatIDR(Number(booking.totalAmount))}
           </div>
-          <div className="mt-2 flex flex-col gap-1">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/b/${booking.bookingReference}`}>View</Link>
-            </Button>
-            {canRefund && (
-              <form action={requestRefundAction}>
-                <input
-                  type="hidden"
-                  name="bookingReference"
-                  value={booking.bookingReference}
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  Request Refund
-                </Button>
-              </form>
-            )}
-          </div>
+          <Button asChild size="sm" variant="outline" className="mt-2">
+            <Link href={`/b/${booking.bookingReference}`}>View</Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
