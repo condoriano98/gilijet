@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { SearchForm } from "@/components/customer/search-form";
+import { DepartingToday } from "@/components/customer/departing-today";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getDepartingSoon } from "@/lib/home-data";
+
+export const revalidate = 600;
 
 // Fallback ports if the DB is empty so the landing page always renders
 // with usable dropdowns. Real ports merge in on top of these.
@@ -65,9 +69,11 @@ const TRUST_BADGES = [
 // reliability. Ports come from a hardcoded list of popular Indonesian
 // destinations. The dropdowns on the search form post to /search,
 // which is where the live DB query happens.
-export default function HomePage() {
+export default async function HomePage() {
   const origins = SEED_ORIGINS;
   const destinations = SEED_DESTINATIONS;
+  const departures = await getDepartingSoon().catch(() => []);
+  const hasDepartures = departures.length > 0;
 
   return (
     <>
@@ -109,8 +115,15 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* DEPARTING SOON */}
+      {hasDepartures && (
+        <section className="container -mt-12 mb-10">
+          <DepartingToday departures={departures} />
+        </section>
+      )}
+
       {/* PROMO BANNER */}
-      <section className="container -mt-12 mb-12">
+      <section className={`container mb-12 ${hasDepartures ? "" : "-mt-12"}`}>
         <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
