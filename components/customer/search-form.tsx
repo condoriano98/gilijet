@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PortCombobox } from "@/components/customer/port-combobox";
+import {
+  PassengerSelector,
+  type PassengerCounts,
+} from "@/components/customer/passenger-selector";
+import { ArrowUpDown } from "lucide-react";
 
 export type SearchFormProps = {
   origins: string[];
@@ -15,6 +21,9 @@ export type SearchFormProps = {
   defaultReturnDate?: string;
   defaultPassengers?: number;
   defaultTripType?: "one_way" | "round_trip";
+  defaultAdults?: number;
+  defaultChildren?: number;
+  defaultInfants?: number;
 };
 
 function todayLocalYmd(): string {
@@ -40,9 +49,11 @@ export function SearchForm(props: SearchFormProps) {
   const [returnDate, setReturnDate] = React.useState(
     props.defaultReturnDate ?? "",
   );
-  const [passengers, setPassengers] = React.useState(
-    props.defaultPassengers ?? 1,
-  );
+  const [passengers, setPassengers] = React.useState<PassengerCounts>({
+    adults: props.defaultAdults ?? props.defaultPassengers ?? 1,
+    children: props.defaultChildren ?? 0,
+    infants: props.defaultInfants ?? 0,
+  });
   const [submitting, setSubmitting] = React.useState(false);
 
   function swap() {
@@ -55,11 +66,16 @@ export function SearchForm(props: SearchFormProps) {
     if (!origin || !destination || origin === destination || !date) return;
     if (tripType === "round_trip" && (!returnDate || returnDate < date)) return;
     setSubmitting(true);
+    const totalPassengers =
+      passengers.adults + passengers.children + passengers.infants;
     const params = new URLSearchParams({
       origin,
       destination,
       date,
-      passengers: String(passengers),
+      passengers: String(totalPassengers),
+      adults: String(passengers.adults),
+      children: String(passengers.children),
+      infants: String(passengers.infants),
     });
     if (tripType === "round_trip" && returnDate) {
       params.set("returnDate", returnDate);
@@ -72,7 +88,6 @@ export function SearchForm(props: SearchFormProps) {
       onSubmit={submit}
       className="rounded-xl border bg-white p-4 shadow-sm lg:p-5"
     >
-      {/* Trip type tabs */}
       <div className="mb-3 inline-flex rounded-md border bg-slate-50 p-0.5 text-sm">
         <button
           type="button"
@@ -98,100 +113,97 @@ export function SearchForm(props: SearchFormProps) {
         </button>
       </div>
 
-      <div
-        className={`grid gap-3 ${
-          tripType === "round_trip"
-            ? "sm:grid-cols-2 lg:grid-cols-6"
-            : "sm:grid-cols-2 lg:grid-cols-5"
-        }`}
-      >
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
+      <div className="mb-3">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Where
+        </div>
+        <div
+          className={`grid gap-3 ${
+            tripType === "round_trip" ? "sm:grid-cols-2" : "sm:grid-cols-2"
+          }`}
+        >
+          <div className="space-y-1">
             <Label htmlFor="origin">From</Label>
+            <PortCombobox
+              value={origin}
+              onValueChange={setOrigin}
+              placeholder="Select origin..."
+              excludePort={destination}
+            />
+          </div>
+          <div className="relative space-y-1">
+            <Label htmlFor="destination">To</Label>
+            <PortCombobox
+              value={destination}
+              onValueChange={setDestination}
+              placeholder="Select destination..."
+              excludePort={origin}
+            />
             <button
               type="button"
               onClick={swap}
-              className="text-xs text-sky-700 hover:underline"
+              className="absolute -top-2 left-1/2 z-10 hidden -translate-x-1/2 items-center justify-center rounded-full border bg-white p-1.5 shadow-sm transition-colors hover:bg-sky-50 sm:-top-3 sm:flex sm:h-8 sm:w-8"
               aria-label="Swap origin and destination"
             >
-              ⇄ Swap
+              <ArrowUpDown className="h-3.5 w-3.5 text-sky-700" />
             </button>
           </div>
-          <select
-            id="origin"
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            {props.origins.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="destination">To</Label>
-          <select
-            id="destination"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            {props.destinations.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+      </div>
+
+      <div className="mb-3">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          When
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="date">Departure</Label>
-          <Input
-            id="date"
-            type="date"
-            value={date}
-            min={todayLocalYmd()}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
-        </div>
-        {tripType === "round_trip" ? (
+        <div
+          className={`grid gap-3 ${
+            tripType === "round_trip" ? "sm:grid-cols-2" : "sm:grid-cols-1"
+          }`}
+        >
           <div className="space-y-1">
-            <Label htmlFor="returnDate">Return</Label>
+            <Label htmlFor="date">Departure</Label>
             <Input
-              id="returnDate"
+              id="date"
               type="date"
-              value={returnDate}
-              min={date || todayLocalYmd()}
-              onChange={(e) => setReturnDate(e.target.value)}
+              value={date}
+              min={todayLocalYmd()}
+              onChange={(e) => setDate(e.target.value)}
               required
             />
           </div>
-        ) : null}
-        <div className="space-y-1">
-          <Label htmlFor="passengers">Passengers</Label>
-          <Input
-            id="passengers"
-            type="number"
-            min={1}
-            max={10}
-            value={passengers}
-            onChange={(e) =>
-              setPassengers(Math.max(1, Math.min(10, Number(e.target.value))))
-            }
-          />
-        </div>
-        <div className="flex items-end">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={submitting || origin === destination}
-          >
-            {submitting ? "Searching…" : "Search"}
-          </Button>
+          {tripType === "round_trip" ? (
+            <div className="space-y-1">
+              <Label htmlFor="returnDate">Return</Label>
+              <Input
+                id="returnDate"
+                type="date"
+                value={returnDate}
+                min={date || todayLocalYmd()}
+                onChange={(e) => setReturnDate(e.target.value)}
+                required
+              />
+            </div>
+          ) : null}
         </div>
       </div>
+
+      <div className="mb-4">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Who
+        </div>
+        <div className="space-y-1">
+          <Label>Passengers</Label>
+          <PassengerSelector value={passengers} onChange={setPassengers} />
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={submitting || origin === destination}
+      >
+        {submitting ? "Searching..." : "Search"}
+      </Button>
     </form>
   );
 }

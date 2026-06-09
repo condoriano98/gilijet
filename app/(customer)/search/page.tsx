@@ -29,11 +29,12 @@ import { getSeaCondition } from "@/lib/sea-conditions";
 const querySchema = z.object({
   origin: z.string().min(2),
   destination: z.string().min(2),
-  // Optional: a popular-route link only carries origin + destination. When
-  // absent we default to today (WITA) so results show immediately.
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   passengers: z.coerce.number().int().min(1).max(10).default(1),
+  adults: z.coerce.number().int().min(1).max(10).optional(),
+  children: z.coerce.number().int().min(0).max(10).optional(),
+  infants: z.coerce.number().int().min(0).max(10).optional(),
   sortBy: z.enum(["time", "price", "duration"]).default("time"),
   timeSlot: z.enum(["any", "morning", "afternoon", "evening"]).default("any"),
   maxPrice: z.coerce.number().int().positive().optional(),
@@ -230,6 +231,9 @@ export default async function SearchPage({
           defaultDate={date}
           defaultReturnDate={returnDate}
           defaultPassengers={passengers}
+          defaultAdults={parsed.data.adults}
+          defaultChildren={parsed.data.children}
+          defaultInfants={parsed.data.infants}
           defaultTripType={returnDate ? "round_trip" : "one_way"}
         />
       </div>

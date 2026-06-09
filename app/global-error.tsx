@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 // Global error boundary. Renders when something throws above any
 // other error boundary or layout — including in the root layout
 // itself. Gives us a useful page (and the error digest) instead of
@@ -80,7 +82,7 @@ export default function GlobalError({
             >
               Try again
             </button>
-            <a
+            <Link
               href="/"
               style={{
                 padding: "10px 20px",
@@ -94,7 +96,7 @@ export default function GlobalError({
               }}
             >
               Back to home
-            </a>
+            </Link>
           </div>
         </div>
       </body>

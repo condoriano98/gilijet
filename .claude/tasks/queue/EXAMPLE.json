@@ -1,0 +1,26 @@
+{
+  "id": "task-001-example",
+  "agent": "feature-builder",
+  "title": "Add customer ratings to completed bookings",
+  "description": "Implement customer-submitted reviews/ratings for boat operators after booking completion. Ratings displayed on operator profile and search results.",
+  "spec": "1. Prisma schema: add Review model (customerId, operatorId, rating 1-5, comment text, createdAt)\n2. API: POST /api/reviews with auth check + validation\n3. UI: app/(customer)/reviews/new/page.tsx with form\n4. Display: Show average rating on operator cards in search\n5. Admin: List reviews with moderation options",
+  "depends_on": [],
+  "status": "in_progress",
+  "review_cycles": 0,
+  "constraints": [
+    "Must auth as logged-in customer (requireCustomer)",
+    "Ratings only for completed bookings (Booking.status === 'completed')",
+    "No duplicate review per customer per operator",
+    "Display uses Tailwind only, shadcn/Radix UI for modal",
+    "Email notification to operator on new review"
+  ],
+  "acceptance_criteria": [
+    "Form validates rating (1-5) and comment (5-500 chars)",
+    "Review saved to DB with timestamp",
+    "Average rating displayed on operator cards",
+    "Admin can see all reviews with customer name + timestamp",
+    "pnpm lint && pnpm typecheck passes",
+    "pnpm test:e2e includes new customer review flow"
+  ],
+  "notes": "Similar to existing Booking + Ticket pattern. See lib/email.ts for notification template. Port email to lib/email.ts, don't hardcode."
+}

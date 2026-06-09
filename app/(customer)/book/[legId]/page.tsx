@@ -29,6 +29,7 @@ import { BookingProgress } from "@/components/customer/booking-progress";
 import { SubmitBookingButton } from "@/components/customer/submit-booking-button";
 import { getCustomerSession } from "@/lib/auth";
 import type { PassengerType } from "@/lib/pricing";
+import { computeInsuranceQuote, getPickupZones, getPickupFee } from "@/lib/addons";
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -61,6 +62,9 @@ async function submitBookingAction(formData: FormData) {
     return t === "CHILD" || t === "INFANT" ? t : "ADULT";
   });
   const promoCode = String(formData.get("promoCode") ?? "").trim() || null;
+  const addInsurance = formData.get("addInsurance") === "1";
+  const whatsappOptIn = formData.get("whatsappOptIn") === "1";
+  const pickupZone = String(formData.get("pickupZone") ?? "").trim() || null;
 
   if (passengerNames.length === 0 || passengerNames.some((n) => n.length < NAMES_MIN)) {
     redirect(
@@ -272,6 +276,72 @@ export default async function BookPage({
             </CardHeader>
             <CardContent>
               <PassengerFields initialCount={initialPassengers} max={10} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Add-ons</CardTitle>
+              <CardDescription>
+                Optional extras for your trip
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-slate-50">
+                <input
+                  type="checkbox"
+                  name="addInsurance"
+                  value="1"
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-slate-900">
+                    Travel Insurance
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    Covers trip cancellation, medical emergencies, and lost luggage.
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-sky-700">
+                    +{formatIDR(computeInsuranceQuote(initialPassengers).perPerson)} per passenger
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-slate-50">
+                <input
+                  type="checkbox"
+                  name="whatsappOptIn"
+                  value="1"
+                  defaultChecked
+                  className="mt-0.5 h-4 w-4 flex-shrink-0"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-slate-900">
+                    WhatsApp Notifications
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    Receive booking confirmation, e-tickets, and delay alerts via WhatsApp.
+                  </div>
+                </div>
+              </label>
+
+              {getPickupZones(leg.schedule.destinationPort).length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="pickupZone">Port Pickup (optional)</Label>
+                  <select
+                    id="pickupZone"
+                    name="pickupZone"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">No pickup needed</option>
+                    {getPickupZones(leg.schedule.destinationPort).map((zone) => (
+                      <option key={zone} value={zone}>
+                        {zone} (+{formatIDR(getPickupFee())})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </CardContent>
           </Card>
 
