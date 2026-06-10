@@ -1,15 +1,22 @@
 import Link from "next/link";
+import Image from "next/image";
 import { SearchForm } from "@/components/customer/search-form";
 import { DepartingToday } from "@/components/customer/departing-today";
+import { ReviewsCarousel } from "@/components/customer/reviews-carousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getDepartingSoon } from "@/lib/home-data";
+import {
+  getDepartingSoon,
+  getPopularRoutes,
+  getRecentReviews,
+  getTrustNumbers,
+  TRUST_THRESHOLDS,
+} from "@/lib/home-data";
+import { HERO_PHOTO, photoForPort } from "@/lib/destination-photos";
 
 export const revalidate = 600;
 
-// Fallback ports if the DB is empty so the landing page always renders
-// with usable dropdowns. Real ports merge in on top of these.
 const SEED_ORIGINS = [
   "Sanur",
   "Padang Bai",
@@ -22,81 +29,86 @@ const SEED_ORIGINS = [
 ];
 const SEED_DESTINATIONS = SEED_ORIGINS;
 
-const POPULAR_ROUTES = [
-  { from: "Sanur", to: "Nusa Penida", price: 250000, duration: "45m", image: "🏝️" },
-  { from: "Padang Bai", to: "Gili Trawangan", price: 425000, duration: "2h 30m", image: "🌴" },
-  { from: "Sanur", to: "Nusa Lembongan", price: 200000, duration: "35m", image: "⛵" },
-  { from: "Padang Bai", to: "Lombok", price: 395000, duration: "3h", image: "🌊" },
-  { from: "Bangsal", to: "Gili Trawangan", price: 85000, duration: "25m", image: "🚤" },
-  { from: "Labuan Bajo", to: "Komodo", price: 750000, duration: "3h", image: "🦎" },
-];
-
 const FEATURED_DESTINATIONS = [
   {
     name: "Gili Islands",
+    slug: "gili-islands",
     description: "Crystal water, no cars, perfect snorkeling",
     routes: 12,
-    from: 85000,
+    from: 85_000,
   },
   {
     name: "Nusa Penida",
+    slug: "nusa-penida",
     description: "Dramatic cliffs and Kelingking beach",
     routes: 8,
-    from: 200000,
+    from: 200_000,
   },
   {
     name: "Lombok",
+    slug: "lombok",
     description: "Mount Rinjani and pink-sand beaches",
     routes: 6,
-    from: 395000,
+    from: 395_000,
   },
   {
     name: "Komodo",
+    slug: "komodo",
     description: "Dragons, pink beach, and Padar viewpoint",
     routes: 4,
-    from: 750000,
+    from: 750_000,
   },
 ];
 
-const TRUST_BADGES = [
-  { title: "Best Price Guaranteed", desc: "No hidden fees, transparent pricing" },
-  { title: "24/7 Customer Support", desc: "WhatsApp +62 812 3456 7890" },
-  { title: "Instant E-Ticket", desc: "QR code delivered to your email" },
-  { title: "Secure Payment", desc: "Powered by Mayar, BI licensed gateway" },
-];
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 
-// The landing page is a marketing surface — fully static for max
-// reliability. Ports come from a hardcoded list of popular Indonesian
-// destinations. The dropdowns on the search form post to /search,
-// which is where the live DB query happens.
 export default async function HomePage() {
-  const origins = SEED_ORIGINS;
-  const destinations = SEED_DESTINATIONS;
-  const departures = await getDepartingSoon().catch(() => []);
+  const [departures, popularRoutes, reviews, trust] = await Promise.all([
+    getDepartingSoon().catch(() => []),
+    getPopularRoutes().catch(() => []),
+    getRecentReviews().catch(() => []),
+    getTrustNumbers().catch(() => ({
+      bookingsLast30Days: 0,
+      averageRating: 0,
+      totalReviews: 0,
+      activeOperators: 0,
+    })),
+  ]);
+
   const hasDepartures = departures.length > 0;
+  const hasReviews = reviews.length > 0;
+  const showBookings = trust.bookingsLast30Days >= TRUST_THRESHOLDS.bookings;
+  const showReviews = trust.totalReviews >= TRUST_THRESHOLDS.reviews;
+  const showOperators = trust.activeOperators >= TRUST_THRESHOLDS.operators;
+  const showAnyTrustNumber = showBookings || showReviews || showOperators;
 
   return (
     <>
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-sky-600 via-sky-500 to-cyan-500 pb-24 pt-12 sm:pt-16">
-        <div className="absolute inset-0 opacity-10">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, white 0%, transparent 50%), radial-gradient(circle at 80% 80%, white 0%, transparent 50%)",
-            }}
-          />
-        </div>
+      <section className="relative overflow-hidden pb-24 pt-12 sm:pt-16">
+        <Image
+          src={HERO_PHOTO.url}
+          alt={HERO_PHOTO.alt}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-900/85 via-sky-700/75 to-cyan-600/70" />
         <div className="container relative">
           <div className="mx-auto max-w-3xl text-center text-white">
             <Badge className="bg-white/20 text-white hover:bg-white/30">
               Indonesia's #1 boat ticketing platform
             </Badge>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-4 text-4xl font-bold tracking-tight drop-shadow sm:text-5xl lg:text-6xl">
               Island-hop with confidence
             </h1>
-            <p className="mt-4 text-lg text-sky-50 sm:text-xl">
+            <p className="mt-4 text-lg text-sky-50 drop-shadow sm:text-xl">
               Book verified fast boats and ferries across Indonesia.
               <br className="hidden sm:inline" />
               Pay your way, get e-tickets instantly.
@@ -106,7 +118,7 @@ export default async function HomePage() {
           {/* Search bar */}
           <div className="mx-auto mt-8 max-w-5xl">
             <div className="rounded-2xl bg-white p-2 shadow-2xl">
-              <SearchForm origins={origins} destinations={destinations} />
+              <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
             </div>
             <p className="mt-3 text-center text-xs text-sky-50">
               Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
@@ -169,37 +181,53 @@ export default async function HomePage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {POPULAR_ROUTES.map((route) => (
-              <Link
-                key={`${route.from}-${route.to}`}
-                href={`/search?origin=${encodeURIComponent(route.from)}&destination=${encodeURIComponent(route.to)}`}
-                className="group block"
-              >
-                <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-sky-50 text-3xl">
-                      {route.image}
+            {popularRoutes.map((route) => {
+              const photo = photoForPort(route.destination);
+              return (
+                <Link
+                  key={`${route.origin}-${route.destination}`}
+                  href={`/search?origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent(route.destination)}`}
+                  className="group block"
+                >
+                  <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
+                    <div className="flex items-center gap-4 p-4">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-sky-50">
+                        {photo && (
+                          <Image
+                            src={photo.url}
+                            alt={photo.alt}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 text-sm font-medium text-slate-900">
+                          <span className="truncate">{route.origin}</span>
+                          <span className="text-slate-400">→</span>
+                          <span className="truncate">{route.destination}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                          <span>{formatDuration(route.durationMinutes)}</span>
+                          <span>·</span>
+                          <span>
+                            {route.operatorCount}{" "}
+                            operator{route.operatorCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <div className="mt-1">
+                          <span className="text-xs text-slate-500">from </span>
+                          <span className="text-lg font-bold text-sky-700">
+                            IDR {route.cheapestPriceIDR.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 text-sm text-slate-500">
-                        <span className="truncate">{route.from}</span>
-                        <span>→</span>
-                        <span className="truncate">{route.to}</span>
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {route.duration}
-                      </div>
-                      <div className="mt-1">
-                        <span className="text-xs text-slate-500">from </span>
-                        <span className="text-lg font-bold text-sky-700">
-                          IDR {route.price.toLocaleString("id-ID")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -218,38 +246,66 @@ export default async function HomePage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {FEATURED_DESTINATIONS.map((dest) => (
-                <Card
-                  key={dest.name}
-                  className="overflow-hidden transition-all hover:shadow-lg"
-                >
-                  <div className="h-32 bg-gradient-to-br from-sky-400 to-cyan-500 relative">
-                    <div className="absolute bottom-2 left-3 text-white">
-                      <div className="text-lg font-bold">{dest.name}</div>
-                    </div>
-                  </div>
-                  <CardContent className="pt-4">
-                    <p className="text-sm text-slate-600 line-clamp-2">
-                      {dest.description}
-                    </p>
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <Badge variant="outline">
-                        {dest.routes} routes
-                      </Badge>
-                      <div>
-                        <span className="text-slate-500">from </span>
-                        <span className="font-semibold text-sky-700">
-                          IDR {dest.from.toLocaleString("id-ID")}
-                        </span>
+              {FEATURED_DESTINATIONS.map((dest) => {
+                const photo = photoForPort(dest.slug);
+                return (
+                  <Card
+                    key={dest.slug}
+                    className="overflow-hidden transition-all hover:shadow-lg"
+                  >
+                    <div className="relative h-36 bg-gradient-to-br from-sky-400 to-cyan-500">
+                      {photo && (
+                        <Image
+                          src={photo.url}
+                          alt={photo.alt}
+                          fill
+                          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-2 left-3 text-white">
+                        <div className="text-lg font-bold drop-shadow">{dest.name}</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-slate-600 line-clamp-2">
+                        {dest.description}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-xs">
+                        <Badge variant="outline">{dest.routes} routes</Badge>
+                        <div>
+                          <span className="text-slate-500">from </span>
+                          <span className="font-semibold text-sky-700">
+                            IDR {dest.from.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
+
+      {/* REVIEWS CAROUSEL */}
+      {hasReviews && (
+        <section className="container py-16">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                What travellers say
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Real reviews from real bookings
+              </p>
+            </div>
+            <ReviewsCarousel reviews={reviews} />
+          </div>
+        </section>
+      )}
 
       {/* WHY BOOK WITH US */}
       <section className="container py-16">
@@ -264,18 +320,19 @@ export default async function HomePage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST_BADGES.map((badge) => (
+            {[
+              { title: "Best Price Guaranteed", desc: "No hidden fees, transparent pricing" },
+              { title: "24/7 Customer Support", desc: "WhatsApp +62 812 3456 7890" },
+              { title: "Instant E-Ticket", desc: "QR code delivered to your email" },
+              { title: "Secure Payment", desc: "Powered by Mayar, BI licensed gateway" },
+            ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-2xl">
                     ✓
                   </div>
-                  <div className="font-semibold text-slate-900">
-                    {badge.title}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-600">
-                    {badge.desc}
-                  </div>
+                  <div className="font-semibold text-slate-900">{badge.title}</div>
+                  <div className="mt-1 text-xs text-slate-600">{badge.desc}</div>
                 </CardContent>
               </Card>
             ))}
@@ -307,9 +364,7 @@ export default async function HomePage() {
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-600 text-lg font-bold text-white">
                     {s.step}
                   </div>
-                  <div className="mt-3 font-semibold text-slate-900">
-                    {s.title}
-                  </div>
+                  <div className="mt-3 font-semibold text-slate-900">{s.title}</div>
                   <div className="mt-1 text-xs text-slate-600">{s.desc}</div>
                 </div>
               ))}
@@ -347,6 +402,25 @@ export default async function HomePage() {
       <section className="border-t bg-white py-8">
         <div className="container">
           <div className="mx-auto max-w-5xl text-center text-xs text-slate-600">
+            {showAnyTrustNumber && (
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-semibold text-slate-900">
+                {showBookings && (
+                  <span>
+                    {trust.bookingsLast30Days.toLocaleString("id-ID")} trips booked
+                    in the last 30 days
+                  </span>
+                )}
+                {showReviews && (
+                  <span>
+                    {trust.averageRating.toFixed(1)} ★ from{" "}
+                    {trust.totalReviews.toLocaleString("id-ID")} reviews
+                  </span>
+                )}
+                {showOperators && (
+                  <span>{trust.activeOperators} active operators</span>
+                )}
+              </div>
+            )}
             <div className="font-semibold text-slate-900">
               Secure, verified, regulated
             </div>
