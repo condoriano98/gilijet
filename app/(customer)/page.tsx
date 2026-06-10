@@ -3,6 +3,7 @@ import Image from "next/image";
 import { SearchForm } from "@/components/customer/search-form";
 import { DepartingToday } from "@/components/customer/departing-today";
 import { ReviewsCarousel } from "@/components/customer/reviews-carousel";
+import { WaveDivider } from "@/components/ui/wave-divider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,69 +90,87 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HERO */}
-      <section className="relative overflow-hidden pb-24 pt-12 sm:pt-16">
+      {/* ─── HERO ─── */}
+      <section className="relative overflow-hidden pb-32 pt-12 sm:pb-40 sm:pt-16">
         <Image
           src={HERO_PHOTO.url}
           alt={HERO_PHOTO.alt}
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover brightness-[0.6]"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-900/85 via-sky-700/75 to-cyan-600/70" />
-        <div className="container relative">
-          <div className="mx-auto max-w-3xl text-center text-white">
-            <Badge className="bg-white/20 text-white hover:bg-white/30">
-              Indonesia's #1 boat ticketing platform
-            </Badge>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight drop-shadow sm:text-5xl lg:text-6xl">
-              Island-hop with confidence
-            </h1>
-            <p className="mt-4 text-lg text-sky-50 drop-shadow sm:text-xl">
-              Book verified fast boats and ferries across Indonesia.
-              <br className="hidden sm:inline" />
-              Pay your way, get e-tickets instantly.
-            </p>
-          </div>
+        {/* Left-to-right scrim — leaves the right side of the photo visible */}
+        <div className="absolute inset-0 bg-gradient-to-r from-gilijet-deep/70 via-gilijet-deep/50 to-transparent" />
 
-          {/* Search bar */}
-          <div className="mx-auto mt-8 max-w-5xl">
-            <div className="rounded-2xl bg-white p-2 shadow-2xl">
-              <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
+        {/* Photo credit */}
+        {HERO_PHOTO.credit && (
+          <div className="absolute bottom-3 right-4 z-10 text-xs text-white/60">
+            Photo by {HERO_PHOTO.credit}
+          </div>
+        )}
+
+        <div className="container relative">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-2xl">
+              <Badge className="bg-gilijet-coral/20 text-white border-white/20">
+                Indonesia&apos;s #1 boat ticketing platform
+              </Badge>
+              <h1 className="mt-4 text-4xl font-display font-extrabold text-white drop-shadow sm:text-5xl lg:text-6xl">
+                Island-hop with confidence
+              </h1>
+              <p className="mt-4 text-lg text-white/90 drop-shadow sm:text-xl max-w-prose">
+                Book verified fast boats and ferries across Indonesia.
+                Pay your way, get e-tickets instantly.
+              </p>
             </div>
-            <p className="mt-3 text-center text-xs text-sky-50">
-              Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
-            </p>
           </div>
         </div>
       </section>
 
-      {/* DEPARTING SOON */}
+      {/* Wave divider behind search card */}
+      <div className="relative z-0">
+        <WaveDivider fillClass="fill-gilijet-foam" />
+
+        {/* Search card — overlaps the hero/content boundary */}
+        <div className="relative z-10 -mt-12 mx-auto max-w-5xl px-4">
+          <div className="rounded-2xl bg-white p-2 shadow-2xl">
+            <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
+          </div>
+          <p className="mt-3 text-center text-xs text-slate-500">
+            Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
+          </p>
+        </div>
+      </div>
+
+      {/* ─── DEPARTING SOON ─── */}
       {hasDepartures && (
-        <section className="container -mt-12 mb-10">
-          <DepartingToday departures={departures} />
+        <section className="bg-gilijet-foam">
+          <div className="container pt-8 pb-10">
+            <DepartingToday departures={departures} />
+          </div>
         </section>
       )}
 
-      {/* PROMO BANNER */}
-      <section className={`container mb-12 ${hasDepartures ? "" : "-mt-12"}`}>
+      {/* ─── PROMO BANNER ─── */}
+      <section className="container mt-8 mb-12">
         <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+                <span className="rounded bg-gilijet-coral px-2 py-0.5 text-xs font-bold text-white">
                   PROMO
                 </span>
-                <h3 className="text-lg font-bold text-amber-900">
+                <h3 className="text-lg font-display font-bold text-amber-900">
                   Save 15% on Gili Islands routes
                 </h3>
               </div>
               <p className="mt-1 text-sm text-amber-800">
-                Book before 31 May 2026 · Use code <span className="font-mono font-semibold">GILIJET15</span> at checkout
+                Book before 31 May 2026 · Use code{" "}
+                <span className="font-mono font-semibold">GILIJET15</span> at checkout
               </p>
             </div>
-            <Button asChild className="bg-amber-600 hover:bg-amber-700">
+            <Button asChild className="bg-gilijet-coral hover:bg-gilijet-coralDeep">
               <Link href="/search?origin=Padang+Bai&destination=Gili+Trawangan">
                 Book now
               </Link>
@@ -160,12 +179,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* POPULAR ROUTES */}
+      {/* ─── POPULAR ROUTES ─── */}
       <section className="container mb-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
                 Popular routes
               </h2>
               <p className="mt-1 text-sm text-slate-600">
@@ -174,7 +193,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/search"
-              className="hidden text-sm font-medium text-sky-700 hover:underline sm:inline"
+              className="hidden text-sm font-medium text-gilijet-deep hover:underline sm:inline"
             >
               See all →
             </Link>
@@ -191,7 +210,7 @@ export default async function HomePage() {
                 >
                   <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
                     <div className="flex items-center gap-4 p-4">
-                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-sky-50">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-gilijet-foam">
                         {photo && (
                           <Image
                             src={photo.url}
@@ -218,7 +237,7 @@ export default async function HomePage() {
                         </div>
                         <div className="mt-1">
                           <span className="text-xs text-slate-500">from </span>
-                          <span className="text-lg font-bold text-sky-700">
+                          <span className="text-lg font-bold text-gilijet-deep">
                             IDR {route.cheapestPriceIDR.toLocaleString("id-ID")}
                           </span>
                         </div>
@@ -232,12 +251,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* FEATURED DESTINATIONS */}
+      {/* Wave divider before destinations */}
+      <WaveDivider fillClass="fill-slate-50" />
+
+      {/* ─── FEATURED DESTINATIONS ─── */}
       <section className="bg-slate-50 py-16">
         <div className="container">
           <div className="mx-auto max-w-6xl">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
                 Explore Indonesia by sea
               </h2>
               <p className="mt-2 text-sm text-slate-600">
@@ -253,7 +275,7 @@ export default async function HomePage() {
                     key={dest.slug}
                     className="overflow-hidden transition-all hover:shadow-lg"
                   >
-                    <div className="relative h-36 bg-gradient-to-br from-sky-400 to-cyan-500">
+                    <div className="relative h-36 bg-gradient-to-br from-gilijet-ocean to-gilijet-deep">
                       {photo && (
                         <Image
                           src={photo.url}
@@ -265,7 +287,9 @@ export default async function HomePage() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-2 left-3 text-white">
-                        <div className="text-lg font-bold drop-shadow">{dest.name}</div>
+                        <div className="text-lg font-display font-bold drop-shadow">
+                          {dest.name}
+                        </div>
                       </div>
                     </div>
                     <CardContent className="pt-4">
@@ -276,7 +300,7 @@ export default async function HomePage() {
                         <Badge variant="outline">{dest.routes} routes</Badge>
                         <div>
                           <span className="text-slate-500">from </span>
-                          <span className="font-semibold text-sky-700">
+                          <span className="font-semibold text-gilijet-deep">
                             IDR {dest.from.toLocaleString("id-ID")}
                           </span>
                         </div>
@@ -290,12 +314,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* REVIEWS CAROUSEL */}
+      {/* Wave divider before reviews */}
+      <WaveDivider fillClass="fill-white" />
+
+      {/* ─── REVIEWS CAROUSEL ─── */}
       {hasReviews && (
         <section className="container py-16">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
                 What travellers say
               </h2>
               <p className="mt-2 text-sm text-slate-600">
@@ -307,11 +334,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* WHY BOOK WITH US */}
+      {/* ─── WHY BOOK WITH US ─── */}
       <section className="container py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
               Why book with Gilijet
             </h2>
             <p className="mt-2 text-sm text-slate-600">
@@ -328,7 +355,7 @@ export default async function HomePage() {
             ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-2xl">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gilijet-foam text-2xl text-gilijet-deep">
                     ✓
                   </div>
                   <div className="font-semibold text-slate-900">{badge.title}</div>
@@ -340,12 +367,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="bg-sky-50 py-16">
+      {/* ─── HOW IT WORKS ─── */}
+      <section className="bg-gilijet-foam py-16">
         <div className="container">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
                 How it works
               </h2>
               <p className="mt-2 text-sm text-slate-600">
@@ -361,7 +388,7 @@ export default async function HomePage() {
                 { step: "4", title: "Board", desc: "Show your QR e-ticket at the dock" },
               ].map((s) => (
                 <div key={s.step} className="relative text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-600 text-lg font-bold text-white">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilijet-deep text-lg font-bold text-white">
                     {s.step}
                   </div>
                   <div className="mt-3 font-semibold text-slate-900">{s.title}</div>
@@ -373,12 +400,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* OPERATOR CTA */}
+      {/* Wave divider before operator CTA */}
+      <WaveDivider fillClass="fill-white" />
+
+      {/* ─── OPERATOR CTA ─── */}
       <section className="container py-16">
         <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white sm:p-12">
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <div>
-              <h3 className="text-2xl font-bold sm:text-3xl">
+              <h3 className="text-2xl font-display font-bold sm:text-3xl">
                 Run a boat business?
               </h3>
               <p className="mt-2 text-sm text-slate-300">
@@ -398,7 +428,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* TRUST FOOTER STRIP */}
+      {/* ─── TRUST FOOTER STRIP ─── */}
       <section className="border-t bg-white py-8">
         <div className="container">
           <div className="mx-auto max-w-5xl text-center text-xs text-slate-600">

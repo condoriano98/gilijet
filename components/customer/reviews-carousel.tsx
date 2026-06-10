@@ -69,7 +69,7 @@ export function ReviewsCarousel({ reviews }: { reviews: HomeReview[] }) {
                 setPaused(true);
               }}
               className={`h-2 rounded-full transition-all ${
-                i === index ? "w-6 bg-sky-600" : "w-2 bg-slate-300 hover:bg-slate-400"
+                i === index ? "w-6 bg-gilijet-deep" : "w-2 bg-slate-300 hover:bg-slate-400"
               }`}
               aria-label={`Show review ${i + 1} of ${reviews.length}`}
             />

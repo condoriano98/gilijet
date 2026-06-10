@@ -23,7 +23,7 @@ export function DepartingToday({
     <div className="mx-auto max-w-6xl">
       <div className="mb-4 flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+          <h2 className="text-xl font-display font-bold text-slate-900 sm:text-2xl">
             Departing soon
           </h2>
           <p className="mt-1 text-xs text-slate-500">
@@ -32,7 +32,7 @@ export function DepartingToday({
         </div>
         <Link
           href="/search"
-          className="hidden text-sm font-medium text-sky-700 hover:underline sm:inline"
+          className="hidden text-sm font-medium text-gilijet-deep hover:underline sm:inline"
         >
           See all →
         </Link>
@@ -62,7 +62,7 @@ function DepartureCard({
       ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
       : minutesAway < 180
         ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-        : "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+        : "bg-gilijet-foam text-gilijet-deep ring-1 ring-gilijet-ocean/30";
 
   const seatPct = Math.max(
     4,
@@ -97,7 +97,7 @@ function DepartureCard({
           </div>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
-              className={`h-full rounded-full ${seatsLow ? "bg-rose-500" : "bg-sky-500"}`}
+              className={`h-full rounded-full ${seatsLow ? "bg-rose-500" : "bg-gilijet-ocean"}`}
               style={{ width: `${seatPct}%` }}
             />
           </div>
@@ -105,11 +105,11 @@ function DepartureCard({
         <div className="mt-3 flex items-center justify-between">
           <div>
             <span className="text-xs text-slate-500">from </span>
-            <span className="text-base font-bold text-sky-700">
+            <span className="text-base font-bold text-gilijet-deep">
               IDR {departure.priceIDR.toLocaleString("id-ID")}
             </span>
           </div>
-          <span className="text-xs font-semibold text-sky-700 group-hover:underline">
+          <span className="text-xs font-semibold text-gilijet-deep group-hover:underline">
             Book →
           </span>
         </div>

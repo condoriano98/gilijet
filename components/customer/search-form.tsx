@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 
 export type SearchFormProps = {
@@ -34,7 +35,7 @@ export function SearchForm(props: SearchFormProps) {
     props.defaultOrigin ?? props.origins[0] ?? "",
   );
   const [destination, setDestination] = React.useState(
-    props.defaultDestination ?? props.destinations[0] ?? "",
+    props.defaultDestination ?? props.destinations[1] ?? "",
   );
   const [date, setDate] = React.useState(props.defaultDate ?? todayLocalYmd());
   const [returnDate, setReturnDate] = React.useState(
@@ -79,7 +80,7 @@ export function SearchForm(props: SearchFormProps) {
           onClick={() => setTripType("one_way")}
           className={`rounded px-3 py-1.5 transition-colors ${
             tripType === "one_way"
-              ? "bg-white shadow-sm font-medium text-sky-700"
+              ? "bg-white shadow-sm font-medium text-gilijet-deep"
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
@@ -90,7 +91,7 @@ export function SearchForm(props: SearchFormProps) {
           onClick={() => setTripType("round_trip")}
           className={`rounded px-3 py-1.5 transition-colors ${
             tripType === "round_trip"
-              ? "bg-white shadow-sm font-medium text-sky-700"
+              ? "bg-white shadow-sm font-medium text-gilijet-deep"
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
@@ -111,7 +112,7 @@ export function SearchForm(props: SearchFormProps) {
             <button
               type="button"
               onClick={swap}
-              className="text-xs text-sky-700 hover:underline"
+              className="text-xs text-gilijet-deep hover:underline"
               aria-label="Swap origin and destination"
             >
               ⇄ Swap
@@ -123,8 +124,11 @@ export function SearchForm(props: SearchFormProps) {
             onChange={(e) => setOrigin(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
+            <option value="" disabled>
+              Pick a departure port
+            </option>
             {props.origins.map((p) => (
-              <option key={p} value={p}>
+              <option key={p} value={p} disabled={p === destination}>
                 {p}
               </option>
             ))}
@@ -138,8 +142,11 @@ export function SearchForm(props: SearchFormProps) {
             onChange={(e) => setDestination(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
+            <option value="" disabled>
+              Pick a destination
+            </option>
             {props.destinations.map((p) => (
-              <option key={p} value={p}>
+              <option key={p} value={p} disabled={p === origin}>
                 {p}
               </option>
             ))}
@@ -147,24 +154,22 @@ export function SearchForm(props: SearchFormProps) {
         </div>
         <div className="space-y-1">
           <Label htmlFor="date">Departure</Label>
-          <Input
+          <DatePicker
             id="date"
-            type="date"
             value={date}
-            min={todayLocalYmd()}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={setDate}
+            minDate={todayLocalYmd()}
             required
           />
         </div>
         {tripType === "round_trip" ? (
           <div className="space-y-1">
             <Label htmlFor="returnDate">Return</Label>
-            <Input
+            <DatePicker
               id="returnDate"
-              type="date"
               value={returnDate}
-              min={date || todayLocalYmd()}
-              onChange={(e) => setReturnDate(e.target.value)}
+              onChange={setReturnDate}
+              minDate={date || todayLocalYmd()}
               required
             />
           </div>
