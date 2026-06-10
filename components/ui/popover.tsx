@@ -16,7 +16,7 @@ const PopoverContent = React.forwardRef<
       ref={ref}
       align={align}
       sideOffset={sideOffset}
-      className="z-50 w-72 rounded-md border bg-white p-0 shadow-md outline-none"
+      className="z-50 w-auto rounded-md border bg-white p-0 shadow-md outline-none"
       {...props}
     />
   </PopoverPrimitive.Portal>

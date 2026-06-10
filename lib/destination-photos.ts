@@ -41,7 +41,7 @@ export const DESTINATION_PHOTOS: Record<string, DestinationPhoto> = {
   sanur: {
     url: LOCAL("sanur"),
     alt: "Sanur sunrise with traditional prayer boats",
-    credit: "RubÃ©n Hutabarat on Unsplash",
+    credit: "Rubén Hutabarat on Unsplash",
   },
   "padang-bai": {
     url: LOCAL("padang-bai"),
