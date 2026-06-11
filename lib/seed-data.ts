@@ -33,6 +33,7 @@ const OPERATORS: SeedOperator[] = [
   { key: "inami", email: "inami@gilijet.local", companyName: "PT. INAMI CRUISE", contactPerson: "Inami Cruise", phoneNumber: "+62 361 234 5674" },
   { key: "gili-gili", email: "gili-gili@gilijet.local", companyName: "PT. GILI GILI FASTBOAT", contactPerson: "Gili Gili Fastboat", phoneNumber: "+62 361 234 5675" },
   { key: "wahana", email: "wahana@gilijet.local", companyName: "PT. WAHANA GILI OCEAN", contactPerson: "Wahana Gili Ocean", phoneNumber: "+62 361 234 5676" },
+  { key: "samudra-jet", email: "samudra-jet@gilijet.local", companyName: "PT. SAMUDRA JET BALI", contactPerson: "Samudra Jet Bali", phoneNumber: "+62 361 234 5680" },
 ];
 
 type SeedBoat = {
@@ -54,6 +55,8 @@ const BOATS: SeedBoat[] = [
   { reg: "INAMI-LUXURY", name: "INAMI LUXURY", operatorKey: "inami", capacity: 50, description: "Luxury cruise with AC cabin." },
   { reg: "GILI-GILI-FASTBOAT", name: "GILI-GILI FASTBOAT", operatorKey: "gili-gili", capacity: 60, description: "Daily fast boat." },
   { reg: "WAHANA-VIRENDRA", name: "WAHANA VIRENDRA", operatorKey: "wahana", capacity: 60, description: "Inter-island including Gili-to-Gili hops." },
+  { reg: "SAMUDRA-JET-I", name: "SAMUDRA JET I", operatorKey: "samudra-jet", capacity: 80, description: "Serangan ↔ Gili corridor — morning departure." },
+  { reg: "SAMUDRA-JET-II", name: "SAMUDRA JET II", operatorKey: "samudra-jet", capacity: 60, description: "Serangan ↔ Nusa Penida ↔ Gili Gede." },
 ];
 
 type SeedSchedule = {
@@ -65,6 +68,9 @@ type SeedSchedule = {
   price: number;
 };
 
+// Prices: Padang Bai operators store NET rates (their wholesale cost). Serangan
+// (Samudra Jet) stores PUBLISH rates (rack rate). Both are correct because each
+// operator sets its own pricing strategy; the search page just shows lowest first.
 const SCHEDULES: SeedSchedule[] = [
   { boatReg: "EKA-JAYA-I", origin: PORT_PADANGBAI, destination: "Gili Trawangan", time: "08:30", duration: 90, price: 385000 },
   { boatReg: "EKA-JAYA-I", origin: PORT_PADANGBAI, destination: "Gili Air", time: "08:30", duration: 115, price: 385000 },
@@ -126,6 +132,19 @@ const SCHEDULES: SeedSchedule[] = [
   { boatReg: "WAHANA-VIRENDRA", origin: "Gili Trawangan", destination: PORT_PADANGBAI, time: "15:30", duration: 120, price: 275000 },
   { boatReg: "WAHANA-VIRENDRA", origin: "Gili Air", destination: PORT_PADANGBAI, time: "15:45", duration: 105, price: 275000 },
   { boatReg: "WAHANA-VIRENDRA", origin: "Bangsal", destination: PORT_PADANGBAI, time: "16:00", duration: 90, price: 275000 },
+  // ── Serangan corridor (Samudra Jet) ──
+  { boatReg: "SAMUDRA-JET-I", origin: "Serangan", destination: "Gili Trawangan", time: "09:00", duration: 135, price: 825000 },
+  { boatReg: "SAMUDRA-JET-I", origin: "Serangan", destination: "Gili Air", time: "09:00", duration: 165, price: 825000 },
+  { boatReg: "SAMUDRA-JET-I", origin: "Serangan", destination: "Bangsal", time: "09:00", duration: 180, price: 825000 },
+  { boatReg: "SAMUDRA-JET-I", origin: "Gili Trawangan", destination: "Serangan", time: "11:30", duration: 165, price: 825000 },
+  { boatReg: "SAMUDRA-JET-I", origin: "Gili Air", destination: "Serangan", time: "11:45", duration: 150, price: 825000 },
+  { boatReg: "SAMUDRA-JET-I", origin: "Bangsal", destination: "Serangan", time: "12:00", duration: 135, price: 825000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Serangan", destination: "Nusa Penida", time: "10:30", duration: 60, price: 450000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Serangan", destination: "Gili Gede", time: "10:30", duration: 120, price: 960000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Nusa Penida", destination: "Gili Gede", time: "11:30", duration: 60, price: 900000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Gili Gede", destination: "Nusa Penida", time: "12:45", duration: 60, price: 900000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Gili Gede", destination: "Serangan", time: "12:45", duration: 120, price: 960000 },
+  { boatReg: "SAMUDRA-JET-II", origin: "Nusa Penida", destination: "Serangan", time: "13:45", duration: 60, price: 450000 },
 ];
 
 export type SeedRealResult = {

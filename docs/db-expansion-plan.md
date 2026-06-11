@@ -265,6 +265,8 @@ model AuditLog {
 
 These models are designed now so Phase 1 doesn't paint us into a corner. **Do not add them to `schema.prisma` during this task.** Hold them for the sprint that actually builds the corresponding feature.
 
+- `Schedule.daysOfWeek Int @default(127)` — recurrence bitmask. Filter in `generateLegsForSchedule`. Needed for bulk import.
+
 ### 2.1 `Port`
 
 Promote `Schedule.originPort` / `destinationPort` (currently bare strings) to FKs.
@@ -290,6 +292,23 @@ model Port {
 ```
 
 Migration path: add `originPortId` / `destinationPortId` alongside the strings, backfill via `lib/port-info.ts` canonicalisation, drop the strings in a follow-up. (When phase 1 lands there is no real data, so it can be a single change.)
+
+### Port seed
+
+When the Port model lands, seed these 10 canonical rows. Add a `shortCode String @unique @db.VarChar(3)` column to `Port` alongside the fields in 2.1 — a stable 3-letter code survives DB resets better than numeric IDs.
+
+| name | shortCode | island/region | latitude | longitude |
+|---|---|---|---|---|
+| Serangan | SRG | Bali (South) | -8.7282 | 115.2475 |
+| Sanur | SNR | Bali (South) | -8.6878 | 115.2632 |
+| Padang Bai | PDB | Bali (East) | -8.5304 | 115.5072 |
+| Gili Trawangan | GIT | Gili Islands | -8.3486 | 116.0411 |
+| Gili Air | GIA | Gili Islands | -8.3625 | 116.0820 |
+| Gili Meno | GIM | Gili Islands | -8.3553 | 116.0625 |
+| Gili Gede | GIG | Lombok (SW) | -8.7100 | 116.0250 |
+| Bangsal | BSL | Lombok (NW) | -8.5550 | 116.0700 |
+| Nusa Penida | NPD | Penida | -8.7275 | 115.5444 |
+| Labuan Bajo | LBJ | Flores | -8.4905 | 119.8758 |
 
 ### 2.2 `OperatorStaff`
 
