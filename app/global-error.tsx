@@ -80,6 +80,8 @@ export default function GlobalError({
             >
               Try again
             </button>
+            {/* Hard navigation: next/link relies on React, which is broken when this boundary renders. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               style={{

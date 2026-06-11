@@ -12,7 +12,6 @@ export type DatePickerProps = {
   minDate?: string; // ISO yyyy-MM-dd
   placeholder?: string;
   id?: string;
-  required?: boolean;
 };
 
 function toDate(ymd: string): Date | undefined {
@@ -34,7 +33,6 @@ export function DatePicker({
   minDate,
   placeholder = "Pick a date",
   id,
-  required,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selected = toDate(value);
@@ -47,7 +45,6 @@ export function DatePicker({
           id={id}
           type="button"
           className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
-          aria-required={required}
         >
           <span className={selected ? "" : "text-slate-400"}>
             {selected ? format(selected, "dd MMM yyyy") : placeholder}

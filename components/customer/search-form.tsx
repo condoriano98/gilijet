@@ -159,7 +159,6 @@ export function SearchForm(props: SearchFormProps) {
             value={date}
             onChange={setDate}
             minDate={todayLocalYmd()}
-            required
           />
         </div>
         {tripType === "round_trip" ? (
@@ -170,7 +169,6 @@ export function SearchForm(props: SearchFormProps) {
               value={returnDate}
               onChange={setReturnDate}
               minDate={date || todayLocalYmd()}
-              required
             />
           </div>
         ) : null}

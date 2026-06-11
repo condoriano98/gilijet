@@ -247,7 +247,7 @@ function ContactStep({
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Your contact details</h2>
-      <p className="text-sm text-slate-600">We'll send your e-ticket to this email</p>
+      <p className="text-sm text-slate-600">We&apos;ll send your e-ticket to this email</p>
 
       <div className="space-y-3">
         <div>
