@@ -12,6 +12,7 @@ import {
   getPopularRoutes,
   getRecentReviews,
   getTrustNumbers,
+  getActivePromo,
   TRUST_THRESHOLDS,
 } from "@/lib/home-data";
 import { HERO_PHOTO, photoForPort } from "@/lib/destination-photos";
@@ -69,7 +70,7 @@ function formatDuration(minutes: number): string {
 }
 
 export default async function HomePage() {
-  const [departures, popularRoutes, reviews, trust] = await Promise.all([
+  const [departures, popularRoutes, reviews, trust, promo] = await Promise.all([
     getDepartingSoon().catch(() => []),
     getPopularRoutes().catch(() => []),
     getRecentReviews().catch(() => []),
@@ -79,6 +80,7 @@ export default async function HomePage() {
       totalReviews: 0,
       activeOperators: 0,
     })),
+    getActivePromo().catch(() => null),
   ]);
 
   const hasDepartures = departures.length > 0;
@@ -153,31 +155,45 @@ export default async function HomePage() {
       )}
 
       {/* ─── PROMO BANNER ─── */}
-      <section className="container mt-8 mb-12">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-gilijet-coral px-2 py-0.5 text-xs font-bold text-white">
-                  PROMO
-                </span>
-                <h3 className="text-lg font-display font-bold text-amber-900">
-                  Save 15% on Gili Islands routes
-                </h3>
+      {promo && (
+        <section className="container mt-8 mb-12">
+          <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-gilijet-coral px-2 py-0.5 text-xs font-bold text-white">
+                    PROMO
+                  </span>
+                  <h3 className="text-lg font-display font-bold text-amber-900">
+                    {promo.discountType === "PERCENT"
+                      ? `Save ${promo.discountValue}% on your next trip`
+                      : `Save IDR ${promo.discountValue.toLocaleString("id-ID")} on your next trip`}
+                  </h3>
+                </div>
+                <p className="mt-1 text-sm text-amber-800">
+                  {promo.description && <span>{promo.description} · </span>}
+                  Use code{" "}
+                  <span className="font-mono font-semibold">{promo.code}</span> at
+                  checkout
+                  {promo.expiresAt && (
+                    <>
+                      {" "}· Valid until{" "}
+                      {new Date(promo.expiresAt).toLocaleDateString("en-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </>
+                  )}
+                </p>
               </div>
-              <p className="mt-1 text-sm text-amber-800">
-                Book before 31 May 2026 · Use code{" "}
-                <span className="font-mono font-semibold">GILIJET15</span> at checkout
-              </p>
+              <Button asChild className="bg-gilijet-coral hover:bg-gilijet-coralDeep">
+                <Link href="/search">Book now</Link>
+              </Button>
             </div>
-            <Button asChild className="bg-gilijet-coral hover:bg-gilijet-coralDeep">
-              <Link href="/search?origin=Padang+Bai&destination=Gili+Trawangan">
-                Book now
-              </Link>
-            </Button>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ─── POPULAR ROUTES ─── */}
       <section className="container mb-16">

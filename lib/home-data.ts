@@ -193,7 +193,36 @@ export async function getRecentReviews(limit = 8): Promise<HomeReview[]> {
     }));
 }
 
-// =================== Trust numbers ===================
+// =================== Active promotion ===================
+
+export type ActivePromo = {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  description: string | null;
+  expiresAt: string | null; // ISO
+};
+
+export async function getActivePromo(): Promise<ActivePromo | null> {
+  const now = new Date();
+  const promo = await prisma.promotion.findFirst({
+    where: {
+      isActive: true,
+      OR: [{ expiresAt: { gt: now } }, { expiresAt: null }],
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!promo) return null;
+  return {
+    id: promo.id,
+    code: promo.code,
+    discountType: promo.discountType,
+    discountValue: Number(promo.discountValue),
+    description: promo.description,
+    expiresAt: promo.expiresAt?.toISOString() ?? null,
+  };
+}
 
 export type TrustNumbers = {
   bookingsLast30Days: number;

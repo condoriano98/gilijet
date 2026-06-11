@@ -1,74 +1,98 @@
 name: CI
 
 on:
-  pull_request:
   push:
+    branches: [main, "claude/*"]
+  pull_request:
     branches: [main]
 
 jobs:
-  qc:
-    name: lint + typecheck
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - run: pnpm install --frozen-lockfile
-      - name: prisma generate (dummy URL)
-        run: pnpm prisma generate
-        env:
-          DATABASE_URL: postgresql://x:x@localhost:5432/x
-          DIRECT_URL: postgresql://x:x@localhost:5432/x
-      - run: pnpm qc
+      - run: pnpm lint
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:unit
 
   e2e:
-    name: playwright e2e
+    name: E2E tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [typecheck, lint, unit-tests]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16-alpine
         env:
-          POSTGRES_USER: gili
-          POSTGRES_PASSWORD: gili
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: gilijet_test
-        ports: ["5432:5432"]
+        ports:
+          - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U gili"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=10
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      DATABASE_URL: postgresql://gili:gili@localhost:5432/gilijet_test
-      DIRECT_URL: postgresql://gili:gili@localhost:5432/gilijet_test
-      AUTH_SECRET: test-auth-secret-please-rotate
-      QR_HMAC_SECRET: test-qr-hmac-secret-please-rotate-now
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gilijet_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/gilijet_test
+      AUTH_SECRET: ci-test-secret-at-least-32-chars
+      QR_HMAC_SECRET: ci-test-qr-hmac-secret-at-least-32
       APP_BASE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm prisma generate
-      - run: pnpm prisma db push --skip-generate
-      - run: pnpm seed:qa
-      - name: install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm prisma db push
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
+          path: playwright-report/
           retention-days: 7

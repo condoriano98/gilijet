@@ -19,6 +19,7 @@
     "qc": "pnpm lint && pnpm typecheck",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:unit": "vitest run",
     "deploy": "bash scripts/deploy.sh",
     "postinstall": "prisma generate"
   },
@@ -33,6 +34,7 @@
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.4",
+    "@rolldown/binding-darwin-arm64": "^1.1.0",
     "@zxing/browser": "0.1.5",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
@@ -59,6 +61,7 @@
     "@types/qrcode": "1.5.6",
     "@types/react": "^19.0.5",
     "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
     "eslint-config-next": "15.5.18",
@@ -66,6 +69,7 @@
     "prisma": "^6.2.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
   }
 }
