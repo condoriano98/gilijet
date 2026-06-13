@@ -9,9 +9,8 @@ import {
 const STATE_COOKIE = "gilijet_google_state";
 
 function safeNext(raw: string | null): string {
-  if (!raw) return "/account";
-  // Only allow same-origin paths to prevent open-redirect.
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/account";
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
   return raw;
 }
 
