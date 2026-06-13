@@ -12,7 +12,12 @@ const envSchema = z.object({
 
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
-  XENDIT_CALLBACK_URL: z.string().url().optional(),
+  XENDIT_CALLBACK_URL: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
 
   MAYAR_API_KEY: z.string().optional(),
   MAYAR_WEBHOOK_SECRET: z.string().optional(),
@@ -37,7 +42,12 @@ const envSchema = z.object({
   CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
-  RESEND_FROM_EMAIL: z.string().email().optional(),
+  RESEND_FROM_EMAIL: z
+    .string()
+    .email()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
 
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
