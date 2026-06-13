@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GoogleSignInButton } from "@/components/customer/google-signin-button";
 
 export const metadata = { title: "Sign in · Gilijet" };
 
@@ -35,7 +36,9 @@ async function loginAction(formData: FormData) {
   const customer = await prisma.customer.findUnique({
     where: { email: parsed.data.email.toLowerCase() },
   });
-  if (!customer) {
+  if (!customer || !customer.passwordHash) {
+    // No passwordHash means a Google-only account. Don't reveal which case
+    // it is; surface the same generic credentials error.
     redirect(`/account/login?error=credentials`);
   }
   const ok = await verifyPassword(parsed.data.password, customer.passwordHash);
@@ -87,6 +90,33 @@ export default async function CustomerLoginPage({
                   Check your email and password.
                 </p>
               )}
+              {error === "google_unavailable" && (
+                <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  Google sign-in is currently unavailable. Use email and password instead.
+                </p>
+              )}
+              {error === "google_cancelled" && (
+                <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  Google sign-in was cancelled.
+                </p>
+              )}
+              {error === "google_state" && (
+                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Google sign-in could not be verified. Please try again.
+                </p>
+              )}
+              {error === "google_exchange" && (
+                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  We couldn&apos;t complete sign-in with Google. Please try again.
+                </p>
+              )}
+              {error === "google_unverified" && (
+                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Your Google email isn&apos;t verified. Please verify it in Google and try again.
+                </p>
+              )}
+
+              <GoogleSignInButton next={next || undefined} />
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

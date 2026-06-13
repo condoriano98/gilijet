@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GoogleSignInButton } from "@/components/customer/google-signin-button";
 
 export const metadata = { title: "Create account · Gilijet" };
 
@@ -114,6 +115,8 @@ export default async function CustomerRegisterPage({
                   Please fill in all required fields with valid values.
                 </p>
               )}
+
+              <GoogleSignInButton next={next || undefined} label="Sign up with Google" />
 
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full name</Label>

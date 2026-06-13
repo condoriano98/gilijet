@@ -77,6 +77,9 @@ async function changePasswordAction(formData: FormData) {
     where: { id: session.sub },
   });
   if (!customer) redirect("/account/login");
+  // Google-only accounts have no passwordHash yet. Send them to
+  // forgot-password to mint one via the verified email flow.
+  if (!customer.passwordHash) redirect("/account?error=no_password_set");
   const ok = await verifyPassword(parsed.data.currentPassword, customer.passwordHash);
   if (!ok) redirect("/account?error=wrong_password");
   const newHash = await hashPassword(parsed.data.newPassword);
