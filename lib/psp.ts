@@ -46,8 +46,8 @@ export function selectPSP(preferredMethod?: string): PSPProvider {
   if (preferredMethod === "CREDIT_CARD" && isMidtransConfigured()) {
     return PaymentProvider.MIDTRANS;
   }
-  if (isMayarReal()) return PaymentProvider.MAYAR;
   if (isXenditConfigured()) return PaymentProvider.XENDIT;
+  if (isMayarReal()) return PaymentProvider.MAYAR;
   if (isMidtransConfigured()) return PaymentProvider.MIDTRANS;
   if (isMayarConfigured()) return PaymentProvider.MAYAR;
   throw new Error("No payment provider configured");
