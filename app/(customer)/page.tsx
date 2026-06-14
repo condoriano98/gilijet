@@ -35,6 +35,7 @@ const FEATURED_DESTINATIONS = [
   {
     name: "Gili Islands",
     slug: "gili-islands",
+    destinationPort: "Gili Trawangan",
     description: "Crystal water, no cars, perfect snorkeling",
     routes: 12,
     from: 85_000,
@@ -42,6 +43,7 @@ const FEATURED_DESTINATIONS = [
   {
     name: "Nusa Penida",
     slug: "nusa-penida",
+    destinationPort: "Nusa Penida",
     description: "Dramatic cliffs and Kelingking beach",
     routes: 8,
     from: 200_000,
@@ -49,6 +51,7 @@ const FEATURED_DESTINATIONS = [
   {
     name: "Lombok",
     slug: "lombok",
+    destinationPort: "Bangsal",
     description: "Mount Rinjani and pink-sand beaches",
     routes: 6,
     from: 395_000,
@@ -56,6 +59,7 @@ const FEATURED_DESTINATIONS = [
   {
     name: "Komodo",
     slug: "komodo",
+    destinationPort: "Labuan Bajo",
     description: "Dragons, pink beach, and Padar viewpoint",
     routes: 4,
     from: 750_000,
@@ -287,42 +291,46 @@ export default async function HomePage() {
               {FEATURED_DESTINATIONS.map((dest) => {
                 const photo = photoForPort(dest.slug);
                 return (
-                  <Card
+                  <Link
                     key={dest.slug}
-                    className="overflow-hidden transition-all hover:shadow-lg"
+                    href={`/search?destination=${encodeURIComponent(dest.destinationPort)}`}
+                    aria-label={`Browse boats to ${dest.name}`}
+                    className="group block focus:outline-none focus:ring-2 focus:ring-gilijet-ocean rounded-lg"
                   >
-                    <div className="relative h-36 bg-gradient-to-br from-gilijet-ocean to-gilijet-deep">
-                      {photo && (
-                        <Image
-                          src={photo.url}
-                          alt={photo.alt}
-                          fill
-                          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                      <div className="absolute bottom-2 left-3 text-white">
-                        <div className="text-lg font-display font-bold drop-shadow">
-                          {dest.name}
+                    <Card className="overflow-hidden transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
+                      <div className="relative h-36 bg-gradient-to-br from-gilijet-ocean to-gilijet-deep">
+                        {photo && (
+                          <Image
+                            src={photo.url}
+                            alt={photo.alt}
+                            fill
+                            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-2 left-3 text-white">
+                          <div className="text-lg font-display font-bold drop-shadow">
+                            {dest.name}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-slate-600 line-clamp-2">
-                        {dest.description}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between text-xs">
-                        <Badge variant="outline">{dest.routes} routes</Badge>
-                        <div>
-                          <span className="text-slate-500">from </span>
-                          <span className="font-semibold text-gilijet-deep">
-                            IDR {dest.from.toLocaleString("id-ID")}
-                          </span>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-slate-600 line-clamp-2">
+                          {dest.description}
+                        </p>
+                        <div className="mt-3 flex items-center justify-between text-xs">
+                          <Badge variant="outline">{dest.routes} routes</Badge>
+                          <div>
+                            <span className="text-slate-500">from </span>
+                            <span className="font-semibold text-gilijet-deep">
+                              IDR {dest.from.toLocaleString("id-ID")}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 );
               })}
             </div>
