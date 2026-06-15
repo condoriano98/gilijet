@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { FareRefundability } from "@prisma/client";
 
 /**
  * Refund policy (see gilibali.com Terms & Conditions §5.1).
@@ -7,6 +8,11 @@ import { Prisma } from "@prisma/client";
  *  48 hours – 7 days before departure          → 50%  refund
  *  Less than 48 hours before departure         → 0%   (no refund)
  *  Operator cancels (any window)               → 100% refund
+ *
+ * FareRefundability (on Schedule) overrides tier logic:
+ *  - NON_REFUNDABLE → always 0
+ *  - REFUNDABLE     → always 1.0 (full refund)
+ *  - PARTIALLY_REFUNDABLE → use tier table
  */
 
 export type CustomerRefundTier = "FULL" | "PARTIAL" | "NONE";
@@ -37,8 +43,17 @@ export function refundAmountForCustomer(args: {
   departure: Date;
   paidAmount: Prisma.Decimal | string | number;
   snapshot?: RefundPolicySnapshot | null;
+  fareRefundability?: FareRefundability | null;
 }): { tier: CustomerRefundTier; amount: Prisma.Decimal } {
   const paid = new Prisma.Decimal(args.paidAmount);
+
+  if (args.fareRefundability === "NON_REFUNDABLE") {
+    return { tier: "NONE", amount: new Prisma.Decimal(0) };
+  }
+  if (args.fareRefundability === "REFUNDABLE") {
+    return { tier: "FULL", amount: paid };
+  }
+
   const tier = refundTierForCustomer(args.now, args.departure);
   let fraction: number;
   switch (tier) {
