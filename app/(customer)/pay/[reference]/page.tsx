@@ -67,16 +67,19 @@ export default async function PayPage({
     redirect(`/checkout/${reference}`);
   }
 
-  // Real PSP: show the redirect page
+  // Real PSP: build the redirect URL based on which provider handled this booking
   const gatewayRef = booking.payment?.gatewayReference ?? null;
+  const gatewayProvider = booking.payment?.gatewayProvider ?? null;
   let invoiceUrl: string | null = null;
   if (gatewayRef) {
     if (gatewayRef.startsWith("http")) {
+      // Legacy: full URL stored directly (e.g. early Mayar invoices)
       invoiceUrl = gatewayRef;
-    } else if (env.MAYAR_API_KEY) {
+    } else if (gatewayProvider === "MAYAR") {
       const mayarHost = env.MAYAR_IS_PRODUCTION ? "mayar.id" : "mayar.club";
       invoiceUrl = `https://${mayarHost}/payment/${gatewayRef}`;
     } else {
+      // XENDIT (default) and any unknown provider
       invoiceUrl = `https://invoice.xendit.co/web/invoices/${gatewayRef}`;
     }
   }

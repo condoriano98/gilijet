@@ -21,8 +21,9 @@ export async function GET(
 
   const { legId } = await params;
 
-  const leg = await prisma.leg.findUnique({
-    where: { id: legId },
+  // Move tenant filter into WHERE so cross-tenant data is never loaded into memory
+  const leg = await prisma.leg.findFirst({
+    where: { id: legId, operatorId: session.sub },
     include: {
       schedule: { include: { boat: true } },
       bookings: {
@@ -34,11 +35,6 @@ export async function GET(
 
   if (!leg) {
     return NextResponse.json({ ok: false, error: "Leg not found" }, { status: 404 });
-  }
-
-  // Ensure this leg belongs to the requesting operator
-  if (leg.operatorId !== session.sub) {
-    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
 
   const tickets = leg.bookings.flatMap((b) =>

@@ -187,6 +187,8 @@ export default async function ReschedulePage({
         originPort: booking.leg.schedule.originPort,
         destinationPort: booking.leg.schedule.destinationPort,
         status: "ACTIVE",
+        deletedAt: null,
+        boat: { deletedAt: null },
       },
       NOT: { id: booking.legId },
     },

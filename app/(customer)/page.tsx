@@ -414,7 +414,7 @@ export default async function HomePage() {
               { title: "Best Price Guaranteed", desc: "No hidden fees, transparent pricing" },
               { title: "24/7 Customer Support", desc: "WhatsApp +62 812 3456 7890" },
               { title: "Instant E-Ticket", desc: "QR code delivered to your email" },
-              { title: "Secure Payment", desc: "Powered by Mayar, BI licensed gateway" },
+              { title: "Secure Payment", desc: "Powered by Xendit, BI licensed gateway" },
             ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
@@ -518,7 +518,7 @@ export default async function HomePage() {
               Secure, verified, regulated
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              <span>🔒 Payments by Mayar (Bank Indonesia licensed)</span>
+              <span>🔒 Payments by Xendit (Bank Indonesia licensed)</span>
               <span>·</span>
               <span>✓ All operators KYC verified</span>
               <span>·</span>

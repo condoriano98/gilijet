@@ -32,7 +32,12 @@ export async function getDepartingSoon(
     include: {
       schedule: {
         include: {
-          boat: { include: { operator: true } },
+          boat: {
+            select: {
+              name: true,
+              operator: { select: { companyName: true } },
+            },
+          },
         },
       },
     },

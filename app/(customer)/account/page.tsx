@@ -293,34 +293,44 @@ export default async function AccountPage({
                 You&apos;ll stay signed in on this device.
               </CardDescription>
             </CardHeader>
-            <form action={changePasswordAction}>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="currentPassword">Current password</Label>
-                  <Input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="newPassword">New password</Label>
-                  <Input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                  />
-                </div>
-                <Button type="submit" size="sm" variant="outline">
-                  Update password
-                </Button>
+            {customer.passwordHash ? (
+              <form action={changePasswordAction}>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="currentPassword">Current password</Label>
+                    <Input
+                      id="currentPassword"
+                      name="currentPassword"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="newPassword">New password</Label>
+                    <Input
+                      id="newPassword"
+                      name="newPassword"
+                      type="password"
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" variant="outline">
+                    Update password
+                  </Button>
+                </CardContent>
+              </form>
+            ) : (
+              <CardContent className="text-sm text-slate-600">
+                Your account uses Google sign-in. To set a password,{" "}
+                <a href="/account/forgot-password" className="text-sky-700 hover:underline">
+                  use the forgot-password flow
+                </a>
+                .
               </CardContent>
-            </form>
+            )}
           </Card>
         </div>
       </div>

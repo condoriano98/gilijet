@@ -135,7 +135,7 @@ export default async function EditSchedulePage({
 
   // Upcoming legs (next 30 days) to show on this page.
   const upcoming = await prisma.leg.findMany({
-    where: { scheduleId: schedule.id, departureDate: { gte: new Date() } },
+    where: { scheduleId: schedule.id, operatorId: session.sub, departureDate: { gte: new Date() } },
     orderBy: { departureDate: "asc" },
     take: 14,
   });

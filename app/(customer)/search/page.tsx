@@ -56,7 +56,7 @@ export default async function SearchPage({
   let destinations = SEED;
   try {
     const schedules = await prisma.schedule.findMany({
-      where: { status: "ACTIVE", boat: { status: "ACTIVE" } },
+      where: { status: "ACTIVE", deletedAt: null, boat: { status: "ACTIVE", deletedAt: null } },
       select: { originPort: true, destinationPort: true },
     });
     if (schedules.length > 0) {

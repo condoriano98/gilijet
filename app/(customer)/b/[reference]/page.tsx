@@ -205,6 +205,8 @@ export default async function BookingLookupPage({
             originPort: booking.leg.schedule.destinationPort,
             destinationPort: booking.leg.schedule.originPort,
             status: "ACTIVE",
+            deletedAt: null,
+            boat: { deletedAt: null },
           },
         },
         include: { schedule: { include: { boat: true } } },
