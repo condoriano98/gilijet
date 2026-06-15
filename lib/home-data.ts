@@ -261,3 +261,64 @@ export async function getTrustNumbers(): Promise<TrustNumbers> {
     activeOperators: activeOps,
   };
 }
+
+// =================== Auto-seed on empty DB ===================
+
+type SeedStatus = {
+  state: "ready" | "seeding" | "empty";
+  message: string;
+};
+
+let _cachedSeedStatus: SeedStatus | null = null;
+let _seedPromise: Promise<void> | null = null;
+
+/**
+ * Check if the database has legs, and trigger seeding if it doesn't.
+ * Safe to call on every page render — idempotent, fast when DB is populated.
+ * If seeding is already in progress, returns immediately with "seeding" status.
+ */
+export async function maybeAutoSeed(): Promise<SeedStatus> {
+  if (_cachedSeedStatus?.state === "ready") return _cachedSeedStatus;
+
+  try {
+    const legCount = await prisma.leg.count();
+    if (legCount > 0) {
+      _cachedSeedStatus = { state: "ready", message: `${legCount} departures available` };
+      return _cachedSeedStatus;
+    }
+  } catch {
+    return { state: "empty", message: "Database unreachable" };
+  }
+
+  // No legs. Check if we at least have schedules (schema was pushed).
+  try {
+    const scheduleCount = await prisma.schedule.count();
+    if (scheduleCount === 0) {
+      _cachedSeedStatus = { state: "empty", message: "No schedules found. Run prisma db push." };
+      return _cachedSeedStatus;
+    }
+  } catch {
+    return { state: "empty", message: "Database unreachable" };
+  }
+
+  // Schedules exist but no legs — trigger seed if not already running.
+  if (!_seedPromise) {
+    _seedPromise = (async () => {
+      try {
+        const { seedRealData } = await import("./seed-data");
+        await seedRealData();
+        _cachedSeedStatus = { state: "ready", message: "Departures loaded" };
+      } catch (err) {
+        console.error("[home-data] seed failed:", err);
+        _cachedSeedStatus = { state: "empty", message: "Seed failed — check server logs" };
+      } finally {
+        _seedPromise = null;
+      }
+    })();
+  }
+
+  if (!_cachedSeedStatus) {
+    _cachedSeedStatus = { state: "seeding", message: "Preparing departures for you..." };
+  }
+  return _cachedSeedStatus;
+}

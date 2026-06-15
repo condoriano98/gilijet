@@ -13,6 +13,7 @@ import {
   getRecentReviews,
   getTrustNumbers,
   getActivePromo,
+  maybeAutoSeed,
   TRUST_THRESHOLDS,
 } from "@/lib/home-data";
 import { HERO_PHOTO, photoForPort } from "@/lib/destination-photos";
@@ -74,6 +75,9 @@ function formatDuration(minutes: number): string {
 }
 
 export default async function HomePage() {
+  // Trigger seed if DB is empty (fire-and-forget, returns in <1s when seeded).
+  const seedStatus = await maybeAutoSeed();
+
   const [departures, popularRoutes, reviews, trust, promo] = await Promise.all([
     getDepartingSoon().catch(() => []),
     getPopularRoutes().catch(() => []),
@@ -88,6 +92,7 @@ export default async function HomePage() {
   ]);
 
   const hasDepartures = departures.length > 0;
+  const isSeeding = seedStatus.state === "seeding" && !hasDepartures;
   const hasReviews = reviews.length > 0;
   const showBookings = trust.bookingsLast30Days >= TRUST_THRESHOLDS.bookings;
   const showReviews = trust.totalReviews >= TRUST_THRESHOLDS.reviews;
@@ -154,6 +159,40 @@ export default async function HomePage() {
         <section className="bg-gilijet-foam">
           <div className="container pt-8 pb-10">
             <DepartingToday departures={departures} />
+          </div>
+        </section>
+      )}
+
+      {/* ─── SEEDING SKELETON ─── */}
+      {isSeeding && (
+        <section className="bg-gilijet-foam">
+          <div className="container pt-8 pb-10">
+            <div className="mx-auto max-w-6xl">
+              <h2 className="mb-4 text-xl font-display font-bold text-slate-900 sm:text-2xl">
+                Departing soon
+              </h2>
+              <p className="mb-6 text-sm text-slate-500">
+                {seedStatus.message}
+              </p>
+              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-72 flex-shrink-0 rounded-xl border border-slate-200 bg-white p-4 animate-pulse"
+                  >
+                    <div className="mb-3 h-5 w-24 rounded-full bg-slate-200" />
+                    <div className="mb-2 h-4 w-40 rounded bg-slate-200" />
+                    <div className="mb-4 h-3 w-32 rounded bg-slate-100" />
+                    <div className="mb-2 h-3 w-20 rounded bg-slate-100" />
+                    <div className="mb-3 h-1.5 rounded-full bg-slate-100" />
+                    <div className="flex items-center justify-between">
+                      <div className="h-5 w-16 rounded bg-slate-200" />
+                      <div className="h-5 w-14 rounded bg-slate-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       )}
