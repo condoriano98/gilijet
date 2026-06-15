@@ -1,6 +1,6 @@
 /**
  * Payment Service Provider abstraction.
- * Routes to Mayar (preferred), Xendit, or Midtrans (credit card).
+ * Routes to Xendit (preferred), Mayar, or Midtrans (credit card only).
  */
 import { PaymentProvider, PaymentMethod } from "@prisma/client";
 import { createInvoice, isXenditConfigured } from "./xendit";

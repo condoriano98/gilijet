@@ -20,7 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDateTimeID, formatIDR } from "@/lib/utils";
+import { formatIDR } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
 
 const STATUS_FILTERS: BookingStatus[] = [
   "PENDING_PAYMENT",
@@ -166,7 +167,7 @@ export default async function AdminBookingsPage({
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {b.leg.schedule.boat.name} ·{" "}
-                        {formatDateTimeID(b.leg.departureDate)}
+                        {formatLocalDateTime(b.leg.departureDate)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -180,7 +181,7 @@ export default async function AdminBookingsPage({
                       <Badge variant="outline">{b.status.replace(/_/g, " ")}</Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {formatDateTimeID(b.createdAt)}
+                      {formatLocalDateTime(b.createdAt)}
                     </TableCell>
                   </TableRow>
                 ))}

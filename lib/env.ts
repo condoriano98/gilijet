@@ -20,7 +20,6 @@ const envSchema = z.object({
     .transform((v) => (v === "" ? undefined : v)),
 
   MAYAR_API_KEY: z.string().optional(),
-  MAYAR_WEBHOOK_SECRET: z.string().optional(),
   MAYAR_IS_PRODUCTION: z
     .string()
     .optional()

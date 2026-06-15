@@ -18,7 +18,7 @@ function redirectUri(): string {
 }
 
 function stateSecret(): Uint8Array {
-  return new TextEncoder().encode(env.AUTH_SECRET ?? "missing-auth-secret-please-configure");
+  return new TextEncoder().encode(env.AUTH_SECRET);
 }
 
 type StatePayload = { nonce: string; next: string };

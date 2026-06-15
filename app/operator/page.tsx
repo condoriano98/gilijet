@@ -51,7 +51,7 @@ export default async function OperatorDashboardPage() {
       take: 20,
     }),
     prisma.schedule.count({
-      where: { boat: { operatorId: session.sub }, status: "ACTIVE" },
+      where: { boat: { operatorId: session.sub }, status: "ACTIVE", deletedAt: null },
     }),
     prisma.booking.aggregate({
       where: {
