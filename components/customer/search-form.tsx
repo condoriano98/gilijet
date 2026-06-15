@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Input } from "@/components/ui/input";
+import { Counter } from "@/components/ui/counter";
 
 export type SearchFormProps = {
   origins: string[];
@@ -174,15 +174,12 @@ export function SearchForm(props: SearchFormProps) {
         ) : null}
         <div className="space-y-1">
           <Label htmlFor="passengers">Passengers</Label>
-          <Input
+          <Counter
             id="passengers"
-            type="number"
+            value={passengers}
+            onChange={setPassengers}
             min={1}
             max={10}
-            value={passengers}
-            onChange={(e) =>
-              setPassengers(Math.max(1, Math.min(10, Number(e.target.value))))
-            }
           />
         </div>
         <div className="flex items-end">
