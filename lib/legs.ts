@@ -14,10 +14,16 @@ const DEFAULT_DAYS_AHEAD = 14;
  * Generate concrete Leg rows for the next `daysAhead` days from a Schedule.
  * Idempotent — the unique (scheduleId, departureDate) constraint catches
  * dupes if you re-run it. Returns the count of newly-created legs.
+ *
+ * @param startAt — override the reference "now" for leg generation.
+ *   Used during seeding to inject departures starting from a custom point
+ *   in time (e.g. "today at 06:00 WITA") rather than the current wall-clock,
+ *   so that even when seeding in the evening, morning legs still get generated.
  */
 export async function generateLegsForSchedule(
   scheduleId: string,
   daysAhead = DEFAULT_DAYS_AHEAD,
+  startAt?: Date,
 ): Promise<number> {
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId },
@@ -27,7 +33,7 @@ export async function generateLegsForSchedule(
   if (schedule.status !== "ACTIVE") return 0;
   if (schedule.boat.status !== "ACTIVE") return 0;
 
-  const now = new Date();
+  const now = startAt ?? new Date();
   const todayLocalYmd = ymdInZone(now);
 
   let created = 0;

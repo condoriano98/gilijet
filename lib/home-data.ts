@@ -17,7 +17,7 @@ export type DepartingSoon = {
 export async function getDepartingSoon(
   args: { hoursAhead?: number; limit?: number } = {},
 ): Promise<DepartingSoon[]> {
-  const hoursAhead = args.hoursAhead ?? 6;
+  const hoursAhead = args.hoursAhead ?? 12;
   const limit = args.limit ?? 8;
   const now = new Date();
   const end = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);

@@ -402,6 +402,7 @@ export type SeedRealResult = {
   services: number;
   legsGenerated: number;
   urgencyLegs: number;
+  todayLegCount: number;
   operatorEmails: string[];
 };
 
@@ -541,42 +542,75 @@ export async function seedRealData(opts: {
     scheduleIds.push(row.id);
   }
 
-  // ── 6. Generate upcoming legs (next 14 days) ──
+  // ── 6. Generate upcoming legs (next 14 days from 06:00 WITA today) ──
+  // Use 06:00 WITA today as the reference point so morning departures
+  // always generate even when seeding in the afternoon or evening.
+  const nowWita = (() => {
+    const n = new Date();
+    const witaOffset = n.getTimezoneOffset() + 480; // minutes from UTC to WITA
+    const witaMs = n.getTime() + witaOffset * 60_000;
+    const witaDate = new Date(witaMs);
+    witaDate.setHours(6, 0, 0, 0); // 06:00 WITA
+    return new Date(witaDate.getTime() - 8 * 3_600_000); // back to UTC
+  })();
+
   let totalLegs = 0;
   for (const sid of scheduleIds) {
-    const n = await generateLegsForSchedule(sid);
+    const n = await generateLegsForSchedule(sid, 14, nowWita);
     totalLegs += n;
   }
 
-  // ── 7. Create urgency: reduce available seats on near-future legs ──
-  const now = new Date();
-  const urgencyWindow = new Date(now.getTime() + 3 * 60 * 60 * 1000); // next 3 hours
+  // ── 7. Create urgency: near-future legs with scarcity ──
+  const realNow = new Date();
+  const urgencyWindow = new Date(realNow.getTime() + 12 * 60 * 60 * 1000); // next 12h
 
   const nearLegs = await prisma.leg.findMany({
     where: {
       status: "OPEN",
-      availableSeats: { gte: 5 },
-      departureDate: { gte: now, lte: urgencyWindow },
+      availableSeats: { gte: 3 },
+      departureDate: { gte: realNow, lte: urgencyWindow },
     },
     orderBy: { departureDate: "asc" },
-    take: 25,
+    take: 30,
   });
 
   let urgencyLegs = 0;
-  for (const leg of nearLegs) {
-    const remaining = Math.max(1, Math.floor(Math.random() * 4) + 1); // 1-4 seats
+  for (let i = 0; i < nearLegs.length; i++) {
+    const leg = nearLegs[i];
+    // First 3 legs: force them to depart within 1-2 hours, only 1-3 seats left
+    if (leg && i < 3) {
+      const minutesFromNow = 30 + i * 25; // +30m, +55m, +80m
+      const newDeparture = new Date(realNow.getTime() + minutesFromNow * 60_000);
+      await prisma.leg.update({
+        where: { id: leg.id },
+        data: {
+          departureDate: newDeparture,
+          availableSeats: i + 1, // 1, 2, or 3 seats
+        },
+      });
+      urgencyLegs++;
+      continue;
+    }
+    // Remaining legs: moderate scarcity (2-4 seats available)
+    const remaining = Math.min(leg.availableSeats, Math.max(1, Math.floor(Math.random() * 4) + 1));
+    if (remaining >= leg.availableSeats) continue;
     const seatsToRemove = leg.availableSeats - remaining;
-    if (seatsToRemove <= 0) continue;
-
     await prisma.leg.update({
       where: { id: leg.id },
-      data: {
-        availableSeats: remaining,
-        ...(remaining <= 3 ? {} : {}),
-      },
+      data: { availableSeats: remaining },
     });
     urgencyLegs++;
   }
+
+  // ── 8. Count today's departures ──
+  const todayEnd = new Date(realNow);
+  todayEnd.setHours(23, 59, 59, 999);
+  const todayLegCount = await prisma.leg.count({
+    where: {
+      status: "OPEN",
+      departureDate: { gte: realNow, lte: todayEnd },
+    },
+  });
 
   return {
     operators: OPERATORS.length,
@@ -586,6 +620,7 @@ export async function seedRealData(opts: {
     services: totalServices,
     legsGenerated: totalLegs,
     urgencyLegs,
+    todayLegCount,
     operatorEmails: OPERATORS.map((o) => o.email),
   };
 }

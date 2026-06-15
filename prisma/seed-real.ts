@@ -20,7 +20,9 @@ async function main() {
   console.log(`\n✓ ${result.operators} operators`);
   console.log(`✓ ${result.boats} boats`);
   console.log(`✓ ${result.schedules} schedules`);
-  console.log(`✓ ${result.legsGenerated} upcoming legs generated\n`);
+  console.log(`✓ ${result.legsGenerated} upcoming legs generated`);
+  console.log(`✓ ${result.todayLegCount} departures available today`);
+  console.log(`✓ ${result.urgencyLegs} legs marked urgent (1-3 seats)`);
 
   console.log("Operator logins (password: changeme123):");
   for (const email of result.operatorEmails) {
