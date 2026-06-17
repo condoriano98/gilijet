@@ -59,13 +59,6 @@ enum AuditEntityType {
   TICKET
   PROMOTION
   RESCHEDULE_REQUEST
-  PORT
-  OPERATOR_STAFF
-  AGENT
-  LOYALTY_ACCOUNT
-  OPERATOR_DOCUMENT
-  BOOKING_ADDON
-  SEAT_HOLD
 }
 
 enum AuditUserRole {
@@ -73,158 +66,6 @@ enum AuditUserRole {
   OPERATOR
   ADMIN
   SYSTEM
-  AGENT
-}
-
-// ============== PHASE 1B ENUMS ==============
-
-enum BoatFacility {
-  AIR_CONDITIONING
-  TOILET
-  WIFI
-  LIFE_JACKET
-  LIFE_RAFT
-  ENTERTAINMENT_SYSTEM
-  SNACK_SERVICE
-  DRINK_SERVICE
-  CHARGING_PORT
-  BLANKET
-  FIRST_AID_KIT
-  BAGGAGE_COMPARTMENT
-  OUTDOOR_DECK
-  CABIN_SEATING
-  SMOKING_AREA
-  PRAYER_ROOM
-}
-
-enum OperatorService {
-  BAGGAGE_INSURANCE
-  TRAVEL_INSURANCE
-  HOTEL_TRANSFER
-  MEAL_INCLUDED
-  PRIORITY_BOARDING
-  FLEXIBLE_RESCHEDULE
-  CHILD_DISCOUNT
-  GROUP_BOOKING
-  PET_FRIENDLY
-  WHEELCHAIR_ACCESSIBLE
-}
-
-enum FareRefundability {
-  REFUNDABLE
-  NON_REFUNDABLE
-  PARTIALLY_REFUNDABLE
-}
-
-enum ScheduleType {
-  DIRECT
-  TRANSIT
-}
-
-enum FareType {
-  REFUNDABLE
-  NON_REFUNDABLE
-}
-
-// ============== PHASE 2 ENUMS ==============
-
-enum OperatorStaffRole {
-  MANAGER
-  GATE
-}
-
-enum OperatorStaffStatus {
-  ACTIVE
-  SUSPENDED
-}
-
-enum SeatHoldStatus {
-  ACTIVE
-  EXPIRED
-  CONVERTED
-  RELEASED
-}
-
-enum NotificationChannel {
-  EMAIL
-  WHATSAPP
-  SMS
-}
-
-enum NotificationType {
-  BOOKING_CONFIRMED
-  BOOKING_REMINDER_24H
-  BOOKING_REMINDER_2H
-  REFUND_APPROVED
-  REFUND_REJECTED
-  RESCHEDULE_APPROVED
-  RESCHEDULE_REJECTED
-  LEG_CANCELLED
-  PASSWORD_RESET
-}
-
-enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
-  SUPPRESSED
-}
-
-enum OperatorDocumentType {
-  VESSEL_LICENSE
-  SIUP
-  NPWP
-  INSURANCE_CERTIFICATE
-  CAPTAIN_LICENSE
-  OTHER
-}
-
-enum OperatorDocumentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
-}
-
-// ============== PHASE 3 ENUMS ==============
-
-enum AgentTier {
-  BRONZE
-  SILVER
-  GOLD
-  PLATINUM
-}
-
-enum LoyaltyTransactionType {
-  EARNED
-  REDEEMED
-  EXPIRED
-  ADJUSTMENT
-}
-
-enum BookingAddonType {
-  INSURANCE
-  HOTEL_TRANSFER
-  MEAL
-  BAGGAGE_EXTRA
-  PRIORITY_BOARDING
-  OTHER
-}
-
-enum WeatherCondition {
-  CALM
-  MODERATE
-  ROUGH
-  SEVERE
-  CLOSED
-}
-
-enum CurrencyCode {
-  IDR
-  USD
-  AUD
-  EUR
-  SGD
 }
 
 // ============== USERS ==============
@@ -240,9 +81,8 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  bookings       Booking[]
-  reviews        Review[]
-  loyaltyAccount LoyaltyAccount?
+  bookings Booking[]
+  reviews  Review[]
 
   @@index([email])
 }
@@ -259,21 +99,15 @@ model Operator {
   status            OperatorStatus @default(PENDING)
   documentsVerified Boolean        @default(false)
   commissionRate    Decimal        @default(0.08) @db.Decimal(5, 4)
-  agentId           String?
   deletedAt         DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  boats            Boat[]
-  legs             Leg[]
-  bookings         Booking[]
-  operatorServices OperatorServicesOnOperator[]
-  staff            OperatorStaff[]
-  documents        OperatorDocument[]
-  agent            Agent?                       @relation(fields: [agentId], references: [id])
+  boats    Boat[]
+  legs     Leg[]
+  bookings Booking[]
 
   @@index([status])
-  @@index([agentId])
 }
 
 enum OperatorStatus {
@@ -313,10 +147,8 @@ model Boat {
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
-  operator       Operator               @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  schedules      Schedule[]
-  boatFacilities BoatFacilitiesOnBoat[]
-  boatPositions  BoatPosition[]
+  operator  Operator   @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  schedules Schedule[]
 
   @@index([operatorId])
 }
@@ -328,34 +160,26 @@ enum BoatStatus {
 }
 
 model Schedule {
-  id                String            @id @default(cuid())
-  boatId            String
-  originPort        String
-  destinationPort   String
-  originPortId      String?
-  destinationPortId String?
-  departureTime     String // "HH:MM" local time (Asia/Makassar by default)
-  durationMinutes   Int
-  basePrice         Decimal           @db.Decimal(12, 2) // IDR
-  daysOfWeek        Int[] // 1=Mon ... 7=Sun
-  status            ScheduleStatus    @default(ACTIVE)
-  scheduleType      ScheduleType      @default(DIRECT)
-  fareRefundability FareRefundability @default(PARTIALLY_REFUNDABLE)
-  pricingTiers      Json?
-  deletedAt         DateTime?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id              String         @id @default(cuid())
+  boatId          String
+  originPort      String
+  destinationPort String
+  departureTime   String // "HH:MM" local time (Asia/Makassar by default)
+  durationMinutes Int
+  basePrice       Decimal        @db.Decimal(12, 2) // IDR
+  daysOfWeek      Int[] // 1=Mon ... 7=Sun
+  status          ScheduleStatus @default(ACTIVE)
+  pricingTiers    Json?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  boat               Boat          @relation(fields: [boatId], references: [id], onDelete: Restrict)
-  legs               Leg[]
-  reviews            Review[]
-  transitStops       TransitStop[]
-  originPortRel      Port?         @relation("OriginPort", fields: [originPortId], references: [id])
-  destinationPortRel Port?         @relation("DestinationPort", fields: [destinationPortId], references: [id])
+  boat    Boat     @relation(fields: [boatId], references: [id], onDelete: Restrict)
+  legs    Leg[]
+  reviews Review[]
 
   @@index([boatId, status])
   @@index([originPort, destinationPort])
-  @@index([originPortId, destinationPortId])
 }
 
 enum ScheduleStatus {
@@ -383,8 +207,6 @@ model Leg {
   bookings               Booking[]
   reschedulesAsOriginal  RescheduleRequest[] @relation("OriginalLeg")
   reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
-  seatHolds              SeatHold[]
-  weatherSnapshots       WeatherSnapshot[]
 
   @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
@@ -406,7 +228,6 @@ model Booking {
   legId                String
   customerId           String?
   operatorId           String
-  agentId              String?
   customerName         String
   customerEmail        String
   customerPhone        String
@@ -416,9 +237,6 @@ model Booking {
   operatorAmount       Decimal       @db.Decimal(12, 2)
   currency             String        @default("IDR")
   status               BookingStatus @default(PENDING_PAYMENT)
-  fareType             FareType      @default(REFUNDABLE)
-  isConnection         Boolean       @default(false)
-  connectionGroup      String?
   refundDeadline       DateTime
   refundPolicySnapshot Json?
   paymentGatewayRef    String?
@@ -430,19 +248,15 @@ model Booking {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-  leg                 Leg                  @relation(fields: [legId], references: [id], onDelete: Restrict)
-  customer            Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  operator            Operator             @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  agent               Agent?               @relation(fields: [agentId], references: [id], onDelete: Restrict)
-  promotion           Promotion?           @relation(fields: [promotionId], references: [id], onDelete: Restrict)
-  tickets             Ticket[]
-  payment             Payment?
-  refund              Refund?
-  review              Review?
-  rescheduleRequest   RescheduleRequest?
-  addons              BookingAddon[]
-  seatHold            SeatHold?
-  loyaltyTransactions LoyaltyTransaction[]
+  leg               Leg                @relation(fields: [legId], references: [id], onDelete: Restrict)
+  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  tickets           Ticket[]
+  payment           Payment?
+  refund            Refund?
+  review            Review?
+  rescheduleRequest RescheduleRequest?
 
   @@index([legId])
   @@index([status])
@@ -451,8 +265,6 @@ model Booking {
   @@index([promotionId])
   @@index([operatorId, status])
   @@index([operatorId, createdAt])
-  @@index([agentId])
-  @@index([connectionGroup])
 }
 
 enum BookingStatus {
@@ -472,16 +284,13 @@ model Ticket {
   qrHash            String       @unique
   status            TicketStatus @default(ISSUED)
   checkedInAt       DateTime?
-  checkedInById     String?
   checkedInBy       String?
   createdAt         DateTime     @default(now())
 
-  booking          Booking        @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  checkedInByStaff OperatorStaff? @relation("CheckedInBy", fields: [checkedInById], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([bookingId])
   @@index([qrHash])
-  @@index([checkedInById])
 }
 
 enum TicketStatus {
@@ -663,245 +472,6 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([email])
-}
-
-// ============== PHASE 1B — FACILITIES, TRANSIT ==============
-
-model BoatFacilitiesOnBoat {
-  boatId   String
-  facility BoatFacility
-
-  boat Boat @relation(fields: [boatId], references: [id], onDelete: Restrict)
-
-  @@id([boatId, facility])
-}
-
-model OperatorServicesOnOperator {
-  operatorId String
-  service    OperatorService
-
-  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-
-  @@id([operatorId, service])
-}
-
-model TransitStop {
-  id            String @id @default(cuid())
-  scheduleId    String
-  portName      String
-  arrivalTime   String // "HH:MM"
-  departureTime String // "HH:MM"
-  orderIndex    Int
-
-  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
-
-  @@index([scheduleId, orderIndex])
-}
-
-// ============== PHASE 2 — PORT, STAFF, HOLDS, NOTIFICATIONS, KYC ==============
-
-model Port {
-  id        String    @id @default(cuid())
-  shortCode String    @unique @db.VarChar(3)
-  slug      String    @unique
-  name      String
-  island    String?
-  province  String?
-  latitude  Decimal?  @db.Decimal(9, 6)
-  longitude Decimal?  @db.Decimal(9, 6)
-  timezone  String    @default("Asia/Makassar")
-  isActive  Boolean   @default(true)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  originSchedules      Schedule[] @relation("OriginPort")
-  destinationSchedules Schedule[] @relation("DestinationPort")
-
-  @@index([shortCode])
-  @@index([isActive])
-}
-
-model OperatorStaff {
-  id           String              @id @default(cuid())
-  operatorId   String
-  email        String              @unique
-  passwordHash String
-  fullName     String
-  role         OperatorStaffRole   @default(GATE)
-  status       OperatorStaffStatus @default(ACTIVE)
-  lastLoginAt  DateTime?
-  deletedAt    DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-
-  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  checkIns Ticket[] @relation("CheckedInBy")
-
-  @@index([operatorId, status])
-}
-
-model SeatHold {
-  id         String         @id @default(cuid())
-  legId      String
-  sessionKey String // anonymous session id OR customer id
-  seats      Int
-  status     SeatHoldStatus @default(ACTIVE)
-  expiresAt  DateTime
-  bookingId  String?        @unique // set when promoted to a real booking
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-
-  leg     Leg      @relation(fields: [legId], references: [id], onDelete: Restrict)
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-
-  @@index([legId, status, expiresAt])
-  @@index([sessionKey])
-}
-
-model NotificationLog {
-  id             String              @id @default(cuid())
-  channel        NotificationChannel
-  type           NotificationType
-  recipient      String // email / phone
-  referenceType  String // 'booking' | 'refund' | 'reschedule'
-  referenceId    String
-  status         NotificationStatus  @default(PENDING)
-  providerRef    String?
-  payloadSummary Json? // do not store full PII; just enough to debug
-  sentAt         DateTime?
-  failedReason   String?
-  attempts       Int                 @default(0)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  @@index([referenceType, referenceId])
-  @@index([status, createdAt])
-}
-
-model OperatorDocument {
-  id            String                 @id @default(cuid())
-  operatorId    String
-  type          OperatorDocumentType
-  fileUrl       String
-  fileName      String?
-  status        OperatorDocumentStatus @default(PENDING)
-  verifiedBy    String? // Admin.id
-  verifiedAt    DateTime?
-  rejectionNote String?
-  expiresAt     DateTime? // for licences with renewal dates
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-
-  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-
-  @@index([operatorId, type])
-  @@index([status])
-  @@index([expiresAt])
-}
-
-// ============== PHASE 3 — AGENTS, LOYALTY, FLEET, ADDONS, WEATHER ==============
-
-model Agent {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  passwordHash   String
-  companyName    String
-  contactPerson  String
-  phoneNumber    String
-  tier           AgentTier @default(BRONZE)
-  commissionRate Decimal   @default(0.05) @db.Decimal(5, 4)
-  isActive       Boolean   @default(true)
-  totalBookings  Int       @default(0)
-  totalRevenue   Decimal   @default(0) @db.Decimal(14, 2)
-  apiKey         String?   @unique
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  operators Operator[]
-  bookings  Booking[]
-
-  @@index([email])
-  @@index([isActive])
-}
-
-model LoyaltyAccount {
-  id             String    @id @default(cuid())
-  customerId     String    @unique
-  pointsBalance  Int       @default(0)
-  lifetimePoints Int       @default(0)
-  tier           AgentTier @default(BRONZE)
-  tierExpiresAt  DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  transactions LoyaltyTransaction[]
-
-  @@index([customerId])
-}
-
-model LoyaltyTransaction {
-  id          String                 @id @default(cuid())
-  accountId   String
-  bookingId   String?
-  type        LoyaltyTransactionType
-  points      Int
-  description String?
-  expiresAt   DateTime?
-  createdAt   DateTime               @default(now())
-
-  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  booking Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-
-  @@index([accountId, createdAt])
-  @@index([bookingId])
-}
-
-model BoatPosition {
-  id         String   @id @default(cuid())
-  boatId     String
-  latitude   Decimal  @db.Decimal(9, 6)
-  longitude  Decimal  @db.Decimal(9, 6)
-  speedKnots Decimal? @db.Decimal(5, 1)
-  heading    Int?
-  recordedAt DateTime @default(now())
-
-  boat Boat @relation(fields: [boatId], references: [id], onDelete: Restrict)
-
-  @@index([boatId, recordedAt])
-}
-
-model BookingAddon {
-  id         String           @id @default(cuid())
-  bookingId  String
-  type       BookingAddonType
-  name       String
-  quantity   Int              @default(1)
-  unitPrice  Decimal          @db.Decimal(12, 2)
-  totalPrice Decimal          @db.Decimal(12, 2)
-  createdAt  DateTime         @default(now())
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-
-  @@index([bookingId])
-}
-
-model WeatherSnapshot {
-  id             String           @id @default(cuid())
-  legId          String
-  condition      WeatherCondition
-  waveHeight     Decimal?         @db.Decimal(4, 2) // metres
-  windSpeedKnots Decimal?         @db.Decimal(5, 1)
-  temperature    Decimal?         @db.Decimal(4, 1) // celsius
-  source         String           @default("BMKG")
-  recordedAt     DateTime         @default(now())
-  createdAt      DateTime         @default(now())
-
-  leg Leg @relation(fields: [legId], references: [id], onDelete: Restrict)
-
-  @@unique([legId, recordedAt])
-  @@index([legId])
 }
 
 // ============== AUDIT LOG ==============
