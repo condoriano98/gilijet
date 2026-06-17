@@ -115,6 +115,7 @@ export default async function SearchPage({
   }>;
   let legs: LegWithSchedule[] = [];
   let legsError = false;
+  let legsErrorDetail: string | null = null;
   try {
     legs = await prisma.leg.findMany({
       where: {
@@ -140,6 +141,11 @@ export default async function SearchPage({
   } catch (err) {
     console.error("[search] legs query failed:", err);
     legsError = true;
+    // Surface enough detail for ops to diagnose schema drift, pool exhaustion,
+    // or unknown columns without leaking secrets. Prisma errors include `code`
+    // (e.g. P2022 = unknown column) and a single-line `message`.
+    const e = err as { code?: string; message?: string };
+    legsErrorDetail = e?.code ? `${e.code}: ${e.message ?? "unknown"}` : (e?.message ?? null);
   }
 
   // Apply yield-adjusted pricing to each leg
@@ -273,6 +279,11 @@ export default async function SearchPage({
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             We&apos;re having trouble loading departures right now. Please try
             again in a moment.
+            {legsErrorDetail ? (
+              <div className="mt-3 inline-block rounded bg-slate-50 px-2 py-1 font-mono text-xs text-slate-500">
+                {legsErrorDetail}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : legs.length === 0 ? (
