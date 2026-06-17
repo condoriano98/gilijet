@@ -72,8 +72,20 @@ export default async function SearchPage({
   }
 
   if (!parsed.success) {
+    // The user landed here with incomplete params — usually from a destination
+    // card that pre-fills only `destination`. Render the form with whatever
+    // was provided and a friendly nudge, not a red error.
+    const hasOrigin = Boolean(raw.origin);
+    const hasDestination = Boolean(raw.destination);
+    const nudge = !hasOrigin && hasDestination
+      ? `Pick a departure port to see boats to ${raw.destination}.`
+      : !hasDestination && hasOrigin
+      ? `Pick a destination to see boats from ${raw.origin}.`
+      : "Pick a departure port and destination to see boats.";
+
     return (
-      <div className="container py-10">
+      <div className="container py-8">
+        <BookingProgress currentStep={1} />
         <h1 className="mb-6 text-2xl font-bold tracking-tight">Find a boat</h1>
         <SearchForm
           origins={origins}
@@ -81,9 +93,7 @@ export default async function SearchPage({
           defaultOrigin={raw.origin}
           defaultDestination={raw.destination}
         />
-        <p className="mt-4 text-sm text-red-700">
-          Please fill in the search form to see results.
-        </p>
+        <p className="mt-4 text-sm text-slate-600">{nudge}</p>
       </div>
     );
   }
