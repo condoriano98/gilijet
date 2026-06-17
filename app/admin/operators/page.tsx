@@ -47,7 +47,7 @@ export default async function OperatorsListPage({
   await requireAdmin();
   const { status } = await searchParams;
 
-  const where: Prisma.OperatorWhereInput = {};
+  const where: Prisma.OperatorWhereInput = { deletedAt: null };
   if (status && STATUS_FILTERS.includes(status as OperatorStatus)) {
     where.status = status as OperatorStatus;
   }
@@ -55,7 +55,7 @@ export default async function OperatorsListPage({
   const operators = await prisma.operator.findMany({
     where,
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    include: { _count: { select: { boats: true } } },
+    include: { _count: { select: { boats: { where: { deletedAt: null } } } } },
   });
 
   return (

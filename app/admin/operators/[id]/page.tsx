@@ -31,7 +31,9 @@ async function transitionAction(formData: FormData) {
   const allowed: OperatorStatus[] = ["ACTIVE", "SUSPENDED", "REJECTED"];
   if (!id || !allowed.includes(next)) redirect(`/admin/operators/${id}`);
 
-  const prev = await prisma.operator.findUnique({ where: { id } });
+  const prev = await prisma.operator.findFirst({
+    where: { id, deletedAt: null },
+  });
   if (!prev) redirect("/admin/operators");
 
   const updated = await prisma.operator.update({
@@ -74,10 +76,10 @@ export default async function OperatorDetailPage({
   await requireAdmin();
   const { id } = await params;
 
-  const operator = await prisma.operator.findUnique({
-    where: { id },
+  const operator = await prisma.operator.findFirst({
+    where: { id, deletedAt: null },
     include: {
-      boats: { orderBy: { createdAt: "desc" } },
+      boats: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
     },
   });
   if (!operator) notFound();

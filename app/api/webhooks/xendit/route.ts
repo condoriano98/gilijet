@@ -57,10 +57,18 @@ export async function POST(req: NextRequest) {
     externalRef = String(body.id ?? "");
   }
 
-  // Idempotency: skip if we already PROCESSED this event.
+  // Idempotency: skip if we already PROCESSED this event OR if another
+  // worker is mid-flight on it (status PROCESSING). Without the in-flight
+  // check, two webhooks arriving within the same processing window both
+  // create rows and double-process.
   if (externalRef) {
     const existing = await prisma.webhookEvent.findFirst({
-      where: { provider: "xendit", eventType, externalRef, status: "PROCESSED" },
+      where: {
+        provider: "xendit",
+        eventType,
+        externalRef,
+        status: { in: ["PROCESSED", "PROCESSING"] },
+      },
     });
     if (existing) {
       return NextResponse.json({ ok: true, idempotent: true });

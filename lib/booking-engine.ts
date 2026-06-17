@@ -97,8 +97,21 @@ export async function reserveSeatsAndCreateBooking(
   return prisma.$transaction(async (tx) => {
     const leg = await tx.leg.findUnique({
       where: { id: args.legId },
+      include: {
+        schedule: { include: { boat: { select: { operatorId: true } } } },
+      },
     });
     if (!leg) throw new BookingError("LEG_NOT_FOUND", "Departure not found");
+    // Tenant invariant: the denormalised Leg.operatorId must equal the
+    // authoritative Boat.operatorId. If they drift (manual mutation,
+    // botched migration), refuse to create a booking rather than write
+    // a row that straddles tenant boundaries.
+    if (leg.operatorId !== leg.schedule.boat.operatorId) {
+      throw new BookingError(
+        "INVALID_INPUT",
+        "Operator boundary mismatch on leg",
+      );
+    }
     if (leg.status !== "OPEN") {
       throw new BookingError("LEG_CLOSED", "Departure is closed for booking");
     }

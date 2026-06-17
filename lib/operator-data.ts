@@ -6,6 +6,7 @@ import { prisma } from "./db";
  * compromised session can't reach another operator's data.
  */
 
+export const activeOperator = { deletedAt: null };
 export const activeBoat = { deletedAt: null };
 export const activeSchedule = { deletedAt: null };
 

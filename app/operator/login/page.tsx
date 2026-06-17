@@ -33,8 +33,8 @@ async function loginAction(formData: FormData) {
   });
   if (!parsed.success) redirect("/operator/login?error=invalid");
 
-  const operator = await prisma.operator.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
+  const operator = await prisma.operator.findFirst({
+    where: { email: parsed.data.email.toLowerCase(), deletedAt: null },
   });
   if (!operator) redirect("/operator/login?error=credentials");
 
