@@ -27,7 +27,7 @@ import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 import { getSeaCondition } from "@/lib/sea-conditions";
 
 const querySchema = z.object({
-  origin: z.string().min(2),
+  origin: z.string().min(2).optional(),
   destination: z.string().min(2),
   // Optional: a popular-route link only carries origin + destination. When
   // absent we default to today (WITA) so results show immediately.
@@ -102,7 +102,9 @@ export default async function SearchPage({
     parsed.data;
   const dateProvided = Boolean(parsed.data.date);
   const date = parsed.data.date ?? ymdInZone(new Date());
-  const seaCondition = getSeaCondition(origin, destination);
+  // No origin = "any port" search from a destination card. Skip the sea
+  // condition badge because route conditions are per-OD pair.
+  const seaCondition = origin ? getSeaCondition(origin, destination) : null;
 
   // Lazy expiry sweep so freed seats show up in the next render. Don't
   // let a sweep failure block the page.
@@ -134,7 +136,9 @@ export default async function SearchPage({
         availableSeats: { gte: passengers },
         schedule: {
           is: {
-            originPort: { equals: origin, mode: "insensitive" },
+            ...(origin
+              ? { originPort: { equals: origin, mode: "insensitive" } }
+              : {}),
             destinationPort: { equals: destination, mode: "insensitive" },
             status: "ACTIVE",
             deletedAt: null,
@@ -226,9 +230,11 @@ export default async function SearchPage({
     }
   }
 
-  // Connection search (only when no direct legs found, or always show as alternative)
+  // Connection search (only when no direct legs found, or always show as alternative).
+  // Skip when origin is missing — a connection without a specific starting port
+  // would explode into a cross-product of every operator's network.
   let connections: Awaited<ReturnType<typeof findConnections>> = [];
-  if (!legsError) {
+  if (!legsError && origin) {
     try {
       connections = await findConnections(origin, destination, startUtc, endUtc, passengers);
     } catch (err) {
@@ -255,7 +261,7 @@ export default async function SearchPage({
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold tracking-tight">
-            {origin} → {destination}
+            {origin ? `${origin} → ${destination}` : `Boats to ${destination}`}
           </h1>
           {seaCondition ? (
             <Badge variant={seaCondition.tone}>{seaCondition.label}</Badge>
@@ -339,6 +345,13 @@ export default async function SearchPage({
                         ) : null}
                       </CardTitle>
                       <CardDescription>
+                        {!origin ? (
+                          <>
+                            <span className="font-medium text-slate-900">
+                              from {leg.schedule.originPort}
+                            </span>{" "}·{" "}
+                          </>
+                        ) : null}
                         {leg.schedule.boat.name} ·{" "}
                         {leg.schedule.durationMinutes} min
                         {rating && rating.count > 0 ? (

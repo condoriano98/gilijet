@@ -31,9 +31,7 @@ export function SearchForm(props: SearchFormProps) {
   const [tripType, setTripType] = React.useState<"one_way" | "round_trip">(
     props.defaultTripType ?? (props.defaultReturnDate ? "round_trip" : "one_way"),
   );
-  const [origin, setOrigin] = React.useState(
-    props.defaultOrigin ?? props.origins[0] ?? "",
-  );
+  const [origin, setOrigin] = React.useState(props.defaultOrigin ?? "");
   const [destination, setDestination] = React.useState(
     props.defaultDestination ?? props.destinations[1] ?? "",
   );
@@ -53,15 +51,17 @@ export function SearchForm(props: SearchFormProps) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!origin || !destination || origin === destination || !date) return;
+    // Origin is optional: empty = "any departure port", which broadens to all
+    // routes ending at `destination`. Destination + date are still required.
+    if (!destination || origin === destination || !date) return;
     if (tripType === "round_trip" && (!returnDate || returnDate < date)) return;
     setSubmitting(true);
     const params = new URLSearchParams({
-      origin,
       destination,
       date,
       passengers: String(passengers),
     });
+    if (origin) params.set("origin", origin);
     if (tripType === "round_trip" && returnDate) {
       params.set("returnDate", returnDate);
     }
@@ -124,9 +124,7 @@ export function SearchForm(props: SearchFormProps) {
             onChange={(e) => setOrigin(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="" disabled>
-              Pick a departure port
-            </option>
+            <option value="">Any departure port</option>
             {props.origins.map((p) => (
               <option key={p} value={p} disabled={p === destination}>
                 {p}
