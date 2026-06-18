@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -66,9 +67,9 @@ export default async function AdminLoginPage({
           <CardTitle>Admin sign in</CardTitle>
           <CardDescription>
             Internal Gilijet staff only. Operators sign in{" "}
-            <a href="/operator/login" className="underline">
+            <Link href="/operator/login" className="underline">
               here
-            </a>
+            </Link>
             .
           </CardDescription>
         </CardHeader>

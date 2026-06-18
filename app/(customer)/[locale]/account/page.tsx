@@ -325,9 +325,9 @@ export default async function AccountPage({
             ) : (
               <CardContent className="text-sm text-slate-600">
                 Your account uses Google sign-in. To set a password,{" "}
-                <a href="/account/forgot-password" className="text-sky-700 hover:underline">
+                <Link href="/account/forgot-password" className="text-sky-700 hover:underline">
                   use the forgot-password flow
-                </a>
+                </Link>
                 .
               </CardContent>
             )}
