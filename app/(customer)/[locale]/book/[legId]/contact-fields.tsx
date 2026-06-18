@@ -10,40 +10,53 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { COUNTRIES, DIAL_CODES } from "@/lib/countries";
+import {
+  COUNTRIES,
+  findCountryByCode,
+  findCountryByName,
+  parsePhone,
+} from "@/lib/countries";
 
 interface Props {
   defaultPhone?: string;
   defaultNationality?: string;
 }
 
-function parsePhone(raw: string): { dialCode: string; number: string } {
-  if (raw.startsWith("+")) {
-    const match = DIAL_CODES.find((d) => raw.startsWith(d.value));
-    if (match) return { dialCode: match.value, number: raw.slice(match.value.length) };
-  }
-  return { dialCode: "+62", number: raw };
-}
-
-export function ContactFields({ defaultPhone = "", defaultNationality = "" }: Props) {
+export function ContactFields({
+  defaultPhone = "",
+  defaultNationality = "",
+}: Props) {
   const parsed = parsePhone(defaultPhone);
-  const [dialCode, setDialCode] = useState(parsed.dialCode);
+  const [phoneCountryCode, setPhoneCountryCode] = useState(parsed.countryCode);
   const [number, setNumber] = useState(parsed.number);
-  const [nationality, setNationality] = useState(defaultNationality || "Indonesia");
+
+  const initialNationality =
+    findCountryByName(defaultNationality)?.code ?? "ID";
+  const [nationalityCode, setNationalityCode] = useState(initialNationality);
+
+  const phoneCountry = findCountryByCode(phoneCountryCode);
+  const phoneDialCode = phoneCountry?.dialCode ?? "+62";
+  const phoneFlag = phoneCountry?.flag ?? "🇮🇩";
+  const nationalityName = findCountryByCode(nationalityCode)?.name ?? "";
 
   return (
     <>
       <div className="space-y-2">
         <Label>Phone (WhatsApp preferred)</Label>
         <div className="flex gap-2">
-          <Select value={dialCode} onValueChange={setDialCode}>
-            <SelectTrigger className="w-28 shrink-0">
-              <SelectValue />
+          <Select value={phoneCountryCode} onValueChange={setPhoneCountryCode}>
+            <SelectTrigger className="w-32 shrink-0">
+              <SelectValue>
+                <span className="truncate">
+                  {phoneFlag} {phoneDialCode}
+                </span>
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {DIAL_CODES.map((d) => (
-                <SelectItem key={d.value} value={d.value}>
-                  {d.label}
+              {COUNTRIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  <span>{c.flag}</span> {c.name}{" "}
+                  <span className="text-muted-foreground">{c.dialCode}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -57,24 +70,32 @@ export function ContactFields({ defaultPhone = "", defaultNationality = "" }: Pr
             className="flex-1"
           />
         </div>
-        <input type="hidden" name="customerPhone" value={`${dialCode}${number}`} />
+        <input
+          type="hidden"
+          name="customerPhone"
+          value={`${phoneDialCode}${number}`}
+        />
       </div>
 
       <div className="space-y-2">
         <Label>Nationality (optional)</Label>
-        <Select value={nationality} onValueChange={setNationality}>
+        <Select value={nationalityCode} onValueChange={setNationalityCode}>
           <SelectTrigger>
             <SelectValue placeholder="Select nationality" />
           </SelectTrigger>
           <SelectContent>
             {COUNTRIES.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.flag ? `${c.flag} ${c.label}` : c.label}
+              <SelectItem key={c.code} value={c.code}>
+                {c.flag} {c.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <input type="hidden" name="customerNationality" value={nationality} />
+        <input
+          type="hidden"
+          name="customerNationality"
+          value={nationalityName}
+        />
       </div>
     </>
   );

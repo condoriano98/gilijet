@@ -1,57 +1,260 @@
-type Country = { label: string; value: string; dialCode: string; flag: string };
+export type Country = {
+  code: string;
+  name: string;
+  dialCode: string;
+  flag: string;
+};
 
-export const COUNTRIES: Country[] = [
-  { label: "Indonesia",    value: "Indonesia",    dialCode: "+62",  flag: "🇮🇩" },
-  { label: "Australia",    value: "Australia",    dialCode: "+61",  flag: "🇦🇺" },
-  { label: "USA",          value: "USA",          dialCode: "+1",   flag: "🇺🇸" },
-  { label: "UK",           value: "UK",           dialCode: "+44",  flag: "🇬🇧" },
-  { label: "Germany",      value: "Germany",      dialCode: "+49",  flag: "🇩🇪" },
-  { label: "France",       value: "France",       dialCode: "+33",  flag: "🇫🇷" },
-  { label: "Netherlands",  value: "Netherlands",  dialCode: "+31",  flag: "🇳🇱" },
-  { label: "Singapore",    value: "Singapore",    dialCode: "+65",  flag: "🇸🇬" },
-  { label: "Japan",        value: "Japan",        dialCode: "+81",  flag: "🇯🇵" },
-  { label: "South Korea",  value: "South Korea",  dialCode: "+82",  flag: "🇰🇷" },
-  { label: "China",        value: "China",        dialCode: "+86",  flag: "🇨🇳" },
-  { label: "Malaysia",     value: "Malaysia",     dialCode: "+60",  flag: "🇲🇾" },
-  { label: "Russia",       value: "Russia",       dialCode: "+7",   flag: "🇷🇺" },
-  { label: "Italy",        value: "Italy",        dialCode: "+39",  flag: "🇮🇹" },
-  { label: "Spain",        value: "Spain",        dialCode: "+34",  flag: "🇪🇸" },
-  { label: "India",        value: "India",        dialCode: "+91",  flag: "🇮🇳" },
-  { label: "Canada",       value: "Canada",       dialCode: "+1",   flag: "🇨🇦" },
-  { label: "New Zealand",  value: "New Zealand",  dialCode: "+64",  flag: "🇳🇿" },
-  { label: "Brazil",       value: "Brazil",       dialCode: "+55",  flag: "🇧🇷" },
-  { label: "Thailand",     value: "Thailand",     dialCode: "+66",  flag: "🇹🇭" },
-  { label: "Taiwan",       value: "Taiwan",       dialCode: "+886", flag: "🇹🇼" },
-  { label: "Hong Kong",    value: "Hong Kong",    dialCode: "+852", flag: "🇭🇰" },
-  { label: "Philippines",  value: "Philippines",  dialCode: "+63",  flag: "🇵🇭" },
-  { label: "Vietnam",      value: "Vietnam",      dialCode: "+84",  flag: "🇻🇳" },
-  { label: "Switzerland",  value: "Switzerland",  dialCode: "+41",  flag: "🇨🇭" },
-  { label: "Sweden",       value: "Sweden",       dialCode: "+46",  flag: "🇸🇪" },
-  { label: "Norway",       value: "Norway",       dialCode: "+47",  flag: "🇳🇴" },
-  { label: "Denmark",      value: "Denmark",      dialCode: "+45",  flag: "🇩🇰" },
-  { label: "Finland",      value: "Finland",      dialCode: "+358", flag: "🇫🇮" },
-  { label: "Belgium",      value: "Belgium",      dialCode: "+32",  flag: "🇧🇪" },
-  { label: "Austria",      value: "Austria",      dialCode: "+43",  flag: "🇦🇹" },
-  { label: "Poland",       value: "Poland",       dialCode: "+48",  flag: "🇵🇱" },
-  { label: "Israel",       value: "Israel",       dialCode: "+972", flag: "🇮🇱" },
-  { label: "UAE",          value: "UAE",          dialCode: "+971", flag: "🇦🇪" },
-  { label: "South Africa", value: "South Africa", dialCode: "+27",  flag: "🇿🇦" },
-  { label: "Mexico",       value: "Mexico",       dialCode: "+52",  flag: "🇲🇽" },
-  { label: "Argentina",    value: "Argentina",    dialCode: "+54",  flag: "🇦🇷" },
-  { label: "Ireland",      value: "Ireland",      dialCode: "+353", flag: "🇮🇪" },
-  { label: "Portugal",     value: "Portugal",     dialCode: "+351", flag: "🇵🇹" },
-  { label: "Other",        value: "Other",        dialCode: "",     flag: "" },
+function codeToFlag(code: string): string {
+  return code
+    .toUpperCase()
+    .split("")
+    .map((c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+    .join("");
+}
+
+const RAW: Array<readonly [string, string, string]> = [
+  ["AF", "Afghanistan", "+93"],
+  ["AL", "Albania", "+355"],
+  ["DZ", "Algeria", "+213"],
+  ["AD", "Andorra", "+376"],
+  ["AO", "Angola", "+244"],
+  ["AG", "Antigua and Barbuda", "+1"],
+  ["AR", "Argentina", "+54"],
+  ["AM", "Armenia", "+374"],
+  ["AU", "Australia", "+61"],
+  ["AT", "Austria", "+43"],
+  ["AZ", "Azerbaijan", "+994"],
+  ["BS", "Bahamas", "+1"],
+  ["BH", "Bahrain", "+973"],
+  ["BD", "Bangladesh", "+880"],
+  ["BB", "Barbados", "+1"],
+  ["BY", "Belarus", "+375"],
+  ["BE", "Belgium", "+32"],
+  ["BZ", "Belize", "+501"],
+  ["BJ", "Benin", "+229"],
+  ["BT", "Bhutan", "+975"],
+  ["BO", "Bolivia", "+591"],
+  ["BA", "Bosnia and Herzegovina", "+387"],
+  ["BW", "Botswana", "+267"],
+  ["BR", "Brazil", "+55"],
+  ["BN", "Brunei", "+673"],
+  ["BG", "Bulgaria", "+359"],
+  ["BF", "Burkina Faso", "+226"],
+  ["BI", "Burundi", "+257"],
+  ["CV", "Cabo Verde", "+238"],
+  ["KH", "Cambodia", "+855"],
+  ["CM", "Cameroon", "+237"],
+  ["CA", "Canada", "+1"],
+  ["CF", "Central African Republic", "+236"],
+  ["TD", "Chad", "+235"],
+  ["CL", "Chile", "+56"],
+  ["CN", "China", "+86"],
+  ["CO", "Colombia", "+57"],
+  ["KM", "Comoros", "+269"],
+  ["CG", "Congo (Brazzaville)", "+242"],
+  ["CD", "Congo (Kinshasa)", "+243"],
+  ["CR", "Costa Rica", "+506"],
+  ["CI", "Côte d'Ivoire", "+225"],
+  ["HR", "Croatia", "+385"],
+  ["CU", "Cuba", "+53"],
+  ["CY", "Cyprus", "+357"],
+  ["CZ", "Czech Republic", "+420"],
+  ["DK", "Denmark", "+45"],
+  ["DJ", "Djibouti", "+253"],
+  ["DM", "Dominica", "+1"],
+  ["DO", "Dominican Republic", "+1"],
+  ["EC", "Ecuador", "+593"],
+  ["EG", "Egypt", "+20"],
+  ["SV", "El Salvador", "+503"],
+  ["GQ", "Equatorial Guinea", "+240"],
+  ["ER", "Eritrea", "+291"],
+  ["EE", "Estonia", "+372"],
+  ["SZ", "Eswatini", "+268"],
+  ["ET", "Ethiopia", "+251"],
+  ["FJ", "Fiji", "+679"],
+  ["FI", "Finland", "+358"],
+  ["FR", "France", "+33"],
+  ["GA", "Gabon", "+241"],
+  ["GM", "Gambia", "+220"],
+  ["GE", "Georgia", "+995"],
+  ["DE", "Germany", "+49"],
+  ["GH", "Ghana", "+233"],
+  ["GR", "Greece", "+30"],
+  ["GD", "Grenada", "+1"],
+  ["GT", "Guatemala", "+502"],
+  ["GN", "Guinea", "+224"],
+  ["GW", "Guinea-Bissau", "+245"],
+  ["GY", "Guyana", "+592"],
+  ["HT", "Haiti", "+509"],
+  ["HN", "Honduras", "+504"],
+  ["HK", "Hong Kong", "+852"],
+  ["HU", "Hungary", "+36"],
+  ["IS", "Iceland", "+354"],
+  ["IN", "India", "+91"],
+  ["ID", "Indonesia", "+62"],
+  ["IR", "Iran", "+98"],
+  ["IQ", "Iraq", "+964"],
+  ["IE", "Ireland", "+353"],
+  ["IL", "Israel", "+972"],
+  ["IT", "Italy", "+39"],
+  ["JM", "Jamaica", "+1"],
+  ["JP", "Japan", "+81"],
+  ["JO", "Jordan", "+962"],
+  ["KZ", "Kazakhstan", "+7"],
+  ["KE", "Kenya", "+254"],
+  ["KI", "Kiribati", "+686"],
+  ["KW", "Kuwait", "+965"],
+  ["KG", "Kyrgyzstan", "+996"],
+  ["LA", "Laos", "+856"],
+  ["LV", "Latvia", "+371"],
+  ["LB", "Lebanon", "+961"],
+  ["LS", "Lesotho", "+266"],
+  ["LR", "Liberia", "+231"],
+  ["LY", "Libya", "+218"],
+  ["LI", "Liechtenstein", "+423"],
+  ["LT", "Lithuania", "+370"],
+  ["LU", "Luxembourg", "+352"],
+  ["MO", "Macau", "+853"],
+  ["MG", "Madagascar", "+261"],
+  ["MW", "Malawi", "+265"],
+  ["MY", "Malaysia", "+60"],
+  ["MV", "Maldives", "+960"],
+  ["ML", "Mali", "+223"],
+  ["MT", "Malta", "+356"],
+  ["MH", "Marshall Islands", "+692"],
+  ["MR", "Mauritania", "+222"],
+  ["MU", "Mauritius", "+230"],
+  ["MX", "Mexico", "+52"],
+  ["FM", "Micronesia", "+691"],
+  ["MD", "Moldova", "+373"],
+  ["MC", "Monaco", "+377"],
+  ["MN", "Mongolia", "+976"],
+  ["ME", "Montenegro", "+382"],
+  ["MA", "Morocco", "+212"],
+  ["MZ", "Mozambique", "+258"],
+  ["MM", "Myanmar", "+95"],
+  ["NA", "Namibia", "+264"],
+  ["NR", "Nauru", "+674"],
+  ["NP", "Nepal", "+977"],
+  ["NL", "Netherlands", "+31"],
+  ["NZ", "New Zealand", "+64"],
+  ["NI", "Nicaragua", "+505"],
+  ["NE", "Niger", "+227"],
+  ["NG", "Nigeria", "+234"],
+  ["KP", "North Korea", "+850"],
+  ["MK", "North Macedonia", "+389"],
+  ["NO", "Norway", "+47"],
+  ["OM", "Oman", "+968"],
+  ["PK", "Pakistan", "+92"],
+  ["PW", "Palau", "+680"],
+  ["PS", "Palestine", "+970"],
+  ["PA", "Panama", "+507"],
+  ["PG", "Papua New Guinea", "+675"],
+  ["PY", "Paraguay", "+595"],
+  ["PE", "Peru", "+51"],
+  ["PH", "Philippines", "+63"],
+  ["PL", "Poland", "+48"],
+  ["PT", "Portugal", "+351"],
+  ["QA", "Qatar", "+974"],
+  ["RO", "Romania", "+40"],
+  ["RU", "Russia", "+7"],
+  ["RW", "Rwanda", "+250"],
+  ["KN", "Saint Kitts and Nevis", "+1"],
+  ["LC", "Saint Lucia", "+1"],
+  ["VC", "Saint Vincent and the Grenadines", "+1"],
+  ["WS", "Samoa", "+685"],
+  ["SM", "San Marino", "+378"],
+  ["ST", "São Tomé and Príncipe", "+239"],
+  ["SA", "Saudi Arabia", "+966"],
+  ["SN", "Senegal", "+221"],
+  ["RS", "Serbia", "+381"],
+  ["SC", "Seychelles", "+248"],
+  ["SL", "Sierra Leone", "+232"],
+  ["SG", "Singapore", "+65"],
+  ["SK", "Slovakia", "+421"],
+  ["SI", "Slovenia", "+386"],
+  ["SB", "Solomon Islands", "+677"],
+  ["SO", "Somalia", "+252"],
+  ["ZA", "South Africa", "+27"],
+  ["KR", "South Korea", "+82"],
+  ["SS", "South Sudan", "+211"],
+  ["ES", "Spain", "+34"],
+  ["LK", "Sri Lanka", "+94"],
+  ["SD", "Sudan", "+249"],
+  ["SR", "Suriname", "+597"],
+  ["SE", "Sweden", "+46"],
+  ["CH", "Switzerland", "+41"],
+  ["SY", "Syria", "+963"],
+  ["TW", "Taiwan", "+886"],
+  ["TJ", "Tajikistan", "+992"],
+  ["TZ", "Tanzania", "+255"],
+  ["TH", "Thailand", "+66"],
+  ["TL", "Timor-Leste", "+670"],
+  ["TG", "Togo", "+228"],
+  ["TO", "Tonga", "+676"],
+  ["TT", "Trinidad and Tobago", "+1"],
+  ["TN", "Tunisia", "+216"],
+  ["TR", "Turkey", "+90"],
+  ["TM", "Turkmenistan", "+993"],
+  ["TV", "Tuvalu", "+688"],
+  ["UG", "Uganda", "+256"],
+  ["UA", "Ukraine", "+380"],
+  ["AE", "United Arab Emirates", "+971"],
+  ["GB", "United Kingdom", "+44"],
+  ["US", "United States", "+1"],
+  ["UY", "Uruguay", "+598"],
+  ["UZ", "Uzbekistan", "+998"],
+  ["VU", "Vanuatu", "+678"],
+  ["VA", "Vatican City", "+379"],
+  ["VE", "Venezuela", "+58"],
+  ["VN", "Vietnam", "+84"],
+  ["YE", "Yemen", "+967"],
+  ["ZM", "Zambia", "+260"],
+  ["ZW", "Zimbabwe", "+263"],
 ];
 
-// Unique dial codes for the phone prefix picker (+1 appears for both US and Canada; keep US entry)
-export const DIAL_CODES: { label: string; value: string }[] = (() => {
-  const seen = new Set<string>();
-  const result: { label: string; value: string }[] = [];
-  for (const c of COUNTRIES) {
-    if (c.dialCode && !seen.has(c.dialCode)) {
-      seen.add(c.dialCode);
-      result.push({ label: `${c.flag} ${c.dialCode}`, value: c.dialCode });
+export const COUNTRIES: Country[] = RAW.map(([code, name, dialCode]) => ({
+  code,
+  name,
+  dialCode,
+  flag: codeToFlag(code),
+}));
+
+const BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
+const BY_NAME = new Map(COUNTRIES.map((c) => [c.name.toLowerCase(), c]));
+
+// Shared dial codes: pick the most-recognised country so the picker defaults
+// don't surface a micro-state when parsing an existing number.
+const PRIMARY_BY_DIAL_CODE: Record<string, string> = {
+  "+1": "US",
+  "+7": "RU",
+};
+
+export function findCountryByCode(code: string): Country | undefined {
+  return BY_CODE.get(code);
+}
+
+export function findCountryByName(name: string): Country | undefined {
+  return BY_NAME.get(name.trim().toLowerCase());
+}
+
+export function parsePhone(raw: string): { countryCode: string; number: string } {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("+")) {
+    const sorted = [...COUNTRIES].sort(
+      (a, b) => b.dialCode.length - a.dialCode.length,
+    );
+    for (const c of sorted) {
+      if (trimmed.startsWith(c.dialCode)) {
+        const primaryCode = PRIMARY_BY_DIAL_CODE[c.dialCode];
+        const country = primaryCode ? BY_CODE.get(primaryCode) ?? c : c;
+        return {
+          countryCode: country.code,
+          number: trimmed.slice(c.dialCode.length).trim(),
+        };
+      }
     }
   }
-  return result;
-})();
+  return { countryCode: "ID", number: trimmed };
+}
