@@ -18,6 +18,17 @@ const nextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  async redirects() {
+    return [
+      { source: "/operator/boats", destination: "/operator/armada", permanent: true },
+      { source: "/operator/boats/:path*", destination: "/operator/armada/:path*", permanent: true },
+      { source: "/operator/schedules", destination: "/operator/operasi/jadwal", permanent: true },
+      { source: "/operator/schedules/:path*", destination: "/operator/operasi/jadwal/:path*", permanent: true },
+      { source: "/operator/legs", destination: "/operator/operasi/keberangkatan", permanent: true },
+      { source: "/operator/legs/:path*", destination: "/operator/operasi/keberangkatan/:path*", permanent: true },
+      { source: "/operator/scanner", destination: "/operator/operasi/pemindai", permanent: true },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

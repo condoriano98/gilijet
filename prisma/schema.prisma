@@ -112,6 +112,9 @@ model Operator {
   services OperatorServicesOnOperator[]
   staff    OperatorStaff[]
   documents OperatorDocument[]
+  travelAgents TravelAgent[]
+  cashDrawerSessions CashDrawerSession[]
+  notifications OperatorNotification[]
   agent    Agent? @relation(fields: [agentId], references: [id])
 
   @@index([status])
@@ -240,11 +243,22 @@ enum LegStatus {
 
 model Booking {
   id                   String        @id @default(cuid())
-  bookingReference     String        @unique // human-readable: BK-2026-05-000001
+  bookingReference     String        @unique
   legId                String
   customerId           String?
   operatorId           String
   agentId              String?
+  salesChannel         SalesChannel  @default(GILIJET)
+  salesStaffId         String?
+  salesAgentId         String?
+  agentCommissionAmount  Decimal?    @db.Decimal(14, 2)
+  agentCommissionPercent Decimal?    @db.Decimal(5, 4)
+  pph23WithholdingAmount Decimal?     @db.Decimal(14, 2)
+  cashCollected        Decimal?      @db.Decimal(14, 2)
+  externalAggregatorName String?
+  externalAggregatorRef  String?
+  eFakturNumber        String?
+  eFakturStatus        EFakturStatus @default(NOT_REQUIRED)
   customerName         String
   customerEmail        String
   customerPhone        String
@@ -269,6 +283,8 @@ model Booking {
   customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
   operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   agent             Agent?             @relation(fields: [agentId], references: [id])
+  salesStaff        OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
+  salesAgent        TravelAgent?       @relation(fields: [salesAgentId], references: [id])
   promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
   tickets           Ticket[]
   payment           Payment?
@@ -286,6 +302,8 @@ model Booking {
   @@index([promotionId])
   @@index([operatorId, status])
   @@index([operatorId, createdAt])
+  @@index([operatorId, salesChannel, createdAt])
+  @@index([salesAgentId])
 }
 
 enum BookingStatus {
@@ -540,6 +558,8 @@ enum FareType {
 enum OperatorStaffRole {
   MANAGER
   GATE
+  BOOTH_AGENT
+  ACCOUNTANT
 }
 
 enum OperatorStaffStatus {
@@ -721,6 +741,8 @@ model OperatorStaff {
 
   operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
   checkIns Ticket[] @relation("CheckedInBy")
+  salesBookings Booking[] @relation("SalesStaff")
+  cashDrawerSessions CashDrawerSession[]
 
   @@index([operatorId, status])
 }
@@ -912,6 +934,106 @@ model WeatherForecast {
 
   @@index([portName, forecastFor])
 }
+
+// ============== ERP — SALES CHANNELS & AGENTS ==============
+
+enum SalesChannel {
+  GILIJET
+  WALK_IN
+  TRAVEL_AGENT
+  PHONE
+  EXTERNAL_AGGREGATOR
+}
+
+enum EFakturStatus {
+  NOT_REQUIRED
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+model TravelAgent {
+  id                       String   @id @default(cuid())
+  operatorId               String
+  operator                 Operator @relation(fields: [operatorId], references: [id])
+  name                     String
+  contactPerson            String?
+  phoneNumber              String?
+  email                    String?
+  npwp                     String?
+  address                  String?
+  defaultCommissionPercent Decimal  @db.Decimal(5, 4)
+  bankName                 String?
+  bankAccountNumber        String?
+  bankAccountName          String?
+  isActive                 Boolean  @default(true)
+  deletedAt                DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  bookings                 Booking[]
+
+  @@index([operatorId, isActive, deletedAt])
+}
+
+// ============== ERP — CASH DRAWER ==============
+
+model CashDrawerSession {
+  id                  String   @id @default(cuid())
+  operatorId          String
+  operator            Operator @relation(fields: [operatorId], references: [id])
+  staffId             String
+  staff               OperatorStaff @relation(fields: [staffId], references: [id])
+  openedAt            DateTime
+  closedAt            DateTime?
+  openingBalance      Decimal  @db.Decimal(14, 2)
+  expectedCash        Decimal  @db.Decimal(14, 2) @default(0)
+  closingBalanceCounted Decimal? @db.Decimal(14, 2)
+  variance            Decimal? @db.Decimal(14, 2)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([operatorId, openedAt])
+  @@index([staffId, closedAt])
+}
+
+// ============== ERP — OPERATOR NOTIFICATIONS ==============
+
+enum NotificationKind {
+  CERT_EXPIRY
+  CASH_VARIANCE
+  SYNC_FAILURE
+  PAYROLL_DRAFT_READY
+  SPT_DRAFT_READY
+  AGENT_PAYOUT_DUE
+  PERIOD_CLOSE_PROMPT
+  CORETAX_REJECTION
+  BPJS_REJECTION
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model OperatorNotification {
+  id           String   @id @default(cuid())
+  operatorId   String
+  operator     Operator @relation(fields: [operatorId], references: [id])
+  kind         NotificationKind
+  severity     NotificationSeverity @default(INFO)
+  title        String
+  body         String
+  actionUrl    String?
+  data         Json?
+  readAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([operatorId, readAt, createdAt])
+}
+
 // ============== AUDIT LOG ==============
 
 model AuditLog {

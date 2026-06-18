@@ -50,6 +50,9 @@ export type CreateBookingArgs = {
   notes?: string | null;
   customerId?: string | null;
   promoCode?: string | null;
+  salesChannel?: "GILIJET" | "WALK_IN" | "TRAVEL_AGENT" | "PHONE" | "EXTERNAL_AGGREGATOR";
+  salesStaffId?: string | null;
+  salesAgentId?: string | null;
 };
 
 /**
@@ -186,6 +189,9 @@ export async function reserveSeatsAndCreateBooking(
             promotionId,
             discountAmount: new Prisma.Decimal(discountAmount),
             status: "PENDING_PAYMENT",
+            salesChannel: args.salesChannel ?? "GILIJET",
+            salesStaffId: args.salesStaffId ?? null,
+            salesAgentId: args.salesAgentId ?? null,
             refundDeadline: computeRefundDeadline(leg.departureDate),
             refundPolicySnapshot: snapshotCurrentPolicy({
               departure: leg.departureDate,

@@ -5,43 +5,56 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 199 89% 48%;
+    --card-foreground: 222 47% 11%;
+    --primary: 222 76% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 76% 50%;
     --radius: 0.5rem;
+
+    --mekari-primary: #1B5FE3;
+    --mekari-primary-600: #1247B8;
+    --mekari-primary-50: #E8F0FE;
+    --mekari-success: #16A34A;
+    --mekari-warning: #F59E0B;
+    --mekari-danger: #DC2626;
+    --mekari-neutral-900: #0F172A;
+    --mekari-neutral-700: #334155;
+    --mekari-neutral-500: #64748B;
+    --mekari-neutral-200: #E2E8F0;
+    --mekari-neutral-50: #F8FAFC;
+    --mekari-surface: #FFFFFF;
   }
 
   .dark {
-    --background: 222.2 47.4% 6%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-    --card: 222.2 47.4% 8%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 222 76% 50%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 18%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 18%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 199 89% 48%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 222 76% 50%;
   }
 
   * {
@@ -50,5 +63,15 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .mekari-shadow {
+    box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.08);
   }
 }
