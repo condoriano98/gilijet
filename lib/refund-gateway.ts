@@ -1,5 +1,6 @@
 import { createRefund as createXenditRefund, isXenditConfigured } from "./xendit";
 import { createRefund as createMayarRefund, isMayarConfigured } from "./mayar";
+import { createRefund as createStripeRefund, isStripeConfigured } from "./stripe";
 import { PaymentProvider } from "@prisma/client";
 
 /**
@@ -35,9 +36,18 @@ export async function refundViaGateway(args: {
     });
   }
 
+  if (provider === PaymentProvider.STRIPE || (!provider && isStripeConfigured())) {
+    if (!isStripeConfigured()) return null;
+    return await createStripeRefund({
+      paymentIntentId: args.gatewayReference,
+      amount: args.amount,
+      reason: args.reason,
+    });
+  }
+
   return null;
 }
 
 export function isAnyRefundGatewayConfigured(): boolean {
-  return isMayarConfigured() || isXenditConfigured();
+  return isMayarConfigured() || isXenditConfigured() || isStripeConfigured();
 }

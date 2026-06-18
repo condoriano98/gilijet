@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { SearchForm } from "@/components/customer/search-form";
 import { DepartingToday } from "@/components/customer/departing-today";
 import { ReviewsCarousel } from "@/components/customer/reviews-carousel";
+import { NearestPortCard } from "@/components/customer/nearest-port-card";
 import { WaveDivider } from "@/components/ui/wave-divider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +77,7 @@ function formatDuration(minutes: number): string {
 }
 
 export default async function HomePage() {
+  const t = await getTranslations();
   // Trigger seed if DB is empty (fire-and-forget, returns in <1s when seeded).
   const seedStatus = await maybeAutoSeed();
 
@@ -125,14 +128,13 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl">
             <div className="max-w-2xl">
               <Badge className="bg-gilijet-coral/20 text-white border-white/20">
-                Indonesia&apos;s #1 boat ticketing platform
+                {t("home.badge")}
               </Badge>
               <h1 className="mt-4 text-4xl font-display font-extrabold text-white drop-shadow sm:text-5xl lg:text-6xl">
-                Island-hop with confidence
+                {t("home.heroTitle")}
               </h1>
               <p className="mt-4 text-lg text-white/90 drop-shadow sm:text-xl max-w-prose">
-                Book verified fast boats and ferries across Indonesia.
-                Pay your way, get e-tickets instantly.
+                {t("home.heroSubtitle")}
               </p>
             </div>
           </div>
@@ -149,10 +151,17 @@ export default async function HomePage() {
             <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">
-            Search across 50+ operators · QRIS, GoPay, OVO, DANA, Bank Transfer, Visa/MC accepted
+            {t("home.searchAcross")}
           </p>
         </div>
       </div>
+
+      {/* ─── NEAREST PORT ─── */}
+      <section className="container mt-8">
+        <div className="mx-auto max-w-5xl">
+          <NearestPortCard />
+        </div>
+      </section>
 
       {/* ─── DEPARTING SOON ─── */}
       {hasDepartures && (
@@ -244,10 +253,10 @@ export default async function HomePage() {
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                Popular routes
+                {t("home.popularRoutes")}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Where Indonesia is heading this week
+                {t("home.popularSubtitle")}
               </p>
             </div>
             <Link
@@ -319,10 +328,10 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl">
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                Explore Indonesia by sea
+                {t("home.exploreTitle")}
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                From the Gilis to Komodo — every island, one tap away
+                {t("home.exploreSubtitle")}
               </p>
             </div>
 
@@ -386,10 +395,10 @@ export default async function HomePage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                What travellers say
+                {t("home.reviewsTitle")}
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Real reviews from real bookings
+                {t("home.reviewsSubtitle")}
               </p>
             </div>
             <ReviewsCarousel reviews={reviews} />
@@ -402,19 +411,19 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-              Why book with Gilijet
+              {t("home.whyTitle")}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              The same convenience you expect for flights — now for boats
+              {t("home.whySubtitle")}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: "Best Price Guaranteed", desc: "No hidden fees, transparent pricing" },
-              { title: "24/7 Customer Support", desc: "WhatsApp +62 812 3456 7890" },
-              { title: "Instant E-Ticket", desc: "QR code delivered to your email" },
-              { title: "Secure Payment", desc: "Powered by Xendit, BI licensed gateway" },
+              { title: t("trust.bestPrice"), desc: t("trust.bestPriceDesc") },
+              { title: t("trust.support"), desc: t("trust.supportDesc") },
+              { title: t("trust.eTicket"), desc: t("trust.eTicketDesc") },
+              { title: t("trust.secure"), desc: t("trust.secureDesc") },
             ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
@@ -435,20 +444,20 @@ export default async function HomePage() {
         <div className="container">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                How it works
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Four steps to your boarding pass
-              </p>
+            <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
+              {t("home.howTitle")}
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              {t("home.howSubtitle")}
+            </p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { step: "1", title: "Search", desc: "Pick your route, date, and passengers" },
-                { step: "2", title: "Choose", desc: "Compare operators on time and price" },
-                { step: "3", title: "Pay", desc: "QRIS, e-wallet, bank transfer, or card" },
-                { step: "4", title: "Board", desc: "Show your QR e-ticket at the dock" },
+                { step: "1", title: t("howItWorks.step1Title"), desc: t("howItWorks.step1Desc") },
+                { step: "2", title: t("howItWorks.step2Title"), desc: t("howItWorks.step2Desc") },
+                { step: "3", title: t("howItWorks.step3Title"), desc: t("howItWorks.step3Desc") },
+                { step: "4", title: t("howItWorks.step4Title"), desc: t("howItWorks.step4Desc") },
               ].map((s) => (
                 <div key={s.step} className="relative text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilijet-deep text-lg font-bold text-white">
@@ -472,19 +481,18 @@ export default async function HomePage() {
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <div>
               <h3 className="text-2xl font-display font-bold sm:text-3xl">
-                Run a boat business?
+                {t("operator.ctaTitle")}
               </h3>
               <p className="mt-2 text-sm text-slate-300">
-                Sell tickets online with a flat 8% commission, weekly
-                settlements, and a free QR scanner for your crew.
+                {t("operator.ctaDesc")}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 sm:justify-end">
               <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
-                <Link href="/operator/login">Operator portal</Link>
+                <Link href="/operator/login">{t("operator.portal")}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link href="/contact">Get in touch</Link>
+                <Link href="/contact">{t("operator.getInTouch")}</Link>
               </Button>
             </div>
           </div>

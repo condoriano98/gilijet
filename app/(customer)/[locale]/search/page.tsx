@@ -25,6 +25,9 @@ import { formatIDR } from "@/lib/utils";
 import { findConnections } from "@/lib/connection-search";
 import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 import { getSeaCondition } from "@/lib/sea-conditions";
+import { seatUrgency } from "@/lib/seat-urgency";
+import { getCustomerSession } from "@/lib/auth";
+import { getLatestRates, formatWithDisplay } from "@/lib/fx";
 
 const querySchema = z.object({
   origin: z.string().min(2).optional(),
@@ -242,6 +245,42 @@ export default async function SearchPage({
     }
   }
 
+  // Travel Again: check if logged-in customer has booked this route before
+  const customerSession = await getCustomerSession();
+  let travelAgainRoutes = new Set<string>();
+  if (customerSession) {
+    try {
+      const pastBookings = await prisma.booking.findMany({
+        where: {
+          customerId: customerSession.sub,
+          status: "CONFIRMED",
+        },
+        select: {
+          leg: {
+            select: {
+              schedule: {
+                select: {
+                  originPort: true,
+                  destinationPort: true,
+                  boat: { select: { operatorId: true } },
+                },
+              },
+            },
+          },
+        },
+        take: 50,
+      });
+      for (const b of pastBookings) {
+        const key = `${b.leg.schedule.originPort}|${b.leg.schedule.destinationPort}|${b.leg.schedule.boat.operatorId}`;
+        travelAgainRoutes.add(key);
+      }
+    } catch (err) {
+      console.error("[search] travel-again query failed:", err);
+    }
+  }
+
+  const fxRates = await getLatestRates();
+
   return (
     <div className="container py-8">
       <BookingProgress currentStep={1} />
@@ -322,6 +361,11 @@ export default async function SearchPage({
           ) : null}
           {legsWithAdjustedPricing.map((leg) => {
             const rating = ratingsByScheduleId.get(leg.scheduleId);
+            const urgency = seatUrgency(leg.availableSeats);
+            const travelAgainKey = `${leg.schedule.originPort}|${leg.schedule.destinationPort}|${leg.operatorId}`;
+            const showTravelAgain = travelAgainRoutes.has(travelAgainKey);
+            const priceIdr = Number(leg.adjustedPrice);
+            const fxDisplay = formatWithDisplay(priceIdr, "USD", fxRates);
             return (
               <Card key={leg.id}>
                 <CardHeader className="pb-2">
@@ -367,8 +411,11 @@ export default async function SearchPage({
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">
-                        {formatIDR(Number(leg.adjustedPrice))}
+                        {fxDisplay.primary}
                       </div>
+                      {fxDisplay.secondary ? (
+                        <div className="text-xs text-slate-500">{fxDisplay.secondary}</div>
+                      ) : null}
                       {leg.isPriceSurged ? (
                         <div className="text-xs text-amber-600">High demand</div>
                       ) : null}
@@ -379,23 +426,44 @@ export default async function SearchPage({
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="success">{leg.availableSeats} seats left</Badge>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="success">
+                      Direct · {leg.schedule.durationMinutes}m
+                    </Badge>
+                    {urgency ? (
+                      <Badge variant={urgency.tone}>{urgency.label}</Badge>
+                    ) : (
+                      <Badge variant="success">{leg.availableSeats} seats left</Badge>
+                    )}
                     {leg.availableSeats < passengers ? (
                       <span className="text-red-600">
                         Not enough seats for {passengers}
                       </span>
                     ) : null}
+                    {showTravelAgain ? (
+                      <Badge variant="outline" className="border-gilijet-ocean text-gilijet-ocean">
+                        Travel Again
+                      </Badge>
+                    ) : null}
                   </div>
-                  <Button asChild disabled={leg.availableSeats < passengers}>
+                  <div className="flex items-center gap-3">
                     <Link
-                      href={`/book/${leg.id}?passengers=${passengers}`}
-                      aria-disabled={leg.availableSeats < passengers}
+                      href="/best-price-guarantee"
+                      className="text-xs text-slate-500 hover:underline"
+                      title="Best Price Guarantee"
                     >
-                      Book {passengers} ·{" "}
-                      {formatIDR(Number(leg.adjustedPrice) * passengers)}
+                      Best Price ✓
                     </Link>
-                  </Button>
+                    <Button asChild disabled={leg.availableSeats < passengers}>
+                      <Link
+                        href={`/book/${leg.id}?passengers=${passengers}`}
+                        aria-disabled={leg.availableSeats < passengers}
+                      >
+                        Book {passengers} ·{" "}
+                        {formatIDR(Number(leg.adjustedPrice) * passengers)}
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -443,16 +511,30 @@ export default async function SearchPage({
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-xs text-muted-foreground">
-                    {conn.leg1.schedule.boat.name} + {conn.leg2.schedule.boat.name}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="warning">
+                      Transit · via {conn.transferPort}
+                    </Badge>
+                    <span>
+                      {conn.leg1.schedule.boat.name} + {conn.leg2.schedule.boat.name}
+                    </span>
                   </div>
-                  <Button asChild variant="outline" size="sm">
+                  <div className="flex items-center gap-3">
                     <Link
-                      href={`/book/${conn.leg1.id}?passengers=${passengers}`}
+                      href="/best-price-guarantee"
+                      className="text-xs text-slate-500 hover:underline"
+                      title="Best Price Guarantee"
                     >
-                      Book leg 1 first
+                      Best Price ✓
                     </Link>
-                  </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        href={`/book/${conn.leg1.id}?passengers=${passengers}`}
+                      >
+                        Book leg 1 first
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

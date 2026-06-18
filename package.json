@@ -44,6 +44,7 @@
     "jose": "^5.9.6",
     "lucide-react": "^0.469.0",
     "next": "15.5.18",
+    "next-intl": "^4.13.0",
     "qrcode": "1.5.4",
     "react": "19.2.6",
     "react-day-picker": "^10.0.1",

@@ -38,6 +38,9 @@ const envSchema = z.object({
     .transform((v) => v === "true")
     .default("false"),
 
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
   CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),

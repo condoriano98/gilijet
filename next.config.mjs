@@ -1,8 +1,10 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // `standalone` produces a minimal server bundle that Docker can run
-  // without the rest of node_modules. See scripts/deploy.sh.
   output: "standalone",
   images: {
     remotePatterns: [
@@ -18,4 +20,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

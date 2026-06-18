@@ -404,6 +404,14 @@ export default async function BookingLookupPage({
                   </div>
                 ) : null}
                 <KV label="Dock address" value={portInfo.address} />
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${portInfo.lat},${portInfo.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs font-medium text-gilijet-ocean hover:underline"
+                >
+                  Get directions →
+                </a>
                 <p className="text-xs text-muted-foreground">{portInfo.dockTip}</p>
                 <KV
                   label="Operator"

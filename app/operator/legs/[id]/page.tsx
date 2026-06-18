@@ -30,6 +30,7 @@ import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 const cancelSchema = z.object({
   id: z.string(),
   reason: z.string().min(3).max(280),
+  cancellationType: z.enum(["STANDARD", "WEATHER"]).default("STANDARD"),
 });
 
 async function cancelLegAction(formData: FormData) {
@@ -38,6 +39,7 @@ async function cancelLegAction(formData: FormData) {
   const parsed = cancelSchema.safeParse({
     id: formData.get("id"),
     reason: formData.get("reason"),
+    cancellationType: formData.get("cancellationType") ?? "STANDARD",
   });
   if (!parsed.success) {
     redirect(
@@ -51,6 +53,47 @@ async function cancelLegAction(formData: FormData) {
       reason: parsed.data.reason,
       operatorId: session.sub,
     });
+
+    if (parsed.data.cancellationType === "WEATHER") {
+      const bookings = await prisma.booking.findMany({
+        where: { legId: parsed.data.id, status: "CONFIRMED" },
+        include: { payment: true },
+      });
+      for (const booking of bookings) {
+        const { refundAmountForOperatorCancellation } = await import("@/lib/refunds");
+        const refundAmount = refundAmountForOperatorCancellation(booking.totalAmount);
+        await prisma.$transaction(async (tx) => {
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: { status: "CANCELLED_BY_OPERATOR" },
+          });
+          await tx.ticket.updateMany({
+            where: { bookingId: booking.id, status: { in: ["ISSUED"] } },
+            data: { status: "REFUNDED" },
+          });
+          const existingRefund = await tx.refund.findUnique({ where: { bookingId: booking.id } });
+          if (!existingRefund && refundAmount.gt(0)) {
+            await tx.refund.create({
+              data: {
+                bookingId: booking.id,
+                originalAmount: booking.totalAmount,
+                refundAmount,
+                reason: "WEATHER",
+                status: "PENDING",
+              },
+            });
+          }
+        });
+        await audit({
+          entityType: "BOOKING",
+          entityId: booking.id,
+          action: "weather_cancelled",
+          userRole: "SYSTEM",
+          newState: { reason: "WEATHER", refundAmount: refundAmount.toString() },
+        });
+      }
+    }
+
     redirect(`/operator/legs/${parsed.data.id}?ok=cancelled`);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -200,6 +243,17 @@ export default async function LegManifestPage({
             </summary>
             <form action={cancelLegAction} className="space-y-3 p-3">
               <input type="hidden" name="id" value={leg.id} />
+              <div className="space-y-1">
+                <Label htmlFor="cancellationType">Cancellation reason</Label>
+                <select
+                  id="cancellationType"
+                  name="cancellationType"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="STANDARD">Standard cancellation</option>
+                  <option value="WEATHER">Weather — unsafe conditions</option>
+                </select>
+              </div>
               <div className="space-y-1">
                 <Label htmlFor="reason">Reason (visible to customers)</Label>
                 <Textarea
