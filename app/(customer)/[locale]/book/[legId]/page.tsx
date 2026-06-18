@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PassengerFields } from "@/components/customer/passenger-fields";
+import { ContactFields } from "./contact-fields";
 import { PromoCodeInput } from "@/components/customer/promo-code-input";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { SubmitBookingButton } from "@/components/customer/submit-booking-button";
@@ -294,44 +295,21 @@ export default async function BookPage({
                   defaultValue={customer?.fullName ?? ""}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Email</Label>
-                  <Input
-                    id="customerEmail"
-                    name="customerEmail"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    defaultValue={customer?.email ?? ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customerPhone">
-                    Phone (WhatsApp preferred)
-                  </Label>
-                  <Input
-                    id="customerPhone"
-                    name="customerPhone"
-                    type="tel"
-                    required
-                    minLength={PHONE_MIN}
-                    autoComplete="tel"
-                    defaultValue={customer?.phoneNumber ?? ""}
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
-                <Label htmlFor="customerNationality">
-                  Nationality (optional)
-                </Label>
+                <Label htmlFor="customerEmail">Email</Label>
                 <Input
-                  id="customerNationality"
-                  name="customerNationality"
-                  placeholder="e.g. Indonesia"
-                  defaultValue={customer?.nationality ?? ""}
+                  id="customerEmail"
+                  name="customerEmail"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  defaultValue={customer?.email ?? ""}
                 />
               </div>
+              <ContactFields
+                defaultPhone={customer?.phoneNumber ?? ""}
+                defaultNationality={customer?.nationality ?? ""}
+              />
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (optional)</Label>
                 <Textarea
