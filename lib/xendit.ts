@@ -130,3 +130,64 @@ export function _hmacFingerprint(payload: string): string {
 export function isXenditConfigured(): boolean {
   return Boolean(env.XENDIT_SECRET_KEY);
 }
+
+// ---------- diagnostics ----------
+
+export type XenditPingResult = {
+  ok: boolean;
+  mode: "live" | "test" | "unknown";
+  keyPrefix: string;
+  status: number;
+  balanceIDR: number | null;
+  error: string | null;
+};
+
+/**
+ * Read-only auth check against Xendit. Hits GET /balance and reports whether
+ * the configured XENDIT_SECRET_KEY authenticates and which mode it's in.
+ * Does not create invoices or move money. Safe to call from an admin route.
+ */
+export async function pingXendit(): Promise<XenditPingResult> {
+  if (!env.XENDIT_SECRET_KEY) {
+    return {
+      ok: false,
+      mode: "unknown",
+      keyPrefix: "",
+      status: 0,
+      balanceIDR: null,
+      error: "XENDIT_SECRET_KEY not set",
+    };
+  }
+  const key = env.XENDIT_SECRET_KEY;
+  const mode: XenditPingResult["mode"] = key.startsWith("xnd_production_")
+    ? "live"
+    : key.startsWith("xnd_development_")
+      ? "test"
+      : "unknown";
+  const keyPrefix = key.slice(0, 16) + "…";
+  try {
+    const r = await xenditFetch<{ balance: number }>(
+      "/balance?account_type=CASH",
+      { method: "GET" },
+    );
+    return {
+      ok: true,
+      mode,
+      keyPrefix,
+      status: 200,
+      balanceIDR: r.balance,
+      error: null,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const m = msg.match(/(\d{3})/);
+    return {
+      ok: false,
+      mode,
+      keyPrefix,
+      status: m ? Number(m[1]) : 0,
+      balanceIDR: null,
+      error: msg,
+    };
+  }
+}
