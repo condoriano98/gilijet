@@ -68,7 +68,6 @@ const ORGANIZATION_JSONLD = {
   name: "Gilijet",
   legalName: "PT Gilijet Nusantara",
   url: SITE_URL,
-  logo: `${SITE_URL}/apple-icon`,
   description: SITE_DESCRIPTION,
   sameAs: [],
   contactPoint: {

@@ -61,7 +61,6 @@ export default async function BlogPost({
     publisher: {
       "@type": "Organization",
       name: "Gilijet",
-      logo: { "@type": "ImageObject", url: `${base}/apple-icon` },
     },
     mainEntityOfPage: `${base}/blog/${post.meta.slug}`,
     keywords: post.meta.tags.join(", "),
