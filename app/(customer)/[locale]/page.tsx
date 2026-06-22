@@ -130,7 +130,7 @@ export default async function HomePage() {
               <Badge className="bg-gilijet-coral/20 text-white border-white/20">
                 {t("home.badge")}
               </Badge>
-              <h1 className="mt-4 text-4xl font-display font-extrabold text-white drop-shadow sm:text-5xl lg:text-6xl">
+              <h1 className="mt-4 text-3xl font-display font-extrabold text-white drop-shadow sm:text-5xl lg:text-6xl">
                 {t("home.heroTitle")}
               </h1>
               <p className="mt-4 text-lg text-white/90 drop-shadow sm:text-xl max-w-prose">
@@ -239,7 +239,7 @@ export default async function HomePage() {
                   )}
                 </p>
               </div>
-              <Button asChild className="bg-gilijet-coral hover:bg-gilijet-coralDeep">
+              <Button asChild className="w-full bg-gilijet-coral hover:bg-gilijet-coralDeep sm:w-auto">
                 <Link href="/search">Book now</Link>
               </Button>
             </div>

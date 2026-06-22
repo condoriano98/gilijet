@@ -28,7 +28,7 @@ export function NearestPortCard() {
 
   return (
     <Card className="border-gilijet-ocean/30 bg-gradient-to-r from-gilijet-foam to-white">
-      <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5 pb-5">
+      <CardContent className="flex flex-col gap-4 pt-5 pb-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-gilijet-ocean">
             Nearest to you
@@ -40,8 +40,8 @@ export function NearestPortCard() {
             ~{Math.round(nearest.distanceKm)} km away
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button asChild size="sm" className="w-full sm:w-auto">
             <Link
               href={`/search?origin=${encodeURIComponent(nearest.name)}`}
             >
@@ -49,7 +49,7 @@ export function NearestPortCard() {
             </Link>
           </Button>
           {ports.length > 1 && (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link
                 href={`/search?origin=${encodeURIComponent(ports[1].name)}`}
               >

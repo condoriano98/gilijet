@@ -14,15 +14,15 @@ export default function CustomerLayout({
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 to-white">
       <header className="border-b bg-white/80 backdrop-blur">
-        <div className="container flex h-14 items-center justify-between">
+        <div className="container flex h-14 items-center justify-between gap-2">
           <Link
             href="/"
-            className="text-lg font-bold tracking-tight text-sky-700"
+            className="shrink-0 text-lg font-bold tracking-tight text-sky-700"
           >
             Gilijet
           </Link>
           <nav className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
               <Link href="/b">Find booking</Link>
             </Button>
             <AuthNav />

@@ -45,7 +45,7 @@ export function ContactFields({
         <Label>Phone (WhatsApp preferred)</Label>
         <div className="flex gap-2">
           <Select value={phoneCountryCode} onValueChange={setPhoneCountryCode}>
-            <SelectTrigger className="w-32 shrink-0">
+            <SelectTrigger className="w-24 shrink-0 sm:w-32">
               <SelectValue>
                 <span className="truncate">
                   {phoneFlag} {phoneDialCode}

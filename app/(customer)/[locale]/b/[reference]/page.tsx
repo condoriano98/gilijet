@@ -462,7 +462,7 @@ export default async function BookingLookupPage({
                   {returnLegs.map((rl) => (
                     <div
                       key={rl.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-sm"
+                      className="flex flex-col gap-2 rounded-md border bg-white px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
                         <div className="font-medium">
@@ -477,7 +477,7 @@ export default async function BookingLookupPage({
                           {formatIDR(Number(rl.basePrice))}
                         </div>
                       </div>
-                      <Button asChild size="sm" variant="outline">
+                      <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
                         <Link
                           href={`/book/${rl.id}?passengers=${Math.max(1, booking.tickets.length)}`}
                         >

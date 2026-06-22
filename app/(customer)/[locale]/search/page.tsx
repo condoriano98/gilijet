@@ -376,7 +376,7 @@ export default async function SearchPage({
                         <img
                           src={leg.schedule.boat.photos[0]}
                           alt={leg.schedule.boat.name}
-                          className="h-16 w-20 rounded-md border object-cover"
+                          className="hidden h-16 w-20 shrink-0 rounded-md border object-cover sm:block"
                         />
                       ) : null}
                       <div>
