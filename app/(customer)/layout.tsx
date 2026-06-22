@@ -22,6 +22,9 @@ export default function CustomerLayout({
             Gilijet
           </Link>
           <nav className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="hidden px-2 sm:inline-flex sm:px-3">
+              <Link href="/blog">Blog</Link>
+            </Button>
             <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
               <Link href="/b">Find booking</Link>
             </Button>
@@ -54,6 +57,11 @@ export default function CustomerLayout({
                 <li>
                   <Link href="/contact" className="text-slate-600 hover:text-sky-700 hover:underline">
                     Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/blog" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Blog
                   </Link>
                 </li>
                 <li>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 const displayFont = Plus_Jakarta_Sans({
@@ -9,20 +10,89 @@ const displayFont = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const SITE_URL = env.APP_BASE_URL.replace(/\/$/, "");
+const SITE_TITLE = "Gilijet — Boat tickets across Indonesia";
+const SITE_DESCRIPTION =
+  "Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Gilijet — Boat tickets across Indonesia",
+    default: SITE_TITLE,
     template: "%s · Gilijet",
   },
-  description:
-    "Book fast boats and ferries across Indonesian islands. Pay with QRIS, e-wallets, bank transfer, or card.",
+  description: SITE_DESCRIPTION,
   applicationName: "Gilijet",
+  keywords: [
+    "boat tickets Indonesia",
+    "Bali to Gili fast boat",
+    "Lombok ferry",
+    "Nusa Penida fast boat",
+    "Komodo ferry",
+    "fast boat booking",
+    "tiket kapal cepat",
+  ],
+  authors: [{ name: "PT Gilijet Nusantara" }],
+  category: "travel",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Gilijet",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "en_ID",
+    alternateLocale: ["id_ID"],
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#0a3d62",
+};
+
+const ORGANIZATION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Gilijet",
+  legalName: "PT Gilijet Nusantara",
+  url: SITE_URL,
+  logo: `${SITE_URL}/apple-icon`,
+  description: SITE_DESCRIPTION,
+  sameAs: [],
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: "support@gilijet.com",
+    availableLanguage: ["English", "Indonesian"],
+  },
+};
+
+const WEBSITE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Gilijet",
+  url: SITE_URL,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/search?origin={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({
@@ -32,7 +102,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${displayFont.variable} font-sans`}>{children}</body>
+      <body className={`${displayFont.variable} font-sans`}>
+        {children}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSONLD) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+        />
+      </body>
     </html>
   );
 }

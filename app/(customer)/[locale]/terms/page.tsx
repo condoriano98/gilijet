@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export const metadata = { title: "Terms & Conditions · Gilibali" };
+export const metadata = {
+  title: "Terms & Conditions",
+  description: "Gilijet booking terms, cancellation policy, and refund schedule.",
+};
 
 function Section({
   n,
