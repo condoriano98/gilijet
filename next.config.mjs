@@ -17,6 +17,15 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-label",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-select",
+    ],
   },
   async redirects() {
     return [
