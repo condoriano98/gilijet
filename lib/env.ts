@@ -20,6 +20,7 @@ const envSchema = z.object({
     .transform((v) => (v === "" ? undefined : v)),
 
   MAYAR_API_KEY: z.string().optional(),
+  MAYAR_WEBHOOK_SECRET: z.string().optional(),
   MAYAR_IS_PRODUCTION: z
     .string()
     .optional()
@@ -41,7 +42,7 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
-  CRON_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().min(16),
 
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z

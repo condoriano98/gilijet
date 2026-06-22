@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dispatchWebhookPayload } from "@/lib/webhook-processor";
+import { verifyMayarWebhook } from "@/lib/mayar";
 import { normalizePaymentMethod } from "@/lib/psp";
 
 /**
  * Mayar webhook endpoint.
  *
  * Mayar sends a POST with JSON on events like payment.received.
- * They do not document a request-side signature header, so we verify
- * by looking up the payment in our DB using data.id (the invoice ID
- * we stored as gatewayReference when creating the Mayar invoice).
+ * Authentication is a shared secret carried in `x-callback-token`
+ * (or `Authorization: Bearer`); see `verifyMayarWebhook` in lib/mayar.ts.
  *
  * Webhook payload shape (payment.received):
  *   event: "payment.received"
@@ -24,6 +24,13 @@ import { normalizePaymentMethod } from "@/lib/psp";
  * webhook-processor can find and confirm the booking.
  */
 export async function POST(req: NextRequest) {
+  if (!verifyMayarWebhook(req)) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   let payload: unknown;
   try {
     payload = await req.json();

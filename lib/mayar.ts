@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { env } from "./env";
 
 /**
@@ -180,4 +181,33 @@ export async function createRefund(
 /** True when we can talk to Mayar (i.e. customer-facing payment is real). */
 export function isMayarConfigured(): boolean {
   return Boolean(env.MAYAR_API_KEY);
+}
+
+// ---------- webhook verification ----------
+
+/**
+ * Verifies a Mayar webhook request.
+ *
+ * Mayar does not document a request-side HMAC, so we gate the endpoint
+ * on a shared secret delivered in either:
+ *   - `x-callback-token: <MAYAR_WEBHOOK_SECRET>`        (Xendit-style)
+ *   - `Authorization: Bearer <MAYAR_WEBHOOK_SECRET>`
+ *
+ * Comparison is timing-safe. Returns false (fail-closed) when
+ * MAYAR_WEBHOOK_SECRET is unset — production deploys MUST set it
+ * before pointing Mayar's webhook at us.
+ */
+export function verifyMayarWebhook(req: Request): boolean {
+  if (!env.MAYAR_WEBHOOK_SECRET) return false;
+  const callbackToken = req.headers.get("x-callback-token");
+  const auth = req.headers.get("authorization");
+  const bearer = auth?.toLowerCase().startsWith("bearer ")
+    ? auth.slice(7).trim()
+    : null;
+  const provided = callbackToken ?? bearer;
+  if (!provided) return false;
+  const a = Buffer.from(env.MAYAR_WEBHOOK_SECRET, "utf8");
+  const b = Buffer.from(provided, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }

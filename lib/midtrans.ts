@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { env } from "./env";
 
 export class MidtransNotConfiguredError extends Error {
@@ -92,5 +92,8 @@ export function verifyMidtransSignature(
   const expected = createHash("sha512")
     .update(`${orderId}${statusCode}${grossAmount}${env.MIDTRANS_SERVER_KEY}`)
     .digest("hex");
-  return expected === signatureKey;
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(signatureKey, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }

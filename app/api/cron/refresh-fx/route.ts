@@ -6,7 +6,7 @@ const CURRENCIES = ["USD", "EUR", "AUD", "SGD", "MYR", "THB", "CNY", "JPY", "KRW
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-  if (env.CRON_SECRET && authHeader !== `Bearer ${env.CRON_SECRET}`) {
+  if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
