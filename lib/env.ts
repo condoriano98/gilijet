@@ -70,41 +70,34 @@ function loadEnv() {
   const parsed = envSchema.safeParse(process.env);
   if (parsed.success) return parsed.data;
 
-  // During `next build` (`NEXT_PHASE === "phase-production-build"`) the
-  // hosting platform's runtime env may not be wired in yet — Vercel, for
-  // instance, only exposes server env at request time. Don't fail the
-  // build for it; just warn. We still hard-fail at runtime below.
   const isBuild = process.env.NEXT_PHASE === "phase-production-build";
-  const missing = Object.keys(parsed.error.flatten().fieldErrors);
+  const isProd = process.env.NODE_ENV === "production";
+  const fieldErrors = parsed.error.flatten().fieldErrors;
+  const missing = Object.keys(fieldErrors);
 
-  if (isBuild) {
-    console.warn(
-      "[env] missing/invalid at build time (ok if set at runtime):",
-      missing,
-    );
-    return envSchema.partial().parse(process.env) as z.infer<typeof envSchema>;
+  const logger = isBuild || !isProd ? console.warn : console.error;
+  const label = isBuild
+    ? "[env] missing/invalid at build time (ok if set at runtime):"
+    : "[env] Invalid or missing variables (continuing in degraded mode):";
+  logger(label, isBuild ? missing : fieldErrors);
+
+  // Fall back to a partial parse. Using safeParse here is critical —
+  // partial() makes fields optional but the per-field validators (e.g.
+  // .url()) still run on any value that IS present. A malformed env
+  // var (e.g. XENDIT_CALLBACK_URL set to a non-URL) would otherwise
+  // throw at module load and crash any route that imports `env`,
+  // taking the whole build / deploy down. Never throw here.
+  const partial = envSchema.partial().safeParse(process.env);
+  if (partial.success) {
+    return partial.data as z.infer<typeof envSchema>;
   }
 
-  // In production runtime, log loudly but DON'T crash the whole app —
-  // a single missing optional env var shouldn't take the site down. The
-  // specific feature that needs the missing var will fail at its own
-  // call site (e.g. Xendit calls throw a typed error, Prisma throws on
-  // its first query, etc.) where we can return a useful error to the
-  // user. This is more resilient than a hard module-load throw.
-  if (process.env.NODE_ENV === "production") {
-    console.error(
-      "[env] Invalid or missing variables (continuing in degraded mode):",
-      parsed.error.flatten().fieldErrors,
-    );
-    return envSchema.partial().parse(process.env) as z.infer<typeof envSchema>;
-  }
-
-  // Dev: tolerate so `next dev` and unit-test runs aren't blocked.
-  console.warn(
-    "[env] Invalid or missing variables (continuing in non-production):",
-    parsed.error.flatten().fieldErrors,
+  console.error(
+    "[env] Both strict and partial parses failed; returning empty env. " +
+      "Features that need these vars will fail at the call site:",
+    partial.error.flatten().fieldErrors,
   );
-  return envSchema.partial().parse(process.env) as z.infer<typeof envSchema>;
+  return {} as z.infer<typeof envSchema>;
 }
 
 export const env = loadEnv();
