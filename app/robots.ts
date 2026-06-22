@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
-import { env } from "@/lib/env";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = env.APP_BASE_URL.replace(/\/$/, "");
+  const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
   return {
     rules: [
       {

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { env } from "@/lib/env";
 import "./globals.css";
 
 const displayFont = Plus_Jakarta_Sans({
@@ -10,7 +9,7 @@ const displayFont = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const SITE_URL = env.APP_BASE_URL.replace(/\/$/, "");
+const SITE_URL = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 const SITE_TITLE = "Gilijet — Boat tickets across Indonesia";
 const SITE_DESCRIPTION =
   "Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.";

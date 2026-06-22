@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { env } from "@/lib/env";
 import { POSTS } from "@/content/blog";
 
 const STATIC_PATHS = [
@@ -14,7 +13,7 @@ const STATIC_PATHS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = env.APP_BASE_URL.replace(/\/$/, "");
+  const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
   const now = new Date();
   const staticEntries = STATIC_PATHS.map(({ path, changeFrequency, priority }) => ({
     url: `${base}${path}`,
