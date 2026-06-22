@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAdminSession, clearAdminSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,17 +14,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const hdrs = await headers();
-  const pathname = hdrs.get("x-invoke-path") ?? hdrs.get("x-pathname") ?? "";
   const session = await getAdminSession();
-
-  // The /admin/login page renders its own layout (no nav). For every other
-  // /admin page, require a session.
-  if (!session && !pathname.endsWith("/admin/login")) {
-    // Children handle redirects via requireAdmin(); render minimally here.
-  }
-
-  if (!session) return <>{children}</>;
+  if (!session) redirect("/admin/login");
 
   const nav = [
     { href: "/admin", label: "Overview" },

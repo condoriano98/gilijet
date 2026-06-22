@@ -25,7 +25,12 @@ export async function POST(req: NextRequest) {
 
   if (externalRef) {
     const existing = await prisma.webhookEvent.findFirst({
-      where: { provider: "stripe", eventType, externalRef, status: "PROCESSED" },
+      where: {
+        provider: "stripe",
+        eventType,
+        externalRef,
+        status: { in: ["PROCESSED", "PROCESSING"] },
+      },
     });
     if (existing) {
       return NextResponse.json({ ok: true, idempotent: true });

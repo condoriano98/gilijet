@@ -23,6 +23,18 @@ function stateSecret(): Uint8Array {
 
 type StatePayload = { nonce: string; next: string };
 
+/**
+ * Coerces a caller-supplied `next` parameter into a same-origin relative path.
+ * Rejects absolute URLs, protocol-relative `//evil.com`, and any value that
+ * doesn't start with a single `/`. Used both at OAuth start (to populate the
+ * state JWT) and at callback time (defence-in-depth against a forged state).
+ */
+export function safeNext(raw: string | null | undefined): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 export async function signState(payload: StatePayload): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
@@ -35,8 +47,8 @@ export async function verifyState(token: string): Promise<StatePayload | null> {
   try {
     const { payload } = await jwtVerify(token, stateSecret());
     if (typeof payload.nonce !== "string") return null;
-    const next = typeof payload.next === "string" ? payload.next : "/account";
-    return { nonce: payload.nonce, next };
+    const rawNext = typeof payload.next === "string" ? payload.next : null;
+    return { nonce: payload.nonce, next: safeNext(rawNext) };
   } catch {
     return null;
   }

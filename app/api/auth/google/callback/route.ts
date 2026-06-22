@@ -5,6 +5,7 @@ import { setCustomerSession } from "@/lib/auth";
 import {
   exchangeCodeForProfile,
   isGoogleOAuthEnabled,
+  safeNext,
   verifyState,
 } from "@/lib/google-oauth";
 
@@ -90,5 +91,5 @@ export async function GET(req: Request) {
     fullName: customer.fullName,
   });
 
-  return NextResponse.redirect(new URL(parsedState.next, req.url));
+  return NextResponse.redirect(new URL(safeNext(parsedState.next), req.url));
 }

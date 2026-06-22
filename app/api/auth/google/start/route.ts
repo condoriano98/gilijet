@@ -3,16 +3,11 @@ import { cookies } from "next/headers";
 import {
   buildAuthorizeUrl,
   isGoogleOAuthEnabled,
+  safeNext,
   signState,
 } from "@/lib/google-oauth";
 
 const STATE_COOKIE = "gilijet_google_state";
-
-function safeNext(raw: string | null): string {
-  if (!raw) return "/";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
-  return raw;
-}
 
 export async function GET(req: Request) {
   if (!isGoogleOAuthEnabled()) {

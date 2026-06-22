@@ -64,38 +64,21 @@ describe("refundAmountForCustomer", () => {
     expect(amount.toString()).toBe("0");
   });
 
-  it("prefers snapshot tiers over live tiers", () => {
-    const snapshot = snapshotCurrentPolicy({
-      departure: new Date("2026-06-08T00:00:00Z"),
-      deadline: new Date("2026-06-06T00:00:00Z"),
-    });
-    // Mutate snapshot to give 100% refund even at <48h
-    const mutated = { ...snapshot, tiers: [{ hoursBeforeDeparture: 0, refundFraction: 1.0 }] };
-    const { amount } = refundAmountForCustomer({
+  it("ignores any caller-supplied snapshot — only the live policy table determines the fraction", () => {
+    // Regression for H-5: previously a caller-supplied snapshot could override
+    // the policy table. A persisted-but-attacker-influenced `refundPolicySnapshot`
+    // must NOT be able to inflate a refund. The function no longer accepts a
+    // snapshot at all; even if a future caller tried to slip one through, the
+    // result must remain bound to refundTierForCustomer.
+    const { amount, tier } = refundAmountForCustomer({
       now: new Date("2026-06-07T00:00:00Z"),
-      departure: new Date("2026-06-08T00:00:00Z"),
+      departure: new Date("2026-06-08T00:00:00Z"), // 24h → NONE
       paidAmount: 500_000,
-      snapshot: mutated,
+      // @ts-expect-error — snapshot is intentionally not a parameter; verify TS rejects it.
+      snapshot: { tiers: [{ hoursBeforeDeparture: 0, refundFraction: 1.0 }] },
     });
-    expect(amount.toString()).toBe("500000");
-  });
-
-  it("handles non-integer refund fractions", () => {
-    const snapshot = snapshotCurrentPolicy({
-      departure: new Date("2026-06-08T00:00:00Z"),
-      deadline: new Date("2026-06-06T00:00:00Z"),
-    });
-    const custom = {
-      ...snapshot,
-      tiers: [{ hoursBeforeDeparture: 0, refundFraction: 0.33 }],
-    };
-    const { amount } = refundAmountForCustomer({
-      now: new Date("2026-06-07T00:00:00Z"),
-      departure: new Date("2026-06-08T00:00:00Z"),
-      paidAmount: 100_000,
-      snapshot: custom,
-    });
-    expect(amount.toString()).toBe("33000");
+    expect(tier).toBe("NONE");
+    expect(amount.toString()).toBe("0");
   });
 });
 

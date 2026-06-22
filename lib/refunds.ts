@@ -36,7 +36,6 @@ export function refundAmountForCustomer(args: {
   now: Date;
   departure: Date;
   paidAmount: Prisma.Decimal | string | number;
-  snapshot?: RefundPolicySnapshot | null;
 }): { tier: CustomerRefundTier; amount: Prisma.Decimal } {
   const paid = new Prisma.Decimal(args.paidAmount);
   const tier = refundTierForCustomer(args.now, args.departure);
@@ -51,20 +50,6 @@ export function refundAmountForCustomer(args: {
     case "NONE":
       fraction = 0;
       break;
-  }
-
-  if (args.snapshot?.tiers?.length) {
-    const ms = args.departure.getTime() - args.now.getTime();
-    const hours = ms / (1000 * 60 * 60);
-    const sorted = [...args.snapshot.tiers].sort(
-      (a, b) => b.hoursBeforeDeparture - a.hoursBeforeDeparture,
-    );
-    for (const t of sorted) {
-      if (hours >= t.hoursBeforeDeparture) {
-        fraction = t.refundFraction;
-        break;
-      }
-    }
   }
 
   const amount = paid.mul(String(fraction)).toDecimalPlaces(0);
@@ -89,9 +74,11 @@ export function refundAmountForOperatorCancellation(
 }
 
 /**
- * Capture the current refund policy as a snapshot at booking time so that
- * historical refunds always compute against the rules that were in effect
- * when the customer booked, not any future changes.
+ * Capture the current refund policy as a snapshot at booking time for
+ * record-keeping / dispute resolution. The live policy table in
+ * `refundTierForCustomer` is the only thing `refundAmountForCustomer` reads
+ * from — the snapshot is NOT consulted at refund time, so persisted values
+ * cannot influence the refund fraction.
  */
 export function snapshotCurrentPolicy(args: {
   departure: Date;
