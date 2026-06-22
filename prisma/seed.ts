@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { generateLegsForSchedule } from "../lib/legs";
+import { ymdInZone } from "../lib/datetime";
 import { buildQrPayload, signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
 import { computeBookingPrice } from "../lib/pricing";
@@ -368,9 +369,10 @@ async function seedDemoBooking(
     data: { availableSeats: { decrement: args.passengers.length } },
   });
 
+  const departureYmd = ymdInZone(departureDate);
   for (let i = 0; i < args.passengers.length; i++) {
     const ticketCode = newTicketCode(ref, i + 1);
-    const qrHash = signTicketCode(ticketCode);
+    const qrHash = signTicketCode(ticketCode, departureYmd);
     await prisma.ticket.create({
       data: {
         bookingId: booking.id,
@@ -381,7 +383,7 @@ async function seedDemoBooking(
       },
     });
     console.log(
-      `   • ${ticketCode}  →  QR payload: ${buildQrPayload(ticketCode)}`,
+      `   • ${ticketCode}  →  QR payload: ${buildQrPayload(ticketCode, departureDate)}`,
     );
   }
 }

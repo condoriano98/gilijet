@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getOperatorSession } from "@/lib/auth";
 import { verifyQrPayload } from "@/lib/qr";
-import { formatLocalDateTime } from "@/lib/datetime";
+import { formatLocalDateTime, ymdInZone } from "@/lib/datetime";
 
 const bodySchema = z.object({
   qrPayload: z.string().min(1),
@@ -116,6 +116,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
             expectedDeparture: leg.departureDate.toISOString(),
             route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
           },
+        };
+      }
+      // QR is HMAC-bound to the sailing date. A QR built for a different
+      // departure date cannot be replayed against this leg even if the
+      // ticketCode were ever reused.
+      if (verified.departureYmd !== ymdInZone(leg.departureDate)) {
+        return {
+          ok: false as const,
+          reason: "INVALID_QR" as const,
+          message: "QR code is not valid for this sailing date.",
         };
       }
       if (leg.status === "CANCELLED" || leg.status === "SAILED") {

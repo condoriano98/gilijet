@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       const tickets = booking.tickets.map((t) => ({
         ticketCode: t.ticketCode,
         passengerName: t.passengerName,
-        qrPayload: buildQrPayload(t.ticketCode),
+        qrPayload: buildQrPayload(t.ticketCode, booking.leg.departureDate),
       }));
 
       const result = await sendDepartureReminder({

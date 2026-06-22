@@ -8,6 +8,7 @@ import {
   verifyPassword,
   type AdminSession,
 } from "@/lib/auth";
+import { loginGate, recordLoginAttempt } from "@/lib/login-throttle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,13 +35,24 @@ async function loginAction(formData: FormData) {
   });
   if (!parsed.success) redirect("/admin/login?error=invalid");
 
-  const admin = await prisma.admin.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
-  });
-  if (!admin) redirect("/admin/login?error=credentials");
-  const ok = await verifyPassword(parsed.data.password, admin.passwordHash);
-  if (!ok) redirect("/admin/login?error=credentials");
+  const email = parsed.data.email.toLowerCase();
+  const gate = await loginGate("ADMIN", email);
+  if (!gate.allowed) redirect("/admin/login?error=locked");
 
+  const admin = await prisma.admin.findUnique({
+    where: { email },
+  });
+  if (!admin) {
+    await recordLoginAttempt("ADMIN", email, false);
+    redirect("/admin/login?error=credentials");
+  }
+  const ok = await verifyPassword(parsed.data.password, admin.passwordHash);
+  if (!ok) {
+    await recordLoginAttempt("ADMIN", email, false);
+    redirect("/admin/login?error=credentials");
+  }
+
+  await recordLoginAttempt("ADMIN", email, true);
   const session: AdminSession = {
     sub: admin.id,
     role: "admin",
@@ -79,7 +91,9 @@ export default async function AdminLoginPage({
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error === "credentials"
                   ? "Invalid email or password."
-                  : "Please check your details."}
+                  : error === "locked"
+                    ? "Too many failed attempts. Please wait 15 minutes before trying again."
+                    : "Please check your details."}
               </p>
             ) : null}
             <div className="space-y-2">

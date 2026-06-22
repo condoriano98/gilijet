@@ -40,7 +40,7 @@ export async function GET(
   const tickets = leg.bookings.flatMap((b) =>
     b.tickets.map((t) => ({
       ticketCode: t.ticketCode,
-      qrPayload: buildQrPayload(t.ticketCode),
+      qrPayload: buildQrPayload(t.ticketCode, leg.departureDate),
       passengerName: t.passengerName,
       status: t.status,
       bookingReference: b.bookingReference,

@@ -10,7 +10,7 @@ import {
 } from "@/lib/refunds";
 import { audit } from "@/lib/audit";
 import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
-import { renderQrSvg } from "@/lib/qr-render";
+import { renderQrSvgDataUrl } from "@/lib/qr-render";
 import { buildQrPayload } from "@/lib/qr";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -221,16 +221,21 @@ export default async function BookingLookupPage({
   const portInfo = getPortInfo(booking.leg.schedule.originPort);
   const lookupUrl = `${env.APP_BASE_URL ?? ""}/b/${booking.bookingReference}`;
 
-  // Pre-render QR SVGs for the confirmed-ticket case.
-  const ticketSvgs: Array<{ ticketCode: string; passengerName: string; svg: string }> =
+  // Pre-render QR data URLs for the confirmed-ticket case. Rendering to a
+  // data URL + <img> avoids dangerouslySetInnerHTML; the QR library output
+  // is fully server-controlled, but using <img> keeps that property local
+  // to the renderer.
+  const ticketSvgs: Array<{ ticketCode: string; passengerName: string; qrDataUrl: string }> =
     [];
   if (booking.status === "CONFIRMED") {
     for (const t of booking.tickets) {
-      const svg = await renderQrSvg(buildQrPayload(t.ticketCode));
+      const qrDataUrl = await renderQrSvgDataUrl(
+        buildQrPayload(t.ticketCode, booking.leg.departureDate),
+      );
       ticketSvgs.push({
         ticketCode: t.ticketCode,
         passengerName: t.passengerName,
-        svg,
+        qrDataUrl,
       });
     }
   }
@@ -365,9 +370,11 @@ export default async function BookingLookupPage({
                   className="rounded-lg border bg-white p-4 text-center"
                 >
                   <div className="font-semibold">{t.passengerName}</div>
-                  <div
-                    className="mx-auto mt-2 [&>svg]:h-auto [&>svg]:w-full"
-                    dangerouslySetInnerHTML={{ __html: t.svg }}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={t.qrDataUrl}
+                    alt={`QR code for ticket ${t.ticketCode}`}
+                    className="mx-auto mt-2 h-auto w-full"
                   />
                   <div className="mt-2 font-mono text-xs text-muted-foreground">
                     {t.ticketCode}

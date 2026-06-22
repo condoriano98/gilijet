@@ -12,6 +12,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { generateLegsForSchedule } from "../lib/legs";
+import { ymdInZone } from "../lib/datetime";
 import { signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
 import { computeBookingPrice } from "../lib/pricing";
@@ -204,7 +205,7 @@ async function main() {
           bookingId: booking.id,
           ticketCode,
           passengerName: customer.fullName,
-          qrHash: signTicketCode(ticketCode),
+          qrHash: signTicketCode(ticketCode, ymdInZone(firstLeg.departureDate)),
           status: "ISSUED",
         },
       });
@@ -434,7 +435,7 @@ async function main() {
         bookingId: booking.id,
         ticketCode,
         passengerName: reviewer.fullName,
-        qrHash: signTicketCode(ticketCode),
+        qrHash: signTicketCode(ticketCode, ymdInZone(leg.departureDate)),
         status: "ISSUED",
       },
     });

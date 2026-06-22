@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, setCustomerSession, getCustomerSession } from "@/lib/auth";
+import { loginGate, recordLoginAttempt } from "@/lib/login-throttle";
 import {
   Card,
   CardContent,
@@ -33,19 +34,28 @@ async function loginAction(formData: FormData) {
     redirect(`/account/login?error=invalid`);
   }
 
+  const email = parsed.data.email.toLowerCase();
+  const gate = await loginGate("CUSTOMER", email);
+  if (!gate.allowed) {
+    redirect(`/account/login?error=locked`);
+  }
+
   const customer = await prisma.customer.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
+    where: { email },
   });
   if (!customer || !customer.passwordHash) {
     // No passwordHash means a Google-only account. Don't reveal which case
     // it is; surface the same generic credentials error.
+    await recordLoginAttempt("CUSTOMER", email, false);
     redirect(`/account/login?error=credentials`);
   }
   const ok = await verifyPassword(parsed.data.password, customer.passwordHash);
   if (!ok) {
+    await recordLoginAttempt("CUSTOMER", email, false);
     redirect(`/account/login?error=credentials`);
   }
 
+  await recordLoginAttempt("CUSTOMER", email, true);
   await setCustomerSession({
     sub: customer.id,
     role: "customer",
@@ -88,6 +98,11 @@ export default async function CustomerLoginPage({
               {error === "invalid" && (
                 <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                   Check your email and password.
+                </p>
+              )}
+              {error === "locked" && (
+                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Too many failed attempts. Please wait 15 minutes before trying again.
                 </p>
               )}
               {error === "google_unavailable" && (

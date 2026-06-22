@@ -1,5 +1,6 @@
 import { Prisma, PaymentMethod } from "@prisma/client";
 import { prisma } from "./db";
+import { ymdInZone } from "./datetime";
 import { buildQrPayload, signTicketCode } from "./qr";
 import { newTicketCode } from "./references";
 
@@ -33,9 +34,14 @@ export async function confirmPaymentAndIssueTickets(args: {
   return prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
       where: { id: args.bookingId },
-      include: { tickets: true, payment: true },
+      include: {
+        tickets: true,
+        payment: true,
+        leg: { select: { departureDate: true } },
+      },
     });
     if (!booking) throw new Error(`Booking ${args.bookingId} not found`);
+    const departureDate = booking.leg.departureDate;
 
     if (booking.status === "CONFIRMED" && booking.tickets.length > 0) {
       return {
@@ -44,7 +50,7 @@ export async function confirmPaymentAndIssueTickets(args: {
         tickets: booking.tickets.map((t) => ({
           ticketCode: t.ticketCode,
           passengerName: t.passengerName,
-          qrPayload: buildQrPayload(t.ticketCode),
+          qrPayload: buildQrPayload(t.ticketCode, departureDate),
         })),
       };
     }
@@ -88,10 +94,11 @@ export async function confirmPaymentAndIssueTickets(args: {
     });
 
     const issued: IssuedTicket[] = [];
+    const departureYmd = ymdInZone(departureDate);
     for (let i = 0; i < passengers.length; i++) {
       const passenger = passengers[i];
       const code = newTicketCode(booking.bookingReference, i + 1);
-      const qrHash = signTicketCode(code);
+      const qrHash = signTicketCode(code, departureYmd);
       await tx.ticket.create({
         data: {
           bookingId: booking.id,
@@ -105,7 +112,7 @@ export async function confirmPaymentAndIssueTickets(args: {
       issued.push({
         ticketCode: code,
         passengerName: passenger.name,
-        qrPayload: buildQrPayload(code),
+        qrPayload: buildQrPayload(code, departureDate),
       });
     }
 

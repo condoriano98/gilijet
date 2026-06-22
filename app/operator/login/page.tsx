@@ -7,6 +7,7 @@ import {
   verifyPassword,
   type OperatorSession,
 } from "@/lib/auth";
+import { loginGate, recordLoginAttempt } from "@/lib/login-throttle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,18 +34,29 @@ async function loginAction(formData: FormData) {
   });
   if (!parsed.success) redirect("/operator/login?error=invalid");
 
+  const email = parsed.data.email.toLowerCase();
+  const gate = await loginGate("OPERATOR", email);
+  if (!gate.allowed) redirect("/operator/login?error=locked");
+
   const operator = await prisma.operator.findFirst({
-    where: { email: parsed.data.email.toLowerCase(), deletedAt: null },
+    where: { email, deletedAt: null },
   });
-  if (!operator) redirect("/operator/login?error=credentials");
+  if (!operator) {
+    await recordLoginAttempt("OPERATOR", email, false);
+    redirect("/operator/login?error=credentials");
+  }
 
   const ok = await verifyPassword(parsed.data.password, operator.passwordHash);
-  if (!ok) redirect("/operator/login?error=credentials");
+  if (!ok) {
+    await recordLoginAttempt("OPERATOR", email, false);
+    redirect("/operator/login?error=credentials");
+  }
 
   if (operator.status !== "ACTIVE") {
     redirect(`/operator/login?error=status_${operator.status.toLowerCase()}`);
   }
 
+  await recordLoginAttempt("OPERATOR", email, true);
   const session: OperatorSession = {
     sub: operator.id,
     role: "operator",
@@ -57,6 +69,8 @@ async function loginAction(formData: FormData) {
 function errorMessage(code?: string): string | null {
   if (!code) return null;
   if (code === "credentials") return "Invalid email or password.";
+  if (code === "locked")
+    return "Too many failed attempts. Please wait 15 minutes before trying again.";
   if (code === "status_pending")
     return "Your account is awaiting admin approval. We'll email you when it's ready.";
   if (code === "status_suspended")

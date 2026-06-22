@@ -1052,3 +1052,21 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
 }
+
+// Per-email login-failure tracking. A short window of recent rows is consulted
+// by lib/login-throttle.ts to deny repeated bad-password attempts. Only failed
+// attempts need to be kept; successful logins clear the window via the helper.
+enum LoginKind {
+  OPERATOR
+  ADMIN
+  CUSTOMER
+}
+
+model LoginAttempt {
+  id        String    @id @default(cuid())
+  kind      LoginKind
+  emailKey  String
+  createdAt DateTime  @default(now())
+
+  @@index([kind, emailKey, createdAt])
+}

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { renderQrSvg } from "@/lib/qr-render";
+import { renderQrSvgDataUrl } from "@/lib/qr-render";
 import { buildQrPayload } from "@/lib/qr";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -36,14 +36,16 @@ export default async function PrintTicketPage({
   const ticketSvgs: Array<{
     ticketCode: string;
     passengerName: string;
-    svg: string;
+    qrDataUrl: string;
   }> = [];
   for (const t of booking.tickets) {
-    const svg = await renderQrSvg(buildQrPayload(t.ticketCode));
+    const qrDataUrl = await renderQrSvgDataUrl(
+      buildQrPayload(t.ticketCode, booking.leg.departureDate),
+    );
     ticketSvgs.push({
       ticketCode: t.ticketCode,
       passengerName: t.passengerName,
-      svg,
+      qrDataUrl,
     });
   }
 
@@ -71,7 +73,7 @@ export default async function PrintTicketPage({
           gap: 16px;
           align-items: center;
         }
-        .print-qr svg { width: 140px; height: 140px; }
+        .print-qr { width: 140px; height: 140px; }
         .print-passenger { font-size: 16px; font-weight: 700; }
         .print-ticket-code { font-family: ui-monospace, monospace; font-size: 12px; color: #475569; margin-top: 4px; }
         .print-footer { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b; }
@@ -137,9 +139,11 @@ export default async function PrintTicketPage({
 
         {ticketSvgs.map((t) => (
           <div key={t.ticketCode} className="print-ticket">
-            <div
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               className="print-qr"
-              dangerouslySetInnerHTML={{ __html: t.svg }}
+              src={t.qrDataUrl}
+              alt={`QR code for ticket ${t.ticketCode}`}
             />
             <div>
               <div className="print-passenger">{t.passengerName}</div>
