@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { findPost, getAllSlugs, POSTS } from "@/content/blog";
+import { findPost, POSTS } from "@/content/blog";
 import { env } from "@/lib/env";
 
 type Params = { slug: string; locale: string };
-
-export function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({
   params,
