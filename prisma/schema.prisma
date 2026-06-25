@@ -560,6 +560,9 @@ enum OperatorStaffRole {
   GATE
   BOOTH_AGENT
   ACCOUNTANT
+  CAPTAIN
+  CREW
+  ENGINEER
 }
 
 enum OperatorStaffStatus {

@@ -45,7 +45,7 @@ export default async function PenjualanPage({
 
   const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00+08:00");
 
-  const [bookings, monthStats] = await Promise.all([
+  const [bookings, monthStats, agentCommission, erpFee] = await Promise.all([
     prisma.booking.findMany({
       where: {
         operatorId,
@@ -65,6 +65,17 @@ export default async function PenjualanPage({
       _count: true,
       _sum: { totalAmount: true, operatorAmount: true },
     }),
+    (async () => {
+      const result = await prisma.booking.aggregate({
+        where: { operatorId, status: "CONFIRMED", createdAt: { gte: monthStart }, salesChannel: "TRAVEL_AGENT" },
+        _sum: { agentCommissionAmount: true },
+      });
+      return Number(result._sum.agentCommissionAmount ?? 0);
+    })(),
+    (async () => {
+      const { erpFeeYtd } = await import("@/lib/operator-erp-queries");
+      return erpFeeYtd(operatorId);
+    })(),
   ]);
 
   const monthTickets = monthStats._count;
@@ -146,8 +157,8 @@ export default async function PenjualanPage({
         <>
           <KpiCard label="Total Tiket Bulan Ini" value={String(monthTickets)} icon={<ShoppingCart size={20} />} accent="blue" />
           <KpiCard label="Pendapatan Kotor Bulan Ini" value={formatIDR(monthGross)} accent="green" />
-          <KpiCard label="Komisi Agen Bulan Ini" value={formatIDR(0)} hint="Belum ada data" accent="orange" />
-          <KpiCard label="ERP Fee Proyeksi" value={formatIDR(0)} hint="Bulan ini" accent="red" />
+          <KpiCard label="Komisi Agen Bulan Ini" value={formatIDR(agentCommission)} accent="orange" />
+          <KpiCard label="ERP Fee Proyeksi" value={formatIDR(erpFee)} hint="Tahun berjalan" accent="red" />
         </>
       }
     >
