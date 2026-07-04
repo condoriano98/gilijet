@@ -9,33 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { revalidatePath } from "next/cache";
-
-export async function markAgentPayoutPaid(agentId: string) {
-  "use server";
-  const session = await requireOperator();
-  const operatorId = session.sub;
-
-  const agent = await prisma.travelAgent.findFirst({
-    where: { id: agentId, operatorId, deletedAt: null },
-    select: { name: true },
-  });
-  if (!agent) notFound();
-
-  await prisma.operatorNotification.create({
-    data: {
-      operatorId,
-      kind: "AGENT_PAYOUT_DUE",
-      severity: "INFO",
-      title: "Pembayaran Komisi Agen",
-      body: `Komisi untuk ${agent.name} telah ditandai dibayar`,
-      readAt: new Date(),
-      actionUrl: `/operator/penjualan/agen/${agentId}`,
-    },
-  });
-
-  revalidatePath(`/operator/penjualan/agen/${agentId}`);
-}
+import { markAgentPayoutPaid } from "./actions";
 
 function bookingStatusVariant(s: string): "success" | "warning" | "danger" | "neutral" | "info" {
   const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
