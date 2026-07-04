@@ -89,6 +89,11 @@ export default function CustomerLayout({
                     Refund Policy
                   </Link>
                 </li>
+                <li>
+                  <Link href="/legal/wahana-virendra" className="text-slate-600 hover:text-sky-700 hover:underline">
+                    Wahana Virendra Terms
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
