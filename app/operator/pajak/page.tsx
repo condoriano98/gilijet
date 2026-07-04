@@ -60,21 +60,31 @@ export default async function PajakPage({
     const months = monthRange(6);
     const ppnData = await Promise.all(
       months.map(async (m) => {
+        // Gross and DPP both scope to the e-Faktur set (DRAFT/SUBMITTED/
+        // ACCEPTED) so the on-screen figures reconcile with the CSV export,
+        // which computes VAT from that same population.
+        const eFakturSet = {
+          in: [
+            EFakturStatus.DRAFT,
+            EFakturStatus.SUBMITTED,
+            EFakturStatus.ACCEPTED,
+          ],
+        };
         const [grossAgg, dppAgg] = await Promise.all([
           prisma.booking.aggregate({
-            where: { operatorId, createdAt: { gte: m.start, lt: m.end } },
+            where: {
+              operatorId,
+              status: "CONFIRMED",
+              eFakturStatus: eFakturSet,
+              createdAt: { gte: m.start, lt: m.end },
+            },
             _sum: { totalAmount: true },
           }),
           prisma.booking.aggregate({
             where: {
               operatorId,
-              eFakturStatus: {
-                in: [
-                  EFakturStatus.DRAFT,
-                  EFakturStatus.SUBMITTED,
-                  EFakturStatus.ACCEPTED,
-                ],
-              },
+              status: "CONFIRMED",
+              eFakturStatus: eFakturSet,
               createdAt: { gte: m.start, lt: m.end },
             },
             _sum: { totalAmount: true },

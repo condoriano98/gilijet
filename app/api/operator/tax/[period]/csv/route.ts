@@ -32,9 +32,12 @@ export async function GET(
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 1);
 
+  // Same population as the Pajak page's PPN table (confirmed bookings in the
+  // e-Faktur set) so the exported totals reconcile with the on-screen figures.
   const bookings = await prisma.booking.findMany({
     where: {
       operatorId: session.sub,
+      status: "CONFIRMED",
       eFakturStatus: {
         in: [
           EFakturStatus.DRAFT,

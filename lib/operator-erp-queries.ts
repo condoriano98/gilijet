@@ -17,21 +17,39 @@ export async function agentCommissionYtd(operatorId: string): Promise<number> {
 
 export async function erpFeeYtd(operatorId: string): Promise<number> {
   const yearStart = new Date(new Date().getFullYear(), 0, 1);
-  const bookings = await prisma.booking.findMany({
-    where: {
-      operatorId,
-      status: "CONFIRMED",
-      createdAt: { gte: yearStart },
-      salesChannel: { not: "GILIJET" },
-    },
-    select: { totalAmount: true, tickets: { select: { id: true } } },
-    take: 5000,
-  });
-  if (bookings.length === 0) return 0;
-  const totalTickets = bookings.reduce((s, b) => s + b.tickets.length, 0);
-  const totalRevenue = bookings.reduce((s, b) => s + Number(b.totalAmount), 0);
-  const avgTicket = totalTickets > 0 ? totalRevenue / totalTickets : 0;
-  return computeErpFee({ ticketCount: totalTickets, avgTicketIDR: avgTicket }).totalFee;
+  // computeErpFee is volume-tiered and per-ticket capped, so it MUST run per
+  // booking — collapsing to a blended average over all bookings changes the
+  // number (cap applied to the wrong basis, tiers spread across the whole
+  // year). Page through all matching bookings with a cursor so operators with
+  // more than one batch of YTD bookings are not silently truncated.
+  let cursor: string | undefined;
+  let totalFee = 0;
+  for (;;) {
+    const batch = await prisma.booking.findMany({
+      where: {
+        operatorId,
+        status: "CONFIRMED",
+        createdAt: { gte: yearStart },
+        salesChannel: { not: "GILIJET" },
+      },
+      select: { id: true, totalAmount: true, tickets: { select: { id: true } } },
+      orderBy: { id: "asc" },
+      take: 1000,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    if (batch.length === 0) break;
+    for (const b of batch) {
+      const ticketCount = b.tickets.length;
+      if (ticketCount === 0) continue;
+      totalFee += computeErpFee({
+        ticketCount,
+        avgTicketIDR: Number(b.totalAmount) / ticketCount,
+      }).totalFee;
+    }
+    if (batch.length < 1000) break;
+    cursor = batch[batch.length - 1].id;
+  }
+  return totalFee;
 }
 
 export async function revenueByChannel(

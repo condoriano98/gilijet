@@ -5,6 +5,7 @@ import { formatIDR } from "@/lib/utils";
 import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { NotesCell } from "./notes-cell";
 
 export default async function RekonsiliasiPage() {
   const session = await requireOperator();
@@ -63,7 +64,7 @@ export default async function RekonsiliasiPage() {
     {
       key: "notes",
       header: "Catatan",
-      render: (r: Row) => (r.notes ? r.notes : "-"),
+      render: (r: Row) => <NotesCell sessionId={r.id} initial={r.notes ?? ""} />,
     },
   ];
 

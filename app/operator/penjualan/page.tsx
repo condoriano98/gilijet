@@ -6,7 +6,7 @@ import { ListPageTemplate } from "@/components/operator-shell/templates/list-pag
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Button } from "@/components/ui/button";
+import { agentCommissionYtd, erpFeeYtd } from "@/lib/operator-erp-queries";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 
@@ -65,17 +65,8 @@ export default async function PenjualanPage({
       _count: true,
       _sum: { totalAmount: true, operatorAmount: true },
     }),
-    (async () => {
-      const result = await prisma.booking.aggregate({
-        where: { operatorId, status: "CONFIRMED", createdAt: { gte: monthStart }, salesChannel: "TRAVEL_AGENT" },
-        _sum: { agentCommissionAmount: true },
-      });
-      return Number(result._sum.agentCommissionAmount ?? 0);
-    })(),
-    (async () => {
-      const { erpFeeYtd } = await import("@/lib/operator-erp-queries");
-      return erpFeeYtd(operatorId);
-    })(),
+    agentCommissionYtd(operatorId),
+    erpFeeYtd(operatorId),
   ]);
 
   const monthTickets = monthStats._count;
@@ -157,7 +148,7 @@ export default async function PenjualanPage({
         <>
           <KpiCard label="Total Tiket Bulan Ini" value={String(monthTickets)} icon={<ShoppingCart size={20} />} accent="blue" />
           <KpiCard label="Pendapatan Kotor Bulan Ini" value={formatIDR(monthGross)} accent="green" />
-          <KpiCard label="Komisi Agen Bulan Ini" value={formatIDR(agentCommission)} accent="orange" />
+          <KpiCard label="Komisi Agen" value={formatIDR(agentCommission)} hint="Tahun berjalan" accent="orange" />
           <KpiCard label="ERP Fee Proyeksi" value={formatIDR(erpFee)} hint="Tahun berjalan" accent="red" />
         </>
       }

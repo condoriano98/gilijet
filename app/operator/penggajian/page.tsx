@@ -36,56 +36,38 @@ export default async function PenggajianPage({
   const operatorId = session.sub;
   const { ok } = await searchParams;
 
-  const bookings = await prisma.booking.findMany({
+  // Aggregate in the DB (no in-memory row cap) and read the stored commission
+  // amount directly rather than re-deriving percent × total inline.
+  const groups = await prisma.booking.groupBy({
+    by: ["salesStaffId"],
     where: { operatorId, status: "CONFIRMED", salesStaffId: { not: null } },
-    select: {
-      salesStaffId: true,
-      agentCommissionAmount: true,
-      agentCommissionPercent: true,
-      totalAmount: true,
-    },
-    take: 5000,
+    _count: true,
+    _sum: { totalAmount: true, agentCommissionAmount: true },
   });
 
-  const agg = new Map<
-    string,
-    { bookingCount: number; grossRevenue: number; commission: number }
-  >();
-  for (const b of bookings) {
-    const sid = b.salesStaffId as string;
-    const cur = agg.get(sid) ?? { bookingCount: 0, grossRevenue: 0, commission: 0 };
-    cur.bookingCount += 1;
-    const total = Number(b.totalAmount);
-    cur.grossRevenue += total;
-    cur.commission +=
-      b.agentCommissionAmount != null
-        ? Number(b.agentCommissionAmount)
-        : b.agentCommissionPercent != null
-          ? Number(b.agentCommissionPercent) * total
-          : 0;
-    agg.set(sid, cur);
-  }
-
-  const staffIds = [...agg.keys()];
+  const staffIds = groups
+    .map((g) => g.salesStaffId)
+    .filter((id): id is string => id !== null);
   const staff = staffIds.length
     ? await prisma.operatorStaff.findMany({
-        where: { id: { in: staffIds } },
+        where: { id: { in: staffIds }, operatorId },
         select: { id: true, fullName: true, email: true, role: true },
       })
     : [];
   const staffMap = new Map(staff.map((s) => [s.id, s]));
 
-  const rows: StaffRow[] = [...agg.entries()]
-    .map(([salesStaffId, v]) => {
-      const s = staffMap.get(salesStaffId);
+  const rows: StaffRow[] = groups
+    .map((g) => {
+      const sid = g.salesStaffId as string;
+      const s = staffMap.get(sid);
       return {
-        id: salesStaffId,
+        id: sid,
         fullName: s?.fullName ?? "Staf tidak dikenal",
         email: s?.email ?? "-",
         role: s?.role ?? "-",
-        bookingCount: v.bookingCount,
-        grossRevenue: v.grossRevenue,
-        commission: v.commission,
+        bookingCount: g._count,
+        grossRevenue: Number(g._sum.totalAmount ?? 0),
+        commission: Number(g._sum.agentCommissionAmount ?? 0),
       };
     })
     .sort((a, b) => b.commission - a.commission);

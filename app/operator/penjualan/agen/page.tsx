@@ -22,6 +22,7 @@ export default async function TravelAgentListPage() {
       const [count, commission] = await Promise.all([
         prisma.booking.count({
           where: {
+            operatorId,
             salesAgentId: agent.id,
             status: "CONFIRMED",
             createdAt: { gte: startOfYear },
@@ -29,6 +30,7 @@ export default async function TravelAgentListPage() {
         }),
         prisma.booking.aggregate({
           where: {
+            operatorId,
             salesAgentId: agent.id,
             status: "CONFIRMED",
             createdAt: { gte: startOfYear },
