@@ -124,7 +124,7 @@ export default function CustomerLayout({
             </div>
           </div>
           <div className="mt-8 border-t pt-4 text-center text-xs text-slate-500">
-            © {new Date().getFullYear()} PT Gilijet Nusantara · Payments
+            © {new Date().getFullYear()} CV Hi Bali Nusa Tenggara · Payments
             processed by Xendit, licensed by Bank Indonesia
           </div>
         </div>
