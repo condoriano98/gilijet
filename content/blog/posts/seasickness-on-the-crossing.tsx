@@ -6,7 +6,7 @@ export const meta: PostMeta = {
   description:
     "Practical, no-nonsense advice for staying comfortable on a 90-minute fast-boat crossing — from where to sit to what to take before you board.",
   publishedAt: "2026-06-05",
-  author: "Tim Gilijet",
+  author: "Tim Gilibali",
   readingMinutes: 4,
   tags: ["Seasickness", "Travel tips", "Comfort"],
 };

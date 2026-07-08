@@ -68,7 +68,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
       {
         ok: false,
         reason: "INVALID_QR",
-        message: "QR code is not a valid Gilijet ticket.",
+        message: "QR code is not a valid Gilibali ticket.",
       },
       { status: 400 },
     );

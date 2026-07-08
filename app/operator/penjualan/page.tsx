@@ -12,7 +12,7 @@ import { ShoppingCart } from "lucide-react";
 
 function channelLabel(ch: string): string {
   const map: Record<string, string> = {
-    GILIJET: "Gilijet", WALK_IN: "Walk-in", TRAVEL_AGENT: "Agen",
+    GILIJET: "Gilibali", WALK_IN: "Walk-in", TRAVEL_AGENT: "Agen",
     PHONE: "Telepon", EXTERNAL_AGGREGATOR: "Aggregator",
   };
   return map[ch] ?? ch;

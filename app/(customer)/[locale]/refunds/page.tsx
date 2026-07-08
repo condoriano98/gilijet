@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Refund Policy · Gilijet" };
+export const metadata = { title: "Refund Policy · Gilibali" };
 
 export default function RefundsPage() {
   return (

@@ -6,7 +6,7 @@ export const meta: PostMeta = {
   description:
     "Wave height, wind patterns, and crossing reliability month-by-month so you can pick a date that avoids cancellations and rough seas.",
   publishedAt: "2026-06-12",
-  author: "Tim Gilijet",
+  author: "Tim Gilibali",
   readingMinutes: 5,
   tags: ["Lombok", "Sea conditions", "Travel planning"],
 };

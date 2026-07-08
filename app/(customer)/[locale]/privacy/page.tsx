@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Privacy Policy · Gilijet" };
+export const metadata = { title: "Privacy Policy · Gilibali" };
 
 export default function PrivacyPage() {
   return (
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <p className="text-sm text-slate-500">Last updated: 19 May 2026</p>
 
         <p>
-          PT Gilijet Nusantara (&quot;Gilijet&quot;, &quot;we&quot;) is committed to protecting
+          CV Hi Bali Nusa Tenggara (&quot;Gilibali&quot;, &quot;we&quot;) is committed to protecting
           your privacy in accordance with Indonesia&apos;s Personal Data
           Protection Law (UU PDP No. 27/2022).
         </p>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
 
         <h2 className="mt-6 text-xl font-semibold">8. Children</h2>
         <p>
-          Gilijet is not intended for users under 18. Minors travel under the
+          Gilibali is not intended for users under 18. Minors travel under the
           booking of a parent or guardian who accepts these terms on their
           behalf.
         </p>
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
         <h2 className="mt-6 text-xl font-semibold">10. Contact</h2>
         <p>
           Data Protection Officer · <a href="mailto:privacy@gilijet.com">privacy@gilijet.com</a><br />
-          PT Gilijet Nusantara · Jakarta, Indonesia
+          CV Hi Bali Nusa Tenggara · Jakarta, Indonesia
         </p>
       </div>
     </div>

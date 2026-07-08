@@ -20,7 +20,7 @@ export function ShareButtons({
   date: string;
   lookupUrl: string;
 }) {
-  const waText = `My Gilijet booking ${bookingReference} — ${origin} → ${destination} on ${date}. View: ${lookupUrl}`;
+  const waText = `My Gilibali booking ${bookingReference} — ${origin} → ${destination} on ${date}. View: ${lookupUrl}`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
   return (

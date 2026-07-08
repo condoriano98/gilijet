@@ -10,7 +10,7 @@ const displayFont = Plus_Jakarta_Sans({
 });
 
 const SITE_URL = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
-const SITE_TITLE = "Gilijet — Boat tickets across Indonesia";
+const SITE_TITLE = "Gilibali — Boat tickets across Indonesia";
 const SITE_DESCRIPTION =
   "Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.";
 
@@ -18,10 +18,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s · Gilijet",
+    template: "%s · Gilibali",
   },
   description: SITE_DESCRIPTION,
-  applicationName: "Gilijet",
+  applicationName: "Gilibali",
   keywords: [
     "boat tickets Indonesia",
     "Bali to Gili fast boat",
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
     "fast boat booking",
     "tiket kapal cepat",
   ],
-  authors: [{ name: "PT Gilijet Nusantara" }],
+  authors: [{ name: "CV Hi Bali Nusa Tenggara" }],
   category: "travel",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    siteName: "Gilijet",
+    siteName: "Gilibali",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     locale: "en_ID",
@@ -65,8 +65,8 @@ export const viewport: Viewport = {
 const ORGANIZATION_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Gilijet",
-  legalName: "PT Gilijet Nusantara",
+  name: "Gilibali",
+  legalName: "CV Hi Bali Nusa Tenggara",
   url: SITE_URL,
   description: SITE_DESCRIPTION,
   sameAs: [],
@@ -81,7 +81,7 @@ const ORGANIZATION_JSONLD = {
 const WEBSITE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Gilijet",
+  name: "Gilibali",
   url: SITE_URL,
   potentialAction: {
     "@type": "SearchAction",

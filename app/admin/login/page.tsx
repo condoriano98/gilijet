@@ -78,7 +78,7 @@ export default async function AdminLoginPage({
         <CardHeader>
           <CardTitle>Admin sign in</CardTitle>
           <CardDescription>
-            Internal Gilijet staff only. Operators sign in{" "}
+            Internal Gilibali staff only. Operators sign in{" "}
             <Link href="/operator/login" className="underline">
               here
             </Link>

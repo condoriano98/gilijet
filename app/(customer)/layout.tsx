@@ -19,7 +19,7 @@ export default function CustomerLayout({
             href="/"
             className="shrink-0 text-lg font-bold tracking-tight text-sky-700"
           >
-            Gilijet
+            Gilibali
           </Link>
           <nav className="flex items-center gap-1">
             <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
@@ -40,7 +40,7 @@ export default function CustomerLayout({
         <div className="container py-8">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm">
             <div>
-              <div className="font-semibold text-slate-900">Gilijet</div>
+              <div className="font-semibold text-slate-900">Gilibali</div>
               <p className="mt-2 text-xs text-slate-600">
                 Boat tickets across Indonesia. Verified operators, transparent
                 prices, fair refunds.

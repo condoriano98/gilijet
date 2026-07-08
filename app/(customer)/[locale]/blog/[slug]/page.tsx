@@ -60,7 +60,7 @@ export default async function BlogPost({
     author: { "@type": "Organization", name: post.meta.author },
     publisher: {
       "@type": "Organization",
-      name: "Gilijet",
+      name: "Gilibali",
     },
     mainEntityOfPage: `${base}/blog/${post.meta.slug}`,
     keywords: post.meta.tags.join(", "),

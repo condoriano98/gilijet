@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "About · Gilijet" };
+export const metadata = { title: "About · Gilibali" };
 
 export default function AboutPage() {
   return (
@@ -9,10 +9,10 @@ export default function AboutPage() {
         <Link href="/" className="text-sm text-sky-700 no-underline hover:underline">
           ← Home
         </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">About Gilijet</h1>
+        <h1 className="mt-4 text-3xl font-bold tracking-tight">About Gilibali</h1>
 
         <p className="text-lg text-slate-700">
-          Gilijet is Indonesia&apos;s easiest way to book a boat ticket. From the
+          Gilibali is Indonesia&apos;s easiest way to book a boat ticket. From the
           Gili islands to Komodo, from Bali to Lombok, we connect travelers
           with verified boat operators in a few taps.
         </p>
@@ -46,7 +46,7 @@ export default function AboutPage() {
           <dl className="grid gap-2 sm:grid-cols-2">
             <div>
               <dt className="font-semibold text-slate-700">Legal name</dt>
-              <dd>PT Gilijet Nusantara</dd>
+              <dd>CV Hi Bali Nusa Tenggara</dd>
             </div>
             <div>
               <dt className="font-semibold text-slate-700">Business type</dt>

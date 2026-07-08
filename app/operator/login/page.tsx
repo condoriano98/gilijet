@@ -74,7 +74,7 @@ function errorMessage(code?: string): string | null {
   if (code === "status_pending")
     return "Your account is awaiting admin approval. We'll email you when it's ready.";
   if (code === "status_suspended")
-    return "Your account is suspended. Contact Gilijet support.";
+    return "Your account is suspended. Contact Gilibali support.";
   if (code === "status_rejected")
     return "Your application was not approved.";
   return "Please check your details.";

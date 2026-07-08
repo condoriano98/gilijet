@@ -42,7 +42,7 @@ const MONTH_NAMES = [
 
 function channelLabel(ch: string): string {
   const map: Record<string, string> = {
-    GILIJET: "Gilijet",
+    GILIJET: "Gilibali",
     WALK_IN: "Walk-in",
     TRAVEL_AGENT: "Agen",
     PHONE: "Telepon",

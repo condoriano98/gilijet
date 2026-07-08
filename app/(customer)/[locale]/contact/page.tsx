@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Contact · Gilijet" };
+export const metadata = { title: "Contact · Gilibali" };
 
 export default function ContactPage() {
   return (
@@ -43,7 +43,7 @@ export default function ContactPage() {
           <Card>
             <CardHeader>
               <CardTitle>Operator inquiries</CardTitle>
-              <CardDescription>Want to list your boats on Gilijet?</CardDescription>
+              <CardDescription>Want to list your boats on Gilibali?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
@@ -101,7 +101,7 @@ export default function ContactPage() {
             <CardTitle>Registered office</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
-            <p className="font-medium">PT Gilijet Nusantara</p>
+            <p className="font-medium">CV Hi Bali Nusa Tenggara</p>
             <p className="text-slate-600">Jakarta Selatan, DKI Jakarta, Indonesia</p>
           </CardContent>
         </Card>

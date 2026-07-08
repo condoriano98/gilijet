@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 
   // Require Google to have verified the email before we trust the linkage to
   // an existing customer. Without this, anyone could create a Google account
-  // with someone else's email and take over their Gilijet account.
+  // with someone else's email and take over their Gilibali account.
   if (!profile.emailVerified) {
     return loginError(req, "google_unverified");
   }

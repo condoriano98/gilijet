@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Gilijet",
+    "appName": "Gilibali",
     "tagline": "Pulau ke pulau dengan percaya diri",
     "subtitle": "Pesan kapal cepat dan feri terverifikasi di seluruh Indonesia. Bayar mudah, tiket elektronik langsung diterima.",
     "search": "Cari",
@@ -61,7 +61,7 @@
     "routes": "{count} rute",
     "reviewsTitle": "Kata wisatawan",
     "reviewsSubtitle": "Ulasan asli dari pemesanan asli",
-    "whyTitle": "Kenapa pesan di Gilijet",
+    "whyTitle": "Kenapa pesan di Gilibali",
     "whySubtitle": "Kenyamanan yang sama seperti pesawat — sekarang untuk kapal",
     "howTitle": "Cara kerja",
     "howSubtitle": "Empat langkah menuju boarding pass",
@@ -157,18 +157,18 @@
   },
   "bestPriceGuarantee": {
     "title": "Jaminan Harga Terbaik",
-    "intro": "Kami percaya Anda selalu mendapat penawaran terbaik. Jika Anda menemukan harga lebih rendah untuk operator, rute, dan tanggal keberangkatan yang sama di platform lain dalam 24 jam setelah pemesanan, kami akan mengkredit selisihnya sebagai voucher Gilijet.",
+    "intro": "Kami percaya Anda selalu mendapat penawaran terbaik. Jika Anda menemukan harga lebih rendah untuk operator, rute, dan tanggal keberangkatan yang sama di platform lain dalam 24 jam setelah pemesanan, kami akan mengkredit selisihnya sebagai voucher Gilibali.",
     "howItWorks": "Cara kerja",
-    "step1": "Pesan perjalanan Anda di Gilijet seperti biasa.",
+    "step1": "Pesan perjalanan Anda di Gilibali seperti biasa.",
     "step2": "Jika Anda menemukan harga lebih rendah di tempat lain untuk pelayaran yang sama, ambil tangkapan layar yang menunjukkan nama operator, rute, tanggal, dan harga total.",
     "step3": "Hubungi kami dalam 24 jam setelah pemesanan melalui WhatsApp (+62 812 3456 7890) atau email (support@gilijet.com) dengan tangkapan layar dan referensi pemesanan Anda.",
-    "step4": "Kami akan memverifikasi harga dalam satu hari kerja. Jika cocok, kami akan mengkredit selisihnya ke akun Gilijet Anda sebagai voucher untuk perjalanan berikutnya.",
+    "step4": "Kami akan memverifikasi harga dalam satu hari kerja. Jika cocok, kami akan mengkredit selisihnya ke akun Gilibali Anda sebagai voucher untuk perjalanan berikutnya.",
     "terms": "Syarat",
     "term1": "Harga pesaing harus terdaftar secara publik dan dapat dipesan oleh umum (bukan tarif khusus anggota atau agen).",
     "term2": "Perbandingan berdasarkan tarif total per penumpang dalam IDR, termasuk biaya pemesanan.",
     "term3": "Kredit voucher dibatasi maksimal Rp 50.000 atau 20% dari tarif asli, mana yang lebih rendah.",
     "term4": "Tidak dapat digabungkan dengan kode promosi atau diskon grup.",
-    "term5": "Gilijet berhak mengubah atau menghentikan jaminan ini kapan saja.",
+    "term5": "Gilibali berhak mengubah atau menghentikan jaminan ini kapan saja.",
     "searchRoutes": "Cari rute"
   }
 }

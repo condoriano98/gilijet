@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata = { title: "Request date change · Gilijet" };
+export const metadata = { title: "Request date change · Gilibali" };
 
 const submitSchema = z.object({
   reference: z.string().min(1),

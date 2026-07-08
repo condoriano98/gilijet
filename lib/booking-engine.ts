@@ -307,7 +307,7 @@ export async function startPaymentForBooking(
       payerEmail: booking.customerEmail,
       payerName: booking.customerName,
       payerPhone: booking.customerPhone,
-      description: `Gilijet booking ${booking.bookingReference}`,
+      description: `Gilibali booking ${booking.bookingReference}`,
       successUrl: lookupUrl,
       failureUrl: lookupUrl,
       durationSeconds: (env.BOOKING_HOLD_MINUTES ?? 30) * 60,

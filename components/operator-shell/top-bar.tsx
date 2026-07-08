@@ -82,7 +82,7 @@ export function TopBar({ email, signOutAction }: { email: string; signOutAction:
     <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-mekari-neutral-200 bg-mekari-surface px-4">
       <div className="flex items-center gap-4">
         <Link href="/operator" className="text-lg font-bold text-mekari-primary">
-          Gilijet
+          Gilibali
         </Link>
         <span className="hidden text-mekari-neutral-200 sm:inline">|</span>
         <div className="hidden sm:block">

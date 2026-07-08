@@ -6,7 +6,7 @@ export const meta: PostMeta = {
   description:
     "Speedboat vs. cabin catamaran, departure port trade-offs, and the questions every traveler should ask before booking the Bali → Gili crossing.",
   publishedAt: "2026-06-18",
-  author: "Tim Gilijet",
+  author: "Tim Gilibali",
   readingMinutes: 6,
   tags: ["Bali", "Gili", "Fast boat", "Travel guide"],
 };

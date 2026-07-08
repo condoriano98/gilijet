@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Practical guides for boat travel across Indonesia: choosing operators, reading sea conditions, avoiding seasickness, and timing your crossing.",
   alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Gilijet Blog — Boat travel guides for Indonesia",
+    title: "Gilibali Blog — Boat travel guides for Indonesia",
     description:
       "Practical guides for boat travel across Indonesia: operators, sea conditions, seasonality, and trip planning.",
     type: "website",
@@ -29,7 +29,7 @@ export default function BlogIndex() {
       <div className="mx-auto max-w-3xl">
         <header className="mb-10">
           <p className="text-sm font-medium uppercase tracking-wide text-gilijet-ocean">
-            Gilijet Blog
+            Gilibali Blog
           </p>
           <h1 className="mt-2 text-3xl font-display font-extrabold text-slate-900 sm:text-4xl">
             Boat travel guides for Indonesia
