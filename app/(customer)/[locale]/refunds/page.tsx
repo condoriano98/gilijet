@@ -82,7 +82,7 @@ export default function RefundsPage() {
         <h2 className="mt-6 text-xl font-semibold">Disputes</h2>
         <p>
           If you believe a refund was processed incorrectly, contact us at
-          <a href="mailto:support@gilijet.com"> support@gilijet.com</a> within
+          <a href="mailto:info@balinusafast.com"> info@balinusafast.com</a> within
           14 days of the original transaction. We&apos;ll investigate and respond
           within 5 business days.
         </p>

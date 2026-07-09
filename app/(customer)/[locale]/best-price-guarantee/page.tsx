@@ -44,7 +44,7 @@ export default function BestPriceGuaranteePage() {
               </li>
               <li>
                 Contact us within 24 hours of your booking via WhatsApp
-                (+62 812 3456 7890) or email (support@gilijet.com) with the
+                (+62 812-3606-1818) or email (info@balinusafast.com) with the
                 screenshot and your booking reference.
               </li>
               <li>

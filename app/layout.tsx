@@ -73,7 +73,7 @@ const ORGANIZATION_JSONLD = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
-    email: "support@gilijet.com",
+    email: "info@balinusafast.com",
     availableLanguage: ["English", "Indonesian"],
   },
 };

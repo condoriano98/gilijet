@@ -61,7 +61,7 @@ export default function PrivacyPage() {
           <li>Lodge a complaint with the Indonesian data protection authority.</li>
         </ul>
         <p>
-          To exercise these rights, contact <a href="mailto:privacy@gilijet.com">privacy@gilijet.com</a>.
+          To exercise these rights, contact <a href="mailto:info@balinusafast.com">info@balinusafast.com</a>.
         </p>
 
         <h2 className="mt-6 text-xl font-semibold">6. Security</h2>
@@ -93,8 +93,8 @@ export default function PrivacyPage() {
 
         <h2 className="mt-6 text-xl font-semibold">10. Contact</h2>
         <p>
-          Data Protection Officer · <a href="mailto:privacy@gilijet.com">privacy@gilijet.com</a><br />
-          CV Hi Bali Nusa Tenggara · Jakarta, Indonesia
+          Data Protection Officer · <a href="mailto:info@balinusafast.com">info@balinusafast.com</a><br />
+          CV Hi Bali Nusa Tenggara · Jl. Swakarya Raya No.5B, Kekalik Jaya, Kec. Sekarbela, Kota Mataram, Nusa Tenggara Barat 83114, Indonesia
         </p>
       </div>
     </div>

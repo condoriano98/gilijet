@@ -24,55 +24,18 @@ export default function ContactPage() {
             <CardContent className="space-y-2 text-sm">
               <div>
                 <span className="text-slate-600">Email:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="mailto:support@gilijet.com">
-                  support@gilijet.com
+                <a className="font-medium text-sky-700 hover:underline" href="mailto:info@balinusafast.com">
+                  info@balinusafast.com
                 </a>
               </div>
               <div>
                 <span className="text-slate-600">WhatsApp:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="https://wa.me/6281234567890">
-                  +62 812 3456 7890
+                <a className="font-medium text-sky-700 hover:underline" href="https://wa.me/6281236061818">
+                  +62 812-3606-1818
                 </a>
               </div>
               <div className="text-xs text-slate-500">
                 Hours: 7 AM – 10 PM WITA, daily
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Operator inquiries</CardTitle>
-              <CardDescription>Want to list your boats on Gilibali?</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div>
-                <span className="text-slate-600">Email:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="mailto:operators@gilijet.com">
-                  operators@gilijet.com
-                </a>
-              </div>
-              <div className="text-xs text-slate-500">
-                Or apply directly via the{" "}
-                <Link href="/operator/login" className="text-sky-700 hover:underline">
-                  operator portal
-                </Link>
-                .
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Press &amp; media</CardTitle>
-              <CardDescription>Interviews, statements, partnerships</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div>
-                <span className="text-slate-600">Email:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="mailto:press@gilijet.com">
-                  press@gilijet.com
-                </a>
               </div>
             </CardContent>
           </Card>
@@ -85,8 +48,8 @@ export default function ContactPage() {
             <CardContent className="space-y-2 text-sm">
               <div>
                 <span className="text-slate-600">Email:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="mailto:privacy@gilijet.com">
-                  privacy@gilijet.com
+                <a className="font-medium text-sky-700 hover:underline" href="mailto:info@balinusafast.com">
+                  info@balinusafast.com
                 </a>
               </div>
               <div className="text-xs text-slate-500">
@@ -102,7 +65,10 @@ export default function ContactPage() {
           </CardHeader>
           <CardContent className="text-sm">
             <p className="font-medium">CV Hi Bali Nusa Tenggara</p>
-            <p className="text-slate-600">Jakarta Selatan, DKI Jakarta, Indonesia</p>
+            <p className="text-slate-600">
+              Jl. Swakarya Raya No.5B, Kekalik Jaya, Kec. Sekarbela, Kota
+              Mataram, Nusa Tenggara Barat 83114, Indonesia
+            </p>
           </CardContent>
         </Card>
       </div>

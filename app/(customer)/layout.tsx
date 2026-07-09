@@ -106,10 +106,10 @@ export default function CustomerLayout({
                 </li>
                 <li>
                   <a
-                    href="mailto:support@gilijet.com"
+                    href="mailto:info@balinusafast.com"
                     className="text-slate-600 hover:text-sky-700 hover:underline"
                   >
-                    support@gilijet.com
+                    info@balinusafast.com
                   </a>
                 </li>
                 <li>

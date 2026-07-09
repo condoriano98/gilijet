@@ -164,7 +164,7 @@ export default function TermsPage() {
             booking confirmation and e-ticket will be sent to the email address
             provided during checkout within 15 minutes. If you do not receive a
             confirmation within 60 minutes, please contact us at
-            info@gilibali.com before assuming the payment has failed.
+            info@balinusafast.com before assuming the payment has failed.
           </p>
           <p>
             <strong>3.5 Ticket Validity.</strong> Each ticket is valid for the
@@ -215,7 +215,7 @@ export default function TermsPage() {
         <Section n="5" title="Cancellation & Refund Policy">
           <p>
             <strong>5.1 Cancellation by Passenger.</strong> All cancellation
-            requests must be submitted in writing via email to info@gilibali.com
+            requests must be submitted in writing via email to info@balinusafast.com
             or through the &apos;Manage Booking&apos; feature on gilibali.com.
             Verbal or WhatsApp cancellations will not be accepted unless
             confirmed by written email. The following refund schedule applies:
@@ -302,7 +302,7 @@ export default function TermsPage() {
               per change.
             </li>
             <li>
-              Rescheduling requests must be made via email to info@gilibali.com
+              Rescheduling requests must be made via email to info@balinusafast.com
               or through the &apos;Manage Booking&apos; portal.
             </li>
           </ul>
@@ -457,7 +457,7 @@ export default function TermsPage() {
           </p>
           <p>
             10.4 Passengers may request deletion of their personal data by
-            contacting info@gilibali.com, subject to legal retention
+            contacting info@balinusafast.com, subject to legal retention
             requirements.
           </p>
           <p>
@@ -501,7 +501,7 @@ export default function TermsPage() {
           </p>
           <p>
             12.2 For service failures or disputes, Passengers are required to
-            contact gilibali.com in writing at info@gilibali.com before
+            contact gilibali.com in writing at info@balinusafast.com before
             initiating any bank or card dispute. gilibali.com will endeavour to
             resolve all legitimate complaints within 5 business days.
           </p>
@@ -547,7 +547,7 @@ export default function TermsPage() {
             <dt className="font-semibold">Website:</dt>
             <dd>www.gilibali.com</dd>
             <dt className="font-semibold">Email:</dt>
-            <dd>info@gilibali.com</dd>
+            <dd>info@balinusafast.com</dd>
             <dt className="font-semibold">WhatsApp:</dt>
             <dd>+62 812-3606-1818</dd>
             <dt className="font-semibold">Office:</dt>
