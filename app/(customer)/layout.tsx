@@ -16,6 +16,17 @@ export default function CustomerLayout({
 }) {
   return (
     <div className="gj-brand flex min-h-screen flex-col bg-[#F9F9F9]">
+      {/* Blue utility bar (Figma) — contact left, language right */}
+      <div className="bg-brand text-white">
+        <div className="container flex h-9 items-center justify-between text-xs sm:text-[13px]">
+          <div className="flex items-center gap-3">
+            <a href="https://wa.me/6281236061818" className="hover:underline">+62 812-3606-1818</a>
+            <span className="text-white/40">|</span>
+            <a href="mailto:info@balinusafast.com" className="hidden hover:underline sm:inline">info@balinusafast.com</a>
+          </div>
+          <span className="text-white/90">English</span>
+        </div>
+      </div>
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-2">
           <Link

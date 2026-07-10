@@ -18,7 +18,8 @@ import {
   maybeAutoSeed,
   TRUST_THRESHOLDS,
 } from "@/lib/home-data";
-import { HERO_PHOTO, photoForPort } from "@/lib/destination-photos";
+import { photoForPort } from "@/lib/destination-photos";
+import { Ship } from "lucide-react";
 
 export const revalidate = 600;
 
@@ -104,39 +105,27 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden pb-32 pt-12 sm:pb-40 sm:pt-16">
+      {/* ─── HERO ─── (Figma illustration + display slogan) */}
+      <section className="relative overflow-hidden pb-36 pt-16 sm:pb-44 sm:pt-20">
         <Image
-          src={HERO_PHOTO.url}
-          alt={HERO_PHOTO.alt}
+          src="/brand/hero-home.png"
+          alt="Island-hopping by fast boat across Indonesia"
           fill
           priority
           sizes="100vw"
-          className="object-cover brightness-[0.6]"
+          className="object-cover object-center"
         />
-        {/* Left-to-right scrim — leaves the right side of the photo visible */}
-        <div className="absolute inset-0 bg-gradient-to-r from-gilijet-deep/70 via-gilijet-deep/50 to-transparent" />
-
-        {/* Photo credit */}
-        {HERO_PHOTO.credit && (
-          <div className="absolute bottom-3 right-4 z-10 text-xs text-white/60">
-            Photo by {HERO_PHOTO.credit}
-          </div>
-        )}
+        {/* Soft top wash so the white slogan stays legible over the sky */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
 
         <div className="container relative">
-          <div className="mx-auto max-w-6xl">
-            <div className="max-w-2xl">
-              <Badge className="bg-gilijet-coral/20 text-white border-white/20">
-                {t("home.badge")}
-              </Badge>
-              <h1 className="mt-4 text-3xl font-display font-extrabold text-white drop-shadow sm:text-5xl lg:text-6xl">
-                {t("home.heroTitle")}
-              </h1>
-              <p className="mt-4 text-lg text-white/90 drop-shadow sm:text-xl max-w-prose">
-                {t("home.heroSubtitle")}
-              </p>
-            </div>
+          <div className="mx-auto max-w-6xl text-center">
+            <h1 className="mx-auto max-w-4xl text-4xl font-display font-extrabold leading-[0.98] text-white drop-shadow-lg sm:text-6xl lg:text-7xl">
+              Let Journey Begin with Gilibali!
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-white/90 drop-shadow sm:text-xl">
+              {t("home.heroSubtitle")}
+            </p>
           </div>
         </div>
       </section>
@@ -145,10 +134,31 @@ export default async function HomePage() {
       <div className="relative z-0">
         <WaveDivider fillClass="fill-gilijet-foam" />
 
-        {/* Search card — overlaps the hero/content boundary */}
-        <div className="relative z-10 -mt-12 mx-auto max-w-5xl px-4">
-          <div className="rounded-[10px] bg-white p-2 shadow-ambient">
-            <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
+        {/* Search card — overlaps the hero/content boundary. Circular photo
+            blob on the left (Figma motif) + the live search form. */}
+        <div className="relative z-10 -mt-12 mx-auto max-w-6xl px-4">
+          <div className="flex overflow-hidden rounded-[10px] bg-white shadow-ambient">
+            <div className="relative hidden w-72 shrink-0 lg:block">
+              <Image
+                src="/brand/search-card-photo.png"
+                alt=""
+                fill
+                sizes="288px"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-brand/45" />
+              <div className="absolute inset-0 flex flex-col justify-center p-6 text-white">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Ship size={18} /> Boat Trip
+                </div>
+                <div className="mt-2 text-2xl font-extrabold leading-tight drop-shadow">
+                  Find the Best Deals on Boat for your Trip
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 p-2">
+              <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
+            </div>
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">
             {t("home.searchAcross")}
