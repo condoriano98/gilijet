@@ -284,7 +284,18 @@ export default async function SearchPage({
   return (
     <div className="container py-8">
       <BookingProgress currentStep={1} />
-      <div className="mb-6">
+
+      {/* Listing hero (Figma "Find the Best Deals") — blue band with the
+          search card floating over its lower edge. */}
+      <div className="relative mt-4 overflow-hidden rounded-[10px] bg-brand px-6 pb-24 pt-8">
+        <p className="text-sm font-medium text-brand-periwinkle">
+          Let Journey Begin with Gilibali!
+        </p>
+        <h1 className="mt-1 max-w-xl font-display text-2xl font-extrabold leading-[1.05] text-white sm:text-4xl">
+          Find the best deals on boats for your trip
+        </h1>
+      </div>
+      <div className="relative z-10 -mt-24 mb-8 rounded-[10px] bg-white p-2 shadow-ambient">
         <SearchForm
           origins={origins}
           destinations={destinations}
