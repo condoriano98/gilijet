@@ -147,7 +147,7 @@ export default async function HomePage() {
 
         {/* Search card — overlaps the hero/content boundary */}
         <div className="relative z-10 -mt-12 mx-auto max-w-5xl px-4">
-          <div className="rounded-2xl bg-white p-2 shadow-2xl">
+          <div className="rounded-[10px] bg-white p-2 shadow-ambient">
             <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">

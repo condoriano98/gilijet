@@ -17,12 +17,22 @@ const config: Config = {
     },
     extend: {
       colors: {
+        // Remapped to the Gilibali Figma brand: the consumer pages reference
+        // gilijet-deep/ocean/foam for accents, so redefining these values
+        // rebrands the whole consumer surface to electric blue + periwinkle.
         gilijet: {
-          deep: "#0a3d62",
-          ocean: "#1e6091",
-          foam: "#e8f4fa",
+          deep: "#103BE9",
+          ocean: "#0052D4",
+          foam: "#E1E7FF",
           coral: "#ff9a3c",
           coralDeep: "#e88528",
+        },
+        brand: {
+          DEFAULT: "#103BE9",
+          dark: "#00228E",
+          cyan: "#00AEEF",
+          periwinkle: "#E1E7FF",
+          ink: "#1F1F1F",
         },
         mekari: {
           primary: "#1B5FE3",
@@ -76,9 +86,15 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        pill: "44px",
+      },
+      boxShadow: {
+        ambient: "0 0 25px rgba(0,0,0,0.15)",
+        "ambient-sm": "0 0 15px rgba(0,0,0,0.06)",
       },
       fontFamily: {
         display: ["var(--font-display)", "ui-sans-serif", "system-ui"],
+        sans: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

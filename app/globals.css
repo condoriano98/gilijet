@@ -37,6 +37,35 @@
     --mekari-neutral-200: #E2E8F0;
     --mekari-neutral-50: #F8FAFC;
     --mekari-surface: #FFFFFF;
+
+    /* Gilibali consumer brand — electric blue + cyan (Figma source of truth) */
+    --gj-blue: #103BE9;
+    --gj-blue-dark: #00228E;
+    --gj-cyan: #00AEEF;
+    --gj-periwinkle: #E1E7FF;
+    --gj-ink: #1F1F1F;
+    --gj-gray-600: #828282;
+    --gj-gray-100: #F2F2F2;
+    --gj-gray-50: #F9F9F9;
+    --gj-success: #0E9E4D;
+    --gj-scrim-blue: rgba(16, 59, 233, 0.4);
+    --shadow-card: 0 0 25px rgba(0, 0, 0, 0.15);
+    --shadow-list: 0 0 15px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Scoped consumer palette: remaps the shadcn semantic layer to the Gilibali
+     brand so every primitive rendered inside the customer surface picks up
+     electric blue / cyan / periwinkle. Operator + admin stay on the default
+     (Mekari) palette because this class is only applied to (customer). */
+  .gj-brand {
+    --primary: 228 87% 49%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 197 100% 47%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 228 100% 94%;
+    --accent-foreground: 228 87% 30%;
+    --ring: 228 87% 49%;
+    --radius: 0.625rem;
   }
 
   .dark {
@@ -77,6 +106,13 @@
   }
   .mekari-shadow {
     box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.08);
+  }
+  /* Signature soft ambient shadow from the Figma cards */
+  .shadow-ambient {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-ambient-sm {
+    box-shadow: var(--shadow-list);
   }
   .prose-content {
     color: #334155;

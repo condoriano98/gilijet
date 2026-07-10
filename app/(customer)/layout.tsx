@@ -6,129 +6,119 @@ import { AuthNav } from "@/components/customer/auth-nav";
 // component that fetches /api/auth/me on mount. This keeps the
 // layout — and all child routes that don't otherwise read cookies
 // or hit the DB — fully statically renderable.
+//
+// `gj-brand` scopes the electric-blue Gilibali (Figma) palette to the
+// consumer surface; operator/admin keep the Mekari palette.
 export default function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-sky-50 to-white">
-      <header className="border-b bg-white/80 backdrop-blur">
-        <div className="container flex h-14 items-center justify-between gap-2">
+    <div className="gj-brand flex min-h-screen flex-col bg-[#F9F9F9]">
+      <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur">
+        <div className="container flex h-16 items-center justify-between gap-2">
           <Link
             href="/"
-            className="shrink-0 text-lg font-bold tracking-tight text-sky-700"
+            className="shrink-0 text-2xl font-extrabold tracking-tight text-brand"
           >
-            Gilibali
+            Gili<span className="text-brand-cyan">bali</span>
           </Link>
           <nav className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
+            <Button asChild variant="ghost" size="sm" className="rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:px-3">
               <Link href="/blog">Blog</Link>
             </Button>
-            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
+            <Button asChild variant="ghost" size="sm" className="rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:px-3">
               <Link href="/b">Find booking</Link>
             </Button>
             <AuthNav />
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/operator/login">Operator</Link>
+            <Button asChild size="sm" className="ml-1 rounded-pill bg-brand px-4 font-semibold text-white hover:bg-brand-dark">
+              <Link href="/search">Book now</Link>
             </Button>
           </nav>
         </div>
       </header>
+
       <main className="flex-1">{children}</main>
-      <footer className="border-t bg-white">
-        <div className="container py-8">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-            <div>
-              <div className="font-semibold text-slate-900">Gilibali</div>
-              <p className="mt-2 text-xs text-slate-600">
-                Boat tickets across Indonesia. Verified operators, transparent
-                prices, fair refunds.
-              </p>
-            </div>
-            <div>
-              <div className="font-semibold text-slate-900">Company</div>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>
-                  <Link href="/about" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Contact
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/blog" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/operator/login" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    For operators
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-semibold text-slate-900">Legal</div>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>
-                  <Link href="/terms" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/refunds" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Refund Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/legal/wahana-virendra" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Wahana Virendra Terms
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-semibold text-slate-900">Support</div>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>
-                  <Link href="/b" className="text-slate-600 hover:text-sky-700 hover:underline">
-                    Find my booking
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="mailto:info@balinusafast.com"
-                    className="text-slate-600 hover:text-sky-700 hover:underline"
-                  >
-                    info@balinusafast.com
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://wa.me/6281234567890"
-                    className="text-slate-600 hover:text-sky-700 hover:underline"
-                  >
-                    WhatsApp
-                  </a>
-                </li>
-              </ul>
-            </div>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+/* Signature Gilibali footer: electric-blue field, real links, stacked
+   translucent white waves along the bottom edge (Figma "Footer"). */
+function SiteFooter() {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="relative overflow-hidden bg-brand text-white">
+      <div className="container relative z-10 grid gap-8 pb-32 pt-14 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <div className="text-xl font-extrabold tracking-tight">
+            Gili<span className="text-brand-cyan">bali</span>
           </div>
-          <div className="mt-8 border-t pt-4 text-center text-xs text-slate-500">
-            © {new Date().getFullYear()} CV Hi Bali Nusa Tenggara · Payments
-            processed by Xendit, licensed by Bank Indonesia
-          </div>
+          <p className="mt-3 max-w-xs text-white/80">
+            Let Journey Begin with Gilibali! Book fast boats across Indonesia —
+            verified operators, transparent prices, fair refunds.
+          </p>
         </div>
-      </footer>
+        <div>
+          <div className="mb-3 text-base font-semibold">Company</div>
+          <ul className="space-y-2 text-white/80">
+            <li><Link href="/about" className="hover:text-white hover:underline">About</Link></li>
+            <li><Link href="/contact" className="hover:text-white hover:underline">Contact</Link></li>
+            <li><Link href="/blog" className="hover:text-white hover:underline">Blog</Link></li>
+            <li><Link href="/operator/login" className="hover:text-white hover:underline">For operators</Link></li>
+          </ul>
+        </div>
+        <div>
+          <div className="mb-3 text-base font-semibold">Legal</div>
+          <ul className="space-y-2 text-white/80">
+            <li><Link href="/terms" className="hover:text-white hover:underline">Terms of Service</Link></li>
+            <li><Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link></li>
+            <li><Link href="/refunds" className="hover:text-white hover:underline">Refund Policy</Link></li>
+            <li><Link href="/legal/wahana-virendra" className="hover:text-white hover:underline">Wahana Virendra Terms</Link></li>
+          </ul>
+        </div>
+        <div>
+          <div className="mb-3 text-base font-semibold">Support</div>
+          <ul className="space-y-2 text-white/80">
+            <li><Link href="/b" className="hover:text-white hover:underline">Find my booking</Link></li>
+            <li><a href="mailto:info@balinusafast.com" className="hover:text-white hover:underline">info@balinusafast.com</a></li>
+            <li><a href="https://wa.me/6281236061818" className="hover:text-white hover:underline">WhatsApp</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="container relative z-10 -mt-24 pb-10 text-xs text-white/70">
+        © {year} CV Hi Bali Nusa Tenggara · Payments processed by Xendit,
+        licensed by Bank Indonesia
+      </div>
+
+      <WaveBand />
+    </footer>
+  );
+}
+
+function WaveBand() {
+  const Wave = ({ opacity, bottom }: { opacity: number; bottom: number }) => (
+    <svg
+      viewBox="0 0 1440 90"
+      preserveAspectRatio="none"
+      className="absolute inset-x-0 h-[90px] w-full"
+      style={{ bottom, opacity }}
+    >
+      <path
+        d="M0,48 C240,86 480,10 720,38 C960,66 1200,20 1440,52 L1440,90 L0,90 Z"
+        fill="#fff"
+      />
+    </svg>
+  );
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-28 overflow-hidden">
+      <Wave opacity={0.14} bottom={26} />
+      <Wave opacity={0.2} bottom={12} />
+      <Wave opacity={0.32} bottom={0} />
     </div>
   );
 }
