@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { MapPin, ArrowLeftRight, Search as SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Counter } from "@/components/ui/counter";
 
@@ -25,6 +25,10 @@ function todayLocalYmd(): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
+
+const FIELD =
+  "h-14 rounded-[10px] border-2 border-slate-100 px-4 text-[15px]";
+const LABEL = "mb-2 block text-sm font-medium text-slate-500";
 
 export function SearchForm(props: SearchFormProps) {
   const router = useRouter();
@@ -69,127 +73,131 @@ export function SearchForm(props: SearchFormProps) {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-xl border bg-white p-4 shadow-sm lg:p-5"
-    >
-      {/* Trip type tabs */}
-      <div className="mb-3 inline-flex rounded-md border bg-slate-50 p-0.5 text-sm">
-        <button
-          type="button"
-          onClick={() => setTripType("one_way")}
-          className={`rounded px-3 py-1.5 transition-colors ${
-            tripType === "one_way"
-              ? "bg-white shadow-sm font-medium text-gilijet-deep"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          One way
-        </button>
-        <button
-          type="button"
-          onClick={() => setTripType("round_trip")}
-          className={`rounded px-3 py-1.5 transition-colors ${
-            tripType === "round_trip"
-              ? "bg-white shadow-sm font-medium text-gilijet-deep"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          Return
-        </button>
+    <form onSubmit={submit} className="p-4 sm:p-6">
+      {/* Trip type */}
+      <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-sm">
+        {(["one_way", "round_trip"] as const).map((tt) => (
+          <button
+            key={tt}
+            type="button"
+            onClick={() => setTripType(tt)}
+            className={`rounded-full px-4 py-1.5 transition-colors ${
+              tripType === tt
+                ? "bg-white font-semibold text-brand shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {tt === "one_way" ? "One way" : "Return"}
+          </button>
+        ))}
       </div>
 
-      <div
-        className={`grid gap-3 ${
-          tripType === "round_trip"
-            ? "sm:grid-cols-2 lg:grid-cols-6"
-            : "sm:grid-cols-2 lg:grid-cols-5"
-        }`}
-      >
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="origin">From</Label>
+      {/* From · swap · To (combined field, Figma) */}
+      <div>
+        <div className="mb-2 flex text-sm font-medium text-slate-500">
+          <span className="flex-1">From:</span>
+          <span className="w-14 shrink-0" />
+          <span className="flex-1">To:</span>
+        </div>
+        <div className="flex items-stretch rounded-[10px] border-2 border-slate-100">
+          <div className="flex flex-1 items-center gap-2 px-4">
+            <MapPin size={20} className="shrink-0 text-brand" />
+            <select
+              aria-label="From"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              className="h-14 w-full bg-transparent text-[15px] outline-none"
+            >
+              <option value="">Any departure port</option>
+              {props.origins.map((p) => (
+                <option key={p} value={p} disabled={p === destination}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="relative flex w-14 shrink-0 items-center justify-center">
             <button
               type="button"
               onClick={swap}
-              className="text-xs text-gilijet-deep hover:underline"
               aria-label="Swap origin and destination"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark"
             >
-              ⇄ Swap
+              <ArrowLeftRight size={18} />
             </button>
           </div>
-          <select
-            id="origin"
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">Any departure port</option>
-            {props.origins.map((p) => (
-              <option key={p} value={p} disabled={p === destination}>
-                {p}
+          <div className="flex flex-1 items-center gap-2 px-4">
+            <MapPin size={20} className="shrink-0 text-brand" />
+            <select
+              aria-label="To"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="h-14 w-full bg-transparent text-[15px] outline-none"
+            >
+              <option value="" disabled>
+                Pick a destination
               </option>
-            ))}
-          </select>
+              {props.destinations.map((p) => (
+                <option key={p} value={p} disabled={p === origin}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="destination">To</Label>
-          <select
-            id="destination"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="" disabled>
-              Pick a destination
-            </option>
-            {props.destinations.map((p) => (
-              <option key={p} value={p} disabled={p === origin}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="date">Departure</Label>
+      </div>
+
+      {/* Departure · Passengers (+ Return) */}
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="date" className={LABEL}>
+            Departure:
+          </label>
           <DatePicker
             id="date"
             value={date}
             onChange={setDate}
             minDate={todayLocalYmd()}
+            className={FIELD}
           />
         </div>
         {tripType === "round_trip" ? (
-          <div className="space-y-1">
-            <Label htmlFor="returnDate">Return</Label>
+          <div>
+            <label htmlFor="returnDate" className={LABEL}>
+              Return:
+            </label>
             <DatePicker
               id="returnDate"
               value={returnDate}
               onChange={setReturnDate}
               minDate={date || todayLocalYmd()}
+              className={FIELD}
             />
           </div>
         ) : null}
-        <div className="space-y-1">
-          <Label htmlFor="passengers">Passengers</Label>
+        <div>
+          <label htmlFor="passengers" className={LABEL}>
+            Passengers:
+          </label>
           <Counter
             id="passengers"
             value={passengers}
             onChange={setPassengers}
             min={1}
             max={10}
+            className="h-14 rounded-[10px] border-2 border-slate-100"
           />
         </div>
-        <div className="flex items-end">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={submitting || origin === destination}
-          >
-            {submitting ? "Searching…" : "Search"}
-          </Button>
-        </div>
       </div>
+
+      <Button
+        type="submit"
+        disabled={submitting || origin === destination}
+        className="mt-5 h-14 w-full rounded-pill bg-brand text-base font-semibold text-white hover:bg-brand-dark"
+      >
+        <SearchIcon size={18} className="mr-2" />
+        {submitting ? "Searching…" : "Search"}
+      </Button>
     </form>
   );
 }

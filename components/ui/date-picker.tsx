@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export type DatePickerProps = {
   value: string; // ISO yyyy-MM-dd
@@ -12,6 +13,7 @@ export type DatePickerProps = {
   minDate?: string; // ISO yyyy-MM-dd
   placeholder?: string;
   id?: string;
+  className?: string;
 };
 
 function toDate(ymd: string): Date | undefined {
@@ -33,6 +35,7 @@ export function DatePicker({
   minDate,
   placeholder = "Pick a date",
   id,
+  className,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selected = toDate(value);
@@ -44,7 +47,10 @@ export function DatePicker({
         <button
           id={id}
           type="button"
-          className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className={cn(
+            "flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm",
+            className,
+          )}
         >
           <span className={selected ? "" : "text-slate-400"}>
             {selected ? format(selected, "dd MMM yyyy") : placeholder}

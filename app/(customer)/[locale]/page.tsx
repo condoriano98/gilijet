@@ -156,7 +156,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="flex-1 p-2">
+            <div className="flex-1">
               <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
             </div>
           </div>

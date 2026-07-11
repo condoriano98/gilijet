@@ -295,7 +295,7 @@ export default async function SearchPage({
           Find the best deals on boats for your trip
         </h1>
       </div>
-      <div className="relative z-10 -mt-24 mb-8 rounded-[10px] bg-white p-2 shadow-ambient">
+      <div className="relative z-10 -mt-24 mb-8 rounded-[10px] bg-white shadow-ambient">
         <SearchForm
           origins={origins}
           destinations={destinations}
