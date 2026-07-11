@@ -50,25 +50,11 @@ export default function AboutPage() {
             </div>
             <div>
               <dt className="font-semibold text-slate-700">Business type</dt>
-              <dd>Perseroan Terbatas (PT)</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-slate-700">NPWP</dt>
-              <dd>XX.XXX.XXX.X-XXX.XXX</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-slate-700">NIB</dt>
-              <dd>XXXXXXXXXXXXXX</dd>
+              <dd>Persekutuan Komanditer (CV)</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="font-semibold text-slate-700">Registered office</dt>
-              <dd>
-                Jakarta Selatan, DKI Jakarta, Indonesia
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-semibold text-slate-700">Payment gateway</dt>
-              <dd>Xendit (PT Xendit Indonesia, licensed by Bank Indonesia)</dd>
+              <dd>Mataram, Nusa Tenggara Barat, Indonesia</dd>
             </div>
           </dl>
         </div>
