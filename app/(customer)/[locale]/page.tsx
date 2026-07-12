@@ -19,7 +19,15 @@ import {
   TRUST_THRESHOLDS,
 } from "@/lib/home-data";
 import { photoForPort } from "@/lib/destination-photos";
+import { POSTS } from "@/content/blog";
 import { Ship } from "lucide-react";
+
+const ARTICLE_IMAGES = [
+  "/brand/articles/article-ubud.png",
+  "/brand/articles/article-resort.png",
+  "/brand/articles/article-temple.png",
+  "/brand/articles/article-kuta.png",
+];
 
 export const revalidate = 600;
 
@@ -328,6 +336,58 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ─── ARTICLE AND BLOG ─── (Figma) */}
+      {POSTS.length > 0 && (
+        <section className="container mb-16">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-6 flex items-baseline justify-between">
+              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
+                Article and Blog
+              </h2>
+              <Link
+                href="/blog"
+                className="text-sm font-medium text-slate-500 hover:text-brand hover:underline"
+              >
+                More Article →
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {POSTS.slice(0, 3).map((post, i) => (
+                <Link
+                  key={post.meta.slug}
+                  href={`/blog/${post.meta.slug}`}
+                  className="group block"
+                >
+                  <Card className="overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                    <div className="relative h-48 w-full overflow-hidden">
+                      <Image
+                        src={ARTICLE_IMAGES[i % ARTICLE_IMAGES.length]}
+                        alt=""
+                        fill
+                        sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                    <CardContent className="pt-4">
+                      <div className="min-h-[3.25rem] font-semibold leading-snug text-slate-900 line-clamp-2">
+                        {post.meta.title}
+                      </div>
+                      <div className="mt-3 text-sm font-medium text-slate-500">
+                        {new Date(post.meta.publishedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Wave divider before destinations */}
       <WaveDivider fillClass="fill-slate-50" />
