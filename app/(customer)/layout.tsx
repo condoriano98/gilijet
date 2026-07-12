@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AuthNav } from "@/components/customer/auth-nav";
+import { Logo } from "@/components/customer/logo";
 
 // Sync layout. The auth-aware buttons live in <AuthNav>, a client
 // component that fetches /api/auth/me on mount. This keeps the
@@ -29,11 +30,8 @@ export default function CustomerLayout({
       </div>
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-2">
-          <Link
-            href="/"
-            className="shrink-0 text-2xl font-extrabold tracking-tight text-brand"
-          >
-            Gili<span className="text-brand-cyan">bali</span>
+          <Link href="/" className="shrink-0 text-brand" aria-label="Gilibali home">
+            <Logo />
           </Link>
           <nav className="flex items-center gap-1">
             <Button asChild variant="ghost" size="sm" className="rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:px-3">
@@ -65,9 +63,7 @@ function SiteFooter() {
     <footer className="relative overflow-hidden bg-brand text-white">
       <div className="container relative z-10 grid gap-8 pb-32 pt-14 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="text-xl font-extrabold tracking-tight">
-            Gili<span className="text-brand-cyan">bali</span>
-          </div>
+          <Logo className="items-start text-white" />
           <p className="mt-3 max-w-xs text-white/80">
             Let Journey Begin with Gilibali! Book fast boats across Indonesia —
             verified operators, transparent prices, fair refunds.
