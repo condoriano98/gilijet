@@ -21,7 +21,7 @@ export const DESTINATION_PHOTOS: Record<string, DestinationPhoto> = {
   "nusa-penida": {
     url: LOCAL("nusa-penida"),
     alt: "Kelingking Beach cliff viewpoint on Nusa Penida",
-    credit: "Nick Fewings on Unsplash",
+    credit: "Wikimedia Commons",
   },
   "nusa-lembongan": {
     url: LOCAL("nusa-lembongan"),
@@ -30,13 +30,13 @@ export const DESTINATION_PHOTOS: Record<string, DestinationPhoto> = {
   },
   lombok: {
     url: LOCAL("lombok"),
-    alt: "Mount Rinjani crater lake at sunrise",
-    credit: "Fikri Rasyid on Unsplash",
+    alt: "Mount Rinjani crater lake and Segara Anak",
+    credit: "Wikimedia Commons",
   },
   komodo: {
     url: LOCAL("komodo"),
-    alt: "Pink Beach panorama with a traditional Phinisi boat in the foreground",
-    credit: "Sulthan Auliya on Unsplash",
+    alt: "Padar Island viewpoint in Komodo National Park",
+    credit: "Wikimedia Commons",
   },
   sanur: {
     url: LOCAL("sanur"),
@@ -60,8 +60,8 @@ export const DESTINATION_PHOTOS: Record<string, DestinationPhoto> = {
   },
   "gili-islands": {
     url: LOCAL("gili-islands"),
-    alt: "Aerial view of the three Gili Islands",
-    credit: "Oleksandr Pidvalnyi on Unsplash",
+    alt: "Beach on Gili Trawangan with turquoise water",
+    credit: "Wikimedia Commons",
   },
 };
 
