@@ -72,7 +72,7 @@ export async function generateLegsForSchedule(
   // Dummy departures exist only within the July–August demo season.
   const season = demoSeasonWindow(now);
 
-  let created = 0;
+  const toCreate: Prisma.LegCreateManyInput[] = [];
   for (let offset = 0; offset < daysAhead; offset++) {
     const candidateUtc = new Date(now.getTime() + offset * 86_400_000);
     const localYmd = offset === 0 ? todayLocalYmd : ymdInZone(candidateUtc);
@@ -91,31 +91,25 @@ export async function generateLegsForSchedule(
     const dow = isoDayOfWeek(departureUtc);
     if (!schedule.daysOfWeek.includes(dow)) continue;
 
-    try {
-      await prisma.leg.create({
-        data: {
-          scheduleId: schedule.id,
-          operatorId: schedule.boat.operatorId,
-          departureDate: departureUtc,
-          totalCapacity: schedule.boat.capacity,
-          availableSeats: schedule.boat.capacity,
-          basePrice: schedule.basePrice,
-          status: "OPEN",
-        },
-      });
-      created++;
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002"
-      ) {
-        // Already exists — fine, idempotent.
-        continue;
-      }
-      throw err;
-    }
+    toCreate.push({
+      scheduleId: schedule.id,
+      operatorId: schedule.boat.operatorId,
+      departureDate: departureUtc,
+      totalCapacity: schedule.boat.capacity,
+      availableSeats: schedule.boat.capacity,
+      basePrice: schedule.basePrice,
+      status: "OPEN",
+    });
   }
-  return created;
+
+  if (toCreate.length === 0) return 0;
+  // Batch insert; skipDuplicates keeps it idempotent against the unique
+  // (scheduleId, departureDate) constraint.
+  const result = await prisma.leg.createMany({
+    data: toCreate,
+    skipDuplicates: true,
+  });
+  return result.count;
 }
 
 /**

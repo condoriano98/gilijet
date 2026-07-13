@@ -283,30 +283,22 @@ let _seedPromise: Promise<void> | null = null;
  * If seeding is already in progress, returns immediately with "seeding" status.
  */
 export async function maybeAutoSeed(): Promise<SeedStatus> {
-  if (_cachedSeedStatus?.state === "ready") return _cachedSeedStatus;
-
+  // Trigger on missing *upcoming* legs, not just an empty table — so a DB with
+  // only stale past legs (e.g. an earlier season) still gets topped up.
+  let upcoming = 0;
   try {
-    const legCount = await prisma.leg.count();
-    if (legCount > 0) {
-      _cachedSeedStatus = { state: "ready", message: `${legCount} departures available` };
-      return _cachedSeedStatus;
-    }
+    upcoming = await prisma.leg.count({
+      where: { departureDate: { gte: new Date() }, status: "OPEN" },
+    });
   } catch {
     return { state: "empty", message: "Database unreachable" };
   }
-
-  // No legs. Check if we at least have schedules (schema was pushed).
-  try {
-    const scheduleCount = await prisma.schedule.count();
-    if (scheduleCount === 0) {
-      _cachedSeedStatus = { state: "empty", message: "No schedules found. Run prisma db push." };
-      return _cachedSeedStatus;
-    }
-  } catch {
-    return { state: "empty", message: "Database unreachable" };
+  if (upcoming > 0) {
+    return { state: "ready", message: `${upcoming} departures available` };
   }
 
-  // Schedules exist but no legs — trigger seed if not already running.
+  // No upcoming legs — (re)seed the July–August season. seedRealData upserts
+  // operators/boats/schedules and regenerates in-season legs idempotently.
   if (!_seedPromise) {
     _seedPromise = (async () => {
       try {
