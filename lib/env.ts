@@ -10,18 +10,10 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
-  XENDIT_SECRET_KEY: z.string().optional(),
-  XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
-  XENDIT_CALLBACK_URL: z
-    .string()
-    .url()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
-
-  MAYAR_API_KEY: z.string().optional(),
-  MAYAR_WEBHOOK_SECRET: z.string().optional(),
-  MAYAR_IS_PRODUCTION: z
+  // DOKU (Direct API / Jokul) — the sole payment gateway.
+  DOKU_CLIENT_ID: z.string().optional(),
+  DOKU_SECRET_KEY: z.string().optional(),
+  DOKU_IS_PRODUCTION: z
     .string()
     .optional()
     .transform((v) => v === "true")
@@ -30,17 +22,6 @@ const envSchema = z.object({
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),
-
-  MIDTRANS_SERVER_KEY: z.string().optional(),
-  MIDTRANS_CLIENT_KEY: z.string().optional(),
-  MIDTRANS_IS_PRODUCTION: z
-    .string()
-    .optional()
-    .transform((v) => v === "true")
-    .default("false"),
-
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
   CRON_SECRET: z.string().min(16),
 
@@ -85,7 +66,7 @@ function loadEnv() {
   // Fall back to a partial parse. Using safeParse here is critical —
   // partial() makes fields optional but the per-field validators (e.g.
   // .url()) still run on any value that IS present. A malformed env
-  // var (e.g. XENDIT_CALLBACK_URL set to a non-URL) would otherwise
+  // var (e.g. APP_BASE_URL set to a non-URL) would otherwise
   // throw at module load and crash any route that imports `env`,
   // taking the whole build / deploy down. Never throw here.
   const partial = envSchema.partial().safeParse(process.env);

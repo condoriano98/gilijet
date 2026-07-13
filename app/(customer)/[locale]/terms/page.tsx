@@ -148,7 +148,7 @@ export default function TermsPage() {
             <li>E-wallet (GoPay, ShopeePay, OVO, DANA, LinkAja)</li>
           </ul>
           <p>
-            Payment processing is handled by Xendit and/or Midtrans, licensed
+            Payment processing is handled by DOKU, licensed
             payment gateway providers regulated by Bank Indonesia. gilibali.com
             does not store card or bank account details.
           </p>

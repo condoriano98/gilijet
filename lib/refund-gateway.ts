@@ -1,14 +1,9 @@
-import { createRefund as createXenditRefund, isXenditConfigured } from "./xendit";
-import { createRefund as createMayarRefund, isMayarConfigured } from "./mayar";
-import { createRefund as createStripeRefund, isStripeConfigured } from "./stripe";
+import { createRefund as createDokuRefund, isDokuConfigured } from "./doku";
 import { PaymentProvider } from "@prisma/client";
 
 /**
- * Dispatch a refund through whichever gateway originally processed the
- * payment. Falls back to whichever gateway is configured if the payment
- * record doesn't know.
- *
- * Returns null if no gateway is configured (mock/manual refund flow).
+ * Dispatch a refund through DOKU (the only gateway). Returns null when DOKU is
+ * unconfigured (mock/manual refund flow).
  */
 export async function refundViaGateway(args: {
   gatewayProvider: PaymentProvider | null;
@@ -16,38 +11,14 @@ export async function refundViaGateway(args: {
   amount: number;
   reason: string;
 }): Promise<{ id: string; status: string } | null> {
-  const provider = args.gatewayProvider;
-
-  if (provider === PaymentProvider.MAYAR || (!provider && isMayarConfigured())) {
-    if (!isMayarConfigured()) return null;
-    return await createMayarRefund({
-      transactionId: args.gatewayReference,
-      amount: args.amount,
-      reason: args.reason,
-    });
-  }
-
-  if (provider === PaymentProvider.XENDIT || (!provider && isXenditConfigured())) {
-    if (!isXenditConfigured()) return null;
-    return await createXenditRefund({
-      invoiceId: args.gatewayReference,
-      amount: args.amount,
-      reason: args.reason,
-    });
-  }
-
-  if (provider === PaymentProvider.STRIPE || (!provider && isStripeConfigured())) {
-    if (!isStripeConfigured()) return null;
-    return await createStripeRefund({
-      paymentIntentId: args.gatewayReference,
-      amount: args.amount,
-      reason: args.reason,
-    });
-  }
-
-  return null;
+  if (!isDokuConfigured()) return null;
+  return await createDokuRefund({
+    gatewayReference: args.gatewayReference,
+    amount: args.amount,
+    reason: args.reason,
+  });
 }
 
 export function isAnyRefundGatewayConfigured(): boolean {
-  return isMayarConfigured() || isXenditConfigured() || isStripeConfigured();
+  return isDokuConfigured();
 }

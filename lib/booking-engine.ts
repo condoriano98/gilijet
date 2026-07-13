@@ -9,9 +9,7 @@ import {
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
-import { XenditNotConfiguredError } from "./xendit";
-import { MayarNotConfiguredError } from "./mayar";
-import { createPayment, isAnyPSPConfigured } from "./psp";
+import { isDokuMock } from "./doku";
 
 export class BookingError extends Error {
   constructor(
@@ -61,9 +59,9 @@ export type CreateBookingArgs = {
  *  - bumps the leg to FULL when seats hit zero
  *  - mints a Booking + Payment row (status=PENDING_PAYMENT)
  *
- * Does NOT issue tickets — those land when Xendit confirms payment via the
+ * Does NOT issue tickets — those land when DOKU confirms payment via the
  * webhook (or the mock-pay endpoint in dev). Returns the booking row so the
- * caller can kick off the Xendit invoice afterwards.
+ * caller can kick off the DOKU payment afterwards.
  */
 export async function reserveSeatsAndCreateBooking(
   args: CreateBookingArgs,
@@ -279,73 +277,24 @@ export async function reserveSeatsAndCreateBooking(
 }
 
 /**
- * After reservation succeeds, kick off the Xendit invoice. Returns the
- * invoice URL the customer should be redirected to. In demo mode (no
- * XENDIT_SECRET_KEY), returns null so the UI surfaces a "mock pay" button.
+ * After reservation succeeds, direct the customer to the pay page. With DOKU
+ * Direct the payment instrument (VA / QRIS / redirect) is created on the pay
+ * page once the customer picks a method, so this just reports whether we're in
+ * mock mode (no DOKU keys → the built-in /checkout demo flow). `invoiceUrl` is
+ * always null now; callers redirect to `/pay/{reference}`.
  */
 export async function startPaymentForBooking(
   bookingId: string,
 ): Promise<{ invoiceUrl: string | null; mock: boolean }> {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { payment: true },
+    select: { status: true },
   });
   if (!booking) throw new BookingError("LEG_NOT_FOUND", "Booking not found");
   if (booking.status !== "PENDING_PAYMENT") {
     return { invoiceUrl: null, mock: false };
   }
-
-  if (!isAnyPSPConfigured()) {
-    return { invoiceUrl: null, mock: true };
-  }
-
-  const lookupUrl = `${env.APP_BASE_URL}/b/${booking.bookingReference}`;
-  try {
-    const result = await createPayment({
-      bookingReference: booking.bookingReference,
-      amount: Math.round(Number(booking.totalAmount)),
-      payerEmail: booking.customerEmail,
-      payerName: booking.customerName,
-      payerPhone: booking.customerPhone,
-      description: `Gilibali booking ${booking.bookingReference}`,
-      successUrl: lookupUrl,
-      failureUrl: lookupUrl,
-      durationSeconds: (env.BOOKING_HOLD_MINUTES ?? 30) * 60,
-    });
-    await prisma.booking.update({
-      where: { id: booking.id },
-      data: { paymentGatewayRef: result.gatewayReference },
-    });
-    await prisma.payment.update({
-      where: { bookingId: booking.id },
-      data: {
-        gatewayReference: result.gatewayReference,
-        method:
-          result.provider === "MIDTRANS"
-            ? "CREDIT_CARD"
-            : result.provider === "MAYAR"
-              ? "BANK_TRANSFER"
-              : "BANK_TRANSFER",
-        gatewayProvider: result.provider,
-      },
-    });
-    await audit({
-      entityType: "BOOKING",
-      entityId: booking.id,
-      action: "payment_initiated",
-      userRole: "SYSTEM",
-      newState: { provider: result.provider, gatewayReference: result.gatewayReference },
-    });
-    return { invoiceUrl: result.redirectUrl, mock: false };
-  } catch (err) {
-    if (err instanceof XenditNotConfiguredError) {
-      return { invoiceUrl: null, mock: true };
-    }
-    if (err instanceof MayarNotConfiguredError) {
-      return { invoiceUrl: null, mock: true };
-    }
-    throw err;
-  }
+  return { invoiceUrl: null, mock: isDokuMock() };
 }
 
 /** Release the seats held by a booking. Idempotent. */

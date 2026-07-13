@@ -62,7 +62,7 @@ export default function AboutPage() {
         <h2 className="mt-8 text-xl font-semibold">Trust &amp; safety</h2>
         <ul>
           <li>All operators are verified — bank account, NPWP, vessel registration.</li>
-          <li>Payments processed by Xendit, regulated by Bank Indonesia.</li>
+          <li>Payments processed by DOKU, regulated by Bank Indonesia.</li>
           <li>Refunds protected by our <Link href="/refunds">refund policy</Link>.</li>
           <li>Customer data secured under <Link href="/privacy">UU PDP compliance</Link>.</li>
         </ul>
