@@ -11,6 +11,40 @@ import {
 const DEFAULT_DAYS_AHEAD = 14;
 
 /**
+ * Demo season: all dummy departures are constrained to July–August of the
+ * seeding year (WITA). Derived from the reference date so re-seeding in a later
+ * year targets that year's season.
+ */
+export function demoSeasonWindow(ref: Date = new Date()): {
+  start: Date;
+  end: Date;
+} {
+  const year = Number(ymdInZone(ref).slice(0, 4));
+  return {
+    start: localDateTimeToUtc(`${year}-07-01`, "00:00"),
+    end: localDateTimeToUtc(`${year}-08-31`, "23:59"),
+  };
+}
+
+/**
+ * Seed helper: start at the later of `ref` and the season start, and return a
+ * `daysAhead` that reaches the season end — so a seed fills the whole remaining
+ * in-season window instead of only the next 14 days.
+ */
+export function seasonSeedParams(ref: Date = new Date()): {
+  startAt: Date;
+  daysAhead: number;
+} {
+  const { start, end } = demoSeasonWindow(ref);
+  const startAt = ref.getTime() < start.getTime() ? start : ref;
+  const daysAhead = Math.max(
+    0,
+    Math.ceil((end.getTime() - startAt.getTime()) / 86_400_000) + 1,
+  );
+  return { startAt, daysAhead };
+}
+
+/**
  * Generate concrete Leg rows for the next `daysAhead` days from a Schedule.
  * Idempotent — the unique (scheduleId, departureDate) constraint catches
  * dupes if you re-run it. Returns the count of newly-created legs.
@@ -35,6 +69,8 @@ export async function generateLegsForSchedule(
 
   const now = startAt ?? new Date();
   const todayLocalYmd = ymdInZone(now);
+  // Dummy departures exist only within the July–August demo season.
+  const season = demoSeasonWindow(now);
 
   let created = 0;
   for (let offset = 0; offset < daysAhead; offset++) {
@@ -45,6 +81,12 @@ export async function generateLegsForSchedule(
     // back to UTC for storage.
     const departureUtc = localDateTimeToUtc(localYmd, schedule.departureTime);
     if (departureUtc.getTime() <= now.getTime()) continue;
+    if (
+      departureUtc.getTime() < season.start.getTime() ||
+      departureUtc.getTime() > season.end.getTime()
+    ) {
+      continue;
+    }
 
     const dow = isoDayOfWeek(departureUtc);
     if (!schedule.daysOfWeek.includes(dow)) continue;

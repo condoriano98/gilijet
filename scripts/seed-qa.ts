@@ -11,7 +11,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { generateLegsForSchedule } from "../lib/legs";
+import { generateLegsForSchedule, seasonSeedParams } from "../lib/legs";
 import { ymdInZone } from "../lib/datetime";
 import { signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
@@ -138,10 +138,11 @@ async function main() {
     );
   }
 
-  // -------- Legs --------
+  // -------- Legs (July–August season only) --------
+  const season = seasonSeedParams();
   let totalLegs = 0;
   for (const id of scheduleIds) {
-    totalLegs += await generateLegsForSchedule(id);
+    totalLegs += await generateLegsForSchedule(id, season.daysAhead, season.startAt);
   }
   console.log(`✓ legs     ${totalLegs} generated`);
 
@@ -310,7 +311,7 @@ async function main() {
     schedule2Ids.push(sch.id);
   }
   for (const id of schedule2Ids) {
-    await generateLegsForSchedule(id);
+    await generateLegsForSchedule(id, season.daysAhead, season.startAt);
   }
   console.log(
     `✓ operator ${operator2.email} + ${schedule2Ids.length} schedules`,

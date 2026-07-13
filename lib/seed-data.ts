@@ -12,7 +12,7 @@
 
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
-import { generateLegsForSchedule } from "./legs";
+import { generateLegsForSchedule, seasonSeedParams } from "./legs";
 
 // ============ PORT CONSTANTS ============
 
@@ -498,9 +498,11 @@ export async function seedRealData(opts: {
     return new Date(witaDate.getTime() - 8 * 3_600_000); // back to UTC
   })();
 
+  // Fill the whole remaining July–August season (clamped in generateLegs).
+  const { startAt, daysAhead } = seasonSeedParams(nowWita);
   let totalLegs = 0;
   for (const sid of scheduleIds) {
-    const n = await generateLegsForSchedule(sid, 14, nowWita);
+    const n = await generateLegsForSchedule(sid, daysAhead, startAt);
     totalLegs += n;
   }
 

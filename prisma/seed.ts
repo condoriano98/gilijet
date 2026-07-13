@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { generateLegsForSchedule } from "../lib/legs";
+import { generateLegsForSchedule, seasonSeedParams } from "../lib/legs";
 import { ymdInZone } from "../lib/datetime";
 import { buildQrPayload, signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
@@ -276,9 +276,10 @@ async function main() {
 
   // Phase 3 needs concrete departures and a couple of test tickets so the
   // scanner has something real to validate.
+  const { startAt, daysAhead } = seasonSeedParams();
   let totalGenerated = 0;
   for (const s of allSchedules) {
-    const n = await generateLegsForSchedule(s.id);
+    const n = await generateLegsForSchedule(s.id, daysAhead, startAt);
     totalGenerated += n;
   }
   if (totalGenerated > 0) {
