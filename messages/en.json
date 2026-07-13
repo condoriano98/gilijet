@@ -122,9 +122,9 @@
     "eTicket": "Instant E-Ticket",
     "eTicketDesc": "QR code delivered to your email",
     "secure": "Secure Payment",
-    "secureDesc": "Powered by Mayar, BI licensed gateway",
+    "secureDesc": "Powered by DOKU, BI licensed gateway",
     "secureVerified": "Secure, verified, regulated",
-    "paymentsBy": "Payments by Mayar (Bank Indonesia licensed)",
+    "paymentsBy": "Payments by DOKU (Bank Indonesia licensed)",
     "kycVerified": "All operators KYC verified",
     "pdpCompliant": "UU PDP compliant",
     "support24": "24-hour customer support"
