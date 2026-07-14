@@ -91,6 +91,7 @@ function SiteFooter() {
           <div className="mb-3 text-base font-semibold">Support</div>
           <ul className="space-y-2 text-white/80">
             <li><Link href="/b" className="hover:text-white hover:underline">Find my booking</Link></li>
+            <li><Link href="/change-plans" className="hover:text-white hover:underline">Change or refund a trip</Link></li>
             <li><a href="mailto:info@balinusafast.com" className="hover:text-white hover:underline">info@balinusafast.com</a></li>
             <li><a href="https://wa.me/6281236061818" className="hover:text-white hover:underline">WhatsApp</a></li>
           </ul>
