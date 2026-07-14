@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PaymentProvider } from "@prisma/client";
 import { prisma } from "./db";
 import { env } from "./env";
 import { audit } from "./audit";
@@ -9,7 +9,7 @@ import {
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
-import { isDokuMock } from "./doku";
+import { createDokuCheckout, isDokuMock } from "./doku";
 
 export class BookingError extends Error {
   constructor(
@@ -277,24 +277,72 @@ export async function reserveSeatsAndCreateBooking(
 }
 
 /**
- * After reservation succeeds, direct the customer to the pay page. With DOKU
- * Direct the payment instrument (VA / QRIS / redirect) is created on the pay
- * page once the customer picks a method, so this just reports whether we're in
- * mock mode (no DOKU keys → the built-in /checkout demo flow). `invoiceUrl` is
- * always null now; callers redirect to `/pay/{reference}`.
+ * After reservation succeeds, create a DOKU Checkout payment and return the
+ * hosted-page URL to redirect the customer to. In mock mode (no DOKU keys),
+ * returns { mock: true } so the UI uses the built-in /checkout demo flow.
+ * The hosted URL is persisted on the Payment row so the pay page can re-render
+ * it (and re-redirect) until it expires.
  */
 export async function startPaymentForBooking(
   bookingId: string,
 ): Promise<{ invoiceUrl: string | null; mock: boolean }> {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { status: true },
+    include: { payment: true },
   });
   if (!booking) throw new BookingError("LEG_NOT_FOUND", "Booking not found");
   if (booking.status !== "PENDING_PAYMENT") {
     return { invoiceUrl: null, mock: false };
   }
-  return { invoiceUrl: null, mock: isDokuMock() };
+  if (isDokuMock()) {
+    return { invoiceUrl: null, mock: true };
+  }
+
+  // Reuse an existing, unexpired checkout URL if one was already created.
+  const existing = booking.payment?.instrumentData as { url?: string } | null;
+  const notExpired =
+    !booking.payment?.expiresAt || booking.payment.expiresAt.getTime() > Date.now();
+  if (existing?.url && notExpired) {
+    return { invoiceUrl: existing.url, mock: false };
+  }
+
+  const lookupUrl = `${env.APP_BASE_URL}/b/${booking.bookingReference}`;
+  const checkout = await createDokuCheckout({
+    invoiceNumber: booking.bookingReference,
+    amount: Math.round(Number(booking.totalAmount)),
+    customer: {
+      name: booking.customerName,
+      email: booking.customerEmail,
+      phone: booking.customerPhone,
+    },
+    callbackUrl: lookupUrl,
+    expiryMinutes: env.BOOKING_HOLD_MINUTES ?? 30,
+    description: `Gilibali booking ${booking.bookingReference}`,
+  });
+
+  await prisma.payment.update({
+    where: { bookingId: booking.id },
+    data: {
+      gatewayProvider: PaymentProvider.DOKU,
+      gatewayReference: checkout.tokenId,
+      instrumentData: { url: checkout.paymentUrl } as never,
+      expiresAt: checkout.expiresAt,
+    },
+  });
+  await prisma.booking.update({
+    where: { id: booking.id },
+    data: { paymentGatewayRef: checkout.tokenId },
+  });
+
+  await audit({
+    entityType: "BOOKING",
+    entityId: booking.id,
+    action: "payment_initiated",
+    userRole: "SYSTEM",
+    newState: { provider: "DOKU", gatewayReference: checkout.tokenId },
+  });
+
+  return { invoiceUrl: checkout.paymentUrl, mock: false };
 }
 
 /** Release the seats held by a booking. Idempotent. */

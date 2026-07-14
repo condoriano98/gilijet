@@ -1,14 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { createDokuInstrument } from "@/lib/psp";
-import { isDokuMock, type DokuInstrument, type DokuMethodChoice } from "@/lib/doku";
+import { startPaymentForBooking } from "@/lib/booking-engine";
+import { isDokuMock } from "@/lib/doku";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
-import { renderQrSvg } from "@/lib/qr-render";
 import {
   Card,
   CardContent,
@@ -20,55 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { PaymentCountdown } from "@/components/customer/payment-countdown";
-import { DokuMethodPicker } from "@/components/checkout/doku-method-picker";
-import { VaInstrument } from "@/components/checkout/va-instrument";
-import { PaymentStatusPoller } from "@/components/checkout/payment-status-poller";
-
-// Create the DOKU instrument for the chosen method, then either redirect
-// (e-wallet / card) or re-render this page showing the instrument (VA / QRIS).
-async function selectMethodAction(formData: FormData) {
-  "use server";
-  const reference = String(formData.get("reference") ?? "");
-  const kind = String(formData.get("kind") ?? "QRIS");
-
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: reference },
-    select: { id: true, status: true },
-  });
-  if (!booking || booking.status !== "PENDING_PAYMENT") redirect(`/b/${reference}`);
-
-  const choice = (
-    kind === "VA"
-      ? { kind: "VA", bank: String(formData.get("bank") || "BCA") }
-      : kind === "EWALLET"
-        ? { kind: "EWALLET", wallet: String(formData.get("wallet") || "OVO") }
-        : kind === "CARD"
-          ? { kind: "CARD" }
-          : { kind: "QRIS" }
-  ) as DokuMethodChoice;
-
-  const { instrument } = await createDokuInstrument(booking.id, choice);
-  if (instrument.type === "REDIRECT") redirect(instrument.url);
-  if (instrument.type === "CARD_3DS") redirect(instrument.redirectUrl);
-  if (instrument.type === "MOCK") redirect(instrument.url);
-  revalidatePath(`/pay/${reference}`);
-}
-
-async function resetMethodAction(formData: FormData) {
-  "use server";
-  const reference = String(formData.get("reference") ?? "");
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: reference },
-    select: { id: true },
-  });
-  if (booking) {
-    await prisma.payment.update({
-      where: { bookingId: booking.id },
-      data: { instrumentData: Prisma.DbNull, expiresAt: null },
-    });
-  }
-  revalidatePath(`/pay/${reference}`);
-}
+import { AutoRedirect } from "@/components/checkout/auto-redirect";
 
 export default async function PayPage({
   params,
@@ -97,18 +46,17 @@ export default async function PayPage({
   // No real DOKU keys → the built-in dummy checkout.
   if (isDokuMock()) redirect(`/checkout/${reference}`);
 
-  const amountLabel = formatIDR(Number(booking.totalAmount));
-  const instrument = (booking.payment?.instrumentData ?? null) as DokuInstrument | null;
-  const expiresAt = booking.payment?.expiresAt ?? null;
-  const active =
-    instrument &&
-    (instrument.type === "VA" || instrument.type === "QRIS") &&
-    (!expiresAt || expiresAt.getTime() > Date.now());
+  // Use the persisted hosted-checkout URL; regenerate if missing or expired.
+  const stored = (booking.payment?.instrumentData ?? null) as { url?: string } | null;
+  const expired =
+    booking.payment?.expiresAt && booking.payment.expiresAt.getTime() <= Date.now();
+  let url = !expired ? stored?.url ?? null : null;
+  if (!url) {
+    const result = await startPaymentForBooking(booking.id);
+    url = result.invoiceUrl;
+  }
 
-  const qrSvg =
-    active && instrument.type === "QRIS"
-      ? await renderQrSvg(instrument.qrString)
-      : null;
+  const amountLabel = formatIDR(Number(booking.totalAmount));
 
   return (
     <div className="container py-10">
@@ -116,7 +64,7 @@ export default async function PayPage({
         <BookingProgress currentStep={3} />
         <Card>
           <CardHeader>
-            <CardTitle>Complete payment</CardTitle>
+            <CardTitle>Redirecting to secure payment</CardTitle>
             <CardDescription>
               Reference <span className="font-mono">{booking.bookingReference}</span>
             </CardDescription>
@@ -138,54 +86,22 @@ export default async function PayPage({
               <span className="text-muted-foreground">Amount due</span>
               <span className="font-semibold">{amountLabel}</span>
             </div>
-
-            {active ? (
-              <div className="space-y-4 border-t pt-4">
-                {instrument.type === "VA" ? (
-                  <VaInstrument
-                    bank={instrument.bank}
-                    vaNumber={instrument.vaNumber}
-                    amountLabel={amountLabel}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-3 rounded-[10px] border border-slate-200 bg-white p-4">
-                    <div
-                      className="h-56 w-56 [&>svg]:h-full [&>svg]:w-full"
-                      // eslint-disable-next-line react/no-danger
-                      dangerouslySetInnerHTML={{ __html: qrSvg ?? "" }}
-                    />
-                    <div className="text-xs text-slate-600">
-                      Scan with any Indonesian bank or e-wallet app supporting QRIS
-                    </div>
-                  </div>
-                )}
-                <PaymentStatusPoller reference={booking.bookingReference} />
-                <form action={resetMethodAction}>
-                  <input type="hidden" name="reference" value={booking.bookingReference} />
-                  <button
-                    type="submit"
-                    className="w-full text-center text-xs text-slate-500 hover:text-brand hover:underline"
-                  >
-                    Choose a different payment method
-                  </button>
-                </form>
-              </div>
+            <div className="rounded-md bg-sky-50 p-3 text-xs text-sky-900">
+              You&apos;ll be taken to DOKU&apos;s secure checkout to pay via QRIS,
+              e-wallet, bank transfer, or card.
+            </div>
+            {url ? <AutoRedirect url={url} /> : null}
+          </CardContent>
+          <CardFooter className="flex-col gap-2">
+            {url ? (
+              <Button asChild size="lg" className="w-full">
+                <a href={url}>Continue to secure payment</a>
+              </Button>
             ) : (
-              <div className="border-t pt-4">
-                <div className="mb-3 text-sm font-medium text-slate-900">
-                  Choose how to pay
-                </div>
-                <DokuMethodPicker
-                  reference={booking.bookingReference}
-                  selectAction={selectMethodAction}
-                />
-                <p className="mt-3 text-center text-xs text-slate-500">
-                  Payments processed securely by DOKU
-                </p>
+              <div className="w-full rounded-md bg-amber-50 p-3 text-center text-xs text-amber-900">
+                We couldn&apos;t start the payment. Please try again in a moment.
               </div>
             )}
-          </CardContent>
-          <CardFooter>
             <Button asChild variant="ghost" className="w-full">
               <Link href={`/b/${booking.bookingReference}`}>View booking status</Link>
             </Button>

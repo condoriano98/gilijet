@@ -4,26 +4,25 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { PaymentMethod } from "@prisma/client";
 import { env } from "./env";
 
 /**
- * DOKU (Jokul) Direct API client — the sole payment gateway.
+ * DOKU (Jokul) Checkout client — the sole payment gateway.
  *
- * Direct API is server-to-server: we create a per-method payment instrument
- * (a Virtual Account number, a QRIS string, an e-wallet redirect, or a card
- * 3DS redirect) and render it ourselves. DOKU confirms payment out-of-band via
- * a signed notification (see app/api/webhooks/doku/route.ts).
+ * We create one payment and redirect the customer to DOKU's hosted checkout
+ * page, which handles every method (Virtual Account, QRIS, e-wallet, card 3DS).
+ * DOKU confirms payment out-of-band via a signed notification (see
+ * app/api/webhooks/doku/route.ts) and returns the customer to callback_url.
  *
  * MOCK MODE: when DOKU_CLIENT_ID / DOKU_SECRET_KEY are absent, or the secret
- * starts with "test_" / equals "mock", every create call returns a MOCK
- * instrument that routes the customer to the built-in /checkout demo flow.
- * This keeps local dev and the e2e golden path working without real keys.
+ * starts with "test_" / equals "mock", createDokuCheckout returns a URL to the
+ * built-in /checkout demo flow. This keeps local dev and the e2e golden path
+ * working without real keys.
  *
- * ⚠️ ENDPOINT PATHS + RESPONSE FIELDS below are transcribed from DOKU's public
- * docs and MUST be confirmed against your DOKU Back Office / Postman collection
- * before going live — the request signature is computed over the exact path, so
- * a wrong path fails auth. Each is marked `CONFIRM`.
+ * ⚠️ The endpoint path + response fields are per DOKU's Jokul Checkout docs;
+ * confirm against your DOKU Back Office / Postman collection before going live —
+ * the request signature is computed over the exact path, so a wrong path fails
+ * auth. Marked `CONFIRM`.
  */
 
 export class DokuNotConfiguredError extends Error {
@@ -52,10 +51,7 @@ function baseUrl(): string {
 // ---------- endpoints (CONFIRM against DOKU docs) ----------
 
 const PATH = {
-  va: "/doku-virtual-account/v2/payment-code", // CONFIRM
-  qris: "/doku-qris/v1/generate", // CONFIRM
-  ewallet: "/doku-ewallet/v1/payment", // CONFIRM (may be per-acquirer)
-  card: "/credit-card/v1/payment", // CONFIRM (3DS)
+  checkout: "/checkout/v1/payment", // Jokul Checkout — create payment (CONFIRM)
   refund: "/orders/v1/refund", // CONFIRM
 } as const;
 
@@ -158,65 +154,15 @@ export function verifyDokuNotification(
   return timingSafeEqual(a, b);
 }
 
-// ---------- payment instruments ----------
+// ---------- checkout ----------
 
-export type DokuMethodChoice =
-  | { kind: "QRIS" }
-  | { kind: "VA"; bank: "BCA" | "BNI" | "BRI" | "MANDIRI" | "PERMATA" }
-  | { kind: "EWALLET"; wallet: "OVO" | "DANA" | "SHOPEEPAY" | "LINKAJA" }
-  | { kind: "CARD" };
-
-export type DokuInstrument =
-  | { type: "VA"; vaNumber: string; bank: string }
-  | { type: "QRIS"; qrString: string }
-  | { type: "REDIRECT"; url: string }
-  | { type: "CARD_3DS"; redirectUrl: string }
-  | { type: "MOCK"; url: string };
-
-export type DokuPaymentResult = {
-  gatewayReference: string;
-  method: PaymentMethod;
-  instrument: DokuInstrument;
-  expiresAt: Date | null;
+export type DokuCheckoutResult = {
+  paymentUrl: string;
+  tokenId: string;
+  expiresAt: Date;
 };
 
-const VA_METHOD: Record<string, PaymentMethod> = {
-  BCA: PaymentMethod.VA_BCA,
-  BNI: PaymentMethod.VA_BNI,
-  BRI: PaymentMethod.VA_BRI,
-  MANDIRI: PaymentMethod.VA_MANDIRI,
-  PERMATA: PaymentMethod.VA_PERMATA,
-};
-const EWALLET_METHOD: Record<string, PaymentMethod> = {
-  OVO: PaymentMethod.OVO,
-  DANA: PaymentMethod.DANA,
-  SHOPEEPAY: PaymentMethod.SHOPEEPAY,
-  LINKAJA: PaymentMethod.LINKAJA,
-};
-
-export function methodForChoice(choice: DokuMethodChoice): PaymentMethod {
-  switch (choice.kind) {
-    case "QRIS":
-      return PaymentMethod.QRIS;
-    case "VA":
-      return VA_METHOD[choice.bank];
-    case "EWALLET":
-      return EWALLET_METHOD[choice.wallet];
-    case "CARD":
-      return PaymentMethod.CREDIT_CARD;
-  }
-}
-
-type CreateArgs = {
-  invoiceNumber: string;
-  amount: number;
-  customer: { name: string; email: string; phone: string };
-  choice: DokuMethodChoice;
-  callbackUrl: string;
-  expiryMinutes: number;
-};
-
-/** Best-effort extraction of a field from DOKU's nested response. */
+/** Best-effort extraction of a nested string field from DOKU's response. */
 function pick(obj: unknown, ...paths: string[][]): string | null {
   for (const path of paths) {
     let cur: unknown = obj;
@@ -234,115 +180,66 @@ function pick(obj: unknown, ...paths: string[][]): string | null {
 }
 
 /**
- * Create a DOKU payment instrument for the customer's chosen method.
- * Returns the instrument to render (or a MOCK instrument in mock mode).
+ * Create a DOKU Checkout payment and return the hosted page URL to redirect to.
+ * In mock mode, returns the built-in /checkout demo URL.
  */
-export async function createDokuPayment(
-  args: CreateArgs,
-): Promise<DokuPaymentResult> {
-  const method = methodForChoice(args.choice);
+export async function createDokuCheckout(args: {
+  invoiceNumber: string;
+  amount: number;
+  customer: { name: string; email: string; phone: string };
+  callbackUrl: string; // where DOKU returns the customer after payment
+  failedUrl?: string;
+  expiryMinutes: number;
+  description?: string;
+}): Promise<DokuCheckoutResult> {
   const expiresAt = new Date(Date.now() + args.expiryMinutes * 60_000);
 
   if (isDokuMock()) {
     return {
-      gatewayReference: `mock_${args.invoiceNumber}`,
-      method,
-      instrument: { type: "MOCK", url: `/checkout/${args.invoiceNumber}` },
+      paymentUrl: `/checkout/${args.invoiceNumber}`,
+      tokenId: `mock_${args.invoiceNumber}`,
       expiresAt,
     };
   }
 
-  const order = {
-    invoice_number: args.invoiceNumber,
-    amount: args.amount,
-    callback_url: args.callbackUrl,
-  };
-  const customer = {
-    id: args.customer.email,
-    name: args.customer.name,
-    email: args.customer.email,
-    phone: args.customer.phone.replace(/[^\d]/g, ""),
-    country: "ID",
-  };
-
-  // NOTE: request/response shapes below follow DOKU's documented Direct API;
-  // confirm exact field names against Back Office / Postman.
-  if (args.choice.kind === "VA") {
-    const res = await dokuPost<Record<string, unknown>>(PATH.va, {
-      order,
-      customer,
-      virtual_account_info: {
-        billing_type: "FIX_BILL",
-        expired_time: args.expiryMinutes,
-        reusable_status: false,
-        acquirer: args.choice.bank,
-      },
-    });
-    const vaNumber =
-      pick(
-        res,
-        ["virtual_account_info", "virtual_account_number"],
-        ["virtual_account_info", "virtual_account_no"],
-      ) ?? "";
-    if (!vaNumber) throw new Error("DOKU VA: no virtual_account_number in response");
-    return {
-      gatewayReference: args.invoiceNumber,
-      method,
-      instrument: { type: "VA", vaNumber, bank: args.choice.bank },
-      expiresAt,
-    };
-  }
-
-  if (args.choice.kind === "QRIS") {
-    const res = await dokuPost<Record<string, unknown>>(PATH.qris, {
-      order,
-      customer,
-      qris: { expired_time: args.expiryMinutes },
-    });
-    const qrString =
-      pick(res, ["qris", "qr_content"], ["qris", "qr_string"], ["qris", "qr_code"]) ?? "";
-    if (!qrString) throw new Error("DOKU QRIS: no qr content in response");
-    return {
-      gatewayReference: args.invoiceNumber,
-      method,
-      instrument: { type: "QRIS", qrString },
-      expiresAt,
-    };
-  }
-
-  if (args.choice.kind === "EWALLET") {
-    const res = await dokuPost<Record<string, unknown>>(PATH.ewallet, {
-      order,
-      customer,
-      payment: { payment_due_date: args.expiryMinutes },
-      additional_info: { channel: args.choice.wallet },
-    });
-    const url =
-      pick(res, ["ewallet", "checkout_url"], ["payment", "url"], ["response", "payment", "url"]) ?? "";
-    if (!url) throw new Error("DOKU e-wallet: no checkout_url in response");
-    return {
-      gatewayReference: args.invoiceNumber,
-      method,
-      instrument: { type: "REDIRECT", url },
-      expiresAt,
-    };
-  }
-
-  // CARD (3DS) — DOKU returns a hosted 3DS/payment URL to redirect to.
-  const res = await dokuPost<Record<string, unknown>>(PATH.card, {
-    order,
-    customer,
+  const body = {
+    order: {
+      amount: args.amount,
+      invoice_number: args.invoiceNumber,
+      currency: "IDR",
+      callback_url: args.callbackUrl,
+      failed_url: args.failedUrl ?? args.callbackUrl,
+      auto_redirect: true,
+      line_items: [
+        {
+          name: (args.description ?? `Booking ${args.invoiceNumber}`).slice(0, 50),
+          price: args.amount,
+          quantity: 1,
+        },
+      ],
+    },
     payment: { payment_due_date: args.expiryMinutes },
-  });
-  const redirectUrl =
-    pick(res, ["payment", "url"], ["response", "payment", "url"]) ?? "";
-  if (!redirectUrl) throw new Error("DOKU card: no payment url in response");
-  return {
-    gatewayReference: args.invoiceNumber,
-    method,
-    instrument: { type: "CARD_3DS", redirectUrl },
-    expiresAt,
+    customer: {
+      id: args.customer.email,
+      name: args.customer.name,
+      email: args.customer.email,
+      phone: args.customer.phone.replace(/[^\d]/g, ""),
+      country: "ID",
+    },
   };
+
+  const res = await dokuPost<Record<string, unknown>>(PATH.checkout, body);
+  const paymentUrl =
+    pick(res, ["response", "payment", "url"], ["payment", "url"]) ?? "";
+  const tokenId =
+    pick(
+      res,
+      ["response", "payment", "token_id"],
+      ["payment", "token_id"],
+      ["response", "order", "invoice_number"],
+    ) ?? args.invoiceNumber;
+  if (!paymentUrl) throw new Error("DOKU Checkout: no payment.url in response");
+  return { paymentUrl, tokenId, expiresAt };
 }
 
 // ---------- refunds ----------
