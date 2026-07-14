@@ -7,6 +7,19 @@ import { env } from "./env";
  * floating-point drift on currency.
  */
 
+const DEFAULT_COMMISSION_RATE = 0.08;
+
+/** Resolve the commission rate, never returning undefined (Decimal would throw). */
+function resolveCommissionRate(
+  override?: Prisma.Decimal | number,
+): Prisma.Decimal | number {
+  if (override != null) return override;
+  const fromEnv = env.PLATFORM_COMMISSION_RATE;
+  return typeof fromEnv === "number" && Number.isFinite(fromEnv)
+    ? fromEnv
+    : DEFAULT_COMMISSION_RATE;
+}
+
 export type PriceBreakdown = {
   unitPrice: Prisma.Decimal;
   quantity: number;
@@ -22,9 +35,7 @@ export function computeBookingPrice(args: {
   commissionRate?: Prisma.Decimal | number;
 }): PriceBreakdown {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
-  const commissionRate = new Prisma.Decimal(
-    args.commissionRate ?? env.PLATFORM_COMMISSION_RATE,
-  );
+  const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
   if (args.quantity < 1) throw new Error("quantity must be >= 1");
 
   const totalAmount = unitPrice.mul(args.quantity);
@@ -89,9 +100,7 @@ export function computeBookingPriceWithTypes(args: {
   discountAmount?: Prisma.Decimal | string | number;
 }): PriceBreakdownWithTypes {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
-  const commissionRate = new Prisma.Decimal(
-    args.commissionRate ?? env.PLATFORM_COMMISSION_RATE,
-  );
+  const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
   if (args.passengerTypes.length < 1) {
     throw new Error("at least one passenger required");
   }

@@ -82,4 +82,21 @@ function loadEnv() {
   return {} as z.infer<typeof envSchema>;
 }
 
-export const env = loadEnv();
+const _env = loadEnv();
+
+// Zod's `.partial()` degraded-mode fallback (and the empty-object fallback)
+// both BYPASS field defaults, so numeric-with-default fields can come back
+// `undefined`. Pricing/booking math builds `new Prisma.Decimal(...)` from
+// these, and `Decimal(undefined)` throws. Coalesce to safe defaults here so
+// the app never crashes when an unrelated required env var is missing.
+function numOr(v: unknown, fallback: number): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+_env.PLATFORM_COMMISSION_RATE = numOr(_env.PLATFORM_COMMISSION_RATE, 0.08);
+_env.BOOKING_HOLD_MINUTES = numOr(_env.BOOKING_HOLD_MINUTES, 30);
+if (typeof _env.APP_BASE_URL !== "string" || !_env.APP_BASE_URL) {
+  _env.APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
+}
+
+export const env = _env;
