@@ -45,7 +45,7 @@ export default function TermsPage() {
             Terms &amp; Conditions | Refund &amp; Cancellation Policy
           </p>
           <p className="text-xs text-slate-500">
-            Effective Date: June 2026 · Version 1.0
+            Effective Date: June 2026 · Version 1.1
           </p>
         </div>
 
@@ -214,32 +214,43 @@ export default function TermsPage() {
 
         <Section n="5" title="Cancellation & Refund Policy">
           <p>
+            This section incorporates our <strong>Refund &amp; Reschedule
+            Policy (Version 1.1, effective 1 June 2026)</strong>. The full,
+            standalone version is published at{" "}
+            <Link href="/refunds" className="text-sky-700 underline">
+              gilibali.com/refunds
+            </Link>
+            .
+          </p>
+
+          <p>
             <strong>5.1 Cancellation by Passenger.</strong> All cancellation
-            requests must be submitted in writing via email to info@balinusafast.com
-            or through the &apos;Manage Booking&apos; feature on gilibali.com.
-            Verbal or WhatsApp cancellations will not be accepted unless
-            confirmed by written email. The following refund schedule applies:
+            requests must be submitted in writing via email to
+            info@balinusafast.com. Verbal, WhatsApp, or social-media
+            cancellations are not accepted unless confirmed by written email. The
+            refund you receive depends on how far in advance of departure you let
+            us know:
           </p>
 
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-sky-50 text-left">
-                  <th className="border px-3 py-2 font-semibold">Cancellation Timeline</th>
-                  <th className="border px-3 py-2 font-semibold">Refund Amount</th>
+                  <th className="border px-3 py-2 font-semibold">When you cancel</th>
+                  <th className="border px-3 py-2 font-semibold">What you receive</th>
                   <th className="border px-3 py-2 font-semibold">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border px-3 py-2">More than 7 days (168 hrs) before departure</td>
+                  <td className="border px-3 py-2">More than 7 days (&gt;168 hours) before departure</td>
                   <td className="border px-3 py-2">100% refund</td>
-                  <td className="border px-3 py-2">Processing fee may apply</td>
+                  <td className="border px-3 py-2">Admin transfer fee may apply</td>
                 </tr>
                 <tr className="bg-slate-50">
                   <td className="border px-3 py-2">48 hours – 7 days before departure</td>
                   <td className="border px-3 py-2">50% refund</td>
-                  <td className="border px-3 py-2">Non-refundable portion is forfeited</td>
+                  <td className="border px-3 py-2">Remaining 50% non-refundable — consider rescheduling to keep full value</td>
                 </tr>
                 <tr>
                   <td className="border px-3 py-2">Less than 48 hours before departure</td>
@@ -247,91 +258,106 @@ export default function TermsPage() {
                   <td className="border px-3 py-2">Ticket is non-refundable</td>
                 </tr>
                 <tr className="bg-slate-50">
-                  <td className="border px-3 py-2">No-show (failure to board)</td>
+                  <td className="border px-3 py-2">No-show (you did not board)</td>
                   <td className="border px-3 py-2">No refund</td>
-                  <td className="border px-3 py-2">No exceptions unless medical proof provided</td>
+                  <td className="border px-3 py-2">Operator manifests are recorded at every departure</td>
                 </tr>
                 <tr>
-                  <td className="border px-3 py-2">Cancellation by Operator / Weather</td>
-                  <td className="border px-3 py-2">100% refund or reschedule</td>
-                  <td className="border px-3 py-2">Free rescheduling to next available departure</td>
+                  <td className="border px-3 py-2">Operator cancels (weather / safety / force majeure)</td>
+                  <td className="border px-3 py-2">Full refund or free reschedule</td>
+                  <td className="border px-3 py-2">Your choice — see Clause 5.5</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p className="font-medium">Notes on Refund Processing:</p>
+          <p>
+            <strong>5.2 How the refund amount is calculated.</strong> Refund
+            percentages apply to the base ticket price paid at checkout, excluding
+            any payment surcharge or convenience fee. For return journey tickets
+            where the outbound leg has already been completed, only the unused
+            return leg is covered. Group bookings of 10 or more passengers may be
+            subject to different terms — please contact us before booking.
+          </p>
+
+          <p>
+            <strong>5.3 How to request a refund and processing times.</strong>{" "}
+            Email info@balinusafast.com with the subject{" "}
+            <em>REFUND REQUEST [your booking code]</em>, including your full name,
+            booking code, departure date, and reason. We reply within one
+            business day (Mon–Sun, 07:00–20:00 WITA) with a Refund Reference
+            Number (RRN) and a secure refund form. After we confirm the refund,
+            timing to your original payment method is:
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-sky-50 text-left">
+                  <th className="border px-3 py-2 font-semibold">Payment method</th>
+                  <th className="border px-3 py-2 font-semibold">Estimated time after admin confirms</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td className="border px-3 py-2">E-wallet (GoPay, OVO, DANA, ShopeePay)</td><td className="border px-3 py-2">1–3 business days</td></tr>
+                <tr className="bg-slate-50"><td className="border px-3 py-2">QRIS</td><td className="border px-3 py-2">1–3 business days</td></tr>
+                <tr><td className="border px-3 py-2">Bank transfer / Virtual Account (Indonesian bank)</td><td className="border px-3 py-2">3–5 business days</td></tr>
+                <tr className="bg-slate-50"><td className="border px-3 py-2">Credit / debit card — Indonesian-issued</td><td className="border px-3 py-2">5–10 business days</td></tr>
+                <tr><td className="border px-3 py-2">Credit / debit card — international</td><td className="border px-3 py-2">7–14 business days</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            <strong>5.4 Rescheduling &amp; Reschedule Credit.</strong> Reschedule
+            requests must reach us at least 48 hours before the original departure
+            (96 hours during High Season: 1 July – 31 August and 20 December – 5
+            January), subject to seat availability. Your first reschedule is free;
+            a second reschedule for the same booking carries an admin fee of IDR
+            75,000 per passenger. On approval we issue a Reschedule Credit Code
+            equal to the full amount paid, which:
+          </p>
           <ul className="list-disc space-y-1 pl-5">
-            <li>
-              Refunds will be processed to the original payment method within
-              7–14 business days, subject to the policies of the respective bank
-              or payment provider.
-            </li>
-            <li>
-              A payment processing / administrative fee of up to 3% of the ticket
-              value may be deducted from refunds to cover gateway costs.
-            </li>
-            <li>
-              For return journey tickets, if the outbound journey has been
-              completed, only the return portion is eligible for refund under the
-              above schedule.
-            </li>
-            <li>
-              Group bookings of 10 or more passengers may be subject to different
-              cancellation terms. Please contact us before booking.
-            </li>
+            <li>is valid for 90 days from the date your original booking is cancelled;</li>
+            <li>is single-use and tied to your booking email — it cannot be shared or transferred;</li>
+            <li>may be used on any route, any operator, and any available departure date;</li>
+            <li>is not redeemable during High Season if the requested departure has less than 20% seats remaining;</li>
+            <li>requires payment of the difference if the new ticket costs more, and gives no cashback if the new ticket costs less (the credit is used in full).</li>
           </ul>
 
           <p>
-            <strong>5.2 Rescheduling by Passenger.</strong> Passengers may
-            request to reschedule their departure free of charge subject to the
-            following conditions:
+            <strong>5.5 Cancellation by Operator.</strong> If the Operator cancels
+            a departure (weather, safety, mechanical, or force majeure),
+            gilibali.com will offer, at your choice: (a) a full refund of the
+            ticket value paid, or (b) a free reschedule to the next available
+            departure on the same route. gilibali.com shall not be liable for
+            secondary losses (accommodation, onward flights, pre-booked tours). We
+            recommend travelling the day before any time-sensitive connection,
+            particularly during rainy season (November – March).
           </p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>
-              Reschedule requests must be made at least 48 hours before the
-              original departure (96 hours during High Season).
-            </li>
-            <li>
-              Rescheduling is subject to seat availability on the new requested
-              date/time.
-            </li>
-            <li>
-              Only one free rescheduling per ticket is permitted. Subsequent
-              changes may incur a rescheduling fee of IDR 50,000 per passenger
-              per change.
-            </li>
-            <li>
-              Rescheduling requests must be made via email to info@balinusafast.com
-              or through the &apos;Manage Booking&apos; portal.
-            </li>
-          </ul>
 
           <p>
-            <strong>5.3 Cancellation by Operator.</strong> In the event that the
-            Operator cancels a departure (including cancellations due to Force
-            Majeure, adverse weather, or mechanical reasons), gilibali.com will
-            offer the Passenger, at their choice: (a) a full refund of the ticket
-            value paid to gilibali.com, or (b) a free reschedule to the next
-            available departure on the same route. gilibali.com shall not be
-            liable for any secondary losses incurred by the Passenger as a result
-            of a cancelled sailing, including but not limited to accommodation
-            bookings, onward flights, or pre-booked tours.
+            <strong>5.6 No-shows.</strong> If you do not arrive by the check-in
+            deadline (30 minutes before departure) and the boat sails without you,
+            the ticket is forfeited — no refund, credit, or rebooking.{" "}
+            <em>Documented medical emergencies:</em> if you missed your departure
+            due to a genuine medical emergency, contact info@balinusafast.com
+            within 48 hours with a medical certificate from a registered
+            healthcare provider; we review such cases individually.
           </p>
+
           <p>
-            <strong>5.4 No Refund Circumstances.</strong> No refund will be
-            issued in the following circumstances: no-show; late arrival; refused
-            boarding due to safety concerns, intoxication, inappropriate conduct,
-            or possession of prohibited items; or incorrect booking made due to
-            the Passenger&apos;s own error.
+            <strong>5.7 Refund method.</strong> Refunds are always returned to the
+            original payment method used at purchase. We cannot redirect a refund
+            to a different account, except where the original method is no longer
+            active (e.g. an expired card), in which case we will agree an
+            alternative in writing.
           </p>
+
           <p>
-            <strong>5.5 Weather &amp; Force Majeure.</strong> Fast boat services
+            <strong>5.8 Weather &amp; Force Majeure.</strong> Fast boat services
             are subject to sea and weather conditions. Departures may be delayed,
-            diverted, or cancelled at the discretion of the vessel captain or
-            port authority. In such cases, the options in Clause 5.3 above apply.
-            gilibali.com shall not be held responsible for losses arising from
-            Force Majeure events.
+            diverted, or cancelled at the discretion of the vessel captain or port
+            authority; in such cases the options in Clause 5.5 apply.
           </p>
         </Section>
 
