@@ -99,7 +99,7 @@ function SiteFooter() {
       </div>
 
       <div className="container relative z-10 -mt-24 pb-10 text-xs text-white/70">
-        © {year} CV Hi Bali Nusa Tenggara · Payments processed by DOKU,
+        © {year} CV Hi Bali Nusa Tenggara · Payments processed by Xendit,
         licensed by Bank Indonesia
       </div>
 

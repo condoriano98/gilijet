@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { startPaymentForBooking } from "@/lib/booking-engine";
-import { isDokuMock } from "@/lib/doku";
+import { isXenditMock } from "@/lib/xendit";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -43,8 +43,8 @@ export default async function PayPage({
     redirect(`/b/${reference}`);
   }
 
-  // No real DOKU keys → the built-in dummy checkout.
-  if (isDokuMock()) redirect(`/checkout/${reference}`);
+  // No real Xendit keys → the built-in dummy checkout.
+  if (isXenditMock()) redirect(`/checkout/${reference}`);
 
   // Use the persisted hosted-checkout URL; regenerate if missing or expired.
   const stored = (booking.payment?.instrumentData ?? null) as { url?: string } | null;
@@ -87,8 +87,8 @@ export default async function PayPage({
               <span className="font-semibold">{amountLabel}</span>
             </div>
             <div className="rounded-md bg-sky-50 p-3 text-xs text-sky-900">
-              You&apos;ll be taken to DOKU&apos;s secure checkout to pay via QRIS,
-              e-wallet, bank transfer, or card.
+              You&apos;ll be taken to Xendit&apos;s secure checkout to pay via
+              QRIS, e-wallet, bank transfer, or card.
             </div>
             {url ? <AutoRedirect url={url} /> : null}
           </CardContent>

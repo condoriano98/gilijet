@@ -122,9 +122,9 @@
     "eTicket": "即時eチケット",
     "eTicketDesc": "QRコードをメールでお届け",
     "secure": "安全な支払い",
-    "secureDesc": "DOKU提供、インドネシア中央銀行認可ゲートウェイ",
+    "secureDesc": "Xendit提供、インドネシア中央銀行認可ゲートウェイ",
     "secureVerified": "安全、検証済み、規制準拠",
-    "paymentsBy": "DOKU支払い（インドネシア中央銀行認可）",
+    "paymentsBy": "Xendit支払い（インドネシア中央銀行認可）",
     "kycVerified": "すべての運航会社がKYC検証済み",
     "pdpCompliant": "UU PDP準拠",
     "support24": "24時間カスタマーサポート"

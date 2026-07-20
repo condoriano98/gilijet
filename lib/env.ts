@@ -10,14 +10,15 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
-  // DOKU (Direct API / Jokul) — the sole payment gateway.
-  DOKU_CLIENT_ID: z.string().optional(),
-  DOKU_SECRET_KEY: z.string().optional(),
-  DOKU_IS_PRODUCTION: z
+  // Xendit — the sole payment gateway.
+  XENDIT_SECRET_KEY: z.string().optional(),
+  XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
+  XENDIT_CALLBACK_URL: z
     .string()
+    .url()
     .optional()
-    .transform((v) => v === "true")
-    .default("false"),
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
 
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),

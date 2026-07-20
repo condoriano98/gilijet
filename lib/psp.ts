@@ -1,20 +1,20 @@
 /**
- * Payment orchestration — DOKU Checkout is the sole gateway.
+ * Payment orchestration — Xendit is the sole gateway.
  *
  * Payment creation lives in booking-engine's startPaymentForBooking (which
- * creates a DOKU Checkout and returns the hosted-page URL). This module keeps
+ * creates a Xendit invoice and returns the hosted-page URL). This module keeps
  * the shared helpers: gateway-configured check and the webhook method mapping.
  */
 import { PaymentMethod } from "@prisma/client";
-import { isDokuConfigured, isDokuMock } from "./doku";
+import { isXenditConfigured, isXenditMock } from "./xendit";
 
-/** True when a real (non-mock) DOKU gateway is configured. */
+/** True when a real (non-mock) Xendit gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
-  return isDokuConfigured() && !isDokuMock();
+  return isXenditConfigured() && !isXenditMock();
 }
 
 /**
- * Normalise a raw payment method / channel id from a DOKU notification into a
+ * Normalise a raw payment method / channel id from a Xendit notification into a
  * PaymentMethod enum. Throws on unknown values so new channels are never
  * silently dropped.
  */
@@ -40,20 +40,24 @@ export function normalizePaymentMethod(raw: string): PaymentMethod {
     LINKAJA: PaymentMethod.LINKAJA,
     QRIS: PaymentMethod.QRIS,
     CREDIT_CARD: PaymentMethod.CREDIT_CARD,
-    // DOKU channel ids
+    // Xendit invoice method types
+    QR_CODE: PaymentMethod.QRIS,
+    EWALLET: PaymentMethod.GOPAY,
+    RETAIL_OUTLET: PaymentMethod.BANK_TRANSFER,
+    DIRECT_DEBIT: PaymentMethod.BANK_TRANSFER,
+    VIRTUAL_ACCOUNT: PaymentMethod.BANK_TRANSFER,
+    CARD: PaymentMethod.CREDIT_CARD,
+    // legacy channel ids (harmless)
     VIRTUAL_ACCOUNT_BCA: PaymentMethod.VA_BCA,
     VIRTUAL_ACCOUNT_BNI: PaymentMethod.VA_BNI,
     VIRTUAL_ACCOUNT_BRI: PaymentMethod.VA_BRI,
     VIRTUAL_ACCOUNT_BANK_MANDIRI: PaymentMethod.VA_MANDIRI,
     VIRTUAL_ACCOUNT_BANK_PERMATA: PaymentMethod.VA_PERMATA,
-    VIRTUAL_ACCOUNT_DOKU: PaymentMethod.BANK_TRANSFER,
     EMONEY_OVO: PaymentMethod.OVO,
     EMONEY_DANA: PaymentMethod.DANA,
     EMONEY_SHOPEE_PAY: PaymentMethod.SHOPEEPAY,
     EMONEY_SHOPEEPAY: PaymentMethod.SHOPEEPAY,
     EMONEY_LINKAJA: PaymentMethod.LINKAJA,
-    QRIS_DOKU: PaymentMethod.QRIS,
-    DOKU: PaymentMethod.BANK_TRANSFER,
     PENDING: PaymentMethod.BANK_TRANSFER,
   };
   if (mapping[upper]) return mapping[upper];

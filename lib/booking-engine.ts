@@ -9,7 +9,7 @@ import {
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
-import { createDokuCheckout, isDokuMock } from "./doku";
+import { createXenditInvoice, isXenditMock } from "./xendit";
 
 export class BookingError extends Error {
   constructor(
@@ -59,9 +59,9 @@ export type CreateBookingArgs = {
  *  - bumps the leg to FULL when seats hit zero
  *  - mints a Booking + Payment row (status=PENDING_PAYMENT)
  *
- * Does NOT issue tickets — those land when DOKU confirms payment via the
+ * Does NOT issue tickets — those land when Xendit confirms payment via the
  * webhook (or the mock-pay endpoint in dev). Returns the booking row so the
- * caller can kick off the DOKU payment afterwards.
+ * caller can kick off the Xendit payment afterwards.
  */
 export async function reserveSeatsAndCreateBooking(
   args: CreateBookingArgs,
@@ -277,8 +277,8 @@ export async function reserveSeatsAndCreateBooking(
 }
 
 /**
- * After reservation succeeds, create a DOKU Checkout payment and return the
- * hosted-page URL to redirect the customer to. In mock mode (no DOKU keys),
+ * After reservation succeeds, create a Xendit payment and return the
+ * hosted-page URL to redirect the customer to. In mock mode (no Xendit keys),
  * returns { mock: true } so the UI uses the built-in /checkout demo flow.
  * The hosted URL is persisted on the Payment row so the pay page can re-render
  * it (and re-redirect) until it expires.
@@ -294,11 +294,11 @@ export async function startPaymentForBooking(
   if (booking.status !== "PENDING_PAYMENT") {
     return { invoiceUrl: null, mock: false };
   }
-  if (isDokuMock()) {
+  if (isXenditMock()) {
     return { invoiceUrl: null, mock: true };
   }
 
-  // Reuse an existing, unexpired checkout URL if one was already created.
+  // Reuse an existing, unexpired invoice URL if one was already created.
   const existing = booking.payment?.instrumentData as { url?: string } | null;
   const notExpired =
     !booking.payment?.expiresAt || booking.payment.expiresAt.getTime() > Date.now();
@@ -307,7 +307,7 @@ export async function startPaymentForBooking(
   }
 
   const lookupUrl = `${env.APP_BASE_URL}/b/${booking.bookingReference}`;
-  const checkout = await createDokuCheckout({
+  const invoice = await createXenditInvoice({
     invoiceNumber: booking.bookingReference,
     amount: Math.round(Number(booking.totalAmount)),
     customer: {
@@ -323,15 +323,15 @@ export async function startPaymentForBooking(
   await prisma.payment.update({
     where: { bookingId: booking.id },
     data: {
-      gatewayProvider: PaymentProvider.DOKU,
-      gatewayReference: checkout.tokenId,
-      instrumentData: { url: checkout.paymentUrl } as never,
-      expiresAt: checkout.expiresAt,
+      gatewayProvider: PaymentProvider.XENDIT,
+      gatewayReference: invoice.invoiceId,
+      instrumentData: { url: invoice.paymentUrl } as never,
+      expiresAt: invoice.expiresAt,
     },
   });
   await prisma.booking.update({
     where: { id: booking.id },
-    data: { paymentGatewayRef: checkout.tokenId },
+    data: { paymentGatewayRef: invoice.invoiceId },
   });
 
   await audit({
@@ -339,10 +339,10 @@ export async function startPaymentForBooking(
     entityId: booking.id,
     action: "payment_initiated",
     userRole: "SYSTEM",
-    newState: { provider: "DOKU", gatewayReference: checkout.tokenId },
+    newState: { provider: "XENDIT", gatewayReference: invoice.invoiceId },
   });
 
-  return { invoiceUrl: checkout.paymentUrl, mock: false };
+  return { invoiceUrl: invoice.paymentUrl, mock: false };
 }
 
 /** Release the seats held by a booking. Idempotent. */
