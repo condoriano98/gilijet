@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 /**
  * Polls the booking's payment status while the customer completes a
- * VA/QRIS payment out-of-band. Advances to the booking page once the DOKU
+ * payment out-of-band. Advances to the booking page once the Midtrans
  * notification has confirmed it.
  */
 export function PaymentStatusPoller({ reference }: { reference: string }) {

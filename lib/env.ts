@@ -10,10 +10,10 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
-  // DOKU (Direct API / Jokul) — the sole payment gateway.
-  DOKU_CLIENT_ID: z.string().optional(),
-  DOKU_SECRET_KEY: z.string().optional(),
-  DOKU_IS_PRODUCTION: z
+  // Midtrans Snap — the sole payment gateway.
+  MIDTRANS_SERVER_KEY: z.string().optional(),
+  MIDTRANS_CLIENT_KEY: z.string().optional(),
+  MIDTRANS_IS_PRODUCTION: z
     .string()
     .optional()
     .transform((v) => v === "true")

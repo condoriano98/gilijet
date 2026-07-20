@@ -1,24 +1,23 @@
-import { createRefund as createDokuRefund, isDokuConfigured } from "./doku";
+import { isMidtransConfigured } from "./midtrans";
 import { PaymentProvider } from "@prisma/client";
 
 /**
- * Dispatch a refund through DOKU (the only gateway). Returns null when DOKU is
- * unconfigured (mock/manual refund flow).
+ * Dispatch a refund through Midtrans. Midtrans Snap doesn't have a refund
+ * API — refunds go through the Midtrans Dashboard or IRIS API. For the MVP
+ * refunds are manual (operator/admin action in the dashboard).
+ * Returns null to signal manual refund flow.
  */
-export async function refundViaGateway(args: {
+export async function refundViaGateway(_args: {
   gatewayProvider: PaymentProvider | null;
   gatewayReference: string;
   amount: number;
   reason: string;
 }): Promise<{ id: string; status: string } | null> {
-  if (!isDokuConfigured()) return null;
-  return await createDokuRefund({
-    gatewayReference: args.gatewayReference,
-    amount: args.amount,
-    reason: args.reason,
-  });
+  // Midtrans refunds are manual for the MVP.
+  // When we integrate the Midtrans IRIS API, this is where the call goes.
+  return null;
 }
 
 export function isAnyRefundGatewayConfigured(): boolean {
-  return isDokuConfigured();
+  return isMidtransConfigured();
 }
