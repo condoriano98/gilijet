@@ -36,6 +36,14 @@ enum PaymentMethod {
 
 enum PaymentProvider {
   MIDTRANS
+  // Legacy values retained (unused by the app) so `prisma db push` without
+  // --accept-data-loss stays additive: dropping enum values that existing rows
+  // still reference is destructive and would fail the whole push, leaving the
+  // DB without the columns/values it needs.
+  XENDIT
+  MAYAR
+  STRIPE
+  DOKU
 }
 
 enum RefundReason {

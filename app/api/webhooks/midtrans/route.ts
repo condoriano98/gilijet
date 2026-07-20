@@ -78,6 +78,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
+  // Amount integrity: never confirm a booking on a mismatched paid amount.
+  // The signature already covers gross_amount, but this is the last line of
+  // defense against a stale/re-created transaction with a different amount.
+  if (mapped.status === "PAID") {
+    const booking = await prisma.booking.findUnique({
+      where: { bookingReference: orderId },
+      select: { totalAmount: true },
+    });
+    if (booking) {
+      const paid = Math.round(Number(grossAmount));
+      const owed = Math.round(Number(booking.totalAmount));
+      if (!Number.isFinite(paid) || paid !== owed) {
+        console.error(
+          `[midtrans-webhook] amount mismatch for ${orderId}: paid=${paid} owed=${owed}`,
+        );
+        return NextResponse.json(
+          { ok: false, error: "Amount mismatch" },
+          { status: 409 },
+        );
+      }
+    }
+  }
+
   let method = "BANK_TRANSFER";
   try {
     method = normalizePaymentMethod(paymentType);

@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
 import { normalizePaymentMethod } from "@/lib/psp";
+import { isMidtransMock } from "@/lib/midtrans";
 import { PaymentMethod } from "@prisma/client";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { DummyCheckoutForm } from "@/components/checkout/dummy-checkout-form";
@@ -15,6 +16,10 @@ export const dynamic = "force-dynamic";
 
 async function simulatePayment(formData: FormData) {
   "use server";
+  // Hard gate: the dummy checkout may confirm a booking / issue a ticket ONLY
+  // when the real gateway is unconfigured. With live keys the real payment
+  // flow goes through /pay + the signed webhook; never confirm here.
+  if (!isMidtransMock()) notFound();
   const reference = String(formData.get("reference") ?? "");
   const outcome = String(formData.get("outcome") ?? "success");
   const method = String(formData.get("method") ?? "card");
@@ -74,6 +79,8 @@ export default async function CheckoutPage({
   params: Promise<{ reference: string }>;
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  // Dummy checkout is only reachable when the real gateway is unconfigured.
+  if (!isMidtransMock()) notFound();
   const { reference } = await params;
   const { failed } = await searchParams;
   const booking = await prisma.booking.findUnique({
