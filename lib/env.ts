@@ -23,17 +23,13 @@ const envSchema = z.object({
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
   XENDIT_CALLBACK_URL: z
-    .string()
-    .url()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
+    .preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
 
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),
 
-  CRON_SECRET: z.string().min(16),
+  CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z
