@@ -122,9 +122,9 @@
     "eTicket": "E-Tiket Instan",
     "eTicketDesc": "Kode QR dikirim ke email Anda",
     "secure": "Pembayaran Aman",
-    "secureDesc": "Didukung DOKU, gateway berlisensi BI",
+    "secureDesc": "Didukung Xendit, gateway berlisensi BI",
     "secureVerified": "Aman, terverifikasi, teregulasi",
-    "paymentsBy": "Pembayaran oleh DOKU (berlisensi Bank Indonesia)",
+    "paymentsBy": "Pembayaran oleh Xendit (berlisensi Bank Indonesia)",
     "kycVerified": "Semua operator terverifikasi KYC",
     "pdpCompliant": "Patuh UU PDP",
     "support24": "Dukungan pelanggan 24 jam"

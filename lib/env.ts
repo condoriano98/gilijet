@@ -10,7 +10,7 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
-  // Midtrans Snap — the sole payment gateway.
+  // Midtrans Snap — the primary payment gateway.
   MIDTRANS_SERVER_KEY: z.string().optional(),
   MIDTRANS_CLIENT_KEY: z.string().optional(),
   MIDTRANS_IS_PRODUCTION: z
@@ -18,6 +18,16 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v === "true")
     .default("false"),
+
+  // Xendit (legacy — may be used for diagnostics/refunds).
+  XENDIT_SECRET_KEY: z.string().optional(),
+  XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
+  XENDIT_CALLBACK_URL: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
 
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),

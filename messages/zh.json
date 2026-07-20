@@ -122,9 +122,9 @@
     "eTicket": "即时电子票",
     "eTicketDesc": "二维码发送到您的邮箱",
     "secure": "安全支付",
-    "secureDesc": "由DOKU提供支持，印尼央行许可网关",
+    "secureDesc": "由Xendit提供支持，印尼央行许可网关",
     "secureVerified": "安全、已验证、受监管",
-    "paymentsBy": "DOKU支付（印尼央行许可）",
+    "paymentsBy": "Xendit支付（印尼央行许可）",
     "kycVerified": "所有运营商已通过KYC验证",
     "pdpCompliant": "符合UU PDP",
     "support24": "24小时客户支持"

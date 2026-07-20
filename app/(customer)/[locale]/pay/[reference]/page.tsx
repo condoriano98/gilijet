@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { PaymentCountdown } from "@/components/customer/payment-countdown";
-import { PaymentStatusPoller } from "@/components/checkout/payment-status-poller";
 import { MidtransSnap } from "@/components/checkout/midtrans-snap";
 
 /** Server action: generate a Midtrans Snap token and re-render the page. */
@@ -133,8 +132,6 @@ export default async function PayPage({
                 Payments processed securely by Midtrans
               </p>
             </div>
-
-            <PaymentStatusPoller reference={booking.bookingReference} />
           </CardContent>
           <CardFooter>
             <Button asChild variant="ghost" className="w-full">
