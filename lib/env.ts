@@ -19,11 +19,9 @@ const envSchema = z.object({
     .transform((v) => v === "true")
     .default("false"),
 
-  // Xendit (legacy — may be used for diagnostics/refunds).
+  // Xendit (legacy — diagnostics/refunds only).
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
-  XENDIT_CALLBACK_URL: z
-    .preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
 
   WATI_API_KEY: z.string().optional(),
   WATI_TENANT_ID: z.string().optional(),
@@ -80,12 +78,20 @@ function loadEnv() {
     return partial.data as z.infer<typeof envSchema>;
   }
 
+  // Last resort: validate each field independently and keep the ones that
+  // pass. A single malformed optional var (e.g. a bad XENDIT_CALLBACK_URL)
+  // must NEVER blank out the whole env — DATABASE_URL, auth secrets and the
+  // payment gateway keys have to survive. (Returning {} here was catastrophic.)
   console.error(
-    "[env] Both strict and partial parses failed; returning empty env. " +
-      "Features that need these vars will fail at the call site:",
+    "[env] Partial parse failed; salvaging valid fields individually:",
     partial.error.flatten().fieldErrors,
   );
-  return {} as z.infer<typeof envSchema>;
+  const salvaged: Record<string, unknown> = {};
+  for (const [key, fieldSchema] of Object.entries(envSchema.shape)) {
+    const r = (fieldSchema as z.ZodTypeAny).safeParse(process.env[key]);
+    if (r.success && r.data !== undefined) salvaged[key] = r.data;
+  }
+  return salvaged as z.infer<typeof envSchema>;
 }
 
 const _env = loadEnv();

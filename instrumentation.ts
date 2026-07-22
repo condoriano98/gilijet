@@ -10,6 +10,11 @@
 // has been imported.
 
 export async function register() {
+  // Next.js also invokes register() in the Edge runtime (middleware, edge
+  // routes). Prisma — used by the auto-seed below — only runs on Node.js, so
+  // bail out on any non-node runtime to avoid the "Prisma on edge" error.
+  if (process.env.NEXT_RUNTIME && process.env.NEXT_RUNTIME !== "nodejs") return;
+
   if (!process.env.DATABASE_URL && process.env.POSTGRES_PRISMA_URL) {
     process.env.DATABASE_URL = process.env.POSTGRES_PRISMA_URL;
   }
