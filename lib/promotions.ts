@@ -18,10 +18,10 @@ export type PromoValidation =
 
 /**
  * Context passed at booking time so the full rule-set can run. The public
- * preview endpoint passes only `totalAmount`; the targeting / per-customer /
- * first-booking / budget rules are enforced only when their inputs are given,
- * so the preview stays a best-effort estimate and the authoritative check runs
- * inside the booking transaction.
+ * preview endpoint passes only `totalAmount`, so targeting / per-customer /
+ * first-booking checks there are best-effort. The authoritative, race-safe
+ * enforcement of the per-customer limit, first-booking rule, usage cap and
+ * budget cap happens in `applyPromoCode`, under the locked promotion row.
  */
 export type PromoContext = {
   totalAmount: number;
@@ -103,6 +103,10 @@ export async function validatePromoCode(
   }
 
   // --- first-booking-only ---
+  // "First booking" = no prior non-cancelled booking. Include PENDING_PAYMENT
+  // so a repeat customer can't farm the coupon on many held-but-unpaid orders
+  // within the hold window (those never reach CONFIRMED until paid). The
+  // authoritative concurrency guard lives in applyPromoCode.
   if (promo.firstBookingOnly && (context.customerEmail || context.customerId)) {
     const priorOr = [
       context.customerId ? { customerId: context.customerId } : null,
@@ -111,7 +115,10 @@ export async function validatePromoCode(
         : null,
     ].filter(Boolean) as Prisma.BookingWhereInput[];
     const prior = await prisma.booking.findFirst({
-      where: { status: "CONFIRMED", OR: priorOr },
+      where: {
+        status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
+        OR: priorOr,
+      },
       select: { id: true },
     });
     if (prior) {
@@ -155,16 +162,30 @@ export async function validatePromoCode(
 }
 
 /**
- * Atomically records a redemption: increments usedCount + budgetSpent (guarded)
- * and writes a PromotionRedemption row. Must run inside the booking transaction,
- * after the Booking row exists. Throws if the code became unusable between
- * validation and apply (the seat/transaction then rolls back).
+ * Atomically records a redemption. Must run inside the booking transaction,
+ * after the Booking row exists.
+ *
+ * The `updateMany` on the Promotion row takes a row-level lock held until the
+ * transaction commits, so concurrent redemptions of the SAME code serialize on
+ * it. Every budget-style guard (usedCount, budgetCap, per-customer limit,
+ * first-booking) is therefore re-checked here, AFTER the lock — not just in the
+ * pre-transaction `validatePromoCode` read — which closes the TOCTOU window
+ * where two concurrent bookings both pass validation and both redeem.
+ * Throws if the code became unusable; the caller rolls the booking back.
  */
 export async function applyPromoCode(
   promotionId: string,
   tx: Prisma.TransactionClient,
-  redemption: { bookingId: string; customerEmail: string; amount: number },
+  redemption: {
+    bookingId: string;
+    customerEmail: string;
+    customerId?: string | null;
+    amount: number;
+  },
 ): Promise<void> {
+  const email = redemption.customerEmail.toLowerCase();
+
+  // Acquire the promotion row lock (serializes concurrent redeemers).
   const updated = await tx.promotion.updateMany({
     where: { id: promotionId, isActive: true, archivedAt: null },
     data: {
@@ -185,11 +206,23 @@ export async function applyPromoCode(
     throw new Error("PROMO_BUDGET_EXHAUSTED");
   }
 
+  // Per-customer limit / first-booking, re-checked under the lock so committed
+  // prior redemptions of this code by this customer are visible. firstBookingOnly
+  // is treated as an implicit per-customer limit of 1 for this code.
+  const effLimit =
+    after?.perCustomerLimit ?? (after?.firstBookingOnly ? 1 : null);
+  if (effLimit != null) {
+    const priorRedemptions = await tx.promotionRedemption.count({
+      where: { promotionId, customerEmail: email },
+    });
+    if (priorRedemptions >= effLimit) throw new Error("PROMO_CUSTOMER_LIMIT");
+  }
+
   await tx.promotionRedemption.create({
     data: {
       promotionId,
       bookingId: redemption.bookingId,
-      customerEmail: redemption.customerEmail.toLowerCase(),
+      customerEmail: email,
       amount: new Prisma.Decimal(redemption.amount),
     },
   });

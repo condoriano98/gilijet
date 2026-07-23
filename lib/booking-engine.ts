@@ -8,7 +8,7 @@ import {
   type CostBearer,
 } from "./pricing";
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
-import { resolveCommissionRate } from "./platform-config";
+import { resolvePlatformPricing } from "./platform-config";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
 import { isMidtransMock } from "./midtrans";
@@ -140,10 +140,14 @@ export async function reserveSeatsAndCreateBooking(
       throw new BookingError("SOLD_OUT", "Just sold out — try another time");
     }
 
-    // Compute base total (pre-promo) to validate promo against
+    const pricing = await resolvePlatformPricing(leg.operatorId, tx);
+
+    // Compute base fare (pre-promo) to validate promo min-spend against. The
+    // service fee is excluded here — the promo applies to the fare only.
     const preDiscount = computeBookingPriceWithTypes({
       unitPrice: leg.basePrice,
       passengerTypes,
+      multipliers: pricing.multipliers,
     });
 
     // Validate promo if provided. The redemption is recorded AFTER the
@@ -155,7 +159,7 @@ export async function reserveSeatsAndCreateBooking(
     if (args.promoCode && args.promoCode.trim()) {
       const routeCode = `${leg.schedule.originPort}-${leg.schedule.destinationPort}`;
       const validation = await validatePromoCode(args.promoCode, {
-        totalAmount: Number(preDiscount.totalAmount),
+        totalAmount: Number(preDiscount.fareAmount),
         routeCode,
         operatorId: leg.operatorId,
         customerEmail: args.customer.email,
@@ -169,13 +173,14 @@ export async function reserveSeatsAndCreateBooking(
       costBearer = validation.promotion.costBearer;
     }
 
-    const commissionRate = await resolveCommissionRate(leg.operatorId, tx);
     const price = computeBookingPriceWithTypes({
       unitPrice: leg.basePrice,
       passengerTypes,
       discountAmount,
-      commissionRate,
+      commissionRate: pricing.commissionRate,
       costBearer,
+      multipliers: pricing.multipliers,
+      serviceFee: pricing.serviceFee,
     });
 
     let bookingReference: string;
@@ -240,12 +245,26 @@ export async function reserveSeatsAndCreateBooking(
 
     // Record the redemption now that the booking row exists. Runs in the same
     // transaction, so a later failure rolls back the usedCount/budget bump too.
+    // applyPromoCode re-checks the exhaustion / per-customer guards under the
+    // locked promotion row; surface any failure as a friendly PROMO_INVALID.
     if (promotionId) {
-      await applyPromoCode(promotionId, tx, {
-        bookingId: booking.id,
-        customerEmail: args.customer.email,
-        amount: discountAmount,
-      });
+      try {
+        await applyPromoCode(promotionId, tx, {
+          bookingId: booking.id,
+          customerEmail: args.customer.email,
+          customerId: args.customerId ?? null,
+          amount: discountAmount,
+        });
+      } catch (err) {
+        const code = err instanceof Error ? err.message : "";
+        const message =
+          code === "PROMO_CUSTOMER_LIMIT"
+            ? "You have already used this promo code"
+            : code === "PROMO_BUDGET_EXHAUSTED"
+              ? "Promo code budget is exhausted"
+              : "This promo code is no longer available";
+        throw new BookingError("PROMO_INVALID", message);
+      }
     }
 
     // Store passenger names on the Booking via a follow-up: tickets are not

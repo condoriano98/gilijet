@@ -79,7 +79,8 @@ export default async function PricingPage({
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  e.g. 0.08 = 8%. Per-operator overrides win below.
+                  e.g. 0.08 = 8%. Fallback only — every operator already has its
+                  own rate (set per-operator below), which always wins.
                 </p>
               </div>
               <div className="grid gap-1.5">

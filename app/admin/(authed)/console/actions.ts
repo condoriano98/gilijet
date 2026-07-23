@@ -51,7 +51,19 @@ const couponSchema = z
   .refine((d) => d.discountType !== "PERCENT" || d.discountValue <= 100, {
     message: "Percent discount cannot exceed 100",
     path: ["discountValue"],
-  });
+  })
+  .refine(
+    (d) =>
+      d.costBearer === "SHARED" ||
+      d.budgetCap != null ||
+      d.maxUses != null ||
+      d.maxDiscountAmount != null,
+    {
+      message:
+        "PLATFORM/OPERATOR coupons need a budget cap, max uses, or a max discount to bound exposure",
+      path: ["budgetCap"],
+    },
+  );
 
 function readCouponForm(formData: FormData) {
   return couponSchema.safeParse({

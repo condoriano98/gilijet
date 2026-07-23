@@ -221,7 +221,7 @@ describe("computeBookingPriceWithTypes — costBearer", () => {
   // 1 adult @ 200k, 10% commission, 50k coupon. gross=200k, customerPays=150k.
   const base = {
     unitPrice: 200_000,
-    passengerTypes: ["ADULT"] as const,
+    passengerTypes: ["ADULT"] as ("ADULT" | "CHILD" | "INFANT")[],
     commissionRate: 0.1,
     discountAmount: 50_000,
   };
@@ -259,5 +259,64 @@ describe("computeBookingPriceWithTypes — costBearer", () => {
         r.totalAmount.toString(),
       );
     }
+  });
+});
+
+describe("computeBookingPriceWithTypes — payout floor & service fee", () => {
+  it("OPERATOR bearer: operator payout is floored at 0 (never negative)", () => {
+    // gross=1,000,000; rate=8% -> commission on gross = 80,000.
+    // A 950k FLAT operator-borne discount would push operator to -30k.
+    const r = computeBookingPriceWithTypes({
+      unitPrice: 1_000_000,
+      passengerTypes: ["ADULT"],
+      commissionRate: 0.08,
+      discountAmount: 950_000,
+      costBearer: "OPERATOR",
+    });
+    expect(r.totalAmount.toString()).toBe("50000"); // customer still pays fare
+    expect(r.operatorAmount.toString()).toBe("0"); // floored, not -30000
+    expect(r.commissionAmount.toString()).toBe("50000"); // shortfall shifts here
+    // invariant preserved
+    expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe(
+      r.totalAmount.toString(),
+    );
+  });
+
+  it("adds a PERCENT service fee on top of the fare, kept by the platform", () => {
+    const r = computeBookingPriceWithTypes({
+      unitPrice: 200_000,
+      passengerTypes: ["ADULT"],
+      commissionRate: 0.1,
+      serviceFee: { type: "PERCENT", value: 5 },
+    });
+    expect(r.fareAmount.toString()).toBe("200000");
+    expect(r.serviceFeeAmount.toString()).toBe("10000"); // 5% of 200k
+    expect(r.totalAmount.toString()).toBe("210000"); // customer pays fare + fee
+    // commission = 10% of fare (20k) + service fee (10k)
+    expect(r.commissionAmount.toString()).toBe("30000");
+    expect(r.operatorAmount.toString()).toBe("180000");
+    expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe("210000");
+  });
+
+  it("adds a FLAT service fee", () => {
+    const r = computeBookingPriceWithTypes({
+      unitPrice: 100_000,
+      passengerTypes: ["ADULT"],
+      commissionRate: 0.08,
+      serviceFee: { type: "FLAT", value: 5_000 },
+    });
+    expect(r.serviceFeeAmount.toString()).toBe("5000");
+    expect(r.totalAmount.toString()).toBe("105000");
+  });
+
+  it("honours configured traveler multipliers", () => {
+    const r = computeBookingPriceWithTypes({
+      unitPrice: 100_000,
+      passengerTypes: ["ADULT", "CHILD"],
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.75, INFANT: 0 },
+    });
+    // 100k + 75k = 175k
+    expect(r.fareAmount.toString()).toBe("175000");
   });
 });

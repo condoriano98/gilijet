@@ -145,11 +145,11 @@ export function CouponFields({
           <input type="checkbox" name="firstBookingOnly" defaultChecked={promo?.firstBookingOnly} className="h-4 w-4" />
           First booking only
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="stackable" defaultChecked={promo?.stackable} className="h-4 w-4" />
-          Stackable
-        </label>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Non-shared cost bearers (PLATFORM / OPERATOR) require a budget cap, max
+        uses, or max discount so exposure is bounded.
+      </p>
 
       <div className="grid gap-1.5">
         <Label htmlFor="description">Description</Label>

@@ -32,30 +32,57 @@ function envCommissionRate(): number {
     : DEFAULT_COMMISSION_RATE;
 }
 
+export type ResolvedPlatformPricing = {
+  commissionRate: Prisma.Decimal;
+  multipliers: Partial<Record<"ADULT" | "CHILD" | "INFANT", number>> | undefined;
+  serviceFee: { type: "PERCENT" | "FLAT"; value: number } | null;
+};
+
 /**
- * Resolve the effective commission rate for a booking on `operatorId`.
- * Falls through to the platform default and finally the env default so it
- * never returns undefined (a `Prisma.Decimal(undefined)` throws downstream).
+ * Resolve everything the pricing engine needs for a booking on `operatorId`:
+ * the effective commission rate (Operator → PlatformConfig → env → 0.08),
+ * the traveler multipliers, and the optional platform service fee. Reads the
+ * singleton config once; safe when the config row does not exist yet
+ * (multipliers fall back to the hard-coded defaults, no service fee).
  */
+export async function resolvePlatformPricing(
+  operatorId: string,
+  tx: Prisma.TransactionClient = prisma,
+): Promise<ResolvedPlatformPricing> {
+  const [operator, config] = await Promise.all([
+    tx.operator.findUnique({
+      where: { id: operatorId },
+      select: { commissionRate: true },
+    }),
+    tx.platformConfig.findUnique({ where: { id: PLATFORM_CONFIG_ID } }),
+  ]);
+
+  const commissionRate =
+    operator?.commissionRate != null
+      ? new Prisma.Decimal(operator.commissionRate)
+      : config?.commissionRate != null
+        ? new Prisma.Decimal(config.commissionRate)
+        : new Prisma.Decimal(envCommissionRate());
+
+  const multipliers = config
+    ? {
+        ADULT: Number(config.adultMultiplier),
+        CHILD: Number(config.childMultiplier),
+        INFANT: Number(config.infantMultiplier),
+      }
+    : undefined;
+
+  const serviceFee = config?.serviceFeeType
+    ? { type: config.serviceFeeType, value: Number(config.serviceFeeValue) }
+    : null;
+
+  return { commissionRate, multipliers, serviceFee };
+}
+
+/** Resolve just the effective commission rate (see resolvePlatformPricing). */
 export async function resolveCommissionRate(
   operatorId: string,
   tx: Prisma.TransactionClient = prisma,
 ): Promise<Prisma.Decimal> {
-  const operator = await tx.operator.findUnique({
-    where: { id: operatorId },
-    select: { commissionRate: true },
-  });
-  if (operator?.commissionRate != null) {
-    return new Prisma.Decimal(operator.commissionRate);
-  }
-
-  const config = await tx.platformConfig.findUnique({
-    where: { id: PLATFORM_CONFIG_ID },
-    select: { commissionRate: true },
-  });
-  if (config?.commissionRate != null) {
-    return new Prisma.Decimal(config.commissionRate);
-  }
-
-  return new Prisma.Decimal(envCommissionRate());
+  return (await resolvePlatformPricing(operatorId, tx)).commissionRate;
 }

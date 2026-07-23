@@ -86,26 +86,33 @@ export type PriceBreakdownWithTypes = PriceBreakdown & {
   childCount: number;
   infantCount: number;
   seatCount: number; // seats actually consumed (infants don't take seats)
+  fareAmount: Prisma.Decimal; // customer fare before the platform service fee
+  serviceFeeAmount: Prisma.Decimal; // platform service fee (kept by the platform)
 };
 
 /** Who absorbs a coupon's discount in the platform/operator split. */
 export type CostBearer = "PLATFORM" | "OPERATOR" | "SHARED";
 
+/** Optional platform service fee added on top of the fare (platform keeps it). */
+export type ServiceFee = { type: "PERCENT" | "FLAT"; value: number } | null;
+
 /**
  * Per-passenger pricing using traveler-type multipliers.
- * Adult = full, Child = 50%, Infant = free (and no seat consumed).
+ * Adult = full, Child = 50%, Infant = free by default (configurable), no seat.
  *
- * The customer always pays `gross − discount` (`totalAmount`). What the
- * `costBearer` changes is how that amount splits into platform commission vs
- * operator payout — i.e. who eats the discount. In every branch the invariant
- * `commissionAmount + operatorAmount === totalAmount` holds exactly.
+ * customerFare = max(gross − discount, 0); the customer is charged
+ * `customerFare + serviceFee` (`totalAmount`). `costBearer` decides how the
+ * fare portion splits into platform commission vs operator payout — i.e. who
+ * eats the discount. The service fee is always kept by the platform. The
+ * invariant `commissionAmount + operatorAmount === totalAmount` holds exactly.
  *
- *   SHARED   — commission is charged on the discounted total, so platform and
- *              operator share the discount pro-rata (legacy behaviour).
- *   PLATFORM — operator is paid as if there were no discount (gross×(1−rate));
- *              the platform absorbs the discount out of its commission.
- *   OPERATOR — platform commission is charged on the gross (unaffected);
- *              the operator absorbs the discount out of its payout.
+ *   SHARED   — commission on the discounted fare; both share the discount.
+ *   PLATFORM — operator paid as if no discount (gross×(1−rate)); platform
+ *              absorbs the discount (its commission can go negative — a
+ *              deliberate, budget-capped subsidy).
+ *   OPERATOR — platform commission on the gross fare (unaffected); operator
+ *              absorbs the discount, but its payout is floored at 0 so it can
+ *              never owe money on a serviced booking.
  */
 export function computeBookingPriceWithTypes(args: {
   unitPrice: Prisma.Decimal | string | number;
@@ -113,12 +120,17 @@ export function computeBookingPriceWithTypes(args: {
   commissionRate?: Prisma.Decimal | number;
   discountAmount?: Prisma.Decimal | string | number;
   costBearer?: CostBearer;
+  multipliers?: Partial<Record<PassengerType, number>>;
+  serviceFee?: ServiceFee;
 }): PriceBreakdownWithTypes {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
   const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
   if (args.passengerTypes.length < 1) {
     throw new Error("at least one passenger required");
   }
+
+  const mult = (t: PassengerType) =>
+    args.multipliers?.[t] ?? TRAVELER_MULTIPLIERS[t];
 
   let adultCount = 0;
   let childCount = 0;
@@ -129,34 +141,56 @@ export function computeBookingPriceWithTypes(args: {
     if (type === "ADULT") adultCount++;
     else if (type === "CHILD") childCount++;
     else infantCount++;
-    gross = gross.add(unitPrice.mul(TRAVELER_MULTIPLIERS[type]));
+    gross = gross.add(unitPrice.mul(mult(type)));
   }
 
+  const zero = new Prisma.Decimal(0);
   const discount = new Prisma.Decimal(args.discountAmount ?? 0);
-  const customerPays = Prisma.Decimal.max(gross.sub(discount), new Prisma.Decimal(0));
+  const fareAmount = Prisma.Decimal.max(gross.sub(discount), zero);
   const bearer: CostBearer = args.costBearer ?? "SHARED";
 
-  let commissionAmount: Prisma.Decimal;
+  let commissionOnFare: Prisma.Decimal;
   let operatorAmount: Prisma.Decimal;
   if (bearer === "PLATFORM") {
     // Operator paid as if full fare; platform eats the discount.
     operatorAmount = gross.sub(gross.mul(commissionRate)).toDecimalPlaces(0);
-    commissionAmount = customerPays.sub(operatorAmount);
+    commissionOnFare = fareAmount.sub(operatorAmount);
   } else if (bearer === "OPERATOR") {
-    // Platform commission on gross (unaffected); operator eats the discount.
-    commissionAmount = gross.mul(commissionRate).toDecimalPlaces(0);
-    operatorAmount = customerPays.sub(commissionAmount);
+    // Platform commission on gross; operator eats the discount.
+    commissionOnFare = gross.mul(commissionRate).toDecimalPlaces(0);
+    operatorAmount = fareAmount.sub(commissionOnFare);
   } else {
-    // SHARED: commission on the discounted total (legacy).
-    commissionAmount = customerPays.mul(commissionRate).toDecimalPlaces(0);
-    operatorAmount = customerPays.sub(commissionAmount);
+    // SHARED: commission on the discounted fare (legacy).
+    commissionOnFare = fareAmount.mul(commissionRate).toDecimalPlaces(0);
+    operatorAmount = fareAmount.sub(commissionOnFare);
   }
+
+  // Never let the operator's payout go negative on a serviced booking. The
+  // shortfall shifts onto the platform's cut, preserving the split invariant.
+  if (operatorAmount.lessThan(zero)) {
+    operatorAmount = zero;
+    commissionOnFare = fareAmount;
+  }
+
+  // Platform service fee (kept by the platform), added on top of the fare.
+  let serviceFeeAmount = zero;
+  if (args.serviceFee && args.serviceFee.value > 0) {
+    serviceFeeAmount =
+      args.serviceFee.type === "PERCENT"
+        ? fareAmount.mul(args.serviceFee.value).div(100).toDecimalPlaces(0)
+        : new Prisma.Decimal(args.serviceFee.value).toDecimalPlaces(0);
+  }
+
+  const totalAmount = fareAmount.add(serviceFeeAmount);
+  const commissionAmount = commissionOnFare.add(serviceFeeAmount);
   const seatCount = adultCount + childCount;
 
   return {
     unitPrice,
     quantity: args.passengerTypes.length,
-    totalAmount: customerPays,
+    totalAmount,
+    fareAmount,
+    serviceFeeAmount,
     commissionRate,
     commissionAmount,
     operatorAmount,
