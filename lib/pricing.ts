@@ -88,16 +88,31 @@ export type PriceBreakdownWithTypes = PriceBreakdown & {
   seatCount: number; // seats actually consumed (infants don't take seats)
 };
 
+/** Who absorbs a coupon's discount in the platform/operator split. */
+export type CostBearer = "PLATFORM" | "OPERATOR" | "SHARED";
+
 /**
  * Per-passenger pricing using traveler-type multipliers.
  * Adult = full, Child = 50%, Infant = free (and no seat consumed).
- * Discount (e.g. promo) is subtracted before commission split.
+ *
+ * The customer always pays `gross − discount` (`totalAmount`). What the
+ * `costBearer` changes is how that amount splits into platform commission vs
+ * operator payout — i.e. who eats the discount. In every branch the invariant
+ * `commissionAmount + operatorAmount === totalAmount` holds exactly.
+ *
+ *   SHARED   — commission is charged on the discounted total, so platform and
+ *              operator share the discount pro-rata (legacy behaviour).
+ *   PLATFORM — operator is paid as if there were no discount (gross×(1−rate));
+ *              the platform absorbs the discount out of its commission.
+ *   OPERATOR — platform commission is charged on the gross (unaffected);
+ *              the operator absorbs the discount out of its payout.
  */
 export function computeBookingPriceWithTypes(args: {
   unitPrice: Prisma.Decimal | string | number;
   passengerTypes: PassengerType[];
   commissionRate?: Prisma.Decimal | number;
   discountAmount?: Prisma.Decimal | string | number;
+  costBearer?: CostBearer;
 }): PriceBreakdownWithTypes {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
   const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
@@ -108,25 +123,40 @@ export function computeBookingPriceWithTypes(args: {
   let adultCount = 0;
   let childCount = 0;
   let infantCount = 0;
-  let total = new Prisma.Decimal(0);
+  let gross = new Prisma.Decimal(0);
 
   for (const type of args.passengerTypes) {
     if (type === "ADULT") adultCount++;
     else if (type === "CHILD") childCount++;
     else infantCount++;
-    total = total.add(unitPrice.mul(TRAVELER_MULTIPLIERS[type]));
+    gross = gross.add(unitPrice.mul(TRAVELER_MULTIPLIERS[type]));
   }
 
   const discount = new Prisma.Decimal(args.discountAmount ?? 0);
-  const totalAfterDiscount = Prisma.Decimal.max(total.sub(discount), new Prisma.Decimal(0));
-  const commissionAmount = totalAfterDiscount.mul(commissionRate).toDecimalPlaces(0);
-  const operatorAmount = totalAfterDiscount.sub(commissionAmount);
+  const customerPays = Prisma.Decimal.max(gross.sub(discount), new Prisma.Decimal(0));
+  const bearer: CostBearer = args.costBearer ?? "SHARED";
+
+  let commissionAmount: Prisma.Decimal;
+  let operatorAmount: Prisma.Decimal;
+  if (bearer === "PLATFORM") {
+    // Operator paid as if full fare; platform eats the discount.
+    operatorAmount = gross.sub(gross.mul(commissionRate)).toDecimalPlaces(0);
+    commissionAmount = customerPays.sub(operatorAmount);
+  } else if (bearer === "OPERATOR") {
+    // Platform commission on gross (unaffected); operator eats the discount.
+    commissionAmount = gross.mul(commissionRate).toDecimalPlaces(0);
+    operatorAmount = customerPays.sub(commissionAmount);
+  } else {
+    // SHARED: commission on the discounted total (legacy).
+    commissionAmount = customerPays.mul(commissionRate).toDecimalPlaces(0);
+    operatorAmount = customerPays.sub(commissionAmount);
+  }
   const seatCount = adultCount + childCount;
 
   return {
     unitPrice,
     quantity: args.passengerTypes.length,
-    totalAmount: totalAfterDiscount,
+    totalAmount: customerPays,
     commissionRate,
     commissionAmount,
     operatorAmount,

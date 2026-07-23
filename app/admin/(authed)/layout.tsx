@@ -23,7 +23,10 @@ export default async function AdminLayout({
     { href: "/admin/bookings", label: "Bookings" },
     { href: "/admin/refunds", label: "Refunds" },
     { href: "/admin/reschedules", label: "Reschedules" },
-    { href: "/admin/promos", label: "Promos" },
+    // Coupons + pricing live in the super-admin-only Owner Console.
+    ...(session.adminRole === "SUPER_ADMIN"
+      ? [{ href: "/admin/console", label: "Console" }]
+      : []),
   ];
 
   return (

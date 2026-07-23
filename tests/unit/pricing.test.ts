@@ -216,3 +216,48 @@ describe("computeYieldAdjustedPrice", () => {
     expect(price.toString()).toBe("300000");
   });
 });
+
+describe("computeBookingPriceWithTypes — costBearer", () => {
+  // 1 adult @ 200k, 10% commission, 50k coupon. gross=200k, customerPays=150k.
+  const base = {
+    unitPrice: 200_000,
+    passengerTypes: ["ADULT"] as const,
+    commissionRate: 0.1,
+    discountAmount: 50_000,
+  };
+
+  it("SHARED: commission on the discounted total (both share)", () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: "SHARED" });
+    expect(r.totalAmount.toString()).toBe("150000");
+    expect(r.commissionAmount.toString()).toBe("15000"); // 10% of 150k
+    expect(r.operatorAmount.toString()).toBe("135000");
+  });
+
+  it("PLATFORM: operator paid as if full fare; platform eats discount", () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: "PLATFORM" });
+    expect(r.totalAmount.toString()).toBe("150000");
+    expect(r.operatorAmount.toString()).toBe("180000"); // 200k - 10% = 180k
+    expect(r.commissionAmount.toString()).toBe("-30000"); // 150k - 180k
+  });
+
+  it("OPERATOR: platform commission on gross; operator eats discount", () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: "OPERATOR" });
+    expect(r.totalAmount.toString()).toBe("150000");
+    expect(r.commissionAmount.toString()).toBe("20000"); // 10% of gross 200k
+    expect(r.operatorAmount.toString()).toBe("130000"); // 150k - 20k
+  });
+
+  it("defaults to SHARED when costBearer omitted", () => {
+    const r = computeBookingPriceWithTypes(base);
+    expect(r.commissionAmount.toString()).toBe("15000");
+  });
+
+  it("invariant: commission + operator === customer total in every branch", () => {
+    for (const costBearer of ["SHARED", "PLATFORM", "OPERATOR"] as const) {
+      const r = computeBookingPriceWithTypes({ ...base, costBearer });
+      expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe(
+        r.totalAmount.toString(),
+      );
+    }
+  });
+});

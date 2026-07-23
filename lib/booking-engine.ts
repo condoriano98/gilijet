@@ -5,6 +5,7 @@ import { audit } from "./audit";
 import {
   computeBookingPriceWithTypes,
   type PassengerType,
+  type CostBearer,
 } from "./pricing";
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { resolveCommissionRate } from "./platform-config";
@@ -145,20 +146,27 @@ export async function reserveSeatsAndCreateBooking(
       passengerTypes,
     });
 
-    // Apply promo if provided
+    // Validate promo if provided. The redemption is recorded AFTER the
+    // booking row exists (below), so a rolled-back booking never leaves a
+    // phantom redemption or inflated budget spend.
     let promotionId: string | null = null;
     let discountAmount = 0;
+    let costBearer: CostBearer = "SHARED";
     if (args.promoCode && args.promoCode.trim()) {
-      const validation = await validatePromoCode(
-        args.promoCode,
-        Number(preDiscount.totalAmount),
-      );
+      const routeCode = `${leg.schedule.originPort}-${leg.schedule.destinationPort}`;
+      const validation = await validatePromoCode(args.promoCode, {
+        totalAmount: Number(preDiscount.totalAmount),
+        routeCode,
+        operatorId: leg.operatorId,
+        customerEmail: args.customer.email,
+        customerId: args.customerId ?? null,
+      });
       if (!validation.valid) {
         throw new BookingError("PROMO_INVALID", validation.error);
       }
       promotionId = validation.promotion.id;
       discountAmount = validation.discountAmount;
-      await applyPromoCode(promotionId, tx);
+      costBearer = validation.promotion.costBearer;
     }
 
     const commissionRate = await resolveCommissionRate(leg.operatorId, tx);
@@ -167,6 +175,7 @@ export async function reserveSeatsAndCreateBooking(
       passengerTypes,
       discountAmount,
       commissionRate,
+      costBearer,
     });
 
     let bookingReference: string;
@@ -227,6 +236,16 @@ export async function reserveSeatsAndCreateBooking(
         "INVALID_INPUT",
         "Failed to mint booking reference",
       );
+    }
+
+    // Record the redemption now that the booking row exists. Runs in the same
+    // transaction, so a later failure rolls back the usedCount/budget bump too.
+    if (promotionId) {
+      await applyPromoCode(promotionId, tx, {
+        bookingId: booking.id,
+        customerEmail: args.customer.email,
+        amount: discountAmount,
+      });
     }
 
     // Store passenger names on the Booking via a follow-up: tickets are not
