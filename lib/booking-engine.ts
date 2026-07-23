@@ -7,6 +7,7 @@ import {
   type PassengerType,
 } from "./pricing";
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
+import { resolveCommissionRate } from "./platform-config";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
 import { isMidtransMock } from "./midtrans";
@@ -160,10 +161,12 @@ export async function reserveSeatsAndCreateBooking(
       await applyPromoCode(promotionId, tx);
     }
 
+    const commissionRate = await resolveCommissionRate(leg.operatorId, tx);
     const price = computeBookingPriceWithTypes({
       unitPrice: leg.basePrice,
       passengerTypes,
       discountAmount,
+      commissionRate,
     });
 
     let bookingReference: string;

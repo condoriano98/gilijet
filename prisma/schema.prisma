@@ -291,6 +291,7 @@ model Booking {
   salesStaff        OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
   salesAgent        TravelAgent?       @relation(fields: [salesAgentId], references: [id])
   promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  promotionRedemption PromotionRedemption?
   tickets           Ticket[]
   payment           Payment?
   refund            Refund?
@@ -448,15 +449,69 @@ model Promotion {
   minAmount     Decimal      @default(0) @db.Decimal(12, 2)
   maxUses       Int?
   usedCount     Int          @default(0)
+  startsAt      DateTime?
   expiresAt     DateTime?
   isActive      Boolean      @default(true)
+  archivedAt    DateTime?
   description   String?
+
+  // Owner-console targeting & controls
+  perCustomerLimit     Int?
+  firstBookingOnly     Boolean         @default(false)
+  maxDiscountAmount    Decimal?        @db.Decimal(12, 2)
+  stackable            Boolean         @default(false)
+  costBearer           PromoCostBearer @default(SHARED)
+  appliesToRouteCodes  String[]        @default([])
+  appliesToOperatorIds String[]        @default([])
+  budgetCap            Decimal?        @db.Decimal(12, 2)
+  budgetSpent          Decimal         @default(0) @db.Decimal(12, 2)
+
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  bookings Booking[]
+  bookings    Booking[]
+  redemptions PromotionRedemption[]
 
   @@index([code, isActive])
+}
+
+enum PromoCostBearer {
+  PLATFORM
+  OPERATOR
+  SHARED
+}
+
+/// One row per successful coupon use. Enables per-customer limits and
+/// spend analytics that a single usedCount counter cannot express.
+model PromotionRedemption {
+  id            String   @id @default(cuid())
+  promotionId   String
+  bookingId     String   @unique
+  customerEmail String
+  amount        Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([promotionId])
+  @@index([customerEmail])
+}
+
+/// Singleton platform-economics config (id is always "default"). Holds the
+/// values the owner console tunes: platform-default commission, optional
+/// service fee, traveler multipliers, and the default yield-tier template.
+model PlatformConfig {
+  id                String   @id @default("default")
+  commissionRate    Decimal  @default(0.08) @db.Decimal(5, 4)
+  serviceFeeType    DiscountType?
+  serviceFeeValue   Decimal  @default(0) @db.Decimal(12, 2)
+  adultMultiplier   Decimal  @default(1) @db.Decimal(5, 4)
+  childMultiplier   Decimal  @default(0.5) @db.Decimal(5, 4)
+  infantMultiplier  Decimal  @default(0) @db.Decimal(5, 4)
+  defaultPricingTiers Json?
+  updatedBy         String?
+  updatedAt         DateTime @updatedAt @default(now())
 }
 
 enum DiscountType {
