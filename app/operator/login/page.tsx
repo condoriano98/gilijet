@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import {
@@ -127,10 +128,16 @@ export default async function OperatorLoginPage({
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-col gap-3">
             <Button type="submit" className="w-full">
               Sign in
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              New operator?{" "}
+              <Link href="/operator/daftar" className="text-emerald-600 underline">
+                Register here
+              </Link>
+            </p>
           </CardFooter>
         </form>
       </Card>

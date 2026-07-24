@@ -42,6 +42,9 @@ const envSchema = z.object({
 
   QR_HMAC_SECRET: z.string().min(32),
 
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
+
   PLATFORM_COMMISSION_RATE: z
     .string()
     .default("0.08")

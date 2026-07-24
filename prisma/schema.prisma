@@ -868,7 +868,7 @@ model OperatorDocument {
 
   operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
 
-  @@index([operatorId, type])
+  @@unique([operatorId, type])
   @@index([status])
   @@index([expiresAt])
 }

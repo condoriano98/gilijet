@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { OperatorStatus } from "@prisma/client";
+import { OperatorStatus, OperatorDocumentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { getOperatorDocumentUrl } from "@/lib/operator-documents";
 import {
   Card,
   CardContent,
@@ -22,6 +23,57 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTimeID } from "@/lib/utils";
+
+const DOC_TYPE_LABEL: Record<string, string> = {
+  SIUP: "SIUP (business permit)",
+  NPWP: "NPWP (tax ID)",
+  VESSEL_LICENSE: "Vessel license",
+  INSURANCE_CERTIFICATE: "Insurance certificate",
+  CAPTAIN_LICENSE: "Captain license",
+  OTHER: "Other",
+};
+
+async function reviewDocumentAction(formData: FormData) {
+  "use server";
+  const session = await requireAdmin();
+  const operatorId = String(formData.get("operatorId") ?? "");
+  const docId = String(formData.get("docId") ?? "");
+  const next = String(formData.get("next") ?? "") as OperatorDocumentStatus;
+  const allowed: OperatorDocumentStatus[] = ["APPROVED", "REJECTED"];
+  if (!operatorId || !docId || !allowed.includes(next)) {
+    redirect(`/admin/operators/${operatorId}`);
+  }
+
+  const prev = await prisma.operatorDocument.findFirst({
+    where: { id: docId, operatorId },
+  });
+  if (!prev) redirect(`/admin/operators/${operatorId}`);
+
+  await prisma.operatorDocument.update({
+    where: { id: docId },
+    data: {
+      status: next,
+      verifiedBy: session.sub,
+      verifiedAt: new Date(),
+      rejectionNote:
+        next === "REJECTED"
+          ? String(formData.get("rejectionNote") ?? "").trim() || null
+          : null,
+    },
+  });
+
+  await audit({
+    entityType: "OPERATOR",
+    entityId: operatorId,
+    action: `document_${next.toLowerCase()}`,
+    userId: session.sub,
+    userRole: "ADMIN",
+    previousState: { docId, status: prev.status },
+    newState: { docId, status: next },
+  });
+
+  redirect(`/admin/operators/${operatorId}`);
+}
 
 async function transitionAction(formData: FormData) {
   "use server";
@@ -80,6 +132,7 @@ export default async function OperatorDetailPage({
     where: { id, deletedAt: null },
     include: {
       boats: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
+      documents: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!operator) notFound();
@@ -89,6 +142,13 @@ export default async function OperatorDetailPage({
     accountNumber?: string;
     accountHolder?: string;
   };
+
+  const documentsWithUrls = await Promise.all(
+    operator.documents.map(async (doc) => ({
+      doc,
+      url: await getOperatorDocumentUrl(doc.fileUrl),
+    })),
+  );
 
   return (
     <div className="space-y-6">
@@ -179,6 +239,94 @@ export default async function OperatorDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            KYB documents ({operator.documents.length.toLocaleString()})
+          </CardTitle>
+          <CardDescription>
+            Review each document before approving the operator.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {documentsWithUrls.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No documents uploaded yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {documentsWithUrls.map(({ doc, url }) => (
+                <div
+                  key={doc.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {DOC_TYPE_LABEL[doc.type] ?? doc.type}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {doc.fileName ?? doc.fileUrl} · uploaded{" "}
+                      {formatDateTimeID(doc.createdAt)}
+                    </p>
+                    {doc.status === "REJECTED" && doc.rejectionNote ? (
+                      <p className="mt-1 text-xs text-red-600">
+                        Rejection note: {doc.rejectionNote}
+                      </p>
+                    ) : null}
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-xs text-emerald-600 underline"
+                      >
+                        View document
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        doc.status === "APPROVED"
+                          ? "success"
+                          : doc.status === "REJECTED"
+                            ? "destructive"
+                            : "warning"
+                      }
+                    >
+                      {doc.status}
+                    </Badge>
+                    <form action={reviewDocumentAction} className="flex gap-2">
+                      <input type="hidden" name="operatorId" value={operator.id} />
+                      <input type="hidden" name="docId" value={doc.id} />
+                      <Button
+                        type="submit"
+                        name="next"
+                        value="APPROVED"
+                        size="sm"
+                        disabled={doc.status === "APPROVED"}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        type="submit"
+                        name="next"
+                        value="REJECTED"
+                        size="sm"
+                        variant="destructive"
+                        disabled={doc.status === "REJECTED"}
+                      >
+                        Reject
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
