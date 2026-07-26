@@ -1,85 +1,203 @@
 # Gilijet
 
-Small-boat ticketing platform for Indonesia. Mobile-first PWA built on
-Next.js 15 + Prisma + Postgres.
+Small-boat ticketing platform for Indonesia — customer booking, an operator
+back office, and a platform admin console. Mobile-first, built on Next.js 15 +
+Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
 
-> **Status:** Phase 1 (Foundation) — auth, schema, admin UI for operators.
-> See `REQUIREMENTS.md` for the full MVP plan.
+> **Status:** live MVP. Customers can search, book, pay and check in; operators
+> run schedules, departures, POS, cash and reporting; admins onboard operators,
+> handle refunds and tune platform economics.
+>
+> `lib/feature-catalog.ts` is the canonical inventory of what exists — 57
+> entries, each with its routes, owning modules and Prisma models, and a status
+> that distinguishes shipped from partial, placeholder and schema-only. Read it
+> before assuming a feature works; a few routes exist without being finished.
 
 ## Stack
 
 - **Web:** Next.js 15 (App Router, React 19), Tailwind, shadcn-style UI
-- **DB:** PostgreSQL (Supabase or Neon) via Prisma
-- **Auth:** JWT in HttpOnly cookies (`jose` + `bcryptjs`), separate
-  cookies for operators and admins
-- **Payments:** Xendit (Phase 2)
-- **Comms:** Resend (email) + Wati/Twilio (WhatsApp) — Phase 4
+- **DB:** PostgreSQL (Supabase) via Prisma 6
+- **Auth:** JWT in HttpOnly cookies (`jose` + `bcryptjs`), separate cookies per
+  audience (customer / operator / admin)
+- **Payments:** Midtrans Snap. Xendit remains wired for legacy refunds and
+  diagnostics only
+- **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent
+- **Storage:** Supabase Storage, for operator KYB documents
+- **i18n:** `next-intl` — `en`, `id`, `zh`, `ja` on the customer surface
+
+Integrations degrade to mocks rather than crashing when keys are missing, so a
+bare clone runs.
 
 ## Quickstart
 
 ```bash
-# 1. Install deps
-npm install
+pnpm install
 
-# 2. Copy env, fill in DATABASE_URL + AUTH_SECRET + QR_HMAC_SECRET
-cp .env.example .env
+cp .env.example .env.local     # Next.js reads .env.local in dev
+# Required: DATABASE_URL, AUTH_SECRET (16+ chars), QR_HMAC_SECRET (32+ chars)
 
-# 3. Push schema to your DB and seed a sample admin + operator
-npm run db:push
-npm run db:seed
-
-# 4. Run the dev server
-npm run dev
+pnpm db:push                   # apply schema (no migrations dir — see below)
+pnpm seed:qa                   # deterministic QA data with fixed IDs
+pnpm dev
 ```
 
-Default seed credentials (override via `SEED_*` env vars):
+QA seed logins (from `scripts/seed-qa.ts`, all password `qaqaqaqa`):
 
-- Admin: `admin@gilijet.local` / `changeme123` → http://localhost:3000/admin/login
-- Operator: `operator@example.com` / `changeme123` → http://localhost:3000/operator/login
+| Role | Email | Entry point |
+|---|---|---|
+| Admin | `qa-admin@gilijet.local` | `/admin/login` |
+| Operator | `qa-operator@gilijet.local` | `/operator/login` |
+| Customer | `qa-customer@gilijet.local` | `/account/login` (redirects to `/en/…`) |
 
-## What's in Phase 1
+`pnpm db:seed` instead loads the fuller demo set, defaulting to
+`admin@gilijet.local` / `changeme123`.
 
-- [x] Prisma schema covering operators, boats, schedules, legs, bookings,
-      tickets, payments, refunds, audit log
-- [x] Operator + admin authentication (JWT cookies)
-- [x] Admin UI: onboard, approve, suspend operators
-- [x] Operator dashboard skeleton + boat list
-- [x] Pricing + refund + QR signing libraries
-- [x] Xendit webhook signature verification stub
+> **Rotate that password before any deploy.** `docker-compose.yml` defaults
+> `SEED_ADMIN_PASSWORD` to `changeme123`, so an environment seeded without
+> overriding `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` ships with a publicly
+> documented super-admin credential.
 
-## What's next
+## Commands
 
-- **Phase 2:** Search → book → pay (Xendit) → e-ticket
-- **Phase 3:** Operator schedules, departures, web QR scanner
-- **Phase 4:** Refunds, WhatsApp delivery, reminders, settlements
+```bash
+pnpm dev            # dev server
+pnpm qc             # lint + typecheck — the gate before any commit
+pnpm test:unit      # vitest, pure functions (tests/unit)
+pnpm test:e2e       # Playwright golden paths (tests/e2e)
+pnpm seed:qa        # reset to deterministic QA data
+pnpm db:studio      # Prisma Studio
+```
+
+## Database
+
+There is **no `prisma/migrations/` directory**. Schema changes reach the
+database via `prisma db push`, run from `scripts/db-push-if-configured.mjs`
+during the build.
+
+The URL is resolved from several env-var names, because the Vercel–Supabase
+integration provisions `POSTGRES_*` rather than `DATABASE_URL`:
+
+| Purpose | Names tried, in order |
+|---|---|
+| Runtime queries (pooled, `:6543`) | `DATABASE_URL` → `POSTGRES_PRISMA_URL` → `POSTGRES_URL` |
+| DDL / `db push` (direct, `:5432`) | `DIRECT_URL` → `POSTGRES_URL_NON_POOLING` |
+
+Import `prisma` from `lib/db.ts`; do not read those env vars anywhere else.
+DDL cannot run through the pgBouncer pooler, which is why the direct URL is
+separate. A build that cannot resolve a database now fails rather than
+silently skipping the push — schema drift used to reach production and take
+every login page down with `P2021`.
+
+Soft deletes: `Operator`, `Boat` and `Schedule` carry `deletedAt`, so list
+queries must filter `deletedAt: null`.
+
+## Route groups
+
+| Path | Audience | Guard |
+|---|---|---|
+| `app/(customer)/[locale]/…` | anonymous + logged-in customers | none |
+| `app/operator/…` | operator back office | `requireOperator()`, scoped by `operatorId` |
+| `app/admin/…` | platform admin | `requireAdmin()` |
+| `app/admin/(authed)/console/…` | owner only | `requireSuperAdmin()` |
+| `app/api/…` | REST, webhooks, cron | signature or `CRON_SECRET` |
+
+`middleware.ts` handles locale routing only and performs **no** auth, so every
+page, server action and route handler must call its own guard. A missing guard
+is an open endpoint with nothing behind it.
+
+## Single sources of truth
+
+Duplicating any of these is a bug:
+
+| Concern | Module |
+|---|---|
+| Booking totals, commission split, service fee | `lib/pricing.ts` |
+| Platform economics resolution | `lib/platform-config.ts` |
+| Refund tiers and deadlines | `lib/refunds.ts` |
+| Seat holds and booking lifecycle | `lib/booking-engine.ts` |
+| Per-departure rows | `lib/legs.ts` |
+| WITA formatting | `lib/datetime.ts` |
+| Port names | `lib/port-info.ts` |
+| QR / ticket codes | `lib/qr.ts`, `lib/references.ts` |
+| Coupon validation and redemption | `lib/promotions.ts` |
+| What the platform does | `lib/feature-catalog.ts` |
+
+## Review MCP (in progress)
+
+An MCP server so a non-editing reviewer can ask what the platform does and
+inspect data read-only, without commit or write access.
+
+- **Shipped:** `lib/feature-catalog.ts`, the inventory the `list_features` and
+  `describe_feature` tools will read.
+- **Not yet built:** the server, tools and transport. No write tools are
+  planned for anyone, so there is no privilege gate to misconfigure.
+- **Open decision:** transport. HTTP with a bearer token means the reviewer
+  never holds a database credential and access is revoked by rotating one
+  secret, but it requires TLS in front of the app. A local stdio server instead
+  needs a dedicated read-only Postgres role, since a normal `DATABASE_URL`
+  permits writes regardless of which tools exist — the credential is the
+  security boundary, not the tool surface.
+
+## Known gaps
+
+Honest state, so nobody plans against features that do not work:
+
+- **Unscheduled cron endpoints.** `send-reminders`, `poll-bmkg` and
+  `refresh-fx` are implemented and callable but absent from `vercel.json`, so
+  departure reminders, BMKG weather and FX refresh never run on their own.
+  Only `retry-webhooks` and `topup-legs` are scheduled.
+- **Placeholders.** `armada/bahan-bakar` (fuel) and `armada/pemeliharaan`
+  (maintenance) render empty states labelled "Phase B+". No data model exists.
+- **Schema-only.** `LoyaltyAccount`, `LoyaltyTransaction`, `BoatPosition`,
+  `WeatherForecast` and `BookingAddon` have no UI at all.
+- **Reporting, not subsystems.** `pajak`, `penggajian` and `akuntansi` are
+  derived views over `Booking`, `OperatorStaff`, `TravelAgent` and
+  `CashDrawerSession`. There are no tax or payroll models, and nothing is filed
+  or paid from them.
+- **No read-only role.** `AdminRole` is `SUPER_ADMIN | STAFF`, and `STAFF` is
+  not read-only — a STAFF admin can approve refunds and suspend operators.
+- **`REQUIREMENTS.md` is a stub** pointing at a spec that is not in this repo.
+  Prefer `CLAUDE.md` and `lib/feature-catalog.ts`.
 
 ## Repository layout
 
 ```
 app/
-  (public)        — landing page
-  admin/          — admin login + management
-  operator/       — operator login + dashboard
-components/ui     — shadcn-style components
-lib/
-  auth.ts         — JWT sessions
-  db.ts           — Prisma client
-  env.ts          — zod-validated env
-  pricing.ts      — commission math (Decimal-safe)
-  refunds.ts      — refund-tier policy
-  qr.ts           — HMAC-signed QR payloads
-  references.ts   — booking/ticket references
-  audit.ts        — audit-log helper
-  xendit.ts       — Xendit wrapper (webhook verify ready)
+  (customer)/[locale]/  — search, booking, checkout, tickets, account, blog
+  operator/             — back office (Indonesian nav; English canonical routes)
+  admin/(authed)/       — operator onboarding, bookings, refunds, reschedules
+    console/            — owner-only coupons + platform economics
+  api/                  — REST, Midtrans/Xendit webhooks, cron
+  print/                — printable tickets and manifests
+components/
+  ui/                   — shadcn-style primitives
+  operator-shell/       — operator nav, sidebar module tree, page templates
+lib/                    — 42 modules; see "single sources of truth" above
 prisma/
-  schema.prisma
-  seed.ts
+  schema.prisma         — 38 models, 41 enums
+  seed.ts               — demo data
+scripts/
+  seed-qa.ts            — deterministic QA data
+  db-push-if-configured.mjs
+tests/
+  unit/                 — vitest, pure functions only
+  e2e/                  — Playwright golden paths
+docs/                   — phased design notes
+messages/               — en / id / zh / ja translations
 ```
 
 ## Conventions
 
 - TypeScript strict, no `any`
-- Zod-validate all server-action input
-- All money is `Prisma.Decimal` (IDR, integer rupiah)
-- Times stored UTC; rendered with `Asia/Makassar` formatters
-- Every state change on booking/payment/refund/leg/operator → `AuditLog`
+- Server actions live in `app/**/actions.ts`; they `redirect()` on success,
+  throw on failure, and re-throw `NEXT_REDIRECT`
+- Forms are React Hook Form + Zod; the same schema re-validates server-side
+- All money is `Prisma.Decimal`, integer rupiah
+- Times stored UTC, rendered through `lib/datetime.ts`
+- Tailwind only; extend `components/ui/*` rather than adding a component library
+- Operator queries always include `operatorId`; use `operatorScope(session)`
+- Every state change on booking / payment / refund / leg / operator writes to
+  `AuditLog`
+- `pnpm qc` must pass before committing
+
+See `CLAUDE.md` for the full working agreement.
