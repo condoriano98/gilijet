@@ -15,9 +15,24 @@
  * applies forward-only column additions. It does NOT use
  * --accept-data-loss, so destructive changes fail the build loudly.
  *
+ * A failed push fails the build. This script used to exit 0 instead, on
+ * the theory that a broken push shouldn't take the site down — but the
+ * opposite happened: a silently-skipped push shipped code referencing a
+ * missing LoginAttempt table, and every login page 500'd on a green
+ * build. Drift must not be deployable.
+ *
  * If neither URL is set (e.g. local CI without DB), skip silently.
+ *
+ * Set SKIP_DB_PUSH=1 to opt out where a build-time push is wrong: the
+ * Docker image builds against a placeholder DATABASE_URL and pushes for
+ * real from docker/entrypoint.sh once the container can reach Postgres.
  */
 import { spawnSync } from "node:child_process";
+
+if (process.env.SKIP_DB_PUSH === "1") {
+  console.log("[db-push] SKIP_DB_PUSH=1 — skipping (push happens at container start)");
+  process.exit(0);
+}
 
 const haveDb = Boolean(process.env.DIRECT_URL || process.env.DATABASE_URL);
 if (!haveDb) {
@@ -32,10 +47,17 @@ const res = spawnSync("pnpm", ["prisma", "db", "push", "--skip-generate"], {
 });
 
 if (res.status !== 0) {
-  console.error("[db-push] FAILED — see error above. Build will continue but");
-  console.error("[db-push] queries against drifted columns will throw at runtime.");
-  // Don't fail the build: a broken push shouldn't take the whole site down.
-  // The runtime error is no worse than the current state.
-  process.exit(0);
+  console.error("[db-push] FAILED — see error above. Failing the build.");
+  console.error("[db-push]");
+  console.error("[db-push] Deploying past this ships code whose queries reference");
+  console.error("[db-push] tables/columns the database does not have. Prisma then");
+  console.error("[db-push] throws P2021/P2022 at runtime on the first request that");
+  console.error("[db-push] touches them — a silent outage discovered by users, not");
+  console.error("[db-push] by CI. A blocked deploy is visible and fixable in minutes.");
+  console.error("[db-push]");
+  console.error("[db-push] Common cause: DIRECT_URL unset/wrong, so DDL is attempted");
+  console.error("[db-push] through the pgBouncer pooler (:6543). It needs the direct");
+  console.error("[db-push] connection (:5432).");
+  process.exit(1);
 }
 console.log("[db-push] OK — schema in sync");

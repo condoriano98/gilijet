@@ -21,6 +21,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 ENV AUTH_SECRET="build-time-placeholder-secret-please-rotate-32"
 ENV QR_HMAC_SECRET="build-time-placeholder-hmac-please-rotate-32chars"
+# DATABASE_URL above is a placeholder with no server behind it, so the
+# build-time push can only fail. entrypoint.sh runs the real push once the
+# container can reach Postgres.
+ENV SKIP_DB_PUSH=1
 RUN npx prisma generate
 RUN npm run build
 
