@@ -122,21 +122,39 @@ Duplicating any of these is a bug:
 | Coupon validation and redemption | `lib/promotions.ts` |
 | What the platform does | `lib/feature-catalog.ts` |
 
-## Review MCP (in progress)
+## Review MCP
 
-An MCP server so a non-editing reviewer can ask what the platform does and
-inspect data read-only, without commit or write access.
+`POST /api/mcp` is a read-only MCP endpoint for a reviewer who must be able to
+inspect the platform without changing it. Ten tools: the feature inventory,
+platform metrics, operators, bookings, refunds, coupons, customer lookup and
+upcoming departures.
 
-- **Shipped:** `lib/feature-catalog.ts`, the inventory the `list_features` and
-  `describe_feature` tools will read.
-- **Not yet built:** the server, tools and transport. No write tools are
-  planned for anyone, so there is no privilege gate to misconfigure.
-- **Open decision:** transport. HTTP with a bearer token means the reviewer
-  never holds a database credential and access is revoked by rotating one
-  secret, but it requires TLS in front of the app. A local stdio server instead
-  needs a dedicated read-only Postgres role, since a normal `DATABASE_URL`
-  permits writes regardless of which tools exist — the credential is the
-  security boundary, not the tool surface.
+Enable it by setting `MCP_REVIEWER_TOKEN` (32+ chars). While it is unset the
+endpoint returns 503, so it never serves unauthenticated. Give the reviewer:
+
+```bash
+claude mcp add --scope user --transport http gilijet-review \
+  https://<your-host>/api/mcp \
+  --header "Authorization: Bearer <token>"
+```
+
+Deliver the token through a password manager, not chat. Revoke by rotating
+`MCP_REVIEWER_TOKEN` and redeploying — one variable, no database change.
+
+**Why HTTP rather than a local stdio server.** The reviewer never holds a
+database credential. A credential would let them bypass these tools entirely
+with `psql`, which is why the tool surface alone is not a security boundary.
+Two layers keep it read-only: no tool writes, and every query goes through
+`lib/mcp/readonly-client.ts`, a Prisma extension that throws on any mutating
+operation even though the app's own credential is read-write.
+`tests/unit/mcp-readonly.test.ts` proves the guard refuses writes and that
+nothing under `lib/mcp` imports a module that mutates.
+
+Set `MCP_REDACT_PII=1` to mask customer name, email and phone in tool output.
+It is off by default, since the reviewer is authorised to read customer records
+— but note anything a tool returns is copied into the reviewer's local client
+history and their model provider's logs, which is a wider audience than a
+dashboard session.
 
 ## Known gaps
 

@@ -45,6 +45,12 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
 
+  // Bearer token for the read-only review MCP at /api/mcp. Optional: when it is
+  // unset the endpoint returns 503 rather than serving unauthenticated, so
+  // leaving it out disables the feature. Read via process.env in the route so
+  // the endpoint stays off in degraded env mode instead of failing open.
+  MCP_REVIEWER_TOKEN: z.string().min(32).optional(),
+
   PLATFORM_COMMISSION_RATE: z
     .string()
     .default("0.08")
