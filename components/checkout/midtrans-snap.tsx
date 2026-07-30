@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,6 @@ export function MidtransSnap({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const snapSrc = isProduction
     ? "https://app.midtrans.com/snap/snap.js"
@@ -81,13 +80,6 @@ export function MidtransSnap({
       },
     });
   }, [snapToken, bookingReference, router]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
 
   return (
     <div className="space-y-3">

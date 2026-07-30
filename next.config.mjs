@@ -13,11 +13,12 @@ const nextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  // Stable since Next 15; was experimental.serverComponentsExternalPackages.
+  serverExternalPackages: ["@prisma/client"],
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
     },
-    serverComponentsExternalPackages: ["@prisma/client"],
     optimizePackageImports: [
       "lucide-react",
       "date-fns",
