@@ -36,9 +36,57 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-changeme123}
       SEED_OPERATOR_EMAIL: ${SEED_OPERATOR_EMAIL:-operator@example.com}
       SEED_OPERATOR_PASSWORD: ${SEED_OPERATOR_PASSWORD:-changeme123}
+
+      # Payment gateways. Until these reach the container the app runs in mock
+      # mode and takes no real money, whatever the dashboards say.
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY:-}
+      MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION:-false}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+      PAYPAL_IS_PRODUCTION: ${PAYPAL_IS_PRODUCTION:-false}
+      PAYPAL_PRESENTMENT_CURRENCY: ${PAYPAL_PRESENTMENT_CURRENCY:-USD}
+
+      # Cron routes reject every call without this, so the FX refresh that
+      # PayPal depends on cannot run until it is set.
+      CRON_SECRET: ${CRON_SECRET:-}
+
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
     ports:
       # Bind directly to :80 on the host (HTTP only, no domain → no TLS).
       - "80:3000"
+
+  # Vercel Cron does not exist on this box, so vercel.json is inert here and
+  # every scheduled route would simply never fire. PayPal refuses to quote on a
+  # stale FX rate, so without this ticker it would never appear at checkout.
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      CRON_SECRET: ${CRON_SECRET:-}
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null 2>&1
+        if [ -z "$$CRON_SECRET" ]; then
+          echo "[cron] CRON_SECRET is unset — cron routes will 401. Not starting."
+          exit 1
+        fi
+        while true; do
+          for route in refresh-fx; do
+            code=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+              -H "Authorization: Bearer $$CRON_SECRET" \
+              "http://app:3000/api/cron/$$route" || true)
+            echo "[cron] $$route -> $$code"
+          done
+          sleep 3600
+        done
 
 volumes:
   db-data:

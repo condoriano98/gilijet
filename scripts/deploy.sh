@@ -104,11 +104,54 @@ else
   echo "  ${REMOTE_ENV} already present (keeping existing secrets)"
 fi
 
+# Append any key the app now needs that this env file predates, blank, so an
+# existing box picks up new settings without losing its secrets. Blank values
+# keep the corresponding integration in mock mode until they are filled in.
+ensure_key() {
+  grep -q "^\$1=" "${REMOTE_ENV}" || printf '%s=%s\n' "\$1" "\$2" >> "${REMOTE_ENV}"
+}
+# Generated, not blank: cron routes 401 without it and the FX refresh that
+# PayPal depends on would never run.
+ensure_key CRON_SECRET "\$(openssl rand -hex 32)"
+
+ensure_key MIDTRANS_SERVER_KEY ""
+ensure_key MIDTRANS_CLIENT_KEY ""
+ensure_key MIDTRANS_IS_PRODUCTION "false"
+ensure_key PAYPAL_CLIENT_ID ""
+ensure_key PAYPAL_CLIENT_SECRET ""
+ensure_key PAYPAL_WEBHOOK_ID ""
+ensure_key PAYPAL_IS_PRODUCTION "false"
+ensure_key PAYPAL_PRESENTMENT_CURRENCY "USD"
+ensure_key RESEND_API_KEY ""
+ensure_key RESEND_FROM_EMAIL ""
+
 # Reflect SEED_ON_START from the latest deploy invocation so the user can
 # disable seeding on subsequent runs by re-running with SEED_ON_START=0.
 sed -i "s/^SEED_ON_START=.*/SEED_ON_START=${SEED_ON_START}/" "${REMOTE_ENV}" || true
 REMOTE
 echo "✓ Secrets ok"
+
+# Report which live integrations are actually wired, so a deploy never looks
+# healthier than it is: blank keys mean the app silently runs in mock mode.
+step "Checking live integrations on ${TARGET}"
+remote_sh <<REMOTE
+set -euo pipefail
+check() {
+  if grep -qE "^\$1=.+" "${REMOTE_ENV}"; then echo "  ✓ \$1"; else echo "  ✗ \$1 (mock)"; fi
+}
+check MIDTRANS_SERVER_KEY
+check PAYPAL_CLIENT_ID
+check PAYPAL_WEBHOOK_ID
+check CRON_SECRET
+check RESEND_API_KEY
+if grep -q '^PAYPAL_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
+  base="\$(grep '^APP_BASE_URL=' "${REMOTE_ENV}" | cut -d= -f2-)"
+  case "\$base" in
+    https://*) ;;
+    *) echo "  ! PAYPAL_IS_PRODUCTION=true but APP_BASE_URL is \$base — live PayPal webhooks require HTTPS" ;;
+  esac
+fi
+REMOTE
 
 # ---------- 4. ship the code ----------
 step "Rsyncing repo to ${TARGET}:${REMOTE_DIR}"

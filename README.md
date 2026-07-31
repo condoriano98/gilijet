@@ -160,10 +160,24 @@ dashboard session.
 
 Honest state, so nobody plans against features that do not work:
 
-- **Unscheduled cron endpoints.** `send-reminders`, `poll-bmkg` and
-  `refresh-fx` are implemented and callable but absent from `vercel.json`, so
-  departure reminders, BMKG weather and FX refresh never run on their own.
-  Only `retry-webhooks` and `topup-legs` are scheduled.
+- **Unscheduled cron endpoints.** `send-reminders` and `poll-bmkg` are
+  implemented and callable but scheduled nowhere, so departure reminders and
+  BMKG weather never run on their own. `refresh-fx` is now scheduled hourly by
+  the `cron` service in `docker-compose.yml` (PayPal refuses to quote on a
+  stale rate, so it cannot be optional); add further routes to the `for route
+  in …` list there. Note `vercel.json` is inert on the droplet — Vercel Cron
+  does not exist there, so anything scheduled only in that file never fires.
+- **No TLS, so live PayPal webhooks cannot be delivered.** The droplet serves
+  HTTP on a bare IP with no domain. PayPal will not register or post to an
+  `http://` webhook URL in live mode, so `PAYPAL_IS_PRODUCTION=true` needs a
+  domain and a certificate in front of the app first. Sandbox is unaffected.
+  Capture still happens server-side on return from PayPal, so a booking paid
+  in a normal browser round-trip is still ticketed without the webhook — but
+  the backstop for a customer who closes the tab mid-payment is missing.
+- **Live keys must be present on the server, not just in a dashboard.** Until
+  `MIDTRANS_SERVER_KEY` / `PAYPAL_CLIENT_ID` are set in `~/.gilijet/.env` the
+  app runs those gateways in mock mode and takes no real money. `deploy.sh`
+  prints which integrations are live at the end of every deploy.
 - **Placeholders.** `armada/bahan-bakar` (fuel) and `armada/pemeliharaan`
   (maintenance) render empty states labelled "Phase B+". No data model exists.
 - **Schema-only.** `LoyaltyAccount`, `LoyaltyTransaction`, `BoatPosition`,
