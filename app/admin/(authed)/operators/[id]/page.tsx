@@ -334,7 +334,15 @@ export default async function OperatorDetailPage({
             Boats ({operator.boats.length.toLocaleString()})
           </CardTitle>
           <CardDescription>
-            Operators add their own boats from the operator dashboard.
+            Operators can add their own from the operator dashboard, or you can
+            add them for this operator under{" "}
+            <Link
+              href={`/admin/operations/boats/new?operatorId=${operator.id}`}
+              className="text-sky-700 hover:underline"
+            >
+              Operations
+            </Link>
+            .
           </CardDescription>
         </CardHeader>
         <CardContent>

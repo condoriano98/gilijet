@@ -11,6 +11,38 @@ import {
 const DEFAULT_DAYS_AHEAD = 14;
 
 /**
+ * How far ahead the nightly top-up keeps departures bookable.
+ *
+ * This is a rolling window, deliberately not the July–August `demoSeasonWindow`
+ * below. The top-up cron used to run on season params, which meant it produced
+ * nothing at all from roughly September until the following July — schedules
+ * kept their first 14 days of legs from creation and then quietly ran dry.
+ */
+export const BOOKING_HORIZON_DAYS = 60;
+
+export type CapacityChange =
+  | { ok: true; totalCapacity: number; availableSeats: number }
+  | { ok: false; booked: number };
+
+/**
+ * Work out the new seat counts when someone resizes a departure.
+ *
+ * `availableSeats` is not derivable from capacity alone — the difference from
+ * `totalCapacity` is what has already been sold — so a resize has to move both
+ * together or seats are silently created or destroyed. Shrinking below the
+ * number already booked is refused rather than clamped: clamping would look
+ * like it worked while overselling the boat.
+ */
+export function planCapacityChange(
+  leg: { totalCapacity: number; availableSeats: number },
+  newTotal: number,
+): CapacityChange {
+  const booked = leg.totalCapacity - leg.availableSeats;
+  if (newTotal < booked) return { ok: false, booked };
+  return { ok: true, totalCapacity: newTotal, availableSeats: newTotal - booked };
+}
+
+/**
  * Demo season: all dummy departures are constrained to July–August of the
  * seeding year (WITA). Derived from the reference date so re-seeding in a later
  * year targets that year's season.

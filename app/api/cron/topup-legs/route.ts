@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { generateLegsForSchedule, seasonSeedParams } from "@/lib/legs";
+import { BOOKING_HORIZON_DAYS, generateLegsForSchedule } from "@/lib/legs";
 
 /**
- * Cron: regenerate the July–August demo departures for every active schedule.
- * Idempotent (generateLegsForSchedule uses createMany skipDuplicates and is
- * season-clamped), so this keeps the season populated without depending on a
- * page visit. Secured by CRON_SECRET.
+ * Cron: keep the next BOOKING_HORIZON_DAYS of departures populated for every
+ * active schedule. Idempotent — generateLegsForSchedule uses createMany with
+ * skipDuplicates against the unique (scheduleId, departureDate).
+ *
+ * This used to run on seasonSeedParams(), which clamps to a July–August demo
+ * window and therefore generated nothing from about September until the
+ * following July. Schedules kept only the 14 days of legs created with them and
+ * then ran dry with no signal. seasonSeedParams stays where it belongs, in the
+ * seed scripts. Secured by CRON_SECRET.
  */
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -24,12 +29,11 @@ export async function GET(req: NextRequest) {
     select: { id: true },
   });
 
-  const { startAt, daysAhead } = seasonSeedParams();
   let created = 0;
   let failed = 0;
   for (const s of schedules) {
     try {
-      created += await generateLegsForSchedule(s.id, daysAhead, startAt);
+      created += await generateLegsForSchedule(s.id, BOOKING_HORIZON_DAYS);
     } catch (err) {
       console.error(`[topup-legs] schedule ${s.id} failed:`, err);
       failed++;
