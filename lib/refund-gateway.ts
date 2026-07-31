@@ -1,23 +1,87 @@
 import { isMidtransConfigured } from "./midtrans";
+import { isPaypalLive, refundCapture } from "./paypal";
+import { prisma } from "./db";
 import { PaymentProvider } from "@prisma/client";
 
 /**
- * Dispatch a refund through Midtrans. Midtrans Snap doesn't have a refund
- * API — refunds go through the Midtrans Dashboard or IRIS API. For the MVP
- * refunds are manual (operator/admin action in the dashboard).
- * Returns null to signal manual refund flow.
+ * Dispatch a refund to the gateway that took the money.
+ *
+ * Midtrans Snap has no refund API — refunds go through the Midtrans Dashboard
+ * or IRIS. Those stay manual, signalled by returning null.
+ *
+ * PayPal can refund programmatically, and must be refunded in the currency it
+ * captured. The IDR amount the admin sees is converted back at the *stored*
+ * rate from the original charge, never today's: re-quoting weeks later would
+ * return a different sum than the customer paid and quietly move the
+ * difference onto the platform.
  */
-export async function refundViaGateway(_args: {
+export async function refundViaGateway(args: {
   gatewayProvider: PaymentProvider | null;
   gatewayReference: string;
   amount: number;
   reason: string;
 }): Promise<{ id: string; status: string } | null> {
+  if (args.gatewayProvider === PaymentProvider.PAYPAL) {
+    return refundPaypal(args);
+  }
+
   // Midtrans refunds are manual for the MVP.
   // When we integrate the Midtrans IRIS API, this is where the call goes.
   return null;
 }
 
+async function refundPaypal(args: {
+  gatewayReference: string;
+  amount: number;
+  reason: string;
+}): Promise<{ id: string; status: string } | null> {
+  if (!isPaypalLive()) return null;
+
+  const payment = await prisma.payment.findFirst({
+    where: { gatewayReference: args.gatewayReference },
+    select: {
+      presentmentCurrency: true,
+      presentmentAmount: true,
+      fxRate: true,
+      instrumentData: true,
+    },
+  });
+  if (!payment) return null;
+
+  // The refund is issued against the capture, not the order.
+  const instrument = (payment.instrumentData ?? {}) as { paypalCaptureId?: string };
+  const captureId = instrument.paypalCaptureId;
+  if (!captureId) {
+    console.error(
+      `[refund-gateway] no PayPal capture id for ${args.gatewayReference} — refund must be issued manually`,
+    );
+    return null;
+  }
+
+  const { presentmentCurrency: currency, presentmentAmount, fxRate } = payment;
+  if (!currency || !presentmentAmount || !fxRate) {
+    console.error(
+      `[refund-gateway] PayPal payment ${args.gatewayReference} is missing presentment data — refund must be issued manually`,
+    );
+    return null;
+  }
+
+  // Convert the requested IDR refund back at the original rate, then clamp:
+  // a partial refund must never exceed what was actually captured.
+  const captured = Number(presentmentAmount);
+  const requested = Math.round((args.amount / Number(fxRate)) * 100) / 100;
+  const value = Math.min(requested, captured).toFixed(2);
+
+  if (Number(value) <= 0) return null;
+
+  return refundCapture({
+    captureId,
+    amount: value,
+    currency,
+    reason: args.reason,
+  });
+}
+
 export function isAnyRefundGatewayConfigured(): boolean {
-  return isMidtransConfigured();
+  return isMidtransConfigured() || isPaypalLive();
 }

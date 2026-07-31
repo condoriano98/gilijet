@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/topup-legs",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-fx",
+      "schedule": "0 * * * *"
     }
   ]
 }

@@ -2,8 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { generateSnapToken } from "@/lib/psp";
+import {
+  capturePaypalOrder,
+  generateSnapToken,
+  quotePaypalIfAvailable,
+  startPaypalOrder,
+} from "@/lib/psp";
 import { isMidtransMock } from "@/lib/midtrans";
+import { isPaypalLive } from "@/lib/paypal";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -19,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { PaymentCountdown } from "@/components/customer/payment-countdown";
 import { MidtransSnap } from "@/components/checkout/midtrans-snap";
+import { PaypalButton } from "@/components/checkout/paypal-button";
 
 /** Server action: generate a Midtrans Snap token and re-render the page. */
 async function getSnapTokenAction(formData: FormData) {
@@ -40,12 +47,39 @@ async function getSnapTokenAction(formData: FormData) {
   revalidatePath(`/pay/${reference}`);
 }
 
+/** Server action: open a PayPal order and send the customer to approve it. */
+async function startPaypalAction(formData: FormData) {
+  "use server";
+  const reference = String(formData.get("reference") ?? "");
+  const booking = await prisma.booking.findUnique({
+    where: { bookingReference: reference },
+    select: { status: true },
+  });
+  if (!booking || booking.status !== "PENDING_PAYMENT") redirect(`/b/${reference}`);
+
+  let approveUrl: string | null;
+  try {
+    approveUrl = (await startPaypalOrder(reference)).approveUrl;
+  } catch (err) {
+    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+    // The rate can go stale between rendering the button and clicking it.
+    // Send the customer back to Midtrans rather than charging a guessed rate.
+    console.error(`[pay] could not open PayPal order for ${reference}:`, err);
+    redirect(`/pay/${reference}?paypal=unavailable`);
+  }
+  if (!approveUrl) throw new Error("PayPal did not return an approve URL");
+  redirect(approveUrl);
+}
+
 export default async function PayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<{ paypal?: string; token?: string }>;
 }) {
   const { reference } = await params;
+  const { paypal, token } = await searchParams;
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     include: {
@@ -64,10 +98,32 @@ export default async function PayPage({
     redirect(`/b/${reference}`);
   }
 
-  // No real Midtrans keys → the built-in dummy checkout.
-  if (isMidtransMock()) redirect(`/checkout/${reference}`);
+  let paypalError: string | null = null;
+  if (paypal === "cancel") {
+    paypalError = "PayPal payment was cancelled. You can try again.";
+  } else if (paypal === "unavailable") {
+    paypalError = "PayPal is temporarily unavailable. Please pay via Midtrans below.";
+  }
+
+  // Back from PayPal with an approved order. Capture and issue tickets here
+  // rather than waiting for the webhook: PayPal has already taken the money
+  // client-side, so a delayed webhook would leave a paid customer ticketless
+  // while the hold timer counts down. The webhook later no-ops as a duplicate.
+  if (paypal === "return") {
+    const outcome = await capturePaypalOrder(reference, token);
+    if (outcome.ok) redirect(`/b/${reference}`);
+    paypalError = outcome.reason;
+  }
+
+  // Neither gateway can take money → the built-in dummy checkout.
+  const midtransAvailable = !isMidtransMock();
+  if (!midtransAvailable && !isPaypalLive()) redirect(`/checkout/${reference}`);
 
   const amountLabel = formatIDR(Number(booking.totalAmount));
+
+  // PayPal is only offered when it can name a price: live keys plus a fresh
+  // FX rate. A stale rate means no offer, never a guessed conversion.
+  const paypalQuote = await quotePaypalIfAvailable(Number(booking.totalAmount));
 
   // Existing valid Snap token (replay from re-render after action)
   const snapToken =
@@ -108,29 +164,59 @@ export default async function PayPage({
               <span className="font-semibold">{amountLabel}</span>
             </div>
 
-            <div className="border-t pt-4">
-              {snapToken ? (
-                <MidtransSnap
-                  snapToken={snapToken}
-                  bookingReference={booking.bookingReference}
-                  amountLabel={amountLabel}
-                  isProduction={env.MIDTRANS_IS_PRODUCTION}
-                />
-              ) : (
-                <form action={getSnapTokenAction}>
-                  <input
-                    type="hidden"
-                    name="reference"
-                    value={booking.bookingReference}
+            <div className="space-y-4 border-t pt-4">
+              {paypalError ? (
+                <p className="rounded-md bg-rose-50 p-3 text-center text-xs text-rose-700">
+                  {paypalError}
+                </p>
+              ) : null}
+
+              {midtransAvailable ? (
+                <div className="space-y-3">
+                  {snapToken ? (
+                    <MidtransSnap
+                      snapToken={snapToken}
+                      bookingReference={booking.bookingReference}
+                      amountLabel={amountLabel}
+                      isProduction={env.MIDTRANS_IS_PRODUCTION}
+                    />
+                  ) : (
+                    <form action={getSnapTokenAction}>
+                      <input
+                        type="hidden"
+                        name="reference"
+                        value={booking.bookingReference}
+                      />
+                      <Button type="submit" className="w-full" size="lg">
+                        Continue to payment
+                      </Button>
+                    </form>
+                  )}
+                  <p className="text-center text-xs text-slate-500">
+                    Cards, bank transfer, QRIS and e-wallets via Midtrans
+                  </p>
+                </div>
+              ) : null}
+
+              {paypalQuote ? (
+                <div className="space-y-3">
+                  {midtransAvailable ? (
+                    <div className="flex items-center gap-3">
+                      <span className="h-px flex-1 bg-slate-200" />
+                      <span className="text-xs uppercase tracking-wide text-slate-400">
+                        or
+                      </span>
+                      <span className="h-px flex-1 bg-slate-200" />
+                    </div>
+                  ) : null}
+                  <PaypalButton
+                    bookingReference={booking.bookingReference}
+                    presentmentLabel={`${paypalQuote.amount} ${paypalQuote.currency}`}
+                    idrLabel={amountLabel}
+                    startAction={startPaypalAction}
                   />
-                  <Button type="submit" className="w-full" size="lg">
-                    Continue to payment
-                  </Button>
-                </form>
-              )}
-              <p className="mt-3 text-center text-xs text-slate-500">
-                Payments processed securely by Midtrans
-              </p>
+                </div>
+              ) : null}
             </div>
           </CardContent>
           <CardFooter>
