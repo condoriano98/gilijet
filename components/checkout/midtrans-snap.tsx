@@ -33,6 +33,8 @@ type Props = {
   snapToken: string;
   bookingReference: string;
   amountLabel: string;
+  /** Midtrans Client Key. Snap.js will not initialise without it. */
+  clientKey: string;
   isProduction?: boolean;
 };
 
@@ -40,6 +42,7 @@ export function MidtransSnap({
   snapToken,
   bookingReference,
   amountLabel,
+  clientKey,
   isProduction,
 }: Props) {
   const router = useRouter();
@@ -85,7 +88,9 @@ export function MidtransSnap({
     <div className="space-y-3">
       <Script
         src={snapSrc}
-        data-client-key="" // Midtrans Snap only needs the token, not the client key
+        // Snap.js authenticates the browser with the Client Key; without it the
+        // library loads but the payment modal never initialises.
+        data-client-key={clientKey}
         strategy="afterInteractive"
         onError={() => setError("Failed to load payment gateway")}
       />

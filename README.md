@@ -175,9 +175,14 @@ Honest state, so nobody plans against features that do not work:
   in a normal browser round-trip is still ticketed without the webhook — but
   the backstop for a customer who closes the tab mid-payment is missing.
 - **Live keys must be present on the server, not just in a dashboard.** Until
-  `MIDTRANS_SERVER_KEY` / `PAYPAL_CLIENT_ID` are set in `~/.gilijet/.env` the
-  app runs those gateways in mock mode and takes no real money. `deploy.sh`
-  prints which integrations are live at the end of every deploy.
+  they are set in `~/.gilijet/.env` the app runs those gateways in mock mode
+  and takes no real money. Midtrans needs *both* `MIDTRANS_SERVER_KEY` and
+  `MIDTRANS_CLIENT_KEY` — the server key signs the transaction call, the client
+  key authenticates Snap.js in the browser, and without it the popup never
+  opens. `deploy.sh` prints which integrations are live at the end of every
+  deploy. Midtrans notifications reach the droplet over plain HTTP on :80,
+  which Midtrans accepts (unlike PayPal), so Midtrans live is not blocked on
+  TLS — though HTTPS is still what you want before real money moves.
 - **Placeholders.** `armada/bahan-bakar` (fuel) and `armada/pemeliharaan`
   (maintenance) render empty states labelled "Phase B+". No data model exists.
 - **Schema-only.** `LoyaltyAccount`, `LoyaltyTransaction`, `BoatPosition`,

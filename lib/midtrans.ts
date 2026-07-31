@@ -36,8 +36,15 @@ function requireServerKey(): string {
   return env.MIDTRANS_SERVER_KEY;
 }
 
+/**
+ * Both halves are required to complete a payment: the server key signs the
+ * /snap/v1/transactions call, the client key authenticates Snap.js in the
+ * browser. With only the server key we would mint a token and then hand the
+ * customer a button that cannot open — worse than falling back to the dummy
+ * checkout, which at least works.
+ */
 export function isMidtransConfigured(): boolean {
-  return Boolean(env.MIDTRANS_SERVER_KEY);
+  return Boolean(env.MIDTRANS_SERVER_KEY && env.MIDTRANS_CLIENT_KEY);
 }
 
 export function isMidtransMock(): boolean {
@@ -167,6 +174,7 @@ export function pingMidtrans(): {
   ok: boolean;
   mode: "live" | "sandbox" | "mock";
   keyPrefix: string;
+  clientKeyPresent: boolean;
 } {
   const mode = !isMidtransConfigured()
     ? "mock"
@@ -179,5 +187,8 @@ export function pingMidtrans(): {
     keyPrefix: env.MIDTRANS_SERVER_KEY
       ? env.MIDTRANS_SERVER_KEY.slice(0, 8) + "…"
       : "",
+    // Called out separately: a missing client key is the difference between a
+    // working popup and a dead button, and it is invisible server-side.
+    clientKeyPresent: Boolean(env.MIDTRANS_CLIENT_KEY),
   };
 }

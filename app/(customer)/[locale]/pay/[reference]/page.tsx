@@ -178,6 +178,7 @@ export default async function PayPage({
                       snapToken={snapToken}
                       bookingReference={booking.bookingReference}
                       amountLabel={amountLabel}
+                      clientKey={env.MIDTRANS_CLIENT_KEY ?? ""}
                       isProduction={env.MIDTRANS_IS_PRODUCTION}
                     />
                   ) : (

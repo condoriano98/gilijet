@@ -140,6 +140,9 @@ check() {
   if grep -qE "^\$1=.+" "${REMOTE_ENV}"; then echo "  ✓ \$1"; else echo "  ✗ \$1 (mock)"; fi
 }
 check MIDTRANS_SERVER_KEY
+# Snap.js will not open the payment popup without this, and nothing server-side
+# can detect that — so it is checked as its own line, not folded into the above.
+check MIDTRANS_CLIENT_KEY
 check PAYPAL_CLIENT_ID
 check PAYPAL_WEBHOOK_ID
 check CRON_SECRET
