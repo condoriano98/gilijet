@@ -54,9 +54,32 @@ services:
 
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+    # No host port: caddy terminates and proxies to us over the compose network.
+    expose:
+      - "3000"
+
+  # Terminates TLS so live PayPal webhooks can be delivered — PayPal refuses to
+  # post to a plain-HTTP endpoint. Certificates are issued and renewed by Caddy
+  # from Let's Encrypt with no manual step, and persist in the caddy-data volume
+  # so redeploys do not re-request them and burn rate limits.
+  #
+  # Set APP_DOMAIN in the env file and point its A record at this host. Left
+  # empty, Caddy serves plain HTTP on :80 and the box behaves as it did before.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     ports:
-      # Bind directly to :80 on the host (HTTP only, no domain → no TLS).
-      - "80:3000"
+      - "80:80"
+      - "443:443"
 
   # Vercel Cron does not exist on this box, so vercel.json is inert here and
   # every scheduled route would simply never fire. PayPal refuses to quote on a
@@ -90,3 +113,5 @@ services:
 
 volumes:
   db-data:
+  caddy-data:
+  caddy-config:

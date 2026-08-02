@@ -167,13 +167,18 @@ Honest state, so nobody plans against features that do not work:
   stale rate, so it cannot be optional); add further routes to the `for route
   in …` list there. Note `vercel.json` is inert on the droplet — Vercel Cron
   does not exist there, so anything scheduled only in that file never fires.
-- **No TLS, so live PayPal webhooks cannot be delivered.** The droplet serves
-  HTTP on a bare IP with no domain. PayPal will not register or post to an
-  `http://` webhook URL in live mode, so `PAYPAL_IS_PRODUCTION=true` needs a
-  domain and a certificate in front of the app first. Sandbox is unaffected.
-  Capture still happens server-side on return from PayPal, so a booking paid
-  in a normal browser round-trip is still ticketed without the webhook — but
-  the backstop for a customer who closes the tab mid-payment is missing.
+- **Live PayPal needs `APP_DOMAIN` set.** PayPal will not register or post to
+  an `http://` webhook URL, so on a bare IP the droplet cannot receive live
+  notifications. Setting `APP_DOMAIN` in `~/.gilijet/.env` to a domain whose A
+  record points at the box makes the `caddy` service issue and renew a Let's
+  Encrypt certificate automatically, and `deploy.sh` rewrites `APP_BASE_URL` to
+  match. Left blank the box serves plain HTTP as before — fine for sandbox
+  PayPal and for Midtrans, which accepts HTTP notifications on :80. Note that
+  until DNS resolves, Caddy cannot obtain a certificate and the site will not
+  serve. Capture happens server-side on return from PayPal either way, so a
+  booking paid in a normal browser round-trip is ticketed without the webhook;
+  what a missing webhook costs is the backstop for a customer who closes the
+  tab mid-payment.
 - **Live keys must be present on the server, not just in a dashboard.** Until
   they are set in `~/.gilijet/.env` the app runs those gateways in mock mode
   and takes no real money. Midtrans needs *both* `MIDTRANS_SERVER_KEY` and

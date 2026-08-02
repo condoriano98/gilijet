@@ -114,6 +114,18 @@ ensure_key() {
 # PayPal depends on would never run.
 ensure_key CRON_SECRET "\$(openssl rand -hex 32)"
 
+# Set this to a domain whose A record points here and Caddy will serve HTTPS
+# for it automatically. Left blank the box stays on plain HTTP, which sandbox
+# PayPal and Midtrans both accept but live PayPal does not.
+ensure_key APP_DOMAIN "${APP_DOMAIN:-}"
+
+# APP_BASE_URL must follow the domain: it is what we hand PayPal as the return
+# and webhook base, so a stale http:// value here silently breaks live capture.
+domain="\$(grep '^APP_DOMAIN=' "${REMOTE_ENV}" | cut -d= -f2-)"
+if [ -n "\$domain" ]; then
+  sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=https://\$domain|" "${REMOTE_ENV}"
+fi
+
 ensure_key MIDTRANS_SERVER_KEY ""
 ensure_key MIDTRANS_CLIENT_KEY ""
 ensure_key MIDTRANS_IS_PRODUCTION "false"
@@ -183,13 +195,24 @@ REMOTE
 echo "✓ docker compose up"
 
 # ---------- 6. health ----------
-step "Waiting for app health"
+# Read back what the server settled on rather than assuming: the domain may have
+# been set on a previous run, and probing the wrong scheme reports a false red.
+APP_DOMAIN_REMOTE="$(remote "grep '^APP_DOMAIN=' ${REMOTE_ENV} | cut -d= -f2-" 2>/dev/null || true)"
+if [ -n "${APP_DOMAIN_REMOTE}" ]; then
+  BASE="https://${APP_DOMAIN_REMOTE}"
+  echo "  APP_DOMAIN=${APP_DOMAIN_REMOTE} — Caddy will request a certificate on first request."
+  echo "  This fails until the A record resolves to ${HOST}."
+else
+  BASE="http://${HOST}"
+fi
+
+step "Waiting for app health at ${BASE}"
 for i in $(seq 1 20); do
-  if curl -fsS --max-time 3 "http://${HOST}/" >/dev/null 2>&1; then
-    echo "✓ HTTP 200 from http://${HOST}/"
+  if curl -fsS --max-time 5 "${BASE}/" >/dev/null 2>&1; then
+    echo "✓ HTTP 200 from ${BASE}/"
     echo
-    echo "  Live → http://${HOST}/"
-    echo "  Admin login → http://${HOST}/admin/login"
+    echo "  Live → ${BASE}/"
+    echo "  Admin login → ${BASE}/admin/login"
     if [ "${SEED_ON_START}" = "1" ]; then
       echo "  Seeded admin → admin@gilijet.local / changeme123 (CHANGE IT)"
     fi
