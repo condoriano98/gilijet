@@ -29,6 +29,7 @@ export default async function AdminLayout({
       ? [
           { href: "/admin/operations", label: "Operations" },
           { href: "/admin/console", label: "Console" },
+          { href: "/admin/diagnostics", label: "Diagnostics" },
         ]
       : []),
   ];
