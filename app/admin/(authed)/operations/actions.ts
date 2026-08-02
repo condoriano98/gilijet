@@ -11,7 +11,6 @@ import {
   BOOKING_HORIZON_DAYS,
   cancelLeg,
   generateLegsForSchedule,
-  planCapacityChange,
 } from "@/lib/legs";
 
 /**
@@ -417,63 +416,3 @@ export async function cancelDeparture(formData: FormData) {
   redirect(`${back}?ok=1`);
 }
 
-export async function adjustCapacity(formData: FormData) {
-  const session = await requireSuperAdmin();
-  const legId = String(formData.get("legId") ?? "");
-  if (!legId) redirect(OPS);
-  const back = `${OPS}/departures/${legId}`;
-
-  const parsedTotal = z.coerce.number().int().min(0).max(500).safeParse(
-    formData.get("totalCapacity"),
-  );
-  if (!parsedTotal.success) fail(back, "Capacity must be a whole number");
-  const newTotal = parsedTotal.data;
-
-  const leg = await prisma.leg.findUnique({
-    where: { id: legId },
-    select: {
-      id: true,
-      operatorId: true,
-      status: true,
-      totalCapacity: true,
-      availableSeats: true,
-    },
-  });
-  if (!leg) fail(OPS, "Departure not found");
-  if (leg.status === "CANCELLED" || leg.status === "SAILED") {
-    fail(back, `Cannot change capacity on a ${leg.status.toLowerCase()} departure`);
-  }
-
-  const change = planCapacityChange(leg, newTotal);
-  if (!change.ok) {
-    fail(
-      back,
-      `${change.booked} seat(s) already booked — capacity cannot go below that`,
-    );
-  }
-
-  await prisma.leg.update({
-    where: { id: legId },
-    data: {
-      totalCapacity: change.totalCapacity,
-      availableSeats: change.availableSeats,
-    },
-  });
-
-  await audit({
-    entityType: "LEG",
-    entityId: legId,
-    action: "capacity_adjusted_by_admin",
-    userId: session.sub,
-    userRole: "ADMIN",
-    previousState: { totalCapacity: leg.totalCapacity, availableSeats: leg.availableSeats },
-    newState: {
-      totalCapacity: change.totalCapacity,
-      availableSeats: change.availableSeats,
-      operatorId: leg.operatorId,
-    },
-  });
-
-  revalidatePath(back);
-  redirect(`${back}?ok=1`);
-}

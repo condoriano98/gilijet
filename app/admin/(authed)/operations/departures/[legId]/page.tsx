@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { adjustCapacity, cancelDeparture } from "../../actions";
+import { cancelDeparture } from "../../actions";
 
 export const metadata = { title: "Departure · Operations" };
 
@@ -125,36 +125,9 @@ export default async function DepartureDetailPage({
           <CardHeader>
             <CardTitle>Capacity</CardTitle>
             <CardDescription>
-              {booked} of {leg.totalCapacity} seats booked. Capacity cannot go
-              below what is already sold.
+              {booked} of {leg.totalCapacity} seats booked.
             </CardDescription>
           </CardHeader>
-          <form action={adjustCapacity}>
-            <CardContent>
-              <input type="hidden" name="legId" value={leg.id} />
-              <div className="grid gap-1.5">
-                <Label htmlFor="totalCapacity">Total seats</Label>
-                <Input
-                  id="totalCapacity"
-                  name="totalCapacity"
-                  type="number"
-                  min={booked}
-                  max="500"
-                  defaultValue={leg.totalCapacity}
-                  disabled={closed}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimum {booked} — the seats already sold.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="justify-end">
-              <Button type="submit" variant="outline" disabled={closed}>
-                Update capacity
-              </Button>
-            </CardFooter>
-          </form>
         </Card>
 
         <Card>

@@ -114,7 +114,6 @@ describe("every action is gated", () => {
         "setScheduleStatus",
         "regenerateDepartures",
         "cancelDeparture",
-        "adjustCapacity",
       ]),
     );
   });
