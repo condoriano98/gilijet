@@ -40,11 +40,14 @@ export function PaypalButton({
         className="w-full"
         size="lg"
       >
-        {loading ? "Opening PayPal…" : `Pay ${presentmentLabel} with PayPal`}
+        {loading
+          ? "Opening PayPal…"
+          : `Pay ${presentmentLabel} by card or PayPal`}
       </Button>
       <p className="text-center text-xs text-slate-500">
-        Charged in {presentmentLabel} — converted from {idrLabel} at today&apos;s rate.
-        Your bank may add its own conversion fee.
+        Credit and debit cards are handled here — no PayPal account needed.
+        Charged in {presentmentLabel}, converted from {idrLabel} at today&apos;s
+        rate; your bank may add its own conversion fee.
       </p>
     </form>
   );

@@ -32,6 +32,52 @@ describe("verifyMidtransWebhook", () => {
 });
 
 /**
+ * Cards are PayPal's job. Snap offers every channel it supports unless
+ * enabled_payments is sent, so a dropped list silently puts cards back.
+ */
+describe("createSnapTransaction channels", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("does not offer credit_card, and does offer the local rails", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-KEY");
+    vi.stubEnv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-KEY");
+    vi.resetModules();
+
+    let sent: Record<string, unknown> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: { body?: string }) => {
+        sent = JSON.parse(init?.body ?? "{}") as Record<string, unknown>;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ token: "tok", redirect_url: "u" }),
+        };
+      }),
+    );
+
+    const { createSnapTransaction } = await import("@/lib/midtrans");
+    await createSnapTransaction({
+      orderId: "GLJ-1",
+      amount: 650_000,
+      payerName: "A",
+      payerEmail: "a@example.com",
+      payerPhone: "+62 812 0000 0000",
+      finishUrl: "https://example.com/b/GLJ-1",
+    });
+
+    const enabled = sent.enabled_payments as string[];
+    expect(enabled).toBeDefined();
+    expect(enabled).not.toContain("credit_card");
+    expect(enabled).toEqual(expect.arrayContaining(["qris", "gopay", "bca_va"]));
+  });
+});
+
+/**
  * Snap needs both halves: the server key signs the transaction call, the client
  * key authenticates Snap.js in the browser. A server-key-only config mints a
  * token and then hands the customer a button that cannot open.

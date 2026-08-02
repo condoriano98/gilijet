@@ -194,7 +194,7 @@ export default async function PayPage({
                     </form>
                   )}
                   <p className="text-center text-xs text-slate-500">
-                    Cards, bank transfer, QRIS and e-wallets via Midtrans
+                    Bank transfer, QRIS, GoPay, ShopeePay and convenience store
                   </p>
                 </div>
               ) : null}

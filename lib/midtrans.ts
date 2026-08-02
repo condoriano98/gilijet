@@ -57,6 +57,31 @@ function basicAuth(serverKey: string): string {
   return `Basic ${Buffer.from(`${serverKey}:`).toString("base64")}`;
 }
 
+/**
+ * Channels Snap may offer. `credit_card` is deliberately absent: cards go
+ * through PayPal, which serves foreign cardholders far better than Midtrans
+ * does, and offering the same instrument in two places at checkout only splits
+ * the decision. Snap shows every channel it supports unless this list is sent,
+ * so leaving it off would silently put cards back.
+ */
+const ENABLED_PAYMENTS = [
+  // Virtual accounts
+  "bca_va",
+  "bni_va",
+  "bri_va",
+  "cimb_va",
+  "permata_va",
+  "other_va",
+  "echannel", // Mandiri Bill
+  // E-wallets and QR
+  "gopay",
+  "shopeepay",
+  "qris",
+  // Over-the-counter
+  "indomaret",
+  "alfamart",
+] as const;
+
 // ─── Create Snap transaction ────────────────────────────────────────────────
 
 export type CreateSnapParams = {
@@ -102,6 +127,7 @@ export async function createSnapTransaction(
       email: params.payerEmail,
       phone: params.payerPhone.replace(/[^\d]/g, ""),
     },
+    enabled_payments: ENABLED_PAYMENTS,
     callbacks: {
       finish: params.finishUrl,
     },
