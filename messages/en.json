@@ -109,7 +109,7 @@
   "payment": {
     "completePayment": "Complete payment",
     "amountDue": "Amount due",
-    "redirectNotice": "You'll be redirected to a secure checkout to pay via QRIS, e-wallet, bank transfer, or card.",
+    "redirectNotice": "You'll be redirected to a secure DOKU checkout to pay via bank transfer, card, e-wallet, or convenience store.",
     "payAmount": "Pay {amount}",
     "newInvoice": "Generate a new invoice",
     "viewStatus": "View booking status"
@@ -122,9 +122,9 @@
     "eTicket": "Instant E-Ticket",
     "eTicketDesc": "QR code delivered to your email",
     "secure": "Secure Payment",
-    "secureDesc": "Powered by Xendit, BI licensed gateway",
+    "secureDesc": "Powered by DOKU, BI licensed gateway",
     "secureVerified": "Secure, verified, regulated",
-    "paymentsBy": "Payments by Xendit (Bank Indonesia licensed)",
+    "paymentsBy": "Payments by DOKU (Bank Indonesia licensed)",
     "kycVerified": "All operators KYC verified",
     "pdpCompliant": "UU PDP compliant",
     "support24": "24-hour customer support"

@@ -109,7 +109,7 @@
   "payment": {
     "completePayment": "Selesaikan pembayaran",
     "amountDue": "Jumlah yang harus dibayar",
-    "redirectNotice": "Anda akan diarahkan ke checkout aman untuk membayar via QRIS, e-wallet, transfer bank, atau kartu.",
+    "redirectNotice": "Anda akan diarahkan ke checkout aman DOKU untuk membayar via transfer bank, kartu, e-wallet, atau minimarket.",
     "payAmount": "Bayar {amount}",
     "newInvoice": "Buat tagihan baru",
     "viewStatus": "Lihat status pemesanan"
@@ -122,9 +122,9 @@
     "eTicket": "E-Tiket Instan",
     "eTicketDesc": "Kode QR dikirim ke email Anda",
     "secure": "Pembayaran Aman",
-    "secureDesc": "Didukung Xendit, gateway berlisensi BI",
+    "secureDesc": "Didukung DOKU, gateway berlisensi BI",
     "secureVerified": "Aman, terverifikasi, teregulasi",
-    "paymentsBy": "Pembayaran oleh Xendit (berlisensi Bank Indonesia)",
+    "paymentsBy": "Pembayaran oleh DOKU (berlisensi Bank Indonesia)",
     "kycVerified": "Semua operator terverifikasi KYC",
     "pdpCompliant": "Patuh UU PDP",
     "support24": "Dukungan pelanggan 24 jam"

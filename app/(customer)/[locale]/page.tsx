@@ -593,16 +593,16 @@ export default async function HomePage() {
               </div>
             )}
             <div className="font-semibold text-slate-900">
-              Secure, verified, regulated
+              {t("trust.secureVerified")}
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              <span>🔒 Payments by DOKU (Bank Indonesia licensed)</span>
+              <span>🔒 {t("trust.paymentsBy")}</span>
               <span>·</span>
-              <span>✓ All operators KYC verified</span>
+              <span>✓ {t("trust.kycVerified")}</span>
               <span>·</span>
-              <span>🛡️ UU PDP compliant</span>
+              <span>🛡️ {t("trust.pdpCompliant")}</span>
               <span>·</span>
-              <span>📞 24-hour customer support</span>
+              <span>📞 {t("trust.support24")}</span>
             </div>
           </div>
         </div>

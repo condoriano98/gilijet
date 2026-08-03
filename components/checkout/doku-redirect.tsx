@@ -32,7 +32,7 @@ export function DokuRedirect({
         {loading ? "Opening payment…" : `Pay ${amountLabel}`}
       </Button>
       <p className="text-center text-xs text-slate-500">
-        Bank transfer, QRIS, e-wallet, card or convenience store — choose on the
+        Bank transfer, card, e-wallet or convenience store — choose on the
         secure DOKU payment page.
       </p>
     </form>

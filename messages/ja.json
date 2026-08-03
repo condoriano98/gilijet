@@ -109,7 +109,7 @@
   "payment": {
     "completePayment": "支払いを完了",
     "amountDue": "支払金額",
-    "redirectNotice": "QRIS、電子ウォレット、銀行振込、またはカードで安全なチェックアウトページにリダイレクトされます。",
+    "redirectNotice": "銀行振込、カード、電子ウォレット、またはコンビニ払いで、DOKUの安全なチェックアウトページにリダイレクトされます。",
     "payAmount": "{amount}を支払う",
     "newInvoice": "新しい請求書を生成",
     "viewStatus": "予約状況を表示"
@@ -122,9 +122,9 @@
     "eTicket": "即時eチケット",
     "eTicketDesc": "QRコードをメールでお届け",
     "secure": "安全な支払い",
-    "secureDesc": "Xendit提供、インドネシア中央銀行認可ゲートウェイ",
+    "secureDesc": "DOKU提供、インドネシア中央銀行認可ゲートウェイ",
     "secureVerified": "安全、検証済み、規制準拠",
-    "paymentsBy": "Xendit支払い（インドネシア中央銀行認可）",
+    "paymentsBy": "DOKU支払い（インドネシア中央銀行認可）",
     "kycVerified": "すべての運航会社がKYC検証済み",
     "pdpCompliant": "UU PDP準拠",
     "support24": "24時間カスタマーサポート"
