@@ -585,19 +585,15 @@ const API: Feature[] = [
     area: "api",
     name: "Payment webhooks",
     status: "shipped",
-    routes: [
-      "app/api/webhooks/doku/route.ts",
-      "app/api/webhooks/xendit/route.ts",
-    ],
+    routes: ["app/api/webhooks/doku/route.ts"],
     modules: [
       "lib/doku.ts",
-      "lib/xendit.ts",
       "lib/webhook-processor.ts",
       "lib/ticket-issuer.ts",
     ],
     models: ["Payment", "WebhookEvent", "Ticket"],
     notes:
-      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. DOKU is the live gateway; Xendit is legacy.",
+      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. DOKU is the only gateway.",
   },
   {
     id: "api-cron-active",
