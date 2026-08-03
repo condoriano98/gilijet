@@ -15,7 +15,15 @@ type DataTableProps<T> = {
   columns: DataTableColumn<T>[];
   data: T[];
   onRowClick?: (row: T) => void;
-  getRowHref?: (row: T) => string;
+  /**
+   * Base path for row links, joined with the row id — e.g. "/operator/awak"
+   * links row `abc` to "/operator/awak/abc".
+   *
+   * Deliberately a string rather than a (row) => string callback: every caller
+   * so far is a Server Component, and passing a function across that boundary
+   * throws because functions are not serializable.
+   */
+  rowHrefBase?: string;
   emptyMessage?: string;
 };
 
@@ -23,7 +31,7 @@ export function DataTable<T extends { id?: string }>({
   columns,
   data,
   onRowClick,
-  getRowHref,
+  rowHrefBase,
   emptyMessage = "Tidak ada data",
 }: DataTableProps<T>) {
   if (data.length === 0) {
@@ -56,7 +64,10 @@ export function DataTable<T extends { id?: string }>({
         </thead>
         <tbody className="divide-y divide-mekari-neutral-200">
           {data.map((row, i) => {
-            const href = getRowHref?.(row);
+            const href =
+              rowHrefBase && row.id
+                ? `${rowHrefBase.replace(/\/$/, "")}/${row.id}`
+                : undefined;
             const clickable = Boolean(onRowClick || href);
             return (
               <tr

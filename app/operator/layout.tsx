@@ -38,7 +38,7 @@ function OperatorShellClient({
 }) {
   return (
     <div className="flex">
-      <Sidebar collapsed={false} onToggle={() => {}} email={email} />
+      <Sidebar email={email} />
       <main className="ml-60 min-h-[calc(100vh-3.5rem)] flex-1 p-6">
         {children}
       </main>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -87,15 +88,15 @@ function getActiveModule(pathname: string): NavModule {
   return MODULES[0];
 }
 
-export function Sidebar({
-  collapsed,
-  onToggle,
-  email,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-  email: string;
-}) {
+/**
+ * Collapse state lives here rather than in the caller. The operator layout is
+ * a Server Component, and handing a callback across that boundary throws —
+ * functions are not serializable — which took the whole operator dashboard
+ * down. This is already a client component, so it can just own the state.
+ */
+export function Sidebar({ email }: { email: string }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const onToggle = () => setCollapsed((c) => !c);
   const pathname = usePathname();
   const activeModule = getActiveModule(pathname);
 

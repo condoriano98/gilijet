@@ -89,7 +89,7 @@ export default async function AwakListPage() {
       <DataTable
         columns={columns}
         data={staff}
-        getRowHref={(row) => `/operator/awak/${row.id}`}
+        rowHrefBase="/operator/awak"
         emptyMessage="Belum ada awak kapal"
       />
     </ListPageTemplate>
