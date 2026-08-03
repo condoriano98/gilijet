@@ -37,7 +37,7 @@ export async function findConnections(
           originPort: { equals: origin, mode: "insensitive" },
           status: "ACTIVE",
           deletedAt: null,
-          destinationPort: { not: { equals: destination, mode: "insensitive" } as never },
+          destinationPort: { not: destination, mode: "insensitive" },
           boat: { is: { deletedAt: null } },
         },
       },
