@@ -41,6 +41,20 @@ pnpm seed:qa                   # deterministic QA data with fixed IDs
 pnpm dev
 ```
 
+### Updating an existing checkout
+
+After pulling changes, always run `db:push` before seeding — a `git pull` that
+touches `prisma/schema.prisma` leaves the DB behind the client, which fails at
+runtime (e.g. `column Payment.presentmentCurrency does not exist`).
+
+```bash
+git pull
+pnpm install
+pnpm db:push                   # sync DB with any schema changes from the pull
+pnpm seed:qa
+pnpm dev
+```
+
 QA seed logins (from `scripts/seed-qa.ts`, all password `qaqaqaqa`):
 
 | Role | Email | Entry point |
