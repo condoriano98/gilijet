@@ -88,7 +88,15 @@ jobs:
         with:
           version: 10
       - run: pnpm install --frozen-lockfile
+      # pnpm does not run dependency build scripts by default, so Playwright
+      # never downloads its browsers during install and every test fails on
+      # launch. Only chromium is needed — it is the sole project in
+      # playwright.config.ts.
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm prisma db push
+      # The specs assert against fixed QA ids, so an empty database fails them
+      # all regardless of the app being correct.
+      - run: pnpm seed:qa
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
