@@ -10,27 +10,15 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(16),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
-  // Midtrans Snap — the primary payment gateway.
-  MIDTRANS_SERVER_KEY: z.string().optional(),
-  MIDTRANS_CLIENT_KEY: z.string().optional(),
-  MIDTRANS_IS_PRODUCTION: z
+  // DOKU Checkout — the payment gateway. Settles IDR, so no FX is involved.
+  // Absent keys put the app in mock mode and it takes no real money.
+  DOKU_CLIENT_ID: z.string().optional(),
+  DOKU_SECRET_KEY: z.string().optional(),
+  DOKU_IS_PRODUCTION: z
     .string()
     .optional()
     .transform((v) => v === "true")
     .default("false"),
-
-  // PayPal — foreign-card checkout alongside Midtrans. PayPal cannot settle
-  // IDR, so a PayPal booking is always charged in PAYPAL_PRESENTMENT_CURRENCY
-  // at the stored FX rate. Absent keys simply mean PayPal is not offered.
-  PAYPAL_CLIENT_ID: z.string().optional(),
-  PAYPAL_CLIENT_SECRET: z.string().optional(),
-  PAYPAL_WEBHOOK_ID: z.string().optional(),
-  PAYPAL_IS_PRODUCTION: z
-    .string()
-    .optional()
-    .transform((v) => v === "true")
-    .default("false"),
-  PAYPAL_PRESENTMENT_CURRENCY: z.string().length(3).optional().default("USD"),
 
   // Xendit (legacy — diagnostics/refunds only).
   XENDIT_SECRET_KEY: z.string().optional(),

@@ -1,13 +1,13 @@
 # Gilijet — Agent rules
 
-Next.js 14 / App Router boat-ticketing MVP. Postgres via Prisma. Auth via signed HttpOnly cookies (`jose`). Payments via Xendit (mock when keys absent). Timezone for all customer-facing times is **WITA (Asia/Makassar)**.
+Next.js 14 / App Router boat-ticketing MVP. Postgres via Prisma. Auth via signed HttpOnly cookies (`jose`). Payments via DOKU Checkout (mock when keys absent). Timezone for all customer-facing times is **WITA (Asia/Makassar)**.
 
 ## Route groups
 
 - `app/(customer)/…` — anonymous + logged-in customer flows. Wrapped by the customer layout.
 - `app/operator/…` — operator dashboard. Every page and server action must call `requireOperator()` from `lib/auth.ts` and filter Prisma queries by `operatorId: session.sub`.
 - `app/admin/…` — platform admin. Every page and server action must call `requireAdmin()` (or `requireSuperAdmin()` for destructive ops).
-- `app/api/…` — REST endpoints (webhooks, cron, JSON for client fetches). Cron routes must check `CRON_SECRET`. Webhook routes verify signatures via the helpers in `lib/xendit.ts` / `lib/mayar.ts`.
+- `app/api/…` — REST endpoints (webhooks, cron, JSON for client fetches). Cron routes must check `CRON_SECRET`. Webhook routes verify signatures via the helpers in `lib/doku.ts`.
 
 Never bypass `requireOperator` / `requireAdmin` / `requireSuperAdmin`. If a page renders without them, that's a bug — fix it, don't work around it.
 

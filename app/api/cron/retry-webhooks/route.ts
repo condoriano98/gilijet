@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   // Pick events that need retry: PENDING > 2 min old, or FAILED < 5 attempts
   const events = await prisma.webhookEvent.findMany({
     where: {
-      provider: "midtrans",
+      provider: "doku",
       status: { in: ["PENDING", "FAILED"] },
       attempts: { lt: 5 },
       lastAttemptAt: { lt: twoMinutesAgo },

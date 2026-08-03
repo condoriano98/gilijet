@@ -37,19 +37,13 @@ services:
       SEED_OPERATOR_EMAIL: ${SEED_OPERATOR_EMAIL:-operator@example.com}
       SEED_OPERATOR_PASSWORD: ${SEED_OPERATOR_PASSWORD:-changeme123}
 
-      # Payment gateways. Until these reach the container the app runs in mock
-      # mode and takes no real money, whatever the dashboards say.
-      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
-      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY:-}
-      MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION:-false}
-      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
-      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
-      PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
-      PAYPAL_IS_PRODUCTION: ${PAYPAL_IS_PRODUCTION:-false}
-      PAYPAL_PRESENTMENT_CURRENCY: ${PAYPAL_PRESENTMENT_CURRENCY:-USD}
+      # Payment gateway. Until these reach the container the app runs in mock
+      # mode and takes no real money, whatever the dashboard says.
+      DOKU_CLIENT_ID: ${DOKU_CLIENT_ID:-}
+      DOKU_SECRET_KEY: ${DOKU_SECRET_KEY:-}
+      DOKU_IS_PRODUCTION: ${DOKU_IS_PRODUCTION:-false}
 
-      # Cron routes reject every call without this, so the FX refresh that
-      # PayPal depends on cannot run until it is set.
+      # Cron routes reject every call without this.
       CRON_SECRET: ${CRON_SECRET:-}
 
       RESEND_API_KEY: ${RESEND_API_KEY:-}
@@ -58,10 +52,10 @@ services:
     expose:
       - "3000"
 
-  # Terminates TLS so live PayPal webhooks can be delivered — PayPal refuses to
-  # post to a plain-HTTP endpoint. Certificates are issued and renewed by Caddy
-  # from Let's Encrypt with no manual step, and persist in the caddy-data volume
-  # so redeploys do not re-request them and burn rate limits.
+  # Terminates TLS so DOKU notifications and card-holder traffic are not
+  # carried in the clear. Certificates are issued and renewed by Caddy from
+  # Let's Encrypt with no manual step, and persist in the caddy-data volume so
+  # redeploys do not re-request them and burn rate limits.
   #
   # Set APP_DOMAIN in the env file and point its A record at this host. Left
   # empty, Caddy serves plain HTTP on :80 and the box behaves as it did before.
@@ -82,8 +76,7 @@ services:
       - "443:443"
 
   # Vercel Cron does not exist on this box, so vercel.json is inert here and
-  # every scheduled route would simply never fire. PayPal refuses to quote on a
-  # stale FX rate, so without this ticker it would never appear at checkout.
+  # every scheduled route would simply never fire.
   cron:
     image: alpine:3.20
     restart: unless-stopped

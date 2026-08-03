@@ -11,7 +11,7 @@ import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { resolvePlatformPricing } from "./platform-config";
 import { newBookingReference } from "./references";
 import { validatePromoCode, applyPromoCode } from "./promotions";
-import { isMidtransMock } from "./midtrans";
+import { isDokuMock } from "./doku";
 
 export class BookingError extends Error {
   constructor(
@@ -61,9 +61,9 @@ export type CreateBookingArgs = {
  *  - bumps the leg to FULL when seats hit zero
  *  - mints a Booking + Payment row (status=PENDING_PAYMENT)
  *
- * Does NOT issue tickets — those land when Midtrans confirms payment via the
- * webhook (or the mock-pay endpoint in dev). Returns the booking row so the
- * caller can redirect to the Midtrans pay page afterwards.
+ * Does NOT issue tickets — those land when DOKU confirms payment via the
+ * notification (or the mock-pay endpoint in dev). Returns the booking row so
+ * the caller can redirect to the pay page afterwards.
  */
 export async function reserveSeatsAndCreateBooking(
   args: CreateBookingArgs,
@@ -318,11 +318,10 @@ export async function reserveSeatsAndCreateBooking(
 }
 
 /**
- * After reservation succeeds, direct the customer to the pay page. With
- * Midtrans Snap the token is generated on the pay page, so this just
- * reports whether we're in mock mode (no Midtrans keys → the built-in
- * /checkout demo flow). `invoiceUrl` is always null now; callers redirect
- * to `/pay/{reference}`.
+ * After reservation succeeds, direct the customer to the pay page. The DOKU
+ * checkout is opened from there, so this just reports whether we're in mock
+ * mode (no DOKU keys → the built-in /checkout demo flow). `invoiceUrl` is
+ * always null now; callers redirect to `/pay/{reference}`.
  */
 export async function startPaymentForBooking(
   bookingId: string,
@@ -335,7 +334,7 @@ export async function startPaymentForBooking(
   if (booking.status !== "PENDING_PAYMENT") {
     return { invoiceUrl: null, mock: false };
   }
-  return { invoiceUrl: null, mock: isMidtransMock() };
+  return { invoiceUrl: null, mock: isDokuMock() };
 }
 
 /** Release the seats held by a booking. Idempotent. */

@@ -110,30 +110,24 @@ fi
 ensure_key() {
   grep -q "^\$1=" "${REMOTE_ENV}" || printf '%s=%s\n' "\$1" "\$2" >> "${REMOTE_ENV}"
 }
-# Generated, not blank: cron routes 401 without it and the FX refresh that
-# PayPal depends on would never run.
+# Generated, not blank: cron routes 401 without it.
 ensure_key CRON_SECRET "\$(openssl rand -hex 32)"
 
 # Set this to a domain whose A record points here and Caddy will serve HTTPS
-# for it automatically. Left blank the box stays on plain HTTP, which sandbox
-# PayPal and Midtrans both accept but live PayPal does not.
+# for it automatically. Left blank the box stays on plain HTTP, which DOKU
+# accepts but which sends payment notifications in the clear.
 ensure_key APP_DOMAIN "${APP_DOMAIN:-}"
 
-# APP_BASE_URL must follow the domain: it is what we hand PayPal as the return
-# and webhook base, so a stale http:// value here silently breaks live capture.
+# APP_BASE_URL must follow the domain: it is what we hand DOKU as the callback
+# and notification base, so a stale http:// value here breaks payment silently.
 domain="\$(grep '^APP_DOMAIN=' "${REMOTE_ENV}" | cut -d= -f2-)"
 if [ -n "\$domain" ]; then
   sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=https://\$domain|" "${REMOTE_ENV}"
 fi
 
-ensure_key MIDTRANS_SERVER_KEY ""
-ensure_key MIDTRANS_CLIENT_KEY ""
-ensure_key MIDTRANS_IS_PRODUCTION "false"
-ensure_key PAYPAL_CLIENT_ID ""
-ensure_key PAYPAL_CLIENT_SECRET ""
-ensure_key PAYPAL_WEBHOOK_ID ""
-ensure_key PAYPAL_IS_PRODUCTION "false"
-ensure_key PAYPAL_PRESENTMENT_CURRENCY "USD"
+ensure_key DOKU_CLIENT_ID ""
+ensure_key DOKU_SECRET_KEY ""
+ensure_key DOKU_IS_PRODUCTION "false"
 ensure_key RESEND_API_KEY ""
 ensure_key RESEND_FROM_EMAIL ""
 
@@ -151,19 +145,15 @@ set -euo pipefail
 check() {
   if grep -qE "^\$1=.+" "${REMOTE_ENV}"; then echo "  ✓ \$1"; else echo "  ✗ \$1 (mock)"; fi
 }
-check MIDTRANS_SERVER_KEY
-# Snap.js will not open the payment popup without this, and nothing server-side
-# can detect that — so it is checked as its own line, not folded into the above.
-check MIDTRANS_CLIENT_KEY
-check PAYPAL_CLIENT_ID
-check PAYPAL_WEBHOOK_ID
+check DOKU_CLIENT_ID
+check DOKU_SECRET_KEY
 check CRON_SECRET
 check RESEND_API_KEY
-if grep -q '^PAYPAL_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
+if grep -q '^DOKU_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
   base="\$(grep '^APP_BASE_URL=' "${REMOTE_ENV}" | cut -d= -f2-)"
   case "\$base" in
     https://*) ;;
-    *) echo "  ! PAYPAL_IS_PRODUCTION=true but APP_BASE_URL is \$base — live PayPal webhooks require HTTPS" ;;
+    *) echo "  ! DOKU_IS_PRODUCTION=true but APP_BASE_URL is \$base — notifications would travel in the clear" ;;
   esac
 fi
 REMOTE

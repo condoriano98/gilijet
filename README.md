@@ -19,7 +19,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
 - **DB:** PostgreSQL (Supabase) via Prisma 6
 - **Auth:** JWT in HttpOnly cookies (`jose` + `bcryptjs`), separate cookies per
   audience (customer / operator / admin)
-- **Payments:** Midtrans Snap. Xendit remains wired for legacy refunds and
+- **Payments:** DOKU Checkout. Xendit remains wired for legacy refunds and
   diagnostics only
 - **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent
 - **Storage:** Supabase Storage, for operator KYB documents
@@ -163,31 +163,29 @@ Honest state, so nobody plans against features that do not work:
 - **Unscheduled cron endpoints.** `send-reminders` and `poll-bmkg` are
   implemented and callable but scheduled nowhere, so departure reminders and
   BMKG weather never run on their own. `refresh-fx` is now scheduled hourly by
-  the `cron` service in `docker-compose.yml` (PayPal refuses to quote on a
-  stale rate, so it cannot be optional); add further routes to the `for route
-  in …` list there. Note `vercel.json` is inert on the droplet — Vercel Cron
+  the `cron` service in `docker-compose.yml`; add further routes to the
+  `for route in …` list there. Note `vercel.json` is inert on the droplet — Vercel Cron
   does not exist there, so anything scheduled only in that file never fires.
-- **Live PayPal needs `APP_DOMAIN` set.** PayPal will not register or post to
-  an `http://` webhook URL, so on a bare IP the droplet cannot receive live
-  notifications. Setting `APP_DOMAIN` in `~/.gilijet/.env` to a domain whose A
-  record points at the box makes the `caddy` service issue and renew a Let's
-  Encrypt certificate automatically, and `deploy.sh` rewrites `APP_BASE_URL` to
-  match. Left blank the box serves plain HTTP as before — fine for sandbox
-  PayPal and for Midtrans, which accepts HTTP notifications on :80. Note that
-  until DNS resolves, Caddy cannot obtain a certificate and the site will not
-  serve. Capture happens server-side on return from PayPal either way, so a
-  booking paid in a normal browser round-trip is ticketed without the webhook;
-  what a missing webhook costs is the backstop for a customer who closes the
-  tab mid-payment.
+- **No TLS unless `APP_DOMAIN` is set.** DOKU accepts notifications over plain
+  HTTP, so the droplet works on a bare IP — but payment notifications and
+  card-holder traffic then travel in the clear, which is not where you want to
+  be taking real money. Setting `APP_DOMAIN` in `~/.gilijet/.env` to a domain
+  whose A record points at the box makes the `caddy` service issue and renew a
+  Let's Encrypt certificate automatically, and `deploy.sh` rewrites
+  `APP_BASE_URL` to match. Until DNS resolves, Caddy cannot obtain a
+  certificate and the site will not serve, so point the A record first.
 - **Live keys must be present on the server, not just in a dashboard.** Until
-  they are set in `~/.gilijet/.env` the app runs those gateways in mock mode
-  and takes no real money. Midtrans needs *both* `MIDTRANS_SERVER_KEY` and
-  `MIDTRANS_CLIENT_KEY` — the server key signs the transaction call, the client
-  key authenticates Snap.js in the browser, and without it the popup never
-  opens. `deploy.sh` prints which integrations are live at the end of every
-  deploy. Midtrans notifications reach the droplet over plain HTTP on :80,
-  which Midtrans accepts (unlike PayPal), so Midtrans live is not blocked on
-  TLS — though HTTPS is still what you want before real money moves.
+  `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set in `~/.gilijet/.env` the app
+  runs in mock mode and takes no real money — checkout falls back to the
+  built-in dummy flow. `deploy.sh` prints which integrations are live at the
+  end of every deploy, and `/admin/diagnostics` shows the same from the
+  browser.
+- **The DOKU notification URL is signed.** DOKU includes the request path in
+  the signature, so the URL registered in the DOKU Back Office must match
+  `{APP_BASE_URL}/api/webhooks/doku` exactly — a mismatch fails verification
+  even with the right secret, and looks identical to a wrong key.
+- **DOKU refunds are manual.** `refundViaGateway` returns null, so refunds are
+  raised in the DOKU dashboard and recorded here; nothing calls a refund API.
 - **Placeholders.** `armada/bahan-bakar` (fuel) and `armada/pemeliharaan`
   (maintenance) render empty states labelled "Phase B+". No data model exists.
 - **Schema-only.** `LoyaltyAccount`, `LoyaltyTransaction`, `BoatPosition`,
@@ -209,7 +207,7 @@ app/
   operator/             — back office (Indonesian nav; English canonical routes)
   admin/(authed)/       — operator onboarding, bookings, refunds, reschedules
     console/            — owner-only coupons + platform economics
-  api/                  — REST, Midtrans/Xendit webhooks, cron
+  api/                  — REST, DOKU/Xendit webhooks, cron
   print/                — printable tickets and manifests
 components/
   ui/                   — shadcn-style primitives

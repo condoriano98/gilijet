@@ -596,7 +596,7 @@ export default async function HomePage() {
               Secure, verified, regulated
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              <span>🔒 Payments by Midtrans (Bank Indonesia licensed)</span>
+              <span>🔒 Payments by DOKU (Bank Indonesia licensed)</span>
               <span>·</span>
               <span>✓ All operators KYC verified</span>
               <span>·</span>

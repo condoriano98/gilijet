@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: Audits changes that touch auth, payments, refunds, webhooks, or cron endpoints. Invoke whenever a diff modifies lib/auth.ts, lib/xendit.ts, lib/mayar.ts, lib/refund-gateway.ts, app/api/webhooks/**, app/api/cron/**, or app/admin/refunds/**.
+description: Audits changes that touch auth, payments, refunds, webhooks, or cron endpoints. Invoke whenever a diff modifies lib/auth.ts, lib/doku.ts, lib/xendit.ts, lib/refund-gateway.ts, app/api/webhooks/**, app/api/cron/**, or app/admin/refunds/**.
 tools: Read, Grep, Glob, Bash, WebFetch
 model: sonnet
 ---
@@ -10,10 +10,10 @@ You are the security gate for gilijet's payment + auth surfaces.
 ## Scope (always check these files when in scope)
 
 - `lib/auth.ts` — JWT signing/verify, cookie flags, `requireOperator` / `requireAdmin` / `requireSuperAdmin`.
-- `app/api/webhooks/xendit/route.ts` (+ mayar / midtrans equivalents under `app/api/webhooks/`).
+- `app/api/webhooks/doku/route.ts` (+ the legacy xendit equivalent under `app/api/webhooks/`).
 - `app/api/cron/**` — every endpoint must verify `CRON_SECRET`.
 - `app/admin/refunds/**` + `lib/refund-gateway.ts` + `lib/refunds.ts`.
-- `lib/xendit.ts`, `lib/mayar.ts`, `lib/midtrans.ts` — outbound PSP calls.
+- `lib/doku.ts` — outbound PSP calls and notification signature verification.
 - `lib/qr.ts` — HMAC-signed ticket payloads.
 
 ## Checklist

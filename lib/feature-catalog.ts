@@ -97,12 +97,12 @@ const CUSTOMER: Feature[] = [
   {
     id: "customer-payment",
     area: "customer",
-    name: "Payment (Midtrans Snap)",
+    name: "Payment (DOKU Checkout)",
     status: "shipped",
     routes: ["app/(customer)/[locale]/pay/[reference]/page.tsx"],
-    modules: ["lib/psp.ts", "lib/midtrans.ts"],
+    modules: ["lib/psp.ts", "lib/doku.ts"],
     models: ["Payment"],
-    notes: "Falls back to a mock gateway when Midtrans keys are absent.",
+    notes: "Falls back to a mock gateway when DOKU keys are absent.",
   },
   {
     id: "customer-ticket",
@@ -586,18 +586,18 @@ const API: Feature[] = [
     name: "Payment webhooks",
     status: "shipped",
     routes: [
-      "app/api/webhooks/midtrans/route.ts",
+      "app/api/webhooks/doku/route.ts",
       "app/api/webhooks/xendit/route.ts",
     ],
     modules: [
-      "lib/midtrans.ts",
+      "lib/doku.ts",
       "lib/xendit.ts",
       "lib/webhook-processor.ts",
       "lib/ticket-issuer.ts",
     ],
     models: ["Payment", "WebhookEvent", "Ticket"],
     notes:
-      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. Midtrans is the live gateway; Xendit is legacy.",
+      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. DOKU is the live gateway; Xendit is legacy.",
   },
   {
     id: "api-cron-active",

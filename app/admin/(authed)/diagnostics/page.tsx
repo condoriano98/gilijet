@@ -1,10 +1,6 @@
 import { requireSuperAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { pingMidtrans } from "@/lib/midtrans";
-import { pingPaypal, isPaypalLive, paypalPresentmentCurrency } from "@/lib/paypal";
-import { quoteForeignCharge, MAX_RATE_AGE_MS } from "@/lib/fx";
+import { pingDoku, isDokuLive, NOTIFICATION_PATH } from "@/lib/doku";
 import { env } from "@/lib/env";
-import { formatLocalDateTime } from "@/lib/datetime";
 import {
   Card,
   CardContent,
@@ -18,12 +14,11 @@ export const metadata = { title: "Diagnostics · Admin" };
 export const dynamic = "force-dynamic";
 
 /**
- * Read-only gateway status. Exists because "why is PayPal not showing at
- * checkout?" was otherwise only answerable by SSH-ing to the box and grepping
- * the env file — and the answer is frequently a stale FX rate rather than a
- * credential problem, which nothing surfaced.
+ * Read-only gateway status. Exists because "why is checkout falling back to the
+ * dummy flow?" was otherwise only answerable by SSH-ing to the box and grepping
+ * the env file.
  *
- * Never renders a secret. Only presence, mode, and key prefixes.
+ * Never renders a secret. Only presence, mode, and the client-id prefix.
  */
 
 type Row = { label: string; ok: boolean; detail: string };
@@ -45,70 +40,29 @@ function StatusRow({ row }: { row: Row }) {
 export default async function DiagnosticsPage() {
   await requireSuperAdmin();
 
-  const midtrans = pingMidtrans();
-  const paypal = pingPaypal();
+  const doku = pingDoku();
+  const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
 
-  // The same call the pay page makes, so this page fails exactly when checkout
-  // would — rather than reporting a green light the customer never sees.
-  const currency = paypalPresentmentCurrency();
-  let fxDetail: string;
-  let fxOk = false;
-  try {
-    const quote = await quoteForeignCharge(1_000_000, currency);
-    fxOk = true;
-    fxDetail = `1,000,000 IDR = ${quote.amount} ${quote.currency} · rate ${quote.rate} · quoted ${formatLocalDateTime(quote.quotedAt)} WITA`;
-  } catch (err) {
-    fxDetail = err instanceof Error ? err.message : String(err);
-  }
-
-  const latestFx = await prisma.fxRate.findFirst({
-    where: { currency },
-    orderBy: { fetchedAt: "desc" },
-    select: { fetchedAt: true },
-  });
-
-  const midtransRows: Row[] = [
+  const rows: Row[] = [
     {
-      label: "Server key",
-      ok: Boolean(midtrans.keyPrefix),
-      detail: midtrans.keyPrefix || "not set",
+      label: "Client ID",
+      ok: Boolean(doku.clientIdPrefix),
+      detail: doku.clientIdPrefix || "not set",
     },
     {
-      label: "Client key (Snap.js needs this)",
-      ok: midtrans.clientKeyPresent,
-      detail: midtrans.clientKeyPresent ? "set" : "not set — popup will not open",
-    },
-    { label: "Mode", ok: midtrans.mode === "live", detail: midtrans.mode },
-  ];
-
-  const paypalRows: Row[] = [
-    {
-      label: "Client ID / secret",
-      ok: paypal.ok,
-      detail: paypal.ok ? "set" : "not set",
-    },
-    {
-      label: "Webhook ID",
-      ok: paypal.webhookConfigured,
-      detail: paypal.webhookConfigured
+      label: "Secret key",
+      ok: doku.secretPresent,
+      detail: doku.secretPresent
         ? "set"
-        : "not set — webhooks are rejected",
+        : "not set — requests cannot be signed",
     },
-    { label: "Mode", ok: paypal.mode === "live", detail: paypal.mode },
+    { label: "Mode", ok: doku.mode === "live", detail: doku.mode },
     {
-      label: `FX rate (${currency})`,
-      ok: fxOk,
-      detail: fxDetail,
-    },
-    {
-      label: "Offered at checkout",
-      ok: isPaypalLive() && fxOk,
-      detail:
-        isPaypalLive() && fxOk
-          ? "yes"
-          : !isPaypalLive()
-            ? "no — credentials missing or mock"
-            : "no — no usable FX rate",
+      label: "Takes real payments",
+      ok: isDokuLive(),
+      detail: isDokuLive()
+        ? "yes"
+        : "no — checkout falls back to the dummy flow",
     },
   ];
 
@@ -117,79 +71,43 @@ export default async function DiagnosticsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Diagnostics</h1>
         <p className="text-sm text-muted-foreground">
-          Read-only. Shows whether each integration can actually take money —
-          no secrets are displayed.
+          Read-only. Shows whether the gateway can actually take money — no
+          secrets are displayed.
         </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Midtrans</CardTitle>
-            <CardDescription>
-              Domestic rails. Both keys are required — the server key signs the
-              transaction, the client key opens Snap in the browser.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {midtransRows.map((r) => (
-              <StatusRow key={r.label} row={r} />
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>PayPal</CardTitle>
-            <CardDescription>
-              Foreign cards. PayPal cannot settle IDR, so it only appears when a
-              rate fresher than {MAX_RATE_AGE_MS / 3_600_000}h exists to quote
-              {" "}{currency} against.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {paypalRows.map((r) => (
-              <StatusRow key={r.label} row={r} />
-            ))}
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>FX refresh</CardTitle>
+          <CardTitle>DOKU Checkout</CardTitle>
           <CardDescription>
-            Populated by the <span className="font-mono">refresh-fx</span> cron.
-            On the droplet that is the <span className="font-mono">cron</span>{" "}
-            service in docker-compose, which needs{" "}
-            <span className="font-mono">CRON_SECRET</span> set or every call is
-            rejected.
+            Both credentials are required: the client id identifies us, the
+            secret signs every request and verifies every notification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {rows.map((r) => (
+            <StatusRow key={r.label} row={r} />
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notification endpoint</CardTitle>
+          <CardDescription>
+            Register this exact URL in the DOKU dashboard. DOKU signs the
+            request path, so a mismatch here fails verification even with the
+            right secret.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <StatusRow
             row={{
-              label: `Last ${currency} rate stored`,
-              ok: Boolean(latestFx),
-              detail: latestFx
-                ? `${formatLocalDateTime(latestFx.fetchedAt)} WITA`
-                : "never — cron has not run successfully",
-            }}
-          />
-          <StatusRow
-            row={{
-              label: "CRON_SECRET",
-              ok: Boolean(env.CRON_SECRET),
-              detail: env.CRON_SECRET ? "set" : "not set — cron routes 401",
-            }}
-          />
-          <StatusRow
-            row={{
-              label: "Webhook base URL",
+              label: "URL",
               ok: env.APP_BASE_URL.startsWith("https://"),
               detail: env.APP_BASE_URL.startsWith("https://")
-                ? env.APP_BASE_URL
-                : `${env.APP_BASE_URL} — live PayPal webhooks require HTTPS`,
+                ? notificationUrl
+                : `${notificationUrl} — HTTPS strongly recommended`,
             }}
           />
         </CardContent>

@@ -1,8 +1,8 @@
 # Reverse proxy in front of the Next.js app.
 #
 # With APP_DOMAIN set, Caddy obtains and renews a Let's Encrypt certificate for
-# it automatically and serves HTTPS on :443, redirecting :80. That is what live
-# PayPal needs — it will not deliver webhooks to a plain-HTTP endpoint.
+# it automatically and serves HTTPS on :443, redirecting :80 — so DOKU payment
+# notifications and card-holder traffic are not carried in the clear.
 #
 # With APP_DOMAIN empty the site address falls back to :80, so the box keeps
 # serving plain HTTP on a bare IP exactly as before and Caddy never attempts a
@@ -12,7 +12,7 @@
 
 	encode gzip
 
-	# Webhook senders (PayPal, Midtrans) get no benefit from these and some
+	# Notification senders get no benefit from these and some
 	# scanners flag their absence, so set them once here rather than per-route.
 	header {
 		X-Content-Type-Options nosniff
