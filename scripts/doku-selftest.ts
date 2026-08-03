@@ -48,6 +48,10 @@ if (!clientId || !secretKey) {
   process.exit(1);
 }
 
+// Re-bind after the guard: the narrowing above does not reach into main().
+const CLIENT_ID: string = clientId;
+const SECRET_KEY: string = secretKey;
+
 const baseUrl = isProduction
   ? "https://api.doku.com"
   : "https://api-sandbox.doku.com";
@@ -61,13 +65,13 @@ const timestamp = dokuTimestamp(new Date());
 
 const signature = signComponents(
   signatureComponents({
-    clientId,
+    clientId: CLIENT_ID,
     requestId,
     timestamp,
     target: CHECKOUT_PATH,
     digest: bodyDigest(body),
   }),
-  secretKey,
+  SECRET_KEY,
 );
 
 async function main() {
@@ -75,7 +79,7 @@ async function main() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Client-Id": clientId,
+      "Client-Id": CLIENT_ID,
       "Request-Id": requestId,
       "Request-Timestamp": timestamp,
       Signature: signature,
@@ -85,7 +89,7 @@ async function main() {
   const text = await res.text();
 
   console.log(`host      ${baseUrl}`);
-  console.log(`client id ${clientId.slice(0, 8)}…`);
+  console.log(`client id ${CLIENT_ID.slice(0, 8)}…`);
   console.log(`mode      ${isProduction ? "production" : "sandbox"}`);
   console.log(`response  HTTP ${res.status} ${text.slice(0, 200)}`);
   console.log("");
