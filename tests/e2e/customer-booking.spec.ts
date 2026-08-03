@@ -11,7 +11,7 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/gilijet/i);
+  await expect(page).toHaveTitle(/gilibali/i);
 
   // Homepage should expose a search entrypoint.
   await expect(
