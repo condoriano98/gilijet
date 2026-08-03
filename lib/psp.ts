@@ -89,41 +89,56 @@ export function normalizePaymentMethod(raw: string): PaymentMethod {
     LINKAJA: PaymentMethod.LINKAJA,
     QRIS: PaymentMethod.QRIS,
     CREDIT_CARD: PaymentMethod.CREDIT_CARD,
-    // DOKU channel ids
+    // DOKU channel ids. The virtual accounts below are the ones our enum names
+    // individually; every other bank falls through to BANK_TRANSFER.
     VIRTUAL_ACCOUNT_BCA: PaymentMethod.VA_BCA,
     VIRTUAL_ACCOUNT_BNI: PaymentMethod.VA_BNI,
     VIRTUAL_ACCOUNT_BRI: PaymentMethod.VA_BRI,
     VIRTUAL_ACCOUNT_BANK_MANDIRI: PaymentMethod.VA_MANDIRI,
+    VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI: PaymentMethod.VA_MANDIRI,
     VIRTUAL_ACCOUNT_BANK_PERMATA: PaymentMethod.VA_PERMATA,
     VIRTUAL_ACCOUNT_BANK_CIMB: PaymentMethod.VA_PERMATA,
-    VIRTUAL_ACCOUNT_DOKU: PaymentMethod.BANK_TRANSFER,
     ONLINE_TO_OFFLINE_ALFA: PaymentMethod.BANK_TRANSFER,
+    ONLINE_TO_OFFLINE_INDOMARET: PaymentMethod.BANK_TRANSFER,
+    PEER_TO_PEER_AKULAKU: PaymentMethod.BANK_TRANSFER,
     EMONEY_OVO: PaymentMethod.OVO,
     EMONEY_DANA: PaymentMethod.DANA,
     EMONEY_SHOPEE_PAY: PaymentMethod.SHOPEEPAY,
     EMONEY_LINKAJA: PaymentMethod.LINKAJA,
+    EMONEY_DOKU: PaymentMethod.BANK_TRANSFER,
     QRIS_DOKU: PaymentMethod.QRIS,
     CREDIT_CARD_DOKU: PaymentMethod.CREDIT_CARD,
     DOKU: PaymentMethod.BANK_TRANSFER,
     PENDING: PaymentMethod.BANK_TRANSFER,
   };
   if (mapping[upper]) return mapping[upper];
-  // Tolerant fallbacks for compound channel ids
+
+  // Channel-family prefixes are checked before brand substrings, because the
+  // brands overlap: VIRTUAL_ACCOUNT_BANK_DANAMON contains "DANA" and would
+  // otherwise be recorded as a DANA e-wallet payment rather than a transfer.
+  if (upper.startsWith("VIRTUAL_ACCOUNT")) {
+    if (upper.includes("BCA")) return PaymentMethod.VA_BCA;
+    if (upper.includes("BNI")) return PaymentMethod.VA_BNI;
+    if (upper.includes("BRI")) return PaymentMethod.VA_BRI;
+    if (upper.includes("MANDIRI")) return PaymentMethod.VA_MANDIRI;
+    if (upper.includes("PERMATA") || upper.includes("CIMB")) {
+      return PaymentMethod.VA_PERMATA;
+    }
+    return PaymentMethod.BANK_TRANSFER;
+  }
+  if (upper.startsWith("ONLINE_TO_OFFLINE") || upper.startsWith("PEER_TO_PEER")) {
+    return PaymentMethod.BANK_TRANSFER;
+  }
+
   if (upper.includes("SHOPEE")) return PaymentMethod.SHOPEEPAY;
   if (upper.includes("GOPAY")) return PaymentMethod.GOPAY;
   if (upper.includes("OVO")) return PaymentMethod.OVO;
   if (upper.includes("DANA")) return PaymentMethod.DANA;
   if (upper.includes("LINKAJ")) return PaymentMethod.LINKAJA;
   if (upper.includes("QRIS")) return PaymentMethod.QRIS;
-  if (upper.includes("BCA")) return PaymentMethod.VA_BCA;
-  if (upper.includes("BNI")) return PaymentMethod.VA_BNI;
-  if (upper.includes("BRI")) return PaymentMethod.VA_BRI;
-  if (upper.includes("MANDIRI")) return PaymentMethod.VA_MANDIRI;
-  if (upper.includes("PERMATA") || upper.includes("CIMB")) return PaymentMethod.VA_PERMATA;
   if (upper.includes("CARD")) return PaymentMethod.CREDIT_CARD;
   if (upper.includes("ALFA") || upper.includes("INDOMARET")) {
     return PaymentMethod.BANK_TRANSFER;
   }
-  if (upper.includes("VIRTUAL_ACCOUNT")) return PaymentMethod.BANK_TRANSFER;
   throw new Error(`Unknown payment method: ${raw}`);
 }

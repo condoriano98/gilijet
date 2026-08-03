@@ -201,3 +201,60 @@ describe("readNotification", () => {
     });
   });
 });
+
+/**
+ * Channel ids taken verbatim from a live /checkout/v1/payment response for this
+ * merchant, so the mapping is pinned to what DOKU actually sends rather than to
+ * what the docs list.
+ */
+describe("normalizePaymentMethod against live DOKU channels", () => {
+  const ENABLED = [
+    "ONLINE_TO_OFFLINE_ALFA",
+    "CREDIT_CARD",
+    "ONLINE_TO_OFFLINE_INDOMARET",
+    "PEER_TO_PEER_AKULAKU",
+    "EMONEY_DOKU",
+    "VIRTUAL_ACCOUNT_BRI",
+    "VIRTUAL_ACCOUNT_BNI",
+    "VIRTUAL_ACCOUNT_BANK_PERMATA",
+    "VIRTUAL_ACCOUNT_DOKU",
+    "VIRTUAL_ACCOUNT_BANK_CIMB",
+    "VIRTUAL_ACCOUNT_BANK_DANAMON",
+    "VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI",
+    "VIRTUAL_ACCOUNT_MAYBANK",
+    "VIRTUAL_ACCOUNT_BSS",
+    "VIRTUAL_ACCOUNT_BANK_BJB",
+    "VIRTUAL_ACCOUNT_BNC",
+    "VIRTUAL_ACCOUNT_BTN",
+    "VIRTUAL_ACCOUNT_SINARMAS",
+  ];
+
+  it("maps every enabled channel without throwing", async () => {
+    const { normalizePaymentMethod } = await import("@/lib/psp");
+    for (const channel of ENABLED) {
+      expect(() => normalizePaymentMethod(channel), channel).not.toThrow();
+    }
+  });
+
+  it("does not mistake Danamon's virtual account for the DANA e-wallet", async () => {
+    const { normalizePaymentMethod } = await import("@/lib/psp");
+    // "VIRTUAL_ACCOUNT_BANK_DANAMON" contains "DANA"; a substring match would
+    // book a bank transfer as an e-wallet payment.
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BANK_DANAMON")).toBe(
+      "BANK_TRANSFER",
+    );
+    expect(normalizePaymentMethod("EMONEY_DANA")).toBe("DANA");
+  });
+
+  it("still names the virtual accounts our enum knows individually", async () => {
+    const { normalizePaymentMethod } = await import("@/lib/psp");
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BRI")).toBe("VA_BRI");
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BNI")).toBe("VA_BNI");
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BANK_PERMATA")).toBe("VA_PERMATA");
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI")).toBe(
+      "VA_MANDIRI",
+    );
+    // A bank we do not name individually is still a transfer, not a throw.
+    expect(normalizePaymentMethod("VIRTUAL_ACCOUNT_BTN")).toBe("BANK_TRANSFER");
+  });
+});
