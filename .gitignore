@@ -3,7 +3,9 @@ node_modules
 .pnp
 .pnp.js
 .yarn/install-state.gz
-pnpm-lock.yaml
+# pnpm-lock.yaml is deliberately NOT ignored: CI installs with
+# --frozen-lockfile, which fails outright when the lockfile is absent, and
+# without it every build resolves its own dependency versions.
 
 # testing
 coverage
