@@ -2,6 +2,10 @@
   "name": "gilijet",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13",
+    "pnpm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && node scripts/db-push-if-configured.mjs && next build",
