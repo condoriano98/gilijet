@@ -17,6 +17,7 @@
     "db:seed:real": "tsx prisma/seed-real.ts",
     "db:seed:small": "tsx prisma/seed-small-boats.ts",
     "seed:qa": "tsx scripts/seed-qa.ts",
+    "doku:selftest": "tsx scripts/doku-selftest.ts",
     "qc": "pnpm lint && pnpm typecheck",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
