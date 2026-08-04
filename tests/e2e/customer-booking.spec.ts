@@ -24,8 +24,9 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   await page.waitForURL(/\/book\//, { timeout: 15_000 });
   await expect(page.getByText(/passenger|penumpang/i).first()).toBeVisible();
 
-  await page.getByLabel(/name/i).first().fill("QA Tester");
-  await page.getByLabel(/email/i).first().fill("qa-walk@gilijet.local");
+  await page.getByLabel("Passenger 1 name").fill("QA Tester");
+  await page.getByLabel("Your name").fill("QA Tester");
+  await page.getByLabel("Email").fill("qa-walk@gilijet.local");
   await page.getByPlaceholder("812 3456 7890").fill("8123456789");
 
   await page.getByRole("button", { name: /continue|book|pay/i }).first().click();
