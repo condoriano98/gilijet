@@ -28,6 +28,7 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   await page.getByLabel("Your name").fill("QA Tester");
   await page.getByLabel("Email").fill("qa-walk@gilijet.local");
   await page.getByPlaceholder("812 3456 7890").fill("8123456789");
+  await page.getByRole("checkbox").check();
 
   await page.getByRole("button", { name: /continue|book|pay/i }).first().click();
 
