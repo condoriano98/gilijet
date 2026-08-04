@@ -97,6 +97,13 @@ const PORTS: Record<string, PortInfo> = {
     lat: -8.387,
     lng: 116.073,
   },
+  Senggigi: {
+    address: "Senggigi Beach jetty, Batu Layar, West Lombok, NTB 83355",
+    dockTip: "Beach landing rather than a pier — boats moor offshore and tender in, so expect wet feet at low tide.",
+    arrivalBuffer: 30,
+    lat: -8.492,
+    lng: 116.044,
+  },
   "Kuta Lombok": {
     address: "Jl. Pariwisata, Kuta, Pujut, Central Lombok, NTB 83573",
     dockTip: "Kuta Mandalika area. Boats depart from the main Kuta beach. Parking near the Novotel.",

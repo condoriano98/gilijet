@@ -1,8 +1,25 @@
 /**
- * Comprehensive operator + schedule data for Bali, Lombok, NTB & NTT.
+ * Operator + schedule data for PT WAHANA VIRENDRA GROUP.
  *
- * Sources: published fast-boat rates, ASDP public ferry timetable,
- * competitor analysis (see docs/giligetaway-synthesis.md).
+ * Source: the operator's own published price schedule (24 public sailings).
+ * This replaced an earlier set of researched competitor rates, which were
+ * plausible but not anyone's actual timetable.
+ *
+ * WHAT THE SOURCE HAS THAT THE SCHEMA DOES NOT, so nobody reads these prices
+ * as the operator's full commercial terms:
+ *
+ *  - Seasons. The price list carries Low / High / Peak (High ~1.11x Low, Peak
+ *    ~1.33-1.56x). Schedule holds a single basePrice, so only Low is seeded.
+ *  - Return fares, ~1.93x the one-way. Bookings here are per one-way leg.
+ *  - Per-route child pricing. Child is 0.73x adult on Sanur-Penida but the
+ *    full adult fare on every Padang Bai / Gili sailing. PlatformConfig has one
+ *    childMultiplier per operator, so it cannot express both.
+ *  - On-request private charters (a separate price list): no departure time,
+ *    max 5 pax. Nothing in the schema models an unscheduled charter.
+ *
+ * Vessels are inferred: the source names no boat and gives no capacity, but its
+ * BATCH column is a rotation — every sailing in a batch is one vessel's run for
+ * the day. Capacity is an assumption, flagged on each boat.
  *
  * All prices are PUBLISH (rack) rates in IDR — what customers pay.
  * Commission is computed at booking time by lib/pricing.ts.
@@ -28,6 +45,7 @@ const P = {
   GILI_MENO:     "Gili Meno",
   GILI_GEDE:     "Gili Gede",
   BANGSAL:       "Bangsal",
+  SENGGIGI:      "Senggigi",
   KUTA_LOMBOK:   "Kuta Lombok",
   KAYANGAN:      "Kayangan",
   LEMBAR:        "Lembar",
@@ -46,116 +64,12 @@ type SeedOperator = {
 };
 
 const OPERATORS: SeedOperator[] = [
-  // ── Padang Bai fast boats ──
   {
-    key: "eka-jaya",
-    email: "eka-jaya@gilijet.local",
-    companyName: "PT. BALI EKA JAYA",
-    contactPerson: "Bali Eka Jaya",
-    phoneNumber: "+62 361 234 5670",
-  },
-  {
-    key: "wijaya",
-    email: "wijaya@gilijet.local",
-    companyName: "PT. WIJAYA BUYUK ABADI",
-    contactPerson: "Wijaya Buyuk Abadi",
-    phoneNumber: "+62 361 234 5671",
-  },
-  {
-    key: "golden-queen",
-    email: "golden-queen@gilijet.local",
-    companyName: "PT. GOLDEN QUEEN BALI",
-    contactPerson: "Golden Queen Bali",
-    phoneNumber: "+62 361 234 5672",
-  },
-  {
-    key: "ostina",
-    email: "ostina@gilijet.local",
-    companyName: "PT. OSTINA",
-    contactPerson: "Ostina",
-    phoneNumber: "+62 361 234 5673",
-  },
-  {
-    key: "inami",
-    email: "inami@gilijet.local",
-    companyName: "PT. INAMI CRUISE",
-    contactPerson: "Inami Cruise",
-    phoneNumber: "+62 361 234 5674",
-  },
-  {
-    key: "gili-gili",
-    email: "gili-gili@gilijet.local",
-    companyName: "PT. GILI GILI FASTBOAT",
-    contactPerson: "Gili Gili Fastboat",
-    phoneNumber: "+62 361 234 5675",
-  },
-  {
-    key: "wahana",
-    email: "wahana@gilijet.local",
-    companyName: "PT. WAHANA GILI OCEAN",
-    contactPerson: "Wahana Gili Ocean",
-    phoneNumber: "+62 361 234 5676",
-  },
-  // ── Serangan corridor ──
-  {
-    key: "samudra-jet",
-    email: "samudra-jet@gilijet.local",
-    companyName: "PT. SAMUDRA JET BALI",
-    contactPerson: "Samudra Jet Bali",
-    phoneNumber: "+62 361 234 5680",
-  },
-  {
-    key: "maruti",
-    email: "maruti@gilijet.local",
-    companyName: "PT. MARUTI EXPRESS",
-    contactPerson: "Maruti Express",
-    phoneNumber: "+62 361 234 5681",
-  },
-  // ── Sanur → Penida/Lembongan ──
-  {
-    key: "glory-express",
-    email: "glory@gilijet.local",
-    companyName: "PT. GLORY EXPRESS",
-    contactPerson: "Glory Express",
-    phoneNumber: "+62 361 234 5682",
-  },
-  {
-    key: "marlin",
-    email: "marlin@gilijet.local",
-    companyName: "PT. MARLIN FAST BOAT",
-    contactPerson: "Marlin Fast Boat",
-    phoneNumber: "+62 361 234 5683",
-  },
-  // ── Amed / Gili inter-island ──
-  {
-    key: "free-bird",
-    email: "free-bird@gilijet.local",
-    companyName: "PT. FREE BIRD EXPRESS",
-    contactPerson: "Free Bird Express",
-    phoneNumber: "+62 361 234 5684",
-  },
-  // ── Public ferry ──
-  {
-    key: "asdp",
-    email: "asdp@gilijet.local",
-    companyName: "PT. ASDP INDONESIA FERRY",
-    contactPerson: "ASDP Ferry",
-    phoneNumber: "+62 361 234 5677",
-  },
-  // ── NTT / Flores corridor ──
-  {
-    key: "wanua",
-    email: "wanua@gilijet.local",
-    companyName: "PT. WANUA ADVENTURE",
-    contactPerson: "Wanua Adventure",
-    phoneNumber: "+62 370 234 5678",
-  },
-  {
-    key: "le-pirate",
-    email: "le-pirate@gilijet.local",
-    companyName: "PT. LE PIRATE EXPLORER",
-    contactPerson: "Le Pirate Explorer",
-    phoneNumber: "+62 385 234 5679",
+    key: "wahana-virendra",
+    email: "wahana-virendra@gilijet.local",
+    companyName: "PT WAHANA VIRENDRA GROUP",
+    contactPerson: "Wahana Virendra Group",
+    phoneNumber: "+62 361 300 1000",
   },
 ];
 
@@ -169,42 +83,18 @@ type SeedBoat = {
   description: string;
 };
 
+// Capacity is not in the source price list. 60 is a working assumption for a
+// fast boat on these routes; correct it against the operator's real manifest
+// before trusting seat counts for anything but a demo.
 const BOATS: SeedBoat[] = [
-  // Eka Jaya (premium fast boat)
-  { reg: "EKA-JAYA-I",  name: "EKA JAYA I",   operatorKey: "eka-jaya",  capacity: 80, description: "Premium fast boat — Padang Bai ↔ Gili / Bangsal / Amed." },
-  { reg: "EKA-JAYA-II", name: "EKA JAYA II",  operatorKey: "eka-jaya",  capacity: 80, description: "Afternoon Padang Bai departures + Penida corridor." },
-  // Wijaya
-  { reg: "WIJAYA-I",  name: "WIJAYA I",   operatorKey: "wijaya",  capacity: 60, description: "Daily Padang Bai ↔ Gili route." },
-  { reg: "WIJAYA-II", name: "WIJAYA II",  operatorKey: "wijaya",  capacity: 60, description: "Daily reverse Gili → Padang Bai route." },
-  // Golden Queen
-  { reg: "GOLDEN-QUEEN-I",  name: "GOLDEN QUEEN I",  operatorKey: "golden-queen",  capacity: 65, description: "Morning Padang Bai departures with hotel pickup." },
-  { reg: "GOLDEN-QUEEN-II", name: "GOLDEN QUEEN II", operatorKey: "golden-queen",  capacity: 65, description: "Midday departures, Padang Bai ↔ Gili." },
-  // Ostina
-  { reg: "OSTINA", name: "OSTINA", operatorKey: "ostina", capacity: 50, description: "Competitive flat-rate pricing, Padang Bai ↔ Gili." },
-  // Inami Luxury
-  { reg: "INAMI-LUXURY", name: "INAMI LUXURY", operatorKey: "inami", capacity: 55, description: "Luxury AC cabin with snack service." },
-  // Gili Gili
-  { reg: "GILI-GILI-FASTBOAT", name: "GILI-GILI FASTBOAT", operatorKey: "gili-gili", capacity: 60, description: "Reliable daily fast boat." },
-  // Wahana
-  { reg: "WAHANA-VIRENDRA", name: "WAHANA VIRENDRA", operatorKey: "wahana", capacity: 60, description: "Inter-island including Gili-to-Gili hops." },
-  // Samudra Jet (premium Serangan)
-  { reg: "SAMUDRA-JET-I",  name: "SAMUDRA JET I",  operatorKey: "samudra-jet", capacity: 80, description: "Serangan ↔ Gili corridor — morning luxury." },
-  { reg: "SAMUDRA-JET-II", name: "SAMUDRA JET II", operatorKey: "samudra-jet", capacity: 65, description: "Serangan ↔ Penida ↔ Gili Gede / Lombok." },
-  // Maruti (Serangan budget)
-  { reg: "MARUTI-EXPRESS", name: "MARUTI EXPRESS", operatorKey: "maruti", capacity: 50, description: "Budget Serangan ↔ Lombok corridor." },
-  // Sanur → Penida/Lembongan
-  { reg: "GLORY-EXPRESS-I",  name: "GLORY EXPRESS I",  operatorKey: "glory-express", capacity: 45, description: "Sanur ↔ Penida fast express." },
-  { reg: "GLORY-EXPRESS-II", name: "GLORY EXPRESS II", operatorKey: "glory-express", capacity: 45, description: "Sanur ↔ Lembongan + Penida." },
-  { reg: "MARLIN-FAST", name: "MARLIN FAST", operatorKey: "marlin", capacity: 50, description: "Sanur → Penida / Lembongan fast boat." },
-  // Free Bird (Amed / Penida)
-  { reg: "FREE-BIRD-I",  name: "FREE BIRD I",  operatorKey: "free-bird",  capacity: 55, description: "Amed ↔ Gili + Penida ↔ Gili corridor." },
-  { reg: "FREE-BIRD-II", name: "FREE BIRD II", operatorKey: "free-bird",  capacity: 55, description: "Penida ↔ Lombok corridor." },
-  // ASDP Ferry
-  { reg: "ASDP-KMP-1", name: "KMP. GILIMANUK I",  operatorKey: "asdp", capacity: 300, description: "Public ferry — cars, motorbikes, passengers. 4–5 hrs." },
-  // Wanua Adventure (Lombok → Flores)
-  { reg: "WANUA-ADVENTURE", name: "WANUA ADVENTURE", operatorKey: "wanua", capacity: 40, description: "Lombok → Komodo / Flores slow boat (overnight)." },
-  // Le Pirate (Labuan Bajo)
-  { reg: "LE-PIRATE-I", name: "LE PIRATE I", operatorKey: "le-pirate", capacity: 35, description: "Labuan Bajo → Komodo island hopping." },
+  { reg: "WVG-B1", name: "Wahana Penida 1", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, first rotation (07:00 out)." },
+  { reg: "WVG-B2", name: "Wahana Penida 2", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, second rotation (07:30 out)." },
+  { reg: "WVG-B3", name: "Wahana Penida 3", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, third rotation (09:00 out)." },
+  { reg: "WVG-B4", name: "Wahana Penida 4", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, fourth rotation (09:30 out)." },
+  { reg: "WVG-B5", name: "Wahana Penida 5", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, fifth rotation (11:00 out)." },
+  { reg: "WVG-B6", name: "Wahana Penida 6", operatorKey: "wahana-virendra", capacity: 60, description: "Sanur ↔ Nusa Penida, sixth rotation (15:00 out)." },
+  { reg: "WVG-A1", name: "Wahana Gili 1",   operatorKey: "wahana-virendra", capacity: 60, description: "Padang Bai ↔ Gili Trawangan / Gili Air / Senggigi, morning rotation." },
+  { reg: "WVG-A2", name: "Wahana Gili 2",   operatorKey: "wahana-virendra", capacity: 60, description: "Padang Bai ↔ Gili Trawangan / Gili Air / Senggigi, afternoon rotation." },
 ];
 
 // ============ SCHEDULES ============
@@ -218,158 +108,48 @@ type SeedSchedule = {
   price: number;
 };
 
+// Adult / Low season / one-way — the only combination Schedule can hold.
+// Times, durations and transit calls are verbatim from the operator's list.
 const SCHEDULES: SeedSchedule[] = [
-  // ═══ PADANG BAI → GILI ISLANDS (morning wave) ═══
-  { boatReg: "EKA-JAYA-I",  origin: P.PADANG_BAI, destination: P.GILI_T,    time: "08:30", duration: 90,  price: 385_000 },
-  { boatReg: "EKA-JAYA-I",  origin: P.PADANG_BAI, destination: P.GILI_AIR,  time: "08:30", duration: 115, price: 385_000 },
-  { boatReg: "EKA-JAYA-I",  origin: P.PADANG_BAI, destination: P.GILI_MENO, time: "08:30", duration: 100, price: 385_000 },
-  { boatReg: "EKA-JAYA-I",  origin: P.PADANG_BAI, destination: P.BANGSAL,   time: "08:30", duration: 135, price: 385_000 },
-  { boatReg: "GOLDEN-QUEEN-I",  origin: P.PADANG_BAI, destination: P.GILI_T,   time: "09:00", duration: 100, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-I",  origin: P.PADANG_BAI, destination: P.GILI_AIR, time: "09:00", duration: 130, price: 350_000 },
-  { boatReg: "OSTINA",       origin: P.PADANG_BAI, destination: P.GILI_T,    time: "09:00", duration: 110, price: 300_000 },
-  { boatReg: "OSTINA",       origin: P.PADANG_BAI, destination: P.GILI_AIR,  time: "09:00", duration: 135, price: 300_000 },
-  { boatReg: "WIJAYA-I",     origin: P.PADANG_BAI, destination: P.GILI_T,    time: "09:15", duration: 100, price: 275_000 },
-  { boatReg: "WIJAYA-I",     origin: P.PADANG_BAI, destination: P.GILI_AIR,  time: "09:15", duration: 125, price: 275_000 },
-  { boatReg: "WIJAYA-I",     origin: P.PADANG_BAI, destination: P.GILI_MENO, time: "09:15", duration: 110, price: 275_000 },
-  { boatReg: "INAMI-LUXURY", origin: P.PADANG_BAI, destination: P.GILI_T,    time: "09:30", duration: 100, price: 425_000 },
-  { boatReg: "INAMI-LUXURY", origin: P.PADANG_BAI, destination: P.GILI_AIR,  time: "09:30", duration: 125, price: 425_000 },
-  { boatReg: "INAMI-LUXURY", origin: P.PADANG_BAI, destination: P.GILI_MENO, time: "09:30", duration: 110, price: 425_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.PADANG_BAI, destination: P.GILI_T,   time: "09:30", duration: 100, price: 300_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.PADANG_BAI, destination: P.GILI_AIR, time: "09:30", duration: 130, price: 300_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.PADANG_BAI, destination: P.GILI_MENO,time: "09:30", duration: 115, price: 300_000 },
-  { boatReg: "GOLDEN-QUEEN-II", origin: P.PADANG_BAI, destination: P.GILI_T,   time: "09:30", duration: 100, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-II", origin: P.PADANG_BAI, destination: P.GILI_AIR, time: "09:30", duration: 130, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-II", origin: P.PADANG_BAI, destination: P.BANGSAL,  time: "09:30", duration: 165, price: 350_000 },
+  // ── WVG-B1 — Sanur ↔ Nusa Penida, rotation 1 ──
+  { boatReg: "WVG-B1", origin: P.SANUR,        destination: P.PENIDA,       time: "07:00", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B1", origin: P.PENIDA,       destination: P.SANUR,        time: "08:00", duration:  60, price: 150_000 },
 
-  // ═══ GILI → PADANG BAI (morning returns) ═══
-  { boatReg: "EKA-JAYA-I",     origin: P.GILI_T,  destination: P.PADANG_BAI, time: "10:00", duration: 150, price: 385_000 },
-  { boatReg: "EKA-JAYA-I",     origin: P.GILI_AIR,destination: P.PADANG_BAI, time: "10:30", duration: 125, price: 385_000 },
-  { boatReg: "WIJAYA-II",      origin: P.GILI_T,  destination: P.PADANG_BAI, time: "09:00", duration: 150, price: 275_000 },
-  { boatReg: "WIJAYA-II",      origin: P.BANGSAL, destination: P.PADANG_BAI, time: "10:00", duration: 120, price: 275_000 },
-  { boatReg: "INAMI-LUXURY",   origin: P.GILI_T,  destination: P.PADANG_BAI, time: "12:00", duration: 120, price: 425_000 },
-  { boatReg: "GOLDEN-QUEEN-II",origin: P.GILI_T,  destination: P.PADANG_BAI, time: "11:30", duration: 130, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-II",origin: P.GILI_AIR,destination: P.PADANG_BAI, time: "11:45", duration: 110, price: 350_000 },
-  { boatReg: "OSTINA",          origin: P.GILI_T,  destination: P.PADANG_BAI, time: "11:30", duration: 120, price: 300_000 },
-  { boatReg: "WIJAYA-I",       origin: P.GILI_T,  destination: P.PADANG_BAI, time: "12:00", duration: 150, price: 275_000 },
-  { boatReg: "WIJAYA-II",      origin: P.GILI_AIR,destination: P.PADANG_BAI, time: "09:30", duration: 120, price: 275_000 },
+  // ── WVG-B2 — Sanur ↔ Nusa Penida, rotation 2 ──
+  { boatReg: "WVG-B2", origin: P.SANUR,        destination: P.PENIDA,       time: "07:30", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B2", origin: P.PENIDA,       destination: P.SANUR,        time: "08:30", duration:  60, price: 150_000 },
 
-  // ═══ PADANG BAI → GILI (afternoon wave) ═══
-  { boatReg: "EKA-JAYA-II",  origin: P.PADANG_BAI, destination: P.GILI_T,    time: "13:00", duration: 90,  price: 385_000 },
-  { boatReg: "EKA-JAYA-II",  origin: P.PADANG_BAI, destination: P.GILI_AIR,  time: "13:00", duration: 115, price: 385_000 },
-  { boatReg: "EKA-JAYA-II",  origin: P.PADANG_BAI, destination: P.GILI_MENO, time: "13:00", duration: 100, price: 385_000 },
-  { boatReg: "EKA-JAYA-II",  origin: P.PADANG_BAI, destination: P.BANGSAL,   time: "13:00", duration: 135, price: 385_000 },
-  { boatReg: "WIJAYA-II",    origin: P.PADANG_BAI, destination: P.GILI_T,    time: "13:00", duration: 100, price: 275_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.PADANG_BAI, destination: P.GILI_T,  time: "13:30", duration: 90,  price: 325_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.PADANG_BAI, destination: P.GILI_AIR,time: "13:30", duration: 120, price: 325_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.PADANG_BAI, destination: P.BANGSAL, time: "13:30", duration: 135, price: 325_000 },
+  // ── WVG-B3 — Sanur ↔ Nusa Penida, rotation 3 ──
+  { boatReg: "WVG-B3", origin: P.SANUR,        destination: P.PENIDA,       time: "09:00", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B3", origin: P.PENIDA,       destination: P.SANUR,        time: "10:00", duration:  60, price: 150_000 },
 
-  // ═══ GILI → PADANG BAI (afternoon returns) ═══
-  { boatReg: "EKA-JAYA-II",   origin: P.GILI_T,   destination: P.PADANG_BAI, time: "15:00", duration: 150, price: 385_000 },
-  { boatReg: "EKA-JAYA-II",   origin: P.GILI_AIR, destination: P.PADANG_BAI, time: "15:20", duration: 130, price: 385_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.GILI_T,   destination: P.PADANG_BAI, time: "15:30", duration: 120, price: 325_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.GILI_AIR, destination: P.PADANG_BAI, time: "16:00", duration: 100, price: 325_000 },
-  { boatReg: "WAHANA-VIRENDRA",origin: P.BANGSAL,  destination: P.PADANG_BAI, time: "16:30", duration: 90,  price: 325_000 },
-  { boatReg: "EKA-JAYA-II",   origin: P.BANGSAL,   destination: P.PADANG_BAI, time: "15:45", duration: 105, price: 385_000 },
+  // ── WVG-B4 — Sanur ↔ Nusa Penida, rotation 4 ──
+  { boatReg: "WVG-B4", origin: P.SANUR,        destination: P.PENIDA,       time: "09:30", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B4", origin: P.PENIDA,       destination: P.SANUR,        time: "14:00", duration:  60, price: 150_000 },
 
-  // ═══ SERANGAN → GILI (Samudra Jet — premium) ═══
-  { boatReg: "SAMUDRA-JET-I",  origin: P.SERANGAN, destination: P.GILI_T,    time: "09:00", duration: 135, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.SERANGAN, destination: P.GILI_AIR,  time: "09:00", duration: 165, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.SERANGAN, destination: P.GILI_MENO, time: "09:00", duration: 150, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.SERANGAN, destination: P.BANGSAL,   time: "09:00", duration: 180, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.GILI_T,    destination: P.SERANGAN, time: "11:30", duration: 165, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.GILI_AIR,  destination: P.SERANGAN, time: "11:45", duration: 150, price: 825_000 },
-  { boatReg: "SAMUDRA-JET-I",  origin: P.BANGSAL,   destination: P.SERANGAN, time: "12:00", duration: 135, price: 825_000 },
-  // Samudra Jet II — Penida / Gili Gede corridor
-  { boatReg: "SAMUDRA-JET-II", origin: P.SERANGAN, destination: P.PENIDA,    time: "10:30", duration: 60,  price: 450_000 },
-  { boatReg: "SAMUDRA-JET-II", origin: P.SERANGAN, destination: P.GILI_GEDE, time: "10:30", duration: 120, price: 960_000 },
-  { boatReg: "SAMUDRA-JET-II", origin: P.PENIDA,    destination: P.GILI_GEDE,time: "11:30", duration: 60,  price: 500_000 },
-  { boatReg: "SAMUDRA-JET-II", origin: P.GILI_GEDE, destination: P.PENIDA,   time: "12:45", duration: 60,  price: 500_000 },
-  { boatReg: "SAMUDRA-JET-II", origin: P.GILI_GEDE, destination: P.SERANGAN, time: "12:45", duration: 120, price: 960_000 },
-  { boatReg: "SAMUDRA-JET-II", origin: P.PENIDA,    destination: P.SERANGAN, time: "13:45", duration: 60,  price: 450_000 },
+  // ── WVG-B5 — Sanur ↔ Nusa Penida, rotation 5 ──
+  { boatReg: "WVG-B5", origin: P.SANUR,        destination: P.PENIDA,       time: "11:00", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B5", origin: P.PENIDA,       destination: P.SANUR,        time: "15:00", duration:  60, price: 150_000 },
 
-  // ═══ SERANGAN → LOMBOK (Maruti) ═══
-  { boatReg: "MARUTI-EXPRESS", origin: P.SERANGAN, destination: P.BANGSAL,     time: "08:30", duration: 180, price: 400_000 },
-  { boatReg: "MARUTI-EXPRESS", origin: P.SERANGAN, destination: P.KUTA_LOMBOK, time: "08:30", duration: 210, price: 450_000 },
-  { boatReg: "MARUTI-EXPRESS", origin: P.BANGSAL,   destination: P.SERANGAN,   time: "13:00", duration: 180, price: 400_000 },
+  // ── WVG-B6 — Sanur ↔ Nusa Penida, rotation 6 ──
+  { boatReg: "WVG-B6", origin: P.SANUR,        destination: P.PENIDA,       time: "15:00", duration:  60, price: 150_000 },
+  { boatReg: "WVG-B6", origin: P.PENIDA,       destination: P.SANUR,        time: "16:30", duration:  60, price: 150_000 },
 
-  // ═══ SANUR → NUSA PENIDA / LEMBONGAN (highest volume corridor) ═══
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.SANUR, destination: P.PENIDA,    time: "07:30", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.SANUR, destination: P.PENIDA,    time: "08:30", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.SANUR, destination: P.PENIDA,    time: "09:30", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.SANUR, destination: P.PENIDA,    time: "10:30", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.SANUR, destination: P.LEMBONGAN, time: "08:00", duration: 35, price: 175_000 },
-  { boatReg: "GLORY-EXPRESS-II", origin: P.SANUR, destination: P.LEMBONGAN, time: "10:00", duration: 35, price: 175_000 },
-  { boatReg: "GLORY-EXPRESS-II", origin: P.SANUR, destination: P.PENIDA,    time: "07:45", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-II", origin: P.SANUR, destination: P.PENIDA,    time: "09:15", duration: 45, price: 200_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.SANUR, destination: P.PENIDA,    time: "08:00", duration: 45, price: 175_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.SANUR, destination: P.PENIDA,    time: "09:00", duration: 45, price: 175_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.SANUR, destination: P.LEMBONGAN, time: "08:30", duration: 35, price: 150_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.SANUR, destination: P.LEMBONGAN, time: "10:30", duration: 35, price: 150_000 },
-  // Penida → Sanur returns
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.PENIDA, destination: P.SANUR, time: "12:30", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.PENIDA, destination: P.SANUR, time: "14:00", duration: 45, price: 200_000 },
-  { boatReg: "GLORY-EXPRESS-I",  origin: P.PENIDA, destination: P.SANUR, time: "16:00", duration: 45, price: 200_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.PENIDA, destination: P.SANUR, time: "13:00", duration: 45, price: 175_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.PENIDA, destination: P.SANUR, time: "15:30", duration: 45, price: 175_000 },
-  { boatReg: "GLORY-EXPRESS-II", origin: P.LEMBONGAN, destination: P.SANUR, time: "13:00", duration: 35, price: 175_000 },
-  { boatReg: "MARLIN-FAST",      origin: P.LEMBONGAN, destination: P.SANUR, time: "14:30", duration: 35, price: 150_000 },
+  // ── WVG-A1 — Padang Bai ↔ Gili / Senggigi, rotation 1 ──
+  { boatReg: "WVG-A1", origin: P.PADANG_BAI,   destination: P.GILI_AIR,     time: "08:30", duration: 120, price: 450_000 },  // calls Gili Trawangan
+  { boatReg: "WVG-A1", origin: P.PADANG_BAI,   destination: P.GILI_T,       time: "08:30", duration:  90, price: 450_000 },
+  { boatReg: "WVG-A1", origin: P.PADANG_BAI,   destination: P.SENGGIGI,     time: "08:30", duration: 165, price: 450_000 },  // calls Gili Trawangan, Gili Air
+  { boatReg: "WVG-A1", origin: P.GILI_T,       destination: P.PADANG_BAI,   time: "10:00", duration: 165, price: 450_000 },  // calls Gili Air, Senggigi (Lombok)
+  { boatReg: "WVG-A1", origin: P.GILI_AIR,     destination: P.PADANG_BAI,   time: "10:30", duration: 135, price: 450_000 },  // calls Senggigi (Lombok)
+  { boatReg: "WVG-A1", origin: P.SENGGIGI,     destination: P.PADANG_BAI,   time: "11:15", duration:  90, price: 450_000 },
 
-  // ═══ AMED → GILI ISLANDS ═══
-  { boatReg: "FREE-BIRD-I", origin: P.AMED, destination: P.GILI_T,    time: "09:00", duration: 60,  price: 400_000 },
-  { boatReg: "FREE-BIRD-I", origin: P.AMED, destination: P.GILI_AIR,  time: "09:00", duration: 75,  price: 400_000 },
-  { boatReg: "FREE-BIRD-I", origin: P.AMED, destination: P.GILI_MENO, time: "09:00", duration: 70,  price: 400_000 },
-  { boatReg: "FREE-BIRD-I", origin: P.GILI_T,    destination: P.AMED, time: "14:00", duration: 60,  price: 400_000 },
-  { boatReg: "FREE-BIRD-I", origin: P.GILI_AIR,  destination: P.AMED, time: "14:15", duration: 50,  price: 400_000 },
-  { boatReg: "FREE-BIRD-I", origin: P.GILI_MENO, destination: P.AMED, time: "14:30", duration: 55,  price: 400_000 },
-
-  // ═══ NUSA PENIDA → GILI / LOMBOK ═══
-  { boatReg: "FREE-BIRD-II", origin: P.PENIDA,    destination: P.GILI_T,   time: "10:00", duration: 90,  price: 450_000 },
-  { boatReg: "FREE-BIRD-II", origin: P.PENIDA,    destination: P.GILI_AIR, time: "10:00", duration: 120, price: 450_000 },
-  { boatReg: "FREE-BIRD-II", origin: P.PENIDA,    destination: P.BANGSAL,  time: "10:00", duration: 150, price: 500_000 },
-  { boatReg: "FREE-BIRD-II", origin: P.GILI_T,    destination: P.PENIDA,   time: "12:30", duration: 90,  price: 450_000 },
-  { boatReg: "FREE-BIRD-II", origin: P.BANGSAL,   destination: P.PENIDA,   time: "10:00", duration: 150, price: 500_000 },
-  // Eka Jaya Penida corridor
-  { boatReg: "EKA-JAYA-II", origin: P.PENIDA,  destination: P.GILI_T,   time: "10:30", duration: 90,  price: 400_000 },
-  { boatReg: "EKA-JAYA-II", origin: P.GILI_T,  destination: P.PENIDA,   time: "12:00", duration: 90,  price: 400_000 },
-
-  // ═══ GILI-TO-GILI HOPS ═══
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_T,    destination: P.GILI_AIR,  time: "08:30", duration: 10,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_T,    destination: P.GILI_MENO, time: "08:30", duration: 15,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_AIR,  destination: P.GILI_MENO, time: "08:45", duration: 10,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_AIR,  destination: P.GILI_T,    time: "11:00", duration: 10,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_MENO, destination: P.GILI_T,    time: "11:15", duration: 15,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_MENO, destination: P.GILI_AIR,  time: "11:30", duration: 10,  price: 85_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.GILI_T,    destination: P.BANGSAL,   time: "14:00", duration: 25,  price: 100_000 },
-  { boatReg: "WAHANA-VIRENDRA", origin: P.BANGSAL,   destination: P.GILI_T,    time: "14:30", duration: 25,  price: 100_000 },
-
-  // ═══ ASDP PUBLIC FERRY (cheap, slow) ═══
-  { boatReg: "ASDP-KMP-1", origin: P.PADANG_BAI, destination: P.LEMBAR,  time: "07:00", duration: 270, price: 60_000 },
-  { boatReg: "ASDP-KMP-1", origin: P.PADANG_BAI, destination: P.LEMBAR,  time: "13:00", duration: 270, price: 60_000 },
-  { boatReg: "ASDP-KMP-1", origin: P.LEMBAR,      destination: P.PADANG_BAI, time: "07:00", duration: 270, price: 60_000 },
-  { boatReg: "ASDP-KMP-1", origin: P.LEMBAR,      destination: P.PADANG_BAI, time: "13:00", duration: 270, price: 60_000 },
-
-  // ═══ LOMBOK → FLORES / NTT ═══
-  { boatReg: "WANUA-ADVENTURE", origin: P.BANGSAL,     destination: P.LABUAN_BAJO, time: "08:00", duration: 720,  price: 1_250_000 },
-  { boatReg: "WANUA-ADVENTURE", origin: P.LABUAN_BAJO, destination: P.BANGSAL,     time: "08:00", duration: 720,  price: 1_250_000 },
-  { boatReg: "WANUA-ADVENTURE", origin: P.GILI_T,      destination: P.LABUAN_BAJO, time: "09:00", duration: 960,  price: 1_500_000 },
-  { boatReg: "WANUA-ADVENTURE", origin: P.LABUAN_BAJO, destination: P.GILI_T,      time: "09:00", duration: 960,  price: 1_500_000 },
-  // Le Pirate — Komodo island hopping
-  { boatReg: "LE-PIRATE-I", origin: P.LABUAN_BAJO, destination: P.KOMODO, time: "08:00", duration: 180, price: 950_000 },
-  { boatReg: "LE-PIRATE-I", origin: P.KOMODO,      destination: P.LABUAN_BAJO, time: "14:00", duration: 180, price: 950_000 },
-  { boatReg: "LE-PIRATE-I", origin: P.LABUAN_BAJO, destination: P.KOMODO, time: "10:00", duration: 180, price: 850_000 },
-
-  // ═══ LOMBOK → PADANG BAI (late returns) ═══
-  { boatReg: "EKA-JAYA-I", origin: P.BANGSAL, destination: P.PADANG_BAI, time: "11:00", duration: 120, price: 385_000 },
-  { boatReg: "GOLDEN-QUEEN-I", origin: P.GILI_T,  destination: P.PADANG_BAI, time: "11:30", duration: 150, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-I", origin: P.GILI_AIR,destination: P.PADANG_BAI, time: "12:15", duration: 130, price: 350_000 },
-  { boatReg: "GOLDEN-QUEEN-I", origin: P.BANGSAL, destination: P.PADANG_BAI, time: "12:30", duration: 120, price: 350_000 },
-  { boatReg: "WIJAYA-I",    origin: P.GILI_AIR,  destination: P.PADANG_BAI, time: "12:15", duration: 135, price: 275_000 },
-  { boatReg: "WIJAYA-I",    origin: P.BANGSAL,   destination: P.PADANG_BAI, time: "12:30", duration: 120, price: 275_000 },
-  { boatReg: "INAMI-LUXURY",origin: P.GILI_AIR,  destination: P.PADANG_BAI, time: "12:15", duration: 105, price: 425_000 },
-  { boatReg: "INAMI-LUXURY",origin: P.BANGSAL,   destination: P.PADANG_BAI, time: "12:30", duration: 90,  price: 425_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.GILI_T,    destination: P.PADANG_BAI, time: "11:30", duration: 130, price: 300_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.GILI_AIR,  destination: P.PADANG_BAI, time: "11:45", duration: 115, price: 300_000 },
-  { boatReg: "GILI-GILI-FASTBOAT", origin: P.BANGSAL,   destination: P.PADANG_BAI, time: "12:00", duration: 105, price: 300_000 },
+  // ── WVG-A2 — Padang Bai ↔ Gili / Senggigi, rotation 2 ──
+  { boatReg: "WVG-A2", origin: P.PADANG_BAI,   destination: P.GILI_AIR,     time: "13:00", duration: 120, price: 450_000 },  // calls Gili Trawangan
+  { boatReg: "WVG-A2", origin: P.PADANG_BAI,   destination: P.GILI_T,       time: "13:00", duration:  90, price: 450_000 },
+  { boatReg: "WVG-A2", origin: P.PADANG_BAI,   destination: P.SENGGIGI,     time: "13:00", duration: 165, price: 450_000 },  // calls Gili Trawangan, Gili Air
+  { boatReg: "WVG-A2", origin: P.GILI_T,       destination: P.PADANG_BAI,   time: "14:30", duration: 165, price: 450_000 },  // calls Gili Air, Senggigi (Lombok)
+  { boatReg: "WVG-A2", origin: P.GILI_AIR,     destination: P.PADANG_BAI,   time: "15:00", duration: 135, price: 450_000 },  // calls Senggigi (Lombok)
+  { boatReg: "WVG-A2", origin: P.SENGGIGI,     destination: P.PADANG_BAI,   time: "15:45", duration:  90, price: 450_000 },
 ];
 
 // ============ SEED FUNCTION ============
@@ -391,6 +171,17 @@ export async function seedRealData(opts: {
     opts.defaultPassword ?? "changeme123",
     12,
   );
+
+  // ── 0. Passenger-type multipliers ──
+  // The source prices infants free and children at 110,000 against an adult
+  // 150,000 on Sanur–Penida, so 0.7333. It charges the full adult fare for
+  // children on the Padang Bai / Gili sailings, which a single per-operator
+  // multiplier cannot also express — those child fares seed 27% light.
+  await prisma.platformConfig.upsert({
+    where: { id: "default" },
+    create: { id: "default", childMultiplier: 0.7333, infantMultiplier: 0 },
+    update: { childMultiplier: 0.7333, infantMultiplier: 0 },
+  });
 
   // ── 1. Operators ──
   const operatorIds: Record<string, string> = {};
