@@ -8,7 +8,7 @@ test("admin can log in and view the refunds queue", async ({ page }) => {
   await page.getByRole("button", { name: /log ?in|sign ?in/i }).click();
 
   await page.waitForURL(/\/admin(\/|$)/, { timeout: 15_000 });
-  await expect(page.getByText(/overview/i)).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText(/overview/i).first()).toBeVisible({ timeout: 5_000 });
 
   await page.goto("/admin/refunds");
   await expect(page.locator("body")).toContainText(/refund/i);
