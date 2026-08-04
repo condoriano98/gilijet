@@ -11,27 +11,28 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/gilibali/i);
+  await expect(page).toHaveTitle(/gilibali|gilijet/i);
 
-  // Homepage should expose a search entrypoint.
   await expect(
     page.getByRole("link", { name: /search|find|book/i }).first(),
   ).toBeVisible();
 
-  // Use the QA schedule directly — homepage search wiring varies and is
-  // covered by ui-polisher walkthroughs, not by this golden path.
-  await page.goto("/book/qa-sched-1");
-  await expect(page.getByText(/total/i).first()).toBeVisible();
+  await page.goto("/search?origin=Sanur&destination=Nusa+Penida");
+  await expect(page.getByText(/available|tersedia|result/i).first()).toBeVisible({
+    timeout: 10_000,
+  });
 
-  // The booking form is RHF + Zod. Field names follow the schema in
-  // app/(customer)/book/[scheduleId]/page.tsx.
+  await page.getByRole("link", { name: /book|pesan/i }).first().click();
+
+  await page.waitForURL(/\/book\//, { timeout: 15_000 });
+  await expect(page.getByText(/passenger|penumpang/i).first()).toBeVisible();
+
   await page.getByLabel(/name/i).first().fill("QA Tester");
   await page.getByLabel(/email/i).first().fill("qa-walk@gilijet.local");
   await page.getByLabel(/phone|whatsapp/i).first().fill("+628123456789");
 
   await page.getByRole("button", { name: /continue|book|pay/i }).first().click();
 
-  // Mock-pay endpoint returns the customer to the ticket page.
   await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, {
     timeout: 30_000,
   });
