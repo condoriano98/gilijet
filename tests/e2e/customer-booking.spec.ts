@@ -39,7 +39,7 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   const checkoutCheckbox = page.getByRole("checkbox");
   if (await checkoutCheckbox.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await checkoutCheckbox.check();
-    await page.getByRole("button", { name: /Pay/i }).click();
+    await page.getByRole("button", { name: /^Pay\s/ }).click();
     await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, { timeout: 30_000 });
   }
   await expect(page.locator("body")).toContainText(/ticket|booking|qr/i);
