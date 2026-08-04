@@ -115,6 +115,7 @@ describe("every action is gated", () => {
         "regenerateDepartures",
         "cancelDeparture",
         "adjustDeparturePrice",
+        "deleteSchedule",
       ]),
     );
   });

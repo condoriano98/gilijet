@@ -466,3 +466,75 @@ export async function adjustDeparturePrice(formData: FormData) {
   revalidatePath(back);
   redirect(`${back}?ok=1`);
 }
+
+export async function deleteSchedule(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) redirect(`${OPS}/schedules`);
+  const back = `${OPS}/schedules/${id}`;
+
+  const existing = await scheduleWithOwner(id);
+  if (!existing) fail(`${OPS}/schedules`, "Schedule not found");
+
+  const now = new Date();
+
+  // Refuse while customers still hold seats on a future sailing. Deleting would
+  // strand them: they keep a ticket for a departure the operator can no longer
+  // see. Cancelling a departure already refunds correctly, so send the admin
+  // through that path rather than growing a second, weaker one here.
+  const bookedLegs = await prisma.leg.count({
+    where: {
+      scheduleId: id,
+      departureDate: { gte: now },
+      status: { not: "CANCELLED" },
+      bookings: { some: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } } },
+    },
+  });
+  if (bookedLegs > 0) {
+    fail(
+      back,
+      `${bookedLegs} upcoming departure(s) still have bookings — cancel those first, which refunds the customers.`,
+    );
+  }
+
+  // Soft delete only: Schedule -> Leg is onDelete: Restrict, so a row with any
+  // departure cannot be removed, and the departures are the audit trail for
+  // every booking ever taken on this route.
+  //
+  // Hiding the schedule is not enough on its own. Customer search excludes
+  // deleted schedules, but /book/[legId] resolves a departure directly and
+  // checks only leg.status, so a stale link would keep selling. Closing the
+  // remaining future departures is what actually stops the sale.
+  const [, closed] = await prisma.$transaction([
+    prisma.schedule.update({
+      where: { id },
+      data: { deletedAt: now, status: "INACTIVE" },
+    }),
+    prisma.leg.updateMany({
+      where: {
+        scheduleId: id,
+        departureDate: { gte: now },
+        status: { in: ["OPEN", "FULL"] },
+      },
+      data: { status: "CANCELLED", cancellationReason: "Schedule deleted" },
+    }),
+  ]);
+
+  await audit({
+    entityType: "SCHEDULE",
+    entityId: id,
+    action: "deleted_by_admin",
+    userId: session.sub,
+    userRole: "ADMIN",
+    previousState: { status: existing.status, deletedAt: null },
+    newState: {
+      status: "INACTIVE",
+      deletedAt: now.toISOString(),
+      operatorId: existing.boat.operatorId,
+      closedDepartures: closed.count,
+    },
+  });
+
+  revalidatePath(`${OPS}/schedules`);
+  redirect(`${OPS}/schedules?ok=1`);
+}

@@ -25,6 +25,7 @@ import {
   regenerateDepartures,
   setScheduleStatus,
   updateSchedule,
+  deleteSchedule,
 } from "../../actions";
 import { ScheduleFields } from "../../schedule-fields";
 
@@ -195,6 +196,28 @@ export default async function OperationsScheduleDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle>Delete schedule</CardTitle>
+          <CardDescription>
+            Removes this route from the operations list and from customer
+            search, and closes its remaining future departures so no stale link
+            can still sell one. Past departures and their bookings are kept —
+            they are the record of money already taken. Refused while any
+            upcoming departure still has bookings; cancel those first so the
+            customers get refunded.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="justify-end">
+          <form action={deleteSchedule}>
+            <input type="hidden" name="id" value={schedule.id} />
+            <Button type="submit" variant="destructive">
+              Delete schedule
+            </Button>
+          </form>
+        </CardFooter>
+      </Card>
 
       <Card>
         <CardHeader>
