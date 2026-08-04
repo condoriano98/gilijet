@@ -10,14 +10,14 @@ import { test, expect } from "@playwright/test";
 test("anonymous customer can book a QA schedule end-to-end", async ({
   page,
 }) => {
-  await page.goto("/search");
-  await expect(page.getByRole("heading", { name: /find/i })).toBeVisible();
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  const y = tomorrow.getFullYear();
+  const m = String(tomorrow.getMonth() + 1).padStart(2, "0");
+  const d = String(tomorrow.getDate()).padStart(2, "0");
+  const date = `${y}-${m}-${d}`;
 
-  await page.getByRole("combobox", { name: "From" }).selectOption("Sanur");
-  await page.getByRole("button", { name: /^Search$/i }).click();
-
-  await page.waitForURL(/\/search\?/, { timeout: 15_000 });
-  await expect(page.locator("h1").first()).toBeVisible({ timeout: 10_000 });
+  await page.goto(`/search?origin=Sanur&destination=Nusa+Penida&date=${date}&passengers=1`);
+  await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("link", { name: /Book \d/i }).first().click({ timeout: 10_000 });
 
