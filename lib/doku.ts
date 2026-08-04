@@ -177,13 +177,11 @@ export async function createCheckout(
   });
   const text = await res.text();
   if (!res.ok) {
-    // Name the host, not just the path: a production Client-Id sent to the
-    // sandbox host is rejected as invalid_client_id, which reads like a bad
-    // key rather than the wrong environment. DOKU_IS_PRODUCTION must be the
-    // exact string "true" — anything else falls back to sandbox silently.
     const hint =
-      /invalid_client_id/i.test(text) && !env.DOKU_IS_PRODUCTION
-        ? ' — this Client-Id is unknown to the sandbox host. If these are live credentials, set DOKU_IS_PRODUCTION="true".'
+      /invalid_client_id/i.test(text)
+        ? env.DOKU_IS_PRODUCTION
+          ? ` — this Client-Id was rejected by the production host (${baseUrl()}). If these are sandbox credentials, set DOKU_IS_PRODUCTION=false.`
+          : ` — this Client-Id is unknown to the sandbox host (${baseUrl()}). If these are live credentials, set DOKU_IS_PRODUCTION="true".`
         : "";
     throw new Error(
       `DOKU ${baseUrl()}${CHECKOUT_PATH} ${res.status}: ${text.slice(0, 500)}${hint}`,
