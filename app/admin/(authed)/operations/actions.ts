@@ -416,3 +416,53 @@ export async function cancelDeparture(formData: FormData) {
   redirect(`${back}?ok=1`);
 }
 
+
+export async function adjustDeparturePrice(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const legId = String(formData.get("legId") ?? "");
+  if (!legId) redirect(OPS);
+  const back = `${OPS}/departures/${legId}`;
+
+  // Same bounds as a schedule's base price, so one departure cannot be priced
+  // somewhere the schedule form would refuse.
+  const parsed = z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(50_000_000)
+    .safeParse(formData.get("basePrice"));
+  if (!parsed.success) {
+    fail(back, "Price must be a whole number between 1,000 and 50,000,000 IDR");
+  }
+  const newPrice = parsed.data;
+
+  const leg = await prisma.leg.findUnique({
+    where: { id: legId },
+    select: { id: true, operatorId: true, status: true, basePrice: true },
+  });
+  if (!leg) fail(OPS, "Departure not found");
+  if (leg.status === "CANCELLED" || leg.status === "SAILED") {
+    fail(back, `Cannot reprice a ${leg.status.toLowerCase()} departure`);
+  }
+
+  const previous = Number(leg.basePrice);
+  if (previous === newPrice) redirect(`${back}?ok=1`);
+
+  await prisma.leg.update({
+    where: { id: legId },
+    data: { basePrice: newPrice },
+  });
+
+  await audit({
+    entityType: "LEG",
+    entityId: legId,
+    action: "price_adjusted_by_admin",
+    userId: session.sub,
+    userRole: "ADMIN",
+    previousState: { basePrice: previous },
+    newState: { basePrice: newPrice, operatorId: leg.operatorId },
+  });
+
+  revalidatePath(back);
+  redirect(`${back}?ok=1`);
+}

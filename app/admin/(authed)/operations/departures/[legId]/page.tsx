@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cancelDeparture } from "../../actions";
+import { adjustDeparturePrice, cancelDeparture } from "../../actions";
 
 export const metadata = { title: "Departure · Operations" };
 
@@ -128,6 +128,44 @@ export default async function DepartureDetailPage({
               {booked} of {leg.totalCapacity} seats booked.
             </CardDescription>
           </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Price</CardTitle>
+            <CardDescription>
+              Applies to this departure only. The schedule&apos;s base price is
+              unchanged, and the {booked} seat(s) already sold keep what they
+              were charged.
+            </CardDescription>
+          </CardHeader>
+          <form action={adjustDeparturePrice}>
+            <CardContent>
+              <input type="hidden" name="legId" value={leg.id} />
+              <div className="grid gap-1.5">
+                <Label htmlFor="basePrice">Base price (IDR)</Label>
+                <Input
+                  id="basePrice"
+                  name="basePrice"
+                  type="number"
+                  min={1000}
+                  max={50000000}
+                  step={1000}
+                  defaultValue={Number(leg.basePrice)}
+                  disabled={closed}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Per adult, before multipliers and service fee.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button type="submit" variant="outline" disabled={closed}>
+                Update price
+              </Button>
+            </CardFooter>
+          </form>
         </Card>
 
         <Card>
