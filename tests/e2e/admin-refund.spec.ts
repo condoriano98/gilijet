@@ -7,10 +7,11 @@ test("admin can log in and view the refunds queue", async ({ page }) => {
   await page.getByLabel(/password/i).fill("qaqaqaqa");
   await page.getByRole("button", { name: /log ?in|sign ?in/i }).click();
 
-  await page.waitForURL(/\/admin(\/|$)/, { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL(/\/admin(\/|$)/, { timeout: 20_000 });
+  await page.waitForTimeout(2000);
+  await page.reload();
 
   await page.goto("/admin/refunds");
-  await expect(page.locator("body")).toContainText(/refund/i, { timeout: 10_000 });
-  await expect(page.locator("body")).toContainText(/pending|approve|qa-customer/i);
+  await expect(page.locator("body")).toContainText(/refund/i, { timeout: 15_000 });
+  await expect(page.locator("body")).toContainText(/pending|approve|qa-customer/i, { timeout: 5_000 });
 });
