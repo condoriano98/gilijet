@@ -30,8 +30,15 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
 
   await page.getByRole("button", { name: /continue|book|pay/i }).first().click();
 
-  await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, {
+  await page.waitForURL(/\/(checkout|b|tickets?|account\/bookings)\//, {
     timeout: 30_000,
   });
+
+  const checkoutCheckbox = page.getByRole("checkbox");
+  if (await checkoutCheckbox.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await checkoutCheckbox.check();
+    await page.getByRole("button", { name: /Pay/i }).click();
+    await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, { timeout: 30_000 });
+  }
   await expect(page.locator("body")).toContainText(/ticket|booking|qr/i);
 });
