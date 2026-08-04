@@ -13,8 +13,8 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
   await page.goto("/search");
   await expect(page.getByRole("heading", { name: /find/i })).toBeVisible();
 
-  await page.getByLabel(/destination/i).fill("Nusa Penida");
-  await page.getByRole("button", { name: /search|cari/i }).click();
+  await page.getByRole("combobox", { name: "From" }).selectOption("Sanur");
+  await page.getByRole("button", { name: /^Search$/i }).click();
 
   await page.waitForURL(/\/search\?/, { timeout: 15_000 });
   await expect(page.locator("h1").first()).toBeVisible({ timeout: 10_000 });
