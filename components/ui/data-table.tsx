@@ -88,7 +88,11 @@ export function DataTable<T extends { id?: string }>({
                       col.className,
                     )}
                   >
-                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
+                    {col.render
+                      ? col.render(row)
+                      : (React.isValidElement((row as Record<string, unknown>)[col.key])
+                        ? (row as Record<string, unknown>)[col.key]
+                        : String((row as Record<string, unknown>)[col.key] ?? "")) as React.ReactNode}
                   </td>
                 ))}
               </tr>

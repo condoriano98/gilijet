@@ -82,52 +82,32 @@ export default async function OperatorDashboard() {
 
   const firstName = session.email.split("@")[0];
 
-  type LegRow = (typeof todayLegs)[number];
+  const statusVariant: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+    OPEN: "success", FULL: "warning", SAILED: "info" as "success", CANCELLED: "danger",
+  };
+
   const legColumns = [
-    {
-      key: "time",
-      header: "Waktu",
-      render: (row: LegRow) => (
-        <span className="font-mono font-medium">{formatLocalTime(row.departureDate)}</span>
-      ),
-    },
-    {
-      key: "route",
-      header: "Rute",
-      render: (row: LegRow) => `${row.schedule.originPort} → ${row.schedule.destinationPort}`,
-    },
-    {
-      key: "boat",
-      header: "Kapal",
-      render: (row: LegRow) => row.schedule.boat.name,
-    },
-    {
-      key: "seats",
-      header: "Manifest",
-      align: "center" as const,
-      render: (row: LegRow) => `${row.totalCapacity - row.availableSeats}/${row.totalCapacity}`,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row: LegRow) => {
-        const map: Record<string, "success" | "warning" | "danger" | "neutral"> = {
-          OPEN: "success", FULL: "warning", SAILED: "info" as "success", CANCELLED: "danger",
-        };
-        return <StatusBadge variant={map[row.status] ?? "neutral"}>{row.status}</StatusBadge>;
-      },
-    },
-    {
-      key: "action",
-      header: "Aksi",
-      align: "right" as const,
-      render: (row: LegRow) => (
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/operator/legs/${row.id}`}>Lihat Manifest</Link>
-        </Button>
-      ),
-    },
+    { key: "time",   header: "Waktu" },
+    { key: "route",  header: "Rute" },
+    { key: "boat",   header: "Kapal" },
+    { key: "seats",  header: "Manifest", align: "center" as const },
+    { key: "status", header: "Status" },
+    { key: "action", header: "Aksi", align: "right" as const },
   ];
+
+  const legRows = todayLegs.map((leg) => ({
+    id: leg.id,
+    time: <span className="font-mono font-medium">{formatLocalTime(leg.departureDate)}</span>,
+    route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
+    boat: leg.schedule.boat.name,
+    seats: `${leg.totalCapacity - leg.availableSeats}/${leg.totalCapacity}`,
+    status: <StatusBadge variant={statusVariant[leg.status] ?? "neutral"}>{leg.status}</StatusBadge>,
+    action: (
+      <Button asChild variant="outline" size="sm">
+        <Link href={`/operator/legs/${leg.id}`}>Lihat Manifest</Link>
+      </Button>
+    ),
+  }));
 
   return (
     <div className="space-y-8">
@@ -175,7 +155,7 @@ export default async function OperatorDashboard() {
         <CardContent>
           <DataTable
             columns={legColumns}
-            data={todayLegs}
+            data={legRows}
             emptyMessage="Tidak ada keberangkatan hari ini"
           />
         </CardContent>
