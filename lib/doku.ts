@@ -282,7 +282,35 @@ export type DokuNotification = {
   amount: number | null;
   channelCode: string | null;
   identifier: string | null;
+  /**
+   * Whatever the notification says about *why* a payment failed. DOKU's exact
+   * field name for this is not documented for Checkout, so several plausible
+   * ones are tried and the raw payload is stored alongside — the parse can be
+   * tightened once real declines have been seen.
+   */
+  failureReason: string | null;
 };
+
+/** First non-empty of the fields DOKU might carry a decline reason in. */
+function readFailureReason(
+  payload: Record<string, unknown>,
+  transaction: Record<string, unknown>,
+  status: string,
+): string | null {
+  const candidates = [
+    transaction.message,
+    transaction.reason,
+    transaction.response_message,
+    transaction.failure_reason,
+    payload.message,
+    payload.error,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim().slice(0, 300);
+  }
+  // No reason field: the status itself is the only signal we have.
+  return status && status !== "SUCCESS" ? status : null;
+}
 
 export function readNotification(
   payload: Record<string, unknown>,
@@ -303,6 +331,7 @@ export function readNotification(
     amount: amount !== null && Number.isFinite(amount) ? amount : null,
     channelCode: channel.id ? String(channel.id) : null,
     identifier: service.id ? String(service.id) : null,
+    failureReason: readFailureReason(payload, transaction, status),
   };
 }
 

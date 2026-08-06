@@ -20,6 +20,19 @@ const envSchema = z.object({
     .transform((v) => v === "true")
     .default("false"),
 
+  // PayPal — the backup gateway for cards DOKU declines. PayPal cannot settle
+  // IDR, so a PayPal booking is charged in PAYPAL_PRESENTMENT_CURRENCY at the
+  // stored FX rate. Absent keys simply mean PayPal is not offered.
+  PAYPAL_CLIENT_ID: z.string().optional(),
+  PAYPAL_CLIENT_SECRET: z.string().optional(),
+  PAYPAL_WEBHOOK_ID: z.string().optional(),
+  PAYPAL_IS_PRODUCTION: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .default("false"),
+  PAYPAL_PRESENTMENT_CURRENCY: z.string().length(3).optional().default("USD"),
+
   // Xendit (legacy — diagnostics/refunds only).
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),

@@ -19,8 +19,8 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
 - **DB:** PostgreSQL (Supabase) via Prisma 6
 - **Auth:** JWT in HttpOnly cookies (`jose` + `bcryptjs`), separate cookies per
   audience (customer / operator / admin)
-- **Payments:** DOKU Checkout. Xendit remains wired for legacy refunds and
-  diagnostics only
+- **Payments:** DOKU Checkout (primary, settles IDR) with PayPal as the backup
+  for cards DOKU declines (charged in USD at a stored FX rate)
 - **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent
 - **Storage:** Supabase Storage, for operator KYB documents
 - **i18n:** `next-intl` — `en`, `id`, `zh`, `ja` on the customer surface

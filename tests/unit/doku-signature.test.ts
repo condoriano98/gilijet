@@ -184,6 +184,28 @@ describe("readNotification", () => {
     }
   });
 
+  it("carries a decline reason so a failure is not silently dropped", async () => {
+    const { readNotification } = await loadDoku();
+    // DOKU's field name for this is not documented for Checkout, so several
+    // plausible ones are accepted.
+    for (const shape of [
+      { transaction: { status: "FAILED", message: "Card declined by issuer" } },
+      { transaction: { status: "FAILED", reason: "Card declined by issuer" } },
+      { transaction: { status: "FAILED", response_message: "Card declined by issuer" } },
+    ]) {
+      expect(readNotification(shape).failureReason).toBe("Card declined by issuer");
+    }
+  });
+
+  it("falls back to the status when no reason field is present", async () => {
+    const { readNotification } = await loadDoku();
+    // Losing the signal entirely would be worse than a coarse one.
+    expect(readNotification({ transaction: { status: "FAILED" } }).failureReason).toBe(
+      "FAILED",
+    );
+    expect(readNotification({ transaction: { status: "SUCCESS" } }).failureReason).toBeNull();
+  });
+
   it("pulls the invoice number, amount and channel back out", async () => {
     const { readNotification } = await loadDoku();
     expect(

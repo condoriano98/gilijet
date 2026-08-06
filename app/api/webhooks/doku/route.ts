@@ -58,8 +58,11 @@ export async function POST(req: NextRequest) {
 
   if (!notification.success) {
     // A failed or pending attempt is not terminal: the hold timer still runs
-    // and the customer may retry, so the booking is left alone.
-    return NextResponse.json({ ok: true, ignored: true });
+    // and the customer may retry, so the booking status is left alone. But it
+    // is recorded — an unrecorded decline is invisible, and these are what tell
+    // us whether the PayPal backup is actually recovering those customers.
+    await recordFailedAttempt(reference, notification, payload);
+    return NextResponse.json({ ok: true, recorded: notification.status });
   }
 
   const eventType = "payment.success";
@@ -139,7 +142,12 @@ export async function POST(req: NextRequest) {
 
     await prisma.payment.update({
       where: { bookingId: booking.id },
-      data: { rawWebhookData: payload as never },
+      data: {
+        rawWebhookData: payload as never,
+        // Clear any earlier decline: this booking is paid, and a stale reason
+        // would keep the retry prompt showing on a confirmed booking.
+        failedReason: null,
+      },
     });
 
     if (!result.alreadyIssued) {
@@ -176,5 +184,68 @@ export async function POST(req: NextRequest) {
       })
       .catch(() => {});
     return NextResponse.json({ ok: false, error: "Handler error" }, { status: 500 });
+  }
+}
+
+/**
+ * Persist a non-success notification.
+ *
+ * Deliberately does NOT set Payment.status = FAILED. A decline is not terminal:
+ * the hold timer is still running and the customer may retry on another card or
+ * switch to a virtual account. Marking the payment failed would misrepresent a
+ * booking that is still perfectly payable.
+ *
+ * externalRef carries DOKU's own transaction id as well as the booking
+ * reference, so three retries produce three rows. Keying on the booking alone
+ * would dedupe them away and hide exactly the pattern worth seeing.
+ */
+async function recordFailedAttempt(
+  reference: string,
+  notification: ReturnType<typeof readNotification>,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const externalRef = notification.identifier
+    ? `${reference}:${notification.identifier}`
+    : reference;
+
+  try {
+    const already = await prisma.webhookEvent.findFirst({
+      where: { provider: "doku", eventType: "payment.failed", externalRef },
+      select: { id: true },
+    });
+    if (!already) {
+      await prisma.webhookEvent.create({
+        data: {
+          provider: "doku",
+          eventType: "payment.failed",
+          externalRef,
+          rawPayload: payload as never,
+          // PROCESSED, not PENDING: this is a record, not work to retry.
+          // Leaving it PENDING would have retry-webhooks reprocess declines.
+          status: "PROCESSED",
+          attempts: 1,
+          lastAttemptAt: new Date(),
+          processedAt: new Date(),
+          errorMessage: notification.failureReason,
+        },
+      });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { bookingReference: reference },
+      select: { id: true },
+    });
+    if (booking) {
+      await prisma.payment.updateMany({
+        where: { bookingId: booking.id },
+        data: {
+          failedReason: notification.failureReason ?? notification.status,
+        },
+      });
+    }
+  } catch (err) {
+    // Never let bookkeeping turn into a 500 — DOKU would retry the
+    // notification, and there is nothing here worth retrying.
+    console.error(`[doku-webhook] could not record decline for ${reference}:`, err);
   }
 }
