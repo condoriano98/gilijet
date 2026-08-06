@@ -23,8 +23,8 @@ const envSchema = z.object({
   // PayPal — the backup gateway for cards DOKU declines. PayPal cannot settle
   // IDR, so a PayPal booking is charged in PAYPAL_PRESENTMENT_CURRENCY at the
   // stored FX rate. Absent keys simply mean PayPal is not offered.
-  PAYPAL_CLIENT_ID: z.string().optional(),
-  PAYPAL_CLIENT_SECRET: z.string().optional(),
+  PAYPAL_CLIENT_ID: z.string().optional().transform((v) => v?.trim()),
+  PAYPAL_CLIENT_SECRET: z.string().optional().transform((v) => v?.trim()),
   PAYPAL_WEBHOOK_ID: z.string().optional(),
   PAYPAL_IS_PRODUCTION: z
     .string()
