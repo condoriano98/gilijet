@@ -98,7 +98,17 @@ async function accessToken(): Promise<string> {
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`PayPal /v1/oauth2/token ${res.status}: ${text.slice(0, 500)}`);
+    // invalid_client almost always means the credentials belong to the *other*
+    // host: sandbox keys sent to production, or live keys sent to sandbox.
+    // Naming the host and the flag turns an opaque 401 into a config fix.
+    const hint = /invalid_client/i.test(text)
+      ? env.PAYPAL_IS_PRODUCTION
+        ? ` — rejected by the LIVE host. If these are sandbox credentials, unset PAYPAL_IS_PRODUCTION. Run \`pnpm paypal:selftest\` to see which host accepts them.`
+        : ` — rejected by the SANDBOX host. If these are live credentials, set PAYPAL_IS_PRODUCTION="true". Run \`pnpm paypal:selftest\` to see which host accepts them.`
+      : "";
+    throw new Error(
+      `PayPal ${baseUrl()}/v1/oauth2/token ${res.status}: ${text.slice(0, 300)}${hint}`,
+    );
   }
   const json = JSON.parse(text) as { access_token?: string; expires_in?: number };
   if (!json.access_token) throw new Error("PayPal: missing access_token");
