@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PaypalMark } from "@/components/checkout/payment-marks";
 
 /**
  * PayPal Standard Checkout entry point.
@@ -37,12 +38,11 @@ export function PaypalButton({
         type="submit"
         disabled={loading}
         variant="outline"
-        className="w-full"
+        className="w-full border-[#003087]/25 bg-white hover:bg-[#003087]/5"
         size="lg"
       >
-        {loading
-          ? "Opening PayPal…"
-          : `Pay ${presentmentLabel} by card via PayPal`}
+        <PaypalMark className="h-5 w-5 shrink-0" />
+        {loading ? "Opening PayPal…" : `Pay ${presentmentLabel} by card`}
       </Button>
       <p className="text-center text-xs text-slate-500">
         Card declined above? This uses a different card network, and needs no

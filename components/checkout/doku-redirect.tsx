@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DokuMethodMarks } from "@/components/checkout/payment-marks";
 
 /**
  * Sends the customer to DOKU's hosted checkout page.
@@ -28,12 +29,12 @@ export function DokuRedirect({
   return (
     <form action={startAction} onSubmit={() => setLoading(true)} className="space-y-3">
       <input type="hidden" name="reference" value={bookingReference} />
+      <DokuMethodMarks />
       <Button type="submit" disabled={loading} className="w-full" size="lg">
         {loading ? "Opening payment…" : `Pay ${amountLabel}`}
       </Button>
       <p className="text-center text-xs text-slate-500">
-        Bank transfer, card, e-wallet or convenience store — choose on the
-        secure DOKU payment page.
+        Choose your method on the secure DOKU payment page.
       </p>
     </form>
   );
