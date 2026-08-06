@@ -21,6 +21,12 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /mobile-layout\.spec\.ts/,
+    },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 5"] },
+      testMatch: /mobile-layout\.spec\.ts/,
     },
   ],
   webServer: process.env.E2E_BASE_URL

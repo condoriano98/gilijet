@@ -1,52 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-
-type AuthState =
-  | { status: "loading" }
-  | { status: "guest" }
-  | { status: "signed-in"; firstName: string };
+import { useAuthState } from "@/components/customer/use-auth-state";
 
 /**
- * Client component that fetches auth state via /api/auth/me. Keeps the
- * customer layout fully static — only this island hydrates on the
- * client to swap "Sign in/Sign up" for a personalised button. While
- * loading, renders nothing to avoid layout shift, since the buttons
- * are small.
+ * Desktop auth buttons. Keeps the customer layout fully static — only this
+ * island hydrates on the client to swap "Sign in/Sign up" for a personalised
+ * button. Below `sm` these links live in the mobile sheet instead.
  */
 export function AuthNav() {
-  const [state, setState] = useState<AuthState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { signedIn: false }))
-      .then((data: { signedIn?: boolean; firstName?: string }) => {
-        if (cancelled) return;
-        if (data.signedIn && data.firstName) {
-          setState({ status: "signed-in", firstName: data.firstName });
-        } else {
-          setState({ status: "guest" });
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setState({ status: "guest" });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const state = useAuthState();
 
   if (state.status === "loading") {
-    // Avoid CLS — reserve the same horizontal space as the buttons.
-    return <div className="h-8 w-32" aria-hidden />;
+    // Avoid CLS — reserve the same horizontal space as the buttons. Only from
+    // `sm` up: on a phone these never render, and reserving 8rem there widened
+    // the header past the viewport before hydration had a chance to resolve it.
+    return <div className="hidden h-8 w-32 sm:block" aria-hidden />;
   }
 
   if (state.status === "signed-in") {
     return (
-      <Button asChild variant="outline" size="sm">
+      <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
         <Link href="/account">{state.firstName}</Link>
       </Button>
     );
@@ -54,10 +29,10 @@ export function AuthNav() {
 
   return (
     <>
-      <Button asChild variant="ghost" size="sm">
+      <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
         <Link href="/account/login">Sign in</Link>
       </Button>
-      <Button asChild size="sm">
+      <Button asChild size="sm" className="hidden sm:inline-flex">
         <Link href="/account/register">Sign up</Link>
       </Button>
     </>

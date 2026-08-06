@@ -94,19 +94,25 @@ export function SearchForm(props: SearchFormProps) {
 
       {/* From · swap · To (combined field, Figma) */}
       <div>
-        <div className="mb-2 flex text-sm font-medium text-slate-500">
+        {/* Side-by-side only from `sm`. On a phone two columns leave ~100px of
+            text each, which truncated "Any departure port" to "Any c" — the one
+            thing this field exists to show. */}
+        <div className="mb-2 hidden text-sm font-medium text-slate-500 sm:flex">
           <span className="flex-1">From:</span>
           <span className="w-14 shrink-0" />
           <span className="flex-1">To:</span>
         </div>
-        <div className="flex items-stretch rounded-[10px] border-2 border-slate-100">
-          <div className="flex flex-1 items-center gap-2 px-4">
+        <div className="flex flex-col items-stretch rounded-[10px] border-2 border-slate-100 sm:flex-row">
+          <div className="flex min-w-0 flex-1 items-center gap-2 px-4">
             <MapPin size={20} className="shrink-0 text-brand" />
+            <span className="shrink-0 text-sm font-medium text-slate-500 sm:hidden">
+              From:
+            </span>
             <select
               aria-label="From"
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
-              className="h-14 w-full bg-transparent text-[15px] outline-none"
+              className="h-14 w-full min-w-0 bg-transparent text-[15px] outline-none"
             >
               <option value="">Any departure port</option>
               {props.origins.map((p) => (
@@ -116,23 +122,26 @@ export function SearchForm(props: SearchFormProps) {
               ))}
             </select>
           </div>
-          <div className="relative flex w-14 shrink-0 items-center justify-center">
+          <div className="relative flex shrink-0 items-center justify-center border-t border-slate-100 sm:w-14 sm:border-l sm:border-t-0">
             <button
               type="button"
               onClick={swap}
               aria-label="Swap origin and destination"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark"
+              className="my-1 flex h-11 w-11 rotate-90 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark sm:my-0 sm:rotate-0"
             >
               <ArrowLeftRight size={18} />
             </button>
           </div>
-          <div className="flex flex-1 items-center gap-2 px-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 border-t border-slate-100 px-4 sm:border-t-0">
             <MapPin size={20} className="shrink-0 text-brand" />
+            <span className="shrink-0 text-sm font-medium text-slate-500 sm:hidden">
+              To:
+            </span>
             <select
               aria-label="To"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              className="h-14 w-full bg-transparent text-[15px] outline-none"
+              className="h-14 w-full min-w-0 bg-transparent text-[15px] outline-none"
             >
               <option value="" disabled>
                 Pick a destination

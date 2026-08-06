@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AuthNav } from "@/components/customer/auth-nav";
+import { MobileNav } from "@/components/customer/mobile-nav";
 import { Logo } from "@/components/customer/logo";
 
 // Sync layout. The auth-aware buttons live in <AuthNav>, a client
@@ -33,17 +34,21 @@ export default function CustomerLayout({
           <Link href="/" className="shrink-0 text-brand" aria-label="Gilibali home">
             <Logo />
           </Link>
-          <nav className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm" className="rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:px-3">
+          {/* Below `sm` only "Book now" and the menu render. The full row is
+              ~570px of whitespace-nowrap buttons — wider than any phone — and
+              rendering it there made the whole document scroll sideways. */}
+          <nav className="flex min-w-0 items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="hidden rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:inline-flex sm:px-3">
               <Link href="/blog">Blog</Link>
             </Button>
-            <Button asChild variant="ghost" size="sm" className="rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:px-3">
+            <Button asChild variant="ghost" size="sm" className="hidden rounded-full px-2 text-brand-ink hover:bg-brand-periwinkle hover:text-brand sm:inline-flex sm:px-3">
               <Link href="/b">Find booking</Link>
             </Button>
             <AuthNav />
             <Button asChild size="sm" className="ml-1 rounded-pill bg-brand px-4 font-semibold text-white hover:bg-brand-dark">
               <Link href="/search">Book now</Link>
             </Button>
+            <MobileNav />
           </nav>
         </div>
       </header>
