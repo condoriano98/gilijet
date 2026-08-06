@@ -158,3 +158,31 @@ export function getPortInfo(portName: string): PortInfo {
 export function getAllPorts(): Array<{ name: string } & PortInfo> {
   return Object.entries(PORTS).map(([name, info]) => ({ name, ...info }));
 }
+
+/**
+ * Operator price sheets decorate port names with a region — "Sanur (Bali)",
+ * "Padangbai (Bali)", "Senggigi (Lombok)". Search matches on the bare name, so
+ * an import that stored the decorated form would create routes no customer
+ * could find.
+ */
+const ALIASES: Record<string, string> = {
+  "sanur (bali)": "Sanur",
+  padangbai: "Padang Bai",
+  "padangbai (bali)": "Padang Bai",
+  "padang bai (bali)": "Padang Bai",
+  "senggigi (lombok)": "Senggigi",
+  "nusa penida (bali)": "Nusa Penida",
+  "gili trawangan (lombok)": "Gili Trawangan",
+  "gili air (lombok)": "Gili Air",
+};
+
+/** Canonical port name, or the trimmed input when it is already canonical. */
+export function canonicalPortName(raw: string): string {
+  const trimmed = raw.trim();
+  const alias = ALIASES[trimmed.toLowerCase()];
+  if (alias) return alias;
+  const known = Object.keys(PORTS).find(
+    (name) => name.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return known ?? trimmed;
+}

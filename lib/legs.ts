@@ -81,6 +81,12 @@ export function seasonSeedParams(ref: Date = new Date()): {
  * Idempotent — the unique (scheduleId, departureDate) constraint catches
  * dupes if you re-run it. Returns the count of newly-created legs.
  *
+ * The window is `startAt` + `daysAhead` and nothing else. This used to also
+ * clamp every departure to `demoSeasonWindow`, which is fine for dummy data but
+ * silently truncated real schedules at 31 August — the top-up cron would ask for
+ * 60 days, get only the in-season part, and the site would run dry in September.
+ * Seeds still confine themselves to July–August by passing `seasonSeedParams()`.
+ *
  * @param startAt — override the reference "now" for leg generation.
  *   Used during seeding to inject departures starting from a custom point
  *   in time (e.g. "today at 06:00 WITA") rather than the current wall-clock,
@@ -101,8 +107,6 @@ export async function generateLegsForSchedule(
 
   const now = startAt ?? new Date();
   const todayLocalYmd = ymdInZone(now);
-  // Dummy departures exist only within the July–August demo season.
-  const season = demoSeasonWindow(now);
 
   const toCreate: Prisma.LegCreateManyInput[] = [];
   for (let offset = 0; offset < daysAhead; offset++) {
@@ -113,12 +117,6 @@ export async function generateLegsForSchedule(
     // back to UTC for storage.
     const departureUtc = localDateTimeToUtc(localYmd, schedule.departureTime);
     if (departureUtc.getTime() <= now.getTime()) continue;
-    if (
-      departureUtc.getTime() < season.start.getTime() ||
-      departureUtc.getTime() > season.end.getTime()
-    ) {
-      continue;
-    }
 
     const dow = isoDayOfWeek(departureUtc);
     if (!schedule.daysOfWeek.includes(dow)) continue;

@@ -191,6 +191,9 @@ model Schedule {
   daysOfWeek      Int[] // 1=Mon ... 7=Sun
   status          ScheduleStatus @default(ACTIVE)
   pricingTiers    Json?
+  // Full operator price sheet: season x passenger category x one-way/return.
+  // basePrice holds the adult/low/one-way cell; this keeps the rest. See lib/fares.ts.
+  fareMatrix      Json?
   deletedAt       DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
