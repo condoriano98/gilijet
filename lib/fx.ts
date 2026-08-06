@@ -90,6 +90,60 @@ export function formatWithDisplay(
  */
 export const MAX_RATE_AGE_MS = 72 * 60 * 60 * 1000;
 
+/**
+ * Currencies fetched in one call. IDR is the base, so these are the rates it
+ * converts *into*.
+ */
+const PROVIDER_CURRENCIES = [...SUPPORTED_CURRENCIES];
+
+/** Give up on the provider quickly — checkout must not wait on a third party. */
+const PROVIDER_TIMEOUT_MS = 3_000;
+
+/**
+ * Fetch today's rates and store them.
+ *
+ * Lives here rather than in the cron route because the request path needs it
+ * too: an FxRate table that has never been populated would otherwise withhold
+ * PayPal until the next nightly run.
+ *
+ * Returns how many rows were written. Throws only if the provider itself is
+ * unreachable or malformed — individual currencies that fail are skipped.
+ */
+export async function refreshRatesFromProvider(): Promise<number> {
+  const res = await fetch(
+    `https://api.exchangerate.host/latest?base=IDR&symbols=${PROVIDER_CURRENCIES.join(",")}`,
+    { signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) },
+  );
+  if (!res.ok) throw new Error(`FX provider returned ${res.status}`);
+
+  const data = (await res.json()) as { rates?: Record<string, number> };
+  if (!data.rates) throw new Error("FX provider returned no rates");
+
+  let stored = 0;
+  const fetchedAt = new Date();
+  for (const [currency, rate] of Object.entries(data.rates)) {
+    // The provider gives IDR->currency; we store currency->IDR, which is what
+    // quoteForeignCharge divides by.
+    if (typeof rate !== "number" || rate <= 0) continue;
+    try {
+      await prisma.fxRate.create({
+        data: { currency, rate: 1 / rate, fetchedAt },
+      });
+      stored++;
+    } catch (err) {
+      console.error(`[fx] could not store ${currency}:`, err);
+    }
+  }
+  return stored;
+}
+
+/**
+ * When the inline refresh last failed. A provider outage would otherwise add
+ * the full timeout to every pay-page render, so back off briefly.
+ */
+let lastInlineFailureAt = 0;
+const INLINE_RETRY_COOLDOWN_MS = 60_000;
+
 export type ForeignChargeQuote = {
   currency: string;
   /** Presentment amount, 2dp, as a string so no float rounding survives to the gateway. */
@@ -127,14 +181,37 @@ export async function quoteForeignCharge(
 
   // Deliberately not getLatestRates() — that helper reports failure as an empty
   // Map, which is indistinguishable from "no rate for this currency".
-  const row = await prisma.fxRate.findFirst({
-    where: { currency },
-    orderBy: { fetchedAt: "desc" },
-  });
+  const readLatest = () =>
+    prisma.fxRate.findFirst({
+      where: { currency },
+      orderBy: { fetchedAt: "desc" },
+    });
+
+  let row = await readLatest();
+  const isFresh = (r: typeof row) =>
+    r !== null && now.getTime() - r.fetchedAt.getTime() <= MAX_RATE_AGE_MS;
+
+  // Cold path only. The refresh-fx cron normally keeps this table warm, but it
+  // runs at most daily and needs CRON_SECRET, so on a fresh environment it may
+  // never have run — and withholding the backup gateway because a nightly job
+  // has not fired yet is the opposite of what a backup is for. A fresh row
+  // short-circuits, so the ordinary request does no network I/O.
+  if (!isFresh(row) && Date.now() - lastInlineFailureAt > INLINE_RETRY_COOLDOWN_MS) {
+    try {
+      await refreshRatesFromProvider();
+      row = await readLatest();
+    } catch (err) {
+      lastInlineFailureAt = Date.now();
+      console.warn("[fx] inline rate refresh failed:", err);
+    }
+  }
+
   if (!row) {
     throw new FxRateUnavailableError(`No FX rate stored for ${currency}`);
   }
 
+  // Still refuse a stale rate. This widens when the gateway is *available*, not
+  // when a rate is *trusted* — a guessed conversion charges the wrong amount.
   const ageMs = now.getTime() - row.fetchedAt.getTime();
   if (ageMs > MAX_RATE_AGE_MS) {
     const hours = Math.round(ageMs / 3_600_000);

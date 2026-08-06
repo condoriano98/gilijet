@@ -8,6 +8,7 @@ import {
   startPaypalOrder,
 } from "@/lib/psp";
 import { isDokuMock } from "@/lib/doku";
+import { isPaypalLive } from "@/lib/paypal";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -183,6 +184,13 @@ export default async function PayPage({
                 amountLabel={amountLabel}
                 startAction={startPaymentAction}
               />
+
+              {!paypalQuote && isPaypalLive() ? (
+                <p className="text-center text-xs text-slate-500">
+                  Card payment via PayPal is temporarily unavailable. The
+                  options above still work.
+                </p>
+              ) : null}
 
               {paypalQuote ? (
                 <div className="space-y-3">
