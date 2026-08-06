@@ -89,15 +89,27 @@ async function main() {
   const shouldBeProduction = belongsTo === "live";
   if (shouldBeProduction === declaredProduction) {
     console.log(`✓ PASS — credentials are ${belongsTo}, and the app is pointed there.`);
-    process.exit(0);
+  } else {
+    // Not a failure any more: lib/paypal.ts retries the other host on
+    // invalid_client and remembers the answer, so checkout works regardless.
+    console.log(`✓ PASS — credentials are ${belongsTo}.`);
+    console.log(
+      `  PAYPAL_IS_PRODUCTION says ${declaredProduction ? "live" : "sandbox"}, so the app will`,
+    );
+    console.log(`  discover ${belongsTo} on its first call and use it. Setting`);
+    console.log(
+      `  PAYPAL_IS_PRODUCTION="${shouldBeProduction}" just skips that one round-trip.`,
+    );
   }
 
-  console.error(`✗ MISMATCH — these are ${belongsTo} credentials, but the app calls the`);
-  console.error(`  ${declaredProduction ? "live" : "sandbox"} host, which is why checkout gets invalid_client.`);
-  console.error(
-    `  Fix: set PAYPAL_IS_PRODUCTION="${shouldBeProduction}" and redeploy.`,
-  );
-  process.exit(1);
+  if (belongsTo === "sandbox") {
+    console.log("");
+    console.log("  ! These are SANDBOX credentials — PayPal will take no real money.");
+    console.log("    The pay page shows customers a test-mode warning, but bookings");
+    console.log("    paid this way still issue real tickets. Use Live credentials");
+    console.log("    once you are done rehearsing the flow.");
+  }
+  process.exit(0);
 }
 
 main();

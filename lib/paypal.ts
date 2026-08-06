@@ -50,10 +50,38 @@ export function paypalPresentmentCurrency(): string {
   return isPaypalCurrency(c) ? c : "USD";
 }
 
-function baseUrl(): string {
-  return env.PAYPAL_IS_PRODUCTION
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
+export type PaypalHost = "live" | "sandbox";
+
+const HOSTS: Record<PaypalHost, string> = {
+  live: "https://api-m.paypal.com",
+  sandbox: "https://api-m.sandbox.paypal.com",
+};
+
+const otherHost = (h: PaypalHost): PaypalHost => (h === "live" ? "sandbox" : "live");
+
+/**
+ * Where the credentials actually authenticated, once proven. Null until then.
+ *
+ * PAYPAL_IS_PRODUCTION only ever expressed a fact the credentials already
+ * encode — a key pair is issued by exactly one host and only that host will
+ * accept it — so the flag is a hint about where to look first, not the answer.
+ * Trusting it turned a one-character config error into "PayPal is unavailable"
+ * with no way for the operator to tell that apart from a revoked key.
+ */
+let resolvedHost: PaypalHost | null = null;
+
+function configuredHost(): PaypalHost {
+  return env.PAYPAL_IS_PRODUCTION ? "live" : "sandbox";
+}
+
+/** The host in use: proven if we have proof, otherwise the configured guess. */
+export function paypalHost(): PaypalHost {
+  return resolvedHost ?? configuredHost();
+}
+
+/** True once a host has actually issued a token, so callers can trust paypalHost(). */
+export function paypalHostIsProven(): boolean {
+  return resolvedHost !== null;
 }
 
 export function isPaypalConfigured(): boolean {
@@ -81,19 +109,18 @@ export function isPaypalLive(): boolean {
  * PayPal access tokens last ~9 hours. Cache in module scope and refresh a
  * minute early so a token never expires mid-request.
  */
-let cachedToken: { value: string; expiresAt: number } | null = null;
+let cachedToken: { value: string; expiresAt: number; host: PaypalHost } | null = null;
 
-async function accessToken(): Promise<string> {
-  if (!isPaypalConfigured()) throw new PaypalNotConfiguredError();
+type TokenAttempt =
+  | { ok: true; value: string; expiresIn: number }
+  | { ok: false; status: number; body: string; invalidClient: boolean };
 
-  const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now) return cachedToken.value;
-
+async function requestToken(host: PaypalHost): Promise<TokenAttempt> {
   const basic = Buffer.from(
     `${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`,
   ).toString("base64");
 
-  const res = await fetch(`${baseUrl()}/v1/oauth2/token`, {
+  const res = await fetch(`${HOSTS[host]}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
@@ -103,26 +130,86 @@ async function accessToken(): Promise<string> {
   });
   const text = await res.text();
   if (!res.ok) {
-    // invalid_client almost always means the credentials belong to the *other*
-    // host: sandbox keys sent to production, or live keys sent to sandbox.
-    // Naming the host and the flag turns an opaque 401 into a config fix.
-    const hint = /invalid_client/i.test(text)
-      ? env.PAYPAL_IS_PRODUCTION
-        ? ` — rejected by the LIVE host. If these are sandbox credentials, unset PAYPAL_IS_PRODUCTION. Run \`pnpm paypal:selftest\` to see which host accepts them.`
-        : ` — rejected by the SANDBOX host. If these are live credentials, set PAYPAL_IS_PRODUCTION="true". Run \`pnpm paypal:selftest\` to see which host accepts them.`
-      : "";
-    throw new Error(
-      `PayPal ${baseUrl()}/v1/oauth2/token ${res.status}: ${text.slice(0, 300)}${hint}`,
-    );
+    return {
+      ok: false,
+      status: res.status,
+      body: text.slice(0, 300),
+      invalidClient: /invalid_client/i.test(text),
+    };
   }
+
   const json = JSON.parse(text) as { access_token?: string; expires_in?: number };
   if (!json.access_token) throw new Error("PayPal: missing access_token");
+  return { ok: true, value: json.access_token, expiresIn: json.expires_in ?? 32400 };
+}
+
+/**
+ * Fetch a token, discovering which host these credentials belong to.
+ *
+ * A 401 invalid_client is not a bad key — it is the right key at the wrong
+ * host — so it is answered by asking the other host rather than by giving up
+ * and telling the operator to go change an environment variable. Whichever host
+ * answers is remembered for the life of the process.
+ *
+ * Returns the host alongside the token: a token minted against live is
+ * meaningless at sandbox, so every subsequent call must go to the same place.
+ */
+async function accessToken(): Promise<{ token: string; host: PaypalHost }> {
+  if (!isPaypalConfigured()) throw new PaypalNotConfiguredError();
+
+  const now = Date.now();
+  if (cachedToken && cachedToken.expiresAt > now) {
+    return { token: cachedToken.value, host: cachedToken.host };
+  }
+
+  const first = paypalHost();
+  const attempts: { host: PaypalHost; result: TokenAttempt }[] = [];
+  attempts.push({ host: first, result: await requestToken(first) });
+
+  // Only invalid_client means "wrong host". A 500 or a rate limit says nothing
+  // about where the credentials live, and retrying elsewhere would just double
+  // the outage.
+  if (!attempts[0].result.ok && attempts[0].result.invalidClient) {
+    const second = otherHost(first);
+    attempts.push({ host: second, result: await requestToken(second) });
+  }
+
+  const won = attempts.find((a) => a.result.ok);
+  if (!won || !won.result.ok) {
+    const detail = attempts
+      .map((a) => {
+        const r = a.result as Extract<TokenAttempt, { ok: false }>;
+        return `${a.host} ${r.status}: ${r.body}`;
+      })
+      .join(" | ");
+    // Both hosts refusing rules out the wrong-host explanation, which leaves
+    // only a bad key. Say that, rather than sending the operator to the flag.
+    if (attempts.length > 1 && attempts.every((a) => !a.result.ok && a.result.invalidClient)) {
+      throw new Error(
+        `PayPal: neither host accepts these credentials — the client id or ` +
+          `secret is wrong or revoked. Check for a stray space or newline, or ` +
+          `reissue them at developer.paypal.com/dashboard. (${detail})`,
+      );
+    }
+    throw new Error(`PayPal /v1/oauth2/token failed — ${detail}`);
+  }
+
+  if (won.host !== configuredHost() && resolvedHost !== won.host) {
+    console.warn(
+      `[paypal] credentials belong to the ${won.host} host, not the ` +
+        `${configuredHost()} host that PAYPAL_IS_PRODUCTION selects — using ` +
+        `${won.host}. Set PAYPAL_IS_PRODUCTION="${won.host === "live"}" to skip ` +
+        `this extra round-trip.`,
+    );
+  }
+  resolvedHost = won.host;
 
   cachedToken = {
-    value: json.access_token,
-    expiresAt: now + Math.max(0, (json.expires_in ?? 32400) - 60) * 1000,
+    value: won.result.value,
+    expiresAt: now + Math.max(0, won.result.expiresIn - 60) * 1000,
+    host: won.host,
   };
-  return cachedToken.value;
+  return { token: cachedToken.value, host: cachedToken.host };
 }
 
 /**
@@ -164,7 +251,7 @@ async function paypalFetch(
   path: string,
   init: { method: string; body?: unknown; requestId?: string },
 ): Promise<Record<string, unknown>> {
-  const token = await accessToken();
+  const { token, host } = await accessToken();
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -173,7 +260,8 @@ async function paypalFetch(
   // capture with the same id returns the original result instead of charging twice.
   if (init.requestId) headers["PayPal-Request-Id"] = init.requestId;
 
-  const res = await fetch(`${baseUrl()}${path}`, {
+  // Same host the token came from — see accessToken().
+  const res = await fetch(`${HOSTS[host]}${path}`, {
     method: init.method,
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
@@ -500,17 +588,16 @@ export async function verifyPaypalWebhook(args: {
 export function pingPaypal(): {
   ok: boolean;
   mode: "live" | "sandbox" | "mock";
+  /** True when `mode` was proven by a token, not inferred from the env flag. */
+  modeProven: boolean;
   currency: string;
   webhookConfigured: boolean;
 } {
-  const mode = !isPaypalConfigured()
-    ? "mock"
-    : env.PAYPAL_IS_PRODUCTION
-      ? "live"
-      : "sandbox";
+  const mode = !isPaypalConfigured() ? "mock" : paypalHost();
   return {
     ok: isPaypalConfigured(),
     mode,
+    modeProven: paypalHostIsProven(),
     currency: paypalPresentmentCurrency(),
     webhookConfigured: Boolean(env.PAYPAL_WEBHOOK_ID),
   };

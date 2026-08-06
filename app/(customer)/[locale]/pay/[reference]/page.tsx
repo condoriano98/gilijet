@@ -8,7 +8,7 @@ import {
   startPaypalOrder,
 } from "@/lib/psp";
 import { isDokuMock } from "@/lib/doku";
-import { isPaypalLive } from "@/lib/paypal";
+import { isPaypalLive, paypalHost } from "@/lib/paypal";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -120,6 +120,11 @@ export default async function PayPage({
   // rate. A stale rate means no offer, never a guessed conversion.
   const paypalQuote = await quotePaypalIfAvailable(Number(booking.totalAmount));
 
+  // The credentials decide which PayPal host we talk to, so a live-looking site
+  // can end up on sandbox. A sandbox capture still issues a real ticket for a
+  // real sailing while no money moves, so say so before anyone pays.
+  const paypalIsTestMode = Boolean(paypalQuote) && paypalHost() === "sandbox";
+
   // A recorded DOKU decline is exactly why someone would need the backup, so
   // lead with it rather than leaving them to retry the card that just failed.
   const dokuDeclined = Boolean(booking.payment?.failedReason);
@@ -207,6 +212,11 @@ export default async function PayPage({
                     idrLabel={amountLabel}
                     startAction={startPaypalAction}
                   />
+                  {paypalIsTestMode ? (
+                    <p className="rounded-md bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-900">
+                      PayPal is in test mode — no real payment will be taken.
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>

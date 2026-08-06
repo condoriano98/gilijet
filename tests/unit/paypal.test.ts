@@ -266,7 +266,152 @@ describe("paypalCredentialsWork", () => {
 
     expect(await paypalCredentialsWork()).toBe(false);
     expect(await paypalCredentialsWork()).toBe(false);
-    // A broken configuration must not add an OAuth round-trip to every render.
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    // Two calls total: one per host on the first attempt, then nothing. A broken
+    // configuration must not add OAuth round-trips to every render.
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * PAYPAL_IS_PRODUCTION only ever restated which host issued the credentials, and
+ * an operator getting it wrong took PayPal off the pay page entirely with a 401
+ * indistinguishable from a revoked key. The credentials are the source of truth,
+ * so the host is discovered from them.
+ */
+describe("PayPal host resolution", () => {
+  const withKeys = () => {
+    vi.stubEnv("PAYPAL_CLIENT_ID", "AeF-client-id");
+    vi.stubEnv("PAYPAL_CLIENT_SECRET", "EL-secret");
+  };
+
+  const LIVE = "https://api-m.paypal.com";
+  const SANDBOX = "https://api-m.sandbox.paypal.com";
+
+  /** Accepts the token request at `goodHost`; invalid_client everywhere else. */
+  function gatewayOn(goodHost: string) {
+    const urls: string[] = [];
+    const fetchMock = vi.fn(async (url: string) => {
+      urls.push(url);
+      if (!url.startsWith(goodHost)) {
+        return {
+          ok: false,
+          status: 401,
+          text: async () => JSON.stringify({ error: "invalid_client" }),
+        };
+      }
+      if (url.includes("/v1/oauth2/token")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ access_token: "tok", expires_in: 32400 }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ id: "ORDER-1", status: "CREATED", links: [] }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return urls;
+  }
+
+  it("uses live keys even though the env flag says sandbox", async () => {
+    // Exactly the reported production failure.
+    withKeys();
+    vi.stubEnv("PAYPAL_IS_PRODUCTION", "false");
+    const urls = gatewayOn(LIVE);
+
+    const { paypalCredentialsWork, paypalHost, pingPaypal } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(true);
+    expect(paypalHost()).toBe("live");
+    expect(pingPaypal()).toMatchObject({ mode: "live", modeProven: true });
+    expect(urls[0]).toContain("api-m.sandbox.paypal.com");
+    expect(urls[1]).toContain("api-m.paypal.com");
+  });
+
+  it("sends orders to the host that issued the token, not the configured one", async () => {
+    withKeys();
+    vi.stubEnv("PAYPAL_IS_PRODUCTION", "false");
+    const urls = gatewayOn(LIVE);
+
+    const { createOrder } = await loadPaypal();
+    await createOrder({
+      orderId: "BK-1",
+      amount: "40.00",
+      currency: "USD",
+      description: "Sanur → Nusa Lembongan",
+      returnUrl: "https://x.test/r",
+      cancelUrl: "https://x.test/c",
+    });
+
+    // A token minted at live is meaningless at sandbox — the order must follow it.
+    const orderCall = urls.find((u) => u.includes("/v2/checkout/orders"));
+    expect(orderCall).toBe(`${LIVE}/v2/checkout/orders`);
+  });
+
+  it("demotes to sandbox when the keys are sandbox keys", async () => {
+    withKeys();
+    vi.stubEnv("PAYPAL_IS_PRODUCTION", "true");
+    gatewayOn(SANDBOX);
+
+    const { paypalCredentialsWork, pingPaypal } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(true);
+    // Offered, but the pay page labels it test mode and diagnostics goes red.
+    expect(pingPaypal()).toMatchObject({ mode: "sandbox", modeProven: true });
+  });
+
+  it("does not probe the second host when the first one works", async () => {
+    withKeys();
+    vi.stubEnv("PAYPAL_IS_PRODUCTION", "true");
+    const urls = gatewayOn(LIVE);
+
+    const { paypalCredentialsWork } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(true);
+    // The correctly-configured happy path costs exactly what it did before.
+    expect(urls).toHaveLength(1);
+  });
+
+  it("only tries the other host for invalid_client, not for an outage", async () => {
+    withKeys();
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => "upstream boom",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { paypalCredentialsWork } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(false);
+    // Retrying elsewhere would just double a PayPal outage.
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("blames the credentials, not the flag, when neither host accepts them", async () => {
+    withKeys();
+    gatewayOn("https://nothing.invalid");
+
+    const { createOrder, paypalHost } = await loadPaypal();
+    await expect(
+      createOrder({
+        orderId: "BK-1",
+        amount: "40.00",
+        currency: "USD",
+        description: "d",
+        returnUrl: "https://x.test/r",
+        cancelUrl: "https://x.test/c",
+      }),
+    ).rejects.toThrow(/neither host accepts these credentials/i);
+    // Nothing was proven, so the reported host stays the unconfirmed guess.
+    expect(paypalHost()).toBe("sandbox");
+  });
+
+  it("reports the mode as unproven until a token confirms it", async () => {
+    withKeys();
+    vi.stubEnv("PAYPAL_IS_PRODUCTION", "true");
+    vi.stubGlobal("fetch", vi.fn());
+
+    const { pingPaypal } = await loadPaypal();
+    expect(pingPaypal()).toMatchObject({ mode: "live", modeProven: false });
   });
 });

@@ -49,7 +49,6 @@ export default async function DiagnosticsPage() {
   await requireSuperAdmin();
 
   const doku = pingDoku();
-  const paypal = pingPaypal();
   const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
 
   // Run the same call the pay page makes, so this page goes red exactly when
@@ -67,7 +66,14 @@ export default async function DiagnosticsPage() {
 
   // Presence is not correctness: the whole reason PayPal silently failed at
   // checkout was credentials that existed but were rejected by the host.
+  // Ping *after* this, so `mode` is the host that actually answered rather than
+  // the one PAYPAL_IS_PRODUCTION guesses at.
   const paypalAuthenticates = await paypalCredentialsWork();
+  const paypal = pingPaypal();
+
+  // Sandbox PayPal alongside live DOKU means a booking can be "paid" in test
+  // money and still get a real ticket. That is worse than PayPal being off.
+  const paypalTestModeOnLiveSite = paypal.mode === "sandbox" && isDokuLive();
 
   const paypalRows: Row[] = [
     {
@@ -77,14 +83,22 @@ export default async function DiagnosticsPage() {
         ? "not set"
         : paypalAuthenticates
           ? `authenticate against the ${paypal.mode} host`
-          : `set, but the ${paypal.mode} host rejects them — check PAYPAL_IS_PRODUCTION, or run pnpm paypal:selftest`,
+          : "set, but neither the live nor the sandbox host accepts them — the client id or secret is wrong or revoked. Run pnpm paypal:selftest",
     },
     {
       label: "Webhook ID",
       ok: paypal.webhookConfigured,
       detail: paypal.webhookConfigured ? "set" : "not set — webhooks are rejected",
     },
-    { label: "Mode", ok: paypal.mode === "live", detail: paypal.mode },
+    {
+      label: "Mode",
+      ok: paypal.mode === "live",
+      detail: !paypal.modeProven
+        ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)`
+        : paypalTestModeOnLiveSite
+          ? "sandbox — takes NO real money, but DOKU is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing."
+          : `${paypal.mode} (confirmed by PayPal)`,
+    },
     { label: `FX rate (${currency})`, ok: fxOk, detail: fxDetail },
     {
       label: "Offered at checkout",
