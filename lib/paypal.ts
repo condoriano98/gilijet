@@ -65,7 +65,12 @@ export function isPaypalMock(): boolean {
   return !isPaypalConfigured() || Boolean(id?.startsWith("test_mock_"));
 }
 
-/** PayPal is only offerable when it can actually take money. */
+/**
+ * Credentials are present and not the mock placeholder.
+ *
+ * This does NOT prove they work — see paypalCredentialsWork. Wrong host,
+ * revoked key and a newline pasted into the secret all pass this check.
+ */
 export function isPaypalLive(): boolean {
   return isPaypalConfigured() && !isPaypalMock();
 }
@@ -118,6 +123,41 @@ async function accessToken(): Promise<string> {
     expiresAt: now + Math.max(0, (json.expires_in ?? 32400) - 60) * 1000,
   };
   return cachedToken.value;
+}
+
+/**
+ * When the last token request failed, so a broken configuration does not add an
+ * OAuth round-trip to every pay-page render. Same shape as the FX provider
+ * cooldown in lib/fx.ts.
+ */
+let lastAuthFailureAt = 0;
+const AUTH_RETRY_COOLDOWN_MS = 60_000;
+
+/**
+ * Do the configured credentials actually authenticate?
+ *
+ * `isPaypalLive()` only proves the env vars exist, which is why a booking could
+ * render a PayPal button and then fail with invalid_client the moment someone
+ * clicked it. Offering a broken second option to a customer whose card was just
+ * declined is worse than offering none, so availability is gated on this.
+ *
+ * Nearly free in the steady state: accessToken() caches the token for ~9h, so
+ * only the first call on a cold instance does network I/O. Never throws —
+ * callers treat false as "not available right now".
+ */
+export async function paypalCredentialsWork(): Promise<boolean> {
+  if (!isPaypalLive()) return false;
+  if (cachedToken && cachedToken.expiresAt > Date.now()) return true;
+  if (Date.now() - lastAuthFailureAt < AUTH_RETRY_COOLDOWN_MS) return false;
+
+  try {
+    await accessToken();
+    return true;
+  } catch (err) {
+    lastAuthFailureAt = Date.now();
+    console.warn("[paypal] credentials rejected — not offering PayPal:", err);
+    return false;
+  }
 }
 
 async function paypalFetch(

@@ -25,6 +25,7 @@ import {
   captureOrder,
   createOrder,
   isPaypalLive,
+  paypalCredentialsWork,
   paypalPresentmentCurrency,
   type CaptureResult,
 } from "./paypal";
@@ -145,13 +146,19 @@ export async function startPaypalOrder(
 }
 
 /**
- * Can PayPal be offered right now? Requires live keys *and* a fresh FX rate —
- * without a rate we cannot name a price, and guessing one is not an option.
+ * Can PayPal be offered right now?
+ *
+ * Three things must hold: keys configured, keys that actually authenticate, and
+ * a fresh FX rate. The middle one matters because presence is not correctness —
+ * wrong host or revoked key would otherwise render a button that fails the
+ * moment a customer trusts it, which for a backup gateway is worse than showing
+ * nothing. Without a rate we cannot name a price, and guessing is not an option.
  */
 export async function quotePaypalIfAvailable(
   idrTotal: number,
 ): Promise<ForeignChargeQuote | null> {
   if (!isPaypalLive()) return null;
+  if (!(await paypalCredentialsWork())) return null;
   try {
     return await quoteForeignCharge(idrTotal, paypalPresentmentCurrency());
   } catch (err) {

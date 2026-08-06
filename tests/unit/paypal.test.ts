@@ -210,3 +210,63 @@ describe("paypalFeeAsIdr", () => {
     expect(paypalFeeAsIdr(1.85, 0)).toBeNull();
   });
 });
+
+/**
+ * A booking rendered a PayPal button, the customer clicked it, and only then did
+ * PayPal answer invalid_client. Presence of the env vars is not proof they work,
+ * and a broken second option is worse than none for someone whose card has
+ * already been declined once.
+ */
+describe("paypalCredentialsWork", () => {
+  const withKeys = () => {
+    vi.stubEnv("PAYPAL_CLIENT_ID", "AeF-live-client-id");
+    vi.stubEnv("PAYPAL_CLIENT_SECRET", "EL-secret");
+  };
+
+  it("is false when nothing is configured, without calling out", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const { paypalCredentialsWork } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(false);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("is true when the token endpoint issues a token", async () => {
+    withKeys();
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ access_token: "tok", expires_in: 32400 }),
+    })));
+    const { paypalCredentialsWork } = await loadPaypal();
+    expect(await paypalCredentialsWork()).toBe(true);
+  });
+
+  it("is false on invalid_client and does not throw", async () => {
+    // The exact failure from the production log.
+    withKeys();
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({ error: "invalid_client" }),
+    })));
+    const { paypalCredentialsWork } = await loadPaypal();
+    await expect(paypalCredentialsWork()).resolves.toBe(false);
+  });
+
+  it("does not re-request inside the cooldown after a failure", async () => {
+    withKeys();
+    const fetchSpy = vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({ error: "invalid_client" }),
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+    const { paypalCredentialsWork } = await loadPaypal();
+
+    expect(await paypalCredentialsWork()).toBe(false);
+    expect(await paypalCredentialsWork()).toBe(false);
+    // A broken configuration must not add an OAuth round-trip to every render.
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+});

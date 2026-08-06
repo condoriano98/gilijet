@@ -1,6 +1,11 @@
 import { requireSuperAdmin } from "@/lib/auth";
 import { pingDoku, isDokuLive, NOTIFICATION_PATH } from "@/lib/doku";
-import { pingPaypal, isPaypalLive, paypalPresentmentCurrency } from "@/lib/paypal";
+import {
+  pingPaypal,
+  isPaypalLive,
+  paypalCredentialsWork,
+  paypalPresentmentCurrency,
+} from "@/lib/paypal";
 import { quoteForeignCharge, MAX_RATE_AGE_MS } from "@/lib/fx";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { env } from "@/lib/env";
@@ -60,8 +65,20 @@ export default async function DiagnosticsPage() {
     fxDetail = err instanceof Error ? err.message : String(err);
   }
 
+  // Presence is not correctness: the whole reason PayPal silently failed at
+  // checkout was credentials that existed but were rejected by the host.
+  const paypalAuthenticates = await paypalCredentialsWork();
+
   const paypalRows: Row[] = [
-    { label: "Client ID / secret", ok: paypal.ok, detail: paypal.ok ? "set" : "not set" },
+    {
+      label: "Credentials",
+      ok: paypalAuthenticates,
+      detail: !paypal.ok
+        ? "not set"
+        : paypalAuthenticates
+          ? `authenticate against the ${paypal.mode} host`
+          : `set, but the ${paypal.mode} host rejects them — check PAYPAL_IS_PRODUCTION, or run pnpm paypal:selftest`,
+    },
     {
       label: "Webhook ID",
       ok: paypal.webhookConfigured,
@@ -71,13 +88,15 @@ export default async function DiagnosticsPage() {
     { label: `FX rate (${currency})`, ok: fxOk, detail: fxDetail },
     {
       label: "Offered at checkout",
-      ok: isPaypalLive() && fxOk,
+      ok: paypalAuthenticates && fxOk,
       detail:
-        isPaypalLive() && fxOk
+        paypalAuthenticates && fxOk
           ? "yes"
           : !isPaypalLive()
             ? "no — credentials missing"
-            : "no — no usable FX rate",
+            : !paypalAuthenticates
+              ? "no — credentials rejected by PayPal"
+              : "no — no usable FX rate",
     },
   ];
 
