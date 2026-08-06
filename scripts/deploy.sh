@@ -128,6 +128,11 @@ fi
 ensure_key DOKU_CLIENT_ID ""
 ensure_key DOKU_SECRET_KEY ""
 ensure_key DOKU_IS_PRODUCTION "false"
+ensure_key PAYPAL_CLIENT_ID ""
+ensure_key PAYPAL_CLIENT_SECRET ""
+ensure_key PAYPAL_WEBHOOK_ID ""
+ensure_key PAYPAL_IS_PRODUCTION "false"
+ensure_key PAYPAL_PRESENTMENT_CURRENCY "USD"
 ensure_key RESEND_API_KEY ""
 ensure_key RESEND_FROM_EMAIL ""
 
@@ -147,8 +152,19 @@ check() {
 }
 check DOKU_CLIENT_ID
 check DOKU_SECRET_KEY
+check PAYPAL_CLIENT_ID
+check PAYPAL_CLIENT_SECRET
 check CRON_SECRET
 check RESEND_API_KEY
+# Live PayPal keys sent to the sandbox host come back 401 invalid_client, and
+# the app responds by quietly not offering PayPal — so the box looks configured
+# while checkout has no backup gateway. Say so here instead.
+if grep -qE '^PAYPAL_CLIENT_ID=.+' "${REMOTE_ENV}" &&
+   ! grep -q '^PAYPAL_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
+  echo "  ! PayPal keys are set but PAYPAL_IS_PRODUCTION is not true — they will be"
+  echo "    sent to the sandbox host. Run 'pnpm paypal:selftest' to see which host"
+  echo "    accepts them."
+fi
 if grep -q '^DOKU_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
   base="\$(grep '^APP_BASE_URL=' "${REMOTE_ENV}" | cut -d= -f2-)"
   case "\$base" in

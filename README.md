@@ -194,6 +194,14 @@ Honest state, so nobody plans against features that do not work:
   built-in dummy flow. `deploy.sh` prints which integrations are live at the
   end of every deploy, and `/admin/diagnostics` shows the same from the
   browser.
+- **`PAYPAL_IS_PRODUCTION` picks the host, and getting it wrong looks like
+  nothing.** The same keys are accepted by exactly one of `api-m.paypal.com`
+  and `api-m.sandbox.paypal.com`; sent to the other they come back 401
+  `invalid_client`, and the app responds by not offering PayPal at all rather
+  than showing a button that fails on click. So a box with live keys and
+  `PAYPAL_IS_PRODUCTION=false` has DOKU only, silently. `pnpm paypal:selftest`
+  asks both hosts and names the one that accepts them; it only requests a
+  token, so it is safe to run against live keys.
 - **The DOKU notification URL is signed.** DOKU includes the request path in
   the signature, so the URL registered in the DOKU Back Office must match
   `{APP_BASE_URL}/api/webhooks/doku` exactly — a mismatch fails verification
