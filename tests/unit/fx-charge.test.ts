@@ -134,14 +134,18 @@ describe("quoteForeignCharge cold path", () => {
 
   const loadFx = () => import("@/lib/fx");
   const provider = (rates: Record<string, number>) =>
-    vi.fn(async () => ({ ok: true, json: async () => ({ rates }) }));
+    vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ result: "success", rates }),
+    }));
 
   it("fetches and stores a rate when the table is empty", async () => {
     // Empty first, populated after the inline refresh.
     findFirstMock
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ rate: 16_250, fetchedAt: NOW });
-    const fetchMock = provider({ USD: 1 / 16_250 });
+    // base=USD: IDR per USD directly, USD per USD is 1.
+    const fetchMock = provider({ IDR: 16_250, USD: 1 });
     vi.stubGlobal("fetch", fetchMock);
 
     const { quoteForeignCharge: quote } = await loadFx();
@@ -153,7 +157,7 @@ describe("quoteForeignCharge cold path", () => {
 
   it("does not touch the provider when a fresh rate already exists", async () => {
     findFirstMock.mockResolvedValue(fresh(16_250));
-    const fetchMock = provider({ USD: 1 / 16_250 });
+    const fetchMock = provider({ IDR: 16_250, USD: 1 });
     vi.stubGlobal("fetch", fetchMock);
 
     const { quoteForeignCharge: quote } = await loadFx();
@@ -183,5 +187,57 @@ describe("quoteForeignCharge cold path", () => {
     await quote(650_000, "USD", NOW).catch(() => {});
     // One outage must not add the provider timeout to every render.
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe("refreshRatesFromProvider", () => {
+  beforeEach(() => {
+    createMock.mockReset().mockResolvedValue({});
+    vi.resetModules();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("rejects a 200 that carries a failure body", async () => {
+    // This is exactly how the previous provider began refusing us once it
+    // required an API key: HTTP 200, success:false. Trusting the status alone
+    // meant the cron stored nothing and never reported a problem.
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        result: "error",
+        error: { type: "missing_access_key" },
+      }),
+    })));
+    const { refreshRatesFromProvider } = await import("@/lib/fx");
+    await expect(refreshRatesFromProvider()).rejects.toThrow();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a response with no IDR rate rather than storing nonsense", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ result: "success", rates: { EUR: 0.9 } }),
+    })));
+    const { refreshRatesFromProvider } = await import("@/lib/fx");
+    await expect(refreshRatesFromProvider()).rejects.toThrow();
+  });
+
+  it("stores IDR per currency derived at full precision", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        result: "success",
+        rates: { IDR: 17_925.346968, USD: 1, EUR: 0.8657 },
+      }),
+    })));
+    const { refreshRatesFromProvider } = await import("@/lib/fx");
+    expect(await refreshRatesFromProvider()).toBeGreaterThan(0);
+
+    const stored = Object.fromEntries(
+      createMock.mock.calls.map((c) => [c[0].data.currency, c[0].data.rate]),
+    );
+    expect(stored.USD).toBeCloseTo(17_925.346968, 4);
+    // Derived by division, not by inverting a rounded reciprocal.
+    expect(stored.EUR).toBeCloseTo(17_925.346968 / 0.8657, 4);
   });
 });

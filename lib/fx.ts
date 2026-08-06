@@ -90,50 +90,71 @@ export function formatWithDisplay(
  */
 export const MAX_RATE_AGE_MS = 72 * 60 * 60 * 1000;
 
-/**
- * Currencies fetched in one call. IDR is the base, so these are the rates it
- * converts *into*.
- */
-const PROVIDER_CURRENCIES = [...SUPPORTED_CURRENCIES];
-
 /** Give up on the provider quickly — checkout must not wait on a third party. */
 const PROVIDER_TIMEOUT_MS = 3_000;
 
 /**
- * Fetch today's rates and store them.
+ * Rates are fetched with USD as the base, not IDR, and IDR-per-currency is
+ * derived from that single response.
+ *
+ * Asking for base=IDR looks more direct but destroys precision: the provider
+ * returns USD as 5.6e-05, two significant figures, which inverts to 17,857
+ * IDR/USD against a true 17,925 — a 0.38% error, always in the same direction,
+ * on every foreign charge. Dividing two full-precision USD-based numbers keeps
+ * all of it.
+ */
+const PROVIDER_URL = "https://open.er-api.com/v6/latest/USD";
+
+/**
+ * Fetch today's rates and store them as IDR per one unit of each currency,
+ * which is what quoteForeignCharge divides by.
  *
  * Lives here rather than in the cron route because the request path needs it
  * too: an FxRate table that has never been populated would otherwise withhold
  * PayPal until the next nightly run.
  *
- * Returns how many rows were written. Throws only if the provider itself is
- * unreachable or malformed — individual currencies that fail are skipped.
+ * Returns how many rows were written. Throws if the provider is unreachable or
+ * its response is unusable — including the case where it answers HTTP 200 with
+ * a failure body, which is how a keyless provider rejects us.
  */
 export async function refreshRatesFromProvider(): Promise<number> {
-  const res = await fetch(
-    `https://api.exchangerate.host/latest?base=IDR&symbols=${PROVIDER_CURRENCIES.join(",")}`,
-    { signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) },
-  );
+  const res = await fetch(PROVIDER_URL, {
+    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`FX provider returned ${res.status}`);
 
-  const data = (await res.json()) as { rates?: Record<string, number> };
-  if (!data.rates) throw new Error("FX provider returned no rates");
+  const data = (await res.json()) as {
+    result?: string;
+    rates?: Record<string, number>;
+  };
+  // A 200 does not mean success here. api.exchangerate.host, the previous
+  // provider, started answering 200 with {"success":false,"error":...} once it
+  // required an API key, and the cron stored nothing for months without ever
+  // failing loudly. Check the body, not just the status.
+  if (data.result && data.result !== "success") {
+    throw new Error(`FX provider reported ${data.result}`);
+  }
+  const rates = data.rates;
+  const idrPerUsd = rates?.IDR;
+  if (!rates || typeof idrPerUsd !== "number" || idrPerUsd <= 0) {
+    throw new Error("FX provider returned no usable IDR rate");
+  }
 
   let stored = 0;
   const fetchedAt = new Date();
-  for (const [currency, rate] of Object.entries(data.rates)) {
-    // The provider gives IDR->currency; we store currency->IDR, which is what
-    // quoteForeignCharge divides by.
-    if (typeof rate !== "number" || rate <= 0) continue;
+  for (const currency of SUPPORTED_CURRENCIES) {
+    const perUsd = rates[currency];
+    if (typeof perUsd !== "number" || perUsd <= 0) continue;
     try {
       await prisma.fxRate.create({
-        data: { currency, rate: 1 / rate, fetchedAt },
+        data: { currency, rate: idrPerUsd / perUsd, fetchedAt },
       });
       stored++;
     } catch (err) {
       console.error(`[fx] could not store ${currency}:`, err);
     }
   }
+  if (stored === 0) throw new Error("FX provider returned no supported currencies");
   return stored;
 }
 
