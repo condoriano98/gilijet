@@ -121,17 +121,28 @@ export default async function HomePage() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          // A phone sees only the middle ~44% of a 2.2:1 image. Centred, that
+          // lands on a slab of hull with the temple cut in half; 25% frames the
+          // whole pura and the bow instead.
+          className="object-cover object-[25%_center] sm:object-center"
         />
-        {/* Soft top wash so the white slogan stays legible over the sky */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
+        {/* Scrim shaped to the copy, not to the sky.
+            This was `from-black/20 via-transparent`, and Tailwind puts `via` at
+            50% — so the subtitle, which starts below the midpoint, had no scrim
+            at all and measured 1.17:1 against white glyphs. Holding ~55% down to
+            66% covers both the slogan and the paragraph, then releasing by 82%
+            leaves the hull and water — already high-contrast, and the best part
+            of the illustration — at full brightness. */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(3,12,28,0.62)_0%,rgba(3,12,28,0.60)_66%,rgba(3,12,28,0)_82%)]" />
 
         <div className="container relative">
           <div className="mx-auto max-w-6xl text-center">
             <h1 className="mx-auto max-w-4xl text-4xl font-display font-extrabold leading-[0.98] text-white drop-shadow-lg sm:text-6xl lg:text-7xl">
               Let Journey Begin with Gilibali!
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-white/90 drop-shadow sm:text-xl">
+            {/* Solid white, not white/90: the value proposition was rendering
+                at lower contrast than the heading above it. */}
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-white drop-shadow-md sm:text-xl">
               {t("home.heroSubtitle")}
             </p>
           </div>
