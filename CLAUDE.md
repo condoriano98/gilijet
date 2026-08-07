@@ -27,7 +27,8 @@ Never bypass `requireOperator` / `requireAdmin` / `requireSuperAdmin`. If a page
 - `lib/db.ts` resolves the runtime URL from `DATABASE_URL` / `POSTGRES_PRISMA_URL` / `POSTGRES_URL` (in that order). Do not read those env vars directly elsewhere — import `prisma` from `lib/db.ts`.
 - Prisma CLI commands (`prisma generate`, `db push`, `migrate`) read `DATABASE_URL` + `DIRECT_URL` from `prisma/schema.prisma`. In remote/CI environments with no real DB, `prisma generate` still works with a dummy `postgresql://x:x@localhost:5432/x` URL.
 - Tenant scoping: operator-facing Prisma calls always include `operatorId: session.sub`. Use `operatorScope(session)` from `lib/auth.ts` for consistent `where` clauses. Customer-facing logged-in queries include `customerId: session.sub`. Admin queries are unscoped on purpose.
-- Soft-delete: `Operator`, `Boat`, and `Schedule` have a `deletedAt` column. All list queries must filter `deletedAt: null`. Use the exported active-entity helpers from `lib/operator-data.ts` (`activeBoat`, `activeSchedule`) for consistency. Hard-deletion is now physically impossible for entities in the financial chain (all cascades are `Restrict`).
+- Soft-delete: `Operator`, `Boat`, `Schedule`, `Port`, `OperatorStaff`, and `TravelAgent` have a `deletedAt` column. All list queries must filter `deletedAt: null`. Use the exported active-entity helpers from `lib/operator-data.ts` (`activeBoat`, `activeSchedule`) for consistency.
+- Hard-delete: every FK into the catalogue is `onDelete: Restrict`, so removing a row means walking its subtree bottom-up by hand. `deleteOperatorAction` in `app/admin/(authed)/operators/actions.ts` is the only place that does this, and it refuses whenever the subtree contains a `Payment`, `Refund` or `Ticket` — no financial-chain row is ever erased. Any new hard-delete must carry the same guard; prefer soft-delete.
 
 ## Conventions
 

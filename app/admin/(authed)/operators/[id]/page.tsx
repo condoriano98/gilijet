@@ -9,11 +9,14 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { deleteOperatorAction } from "../actions";
 import {
   Table,
   TableBody,
@@ -122,11 +125,14 @@ function statusVariant(s: OperatorStatus) {
 
 export default async function OperatorDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const { id } = await params;
+  const { error } = await searchParams;
 
   const operator = await prisma.operator.findFirst({
     where: { id, deletedAt: null },
@@ -169,6 +175,12 @@ export default async function OperatorDetailPage({
           {operator.status}
         </Badge>
       </div>
+
+      {error ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -378,6 +390,47 @@ export default async function OperatorDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {session.adminRole === "SUPER_ADMIN" ? (
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle>Delete operator</CardTitle>
+            <CardDescription>
+              Permanently erases {operator.companyName} along with its boats,
+              routes, departures and staff. This cannot be undone, and it frees
+              the email address for onboarding again. Refused outright if the
+              operator has any payment, refund or issued ticket on record —
+              suspend it instead, which hides it just as well and can be
+              reversed.
+            </CardDescription>
+          </CardHeader>
+          <form action={deleteOperatorAction}>
+            <CardContent>
+              <input type="hidden" name="id" value={operator.id} />
+              <label
+                htmlFor="confirmation"
+                className="text-sm text-muted-foreground"
+              >
+                Type <span className="font-medium text-foreground">
+                  {operator.companyName}
+                </span>{" "}
+                to confirm.
+              </label>
+              <Input
+                id="confirmation"
+                name="confirmation"
+                autoComplete="off"
+                className="mt-2 max-w-sm"
+              />
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button type="submit" variant="destructive">
+                Delete operator
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      ) : null}
     </div>
   );
 }
