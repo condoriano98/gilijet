@@ -549,7 +549,7 @@ export default function TermsPage() {
             <dt className="font-semibold">Email:</dt>
             <dd>info@balinusafast.com</dd>
             <dt className="font-semibold">WhatsApp:</dt>
-            <dd>+62 812-3606-1818</dd>
+            <dd>+62 813-3399-869</dd>
             <dt className="font-semibold">Office:</dt>
             <dd>
               Jl. Swakarya Raya No.5B, Kekalik Jaya, Kec. Sekarbela, Kota

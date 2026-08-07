@@ -22,7 +22,7 @@ export default function CustomerLayout({
       <div className="bg-brand text-white">
         <div className="container flex h-9 items-center justify-between text-xs sm:text-[13px]">
           <div className="flex items-center gap-3">
-            <a href="https://wa.me/6281236061818" className="hover:underline">+62 812-3606-1818</a>
+            <a href="https://wa.me/628133399869" className="hover:underline">+62 813-3399-869</a>
             <span className="text-white/40">|</span>
             <a href="mailto:info@balinusafast.com" className="hidden hover:underline sm:inline">info@balinusafast.com</a>
           </div>
@@ -98,7 +98,7 @@ function SiteFooter() {
             <li><Link href="/b" className="hover:text-white hover:underline">Find my booking</Link></li>
             <li><Link href="/change-plans" className="hover:text-white hover:underline">Change or refund a trip</Link></li>
             <li><a href="mailto:info@balinusafast.com" className="hover:text-white hover:underline">info@balinusafast.com</a></li>
-            <li><a href="https://wa.me/6281236061818" className="hover:text-white hover:underline">WhatsApp</a></li>
+            <li><a href="https://wa.me/628133399869" className="hover:text-white hover:underline">WhatsApp</a></li>
           </ul>
         </div>
       </div>

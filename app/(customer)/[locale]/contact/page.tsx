@@ -30,8 +30,8 @@ export default function ContactPage() {
               </div>
               <div>
                 <span className="text-slate-600">WhatsApp:</span>{" "}
-                <a className="font-medium text-sky-700 hover:underline" href="https://wa.me/6281236061818">
-                  +62 812-3606-1818
+                <a className="font-medium text-sky-700 hover:underline" href="https://wa.me/628133399869">
+                  +62 813-3399-869
                 </a>
               </div>
               <div className="text-xs text-slate-500">

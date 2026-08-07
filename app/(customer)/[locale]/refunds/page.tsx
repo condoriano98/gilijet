@@ -273,7 +273,7 @@ export default function RefundsPage() {
         </p>
         <ul>
           <li>Email: <a href="mailto:info@balinusafast.com">info@balinusafast.com</a></li>
-          <li>WhatsApp: <a href="https://wa.me/6281236061818">+62 812-3606-1818</a></li>
+          <li>WhatsApp: <a href="https://wa.me/628133399869">+62 813-3399-869</a></li>
           <li>Office — Mataram: Jl. Swakarya Raya No.5B, Kekalik Jaya, Sekarbela, Kota Mataram, NTB 83114</li>
           <li>Office — Denpasar: Jl. Cokroaminoto No.70, Pemecutan Kaja, Denpasar Utara, Bali</li>
           <li>Office — Gili Trawangan: Jl. Pantai Gili Indah, Gili Trawangan, Pemenang, Lombok, NTB 83351</li>

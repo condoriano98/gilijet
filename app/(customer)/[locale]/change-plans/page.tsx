@@ -166,7 +166,7 @@ export default function ChangePlansPage() {
         </p>
         <ul>
           <li>Email: <a href="mailto:info@balinusafast.com">info@balinusafast.com</a></li>
-          <li>WhatsApp: <a href="https://wa.me/6281236061818">+62 812-3606-1818</a></li>
+          <li>WhatsApp: <a href="https://wa.me/628133399869">+62 813-3399-869</a></li>
           <li>Manage your booking: <Link href="/b">find your booking</Link></li>
           <li>Full policy: <Link href="/refunds">Refund &amp; Reschedule Policy</Link></li>
         </ul>
