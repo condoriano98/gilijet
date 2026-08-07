@@ -1,5 +1,8 @@
 /**
- * Replace every published schedule with PT Wahana Virendra Group's price sheet.
+ * Republish PT Wahana Virendra Group's timetable from their price sheet.
+ *
+ * Retires only this operator's own live schedules — other operators on the
+ * platform are left alone.
  *
  * Run with --dry-run first: it prints exactly what it would retire and create
  * without touching anything.
@@ -12,6 +15,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/db";
 import { generateLegsForSchedule, BOOKING_HORIZON_DAYS } from "../lib/legs";
 import { canonicalPortName } from "../lib/port-info";
+import { activeBoat, activeOperator, activeSchedule } from "../lib/operator-data";
 import { baseFareOf } from "../lib/fares";
 import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from "../lib/wahana-schedule";
 
@@ -23,7 +27,7 @@ function say(...args: unknown[]) {
 
 async function main() {
   const operator = await prisma.operator.findFirst({
-    where: { companyName: WAHANA_OPERATOR, deletedAt: null },
+    where: { companyName: WAHANA_OPERATOR, ...activeOperator },
   });
   if (!operator) {
     throw new Error(
@@ -37,7 +41,7 @@ async function main() {
   // rather than a guess.
   const boatNames = [...new Set(WAHANA_DEPARTURES.map((d) => d.boat))];
   const boats = await prisma.boat.findMany({
-    where: { operatorId: operator.id, name: { in: boatNames }, deletedAt: null },
+    where: { operatorId: operator.id, name: { in: boatNames }, ...activeBoat },
   });
   const byName = new Map(boats.map((b) => [b.name, b]));
   const missing = boatNames.filter((n) => !byName.has(n));
@@ -52,24 +56,50 @@ async function main() {
     say(`boat ${name}: capacity ${boat.capacity}, reg ${boat.registrationNumber}`);
   }
 
+  // Scoped to this operator's own boats. An unscoped retire would withdraw
+  // every other operator on the platform as a side effect of republishing one
+  // timetable.
   const live = await prisma.schedule.findMany({
-    where: { deletedAt: null },
+    where: { ...activeSchedule, boat: { operatorId: operator.id } },
     select: {
       id: true,
       originPort: true,
       destinationPort: true,
       departureTime: true,
-      boat: { select: { name: true, operator: { select: { companyName: true } } } },
+      boat: { select: { name: true } },
       _count: { select: { legs: true } },
     },
   });
-  say(`retiring ${live.length} existing schedule(s):`);
+  say(`retiring ${live.length} existing ${WAHANA_OPERATOR} schedule(s):`);
   for (const s of live) {
     say(
-      `  - ${s.boat.operator.companyName} / ${s.boat.name} ` +
-        `${s.originPort} -> ${s.destinationPort} ${s.departureTime} (${s._count.legs} legs)`,
+      `  - ${s.boat.name} ${s.originPort} -> ${s.destinationPort} ` +
+        `${s.departureTime} (${s._count.legs} legs)`,
     );
   }
+
+  const retiringIds = live.map((s) => s.id);
+  const now = new Date();
+
+  // Withdrawing a sailing someone holds a ticket for strands them. Cancelling
+  // the departure through the admin flow refunds correctly; this script has no
+  // business growing a second, weaker version of that.
+  const bookedLegs = await prisma.leg.count({
+    where: {
+      scheduleId: { in: retiringIds },
+      departureDate: { gte: now },
+      status: { not: "CANCELLED" },
+      bookings: { some: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } } },
+    },
+  });
+  const blocked =
+    bookedLegs > 0
+      ? `${bookedLegs} upcoming departure(s) still have bookings. Cancel them in ` +
+        `/admin/operations first — that refunds the customers — then re-run.`
+      : null;
+  // In a dry run this is information, not a failure: report it and carry on
+  // printing so the operator sees the whole picture in one pass.
+  if (blocked) say(`BLOCKED: ${blocked}`);
 
   say(`creating ${WAHANA_DEPARTURES.length} departure(s):`);
   for (const d of WAHANA_DEPARTURES) {
@@ -87,15 +117,31 @@ async function main() {
     say("nothing written.");
     return;
   }
+  if (blocked) throw new Error(blocked);
 
   const created = await prisma.$transaction(async (tx) => {
     // Soft-delete, never hard: legs, bookings, tickets and refund rights for
     // sailings already sold have to survive their schedule being withdrawn.
     const retired = await tx.schedule.updateMany({
-      where: { deletedAt: null },
-      data: { deletedAt: new Date(), status: "INACTIVE" },
+      where: { id: { in: retiringIds } },
+      data: { deletedAt: now, status: "INACTIVE" },
     });
-    say(`retired ${retired.count} schedule(s)`);
+
+    // Hiding the schedule is not enough. Search excludes deleted schedules, but
+    // /book/[legId] resolves a departure directly and checks only leg.status,
+    // so an old link keeps selling until the departures themselves are closed.
+    const closed = await tx.leg.updateMany({
+      where: {
+        scheduleId: { in: retiringIds },
+        departureDate: { gte: now },
+        status: { in: ["OPEN", "FULL"] },
+      },
+      data: {
+        status: "CANCELLED",
+        cancellationReason: "Timetable replaced by operator price sheet import",
+      },
+    });
+    say(`retired ${retired.count} schedule(s), closed ${closed.count} future leg(s)`);
 
     const ids: string[] = [];
     for (const d of WAHANA_DEPARTURES) {

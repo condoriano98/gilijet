@@ -78,7 +78,6 @@ describe("lib/mcp does not reach write paths", () => {
     "booking-engine",
     "ticket-issuer",
     "booking-expiry",
-    "seed-data",
     "audit",
     "email",
     "legs",

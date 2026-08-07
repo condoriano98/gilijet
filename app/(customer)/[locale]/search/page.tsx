@@ -9,7 +9,6 @@ import {
   ymdInZone,
 } from "@/lib/datetime";
 import { expireStalePendingBookings } from "@/lib/booking-expiry";
-import { maybeAutoSeed } from "@/lib/home-data";
 import {
   Card,
   CardContent,
@@ -117,10 +116,6 @@ export default async function SearchPage({
   } catch (err) {
     console.error("[search] expireStalePendingBookings failed:", err);
   }
-
-  // Top up the July–August demo departures if the DB has none upcoming, so a
-  // direct search (not just the home page) triggers seeding. Fire-and-forget.
-  maybeAutoSeed().catch(() => {});
 
   // When the user picks a date, search just that day (local 00:00 – 23:59 WITA).
   // When no date is given (e.g. landing from a "Popular routes" link), broaden

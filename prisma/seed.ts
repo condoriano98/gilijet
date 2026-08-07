@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { generateLegsForSchedule, seasonSeedParams } from "../lib/legs";
+import { activeSchedule } from "../lib/operator-data";
 import { ymdInZone } from "../lib/datetime";
 import { buildQrPayload, signTicketCode } from "../lib/qr";
 import { newBookingReference, newTicketCode } from "../lib/references";
@@ -227,12 +228,16 @@ async function main() {
 
   const allSchedules: Array<{ id: string; originPort: string; destinationPort: string }> = [];
   for (const s of SCHEDULES) {
+    // Without deletedAt this matches a retired schedule and hands it back to
+    // generateLegsForSchedule below, which resurrects it: hidden from search
+    // but with live legs that /book/[legId] will still sell.
     const existing = await prisma.schedule.findFirst({
       where: {
         boatId: boats[s.boatReg].id,
         originPort: s.originPort,
         destinationPort: s.destinationPort,
         departureTime: s.departureTime,
+        ...activeSchedule,
       },
     });
     // Yield pricing: prices increase when >50% full (+10%) or >80% full (+25%)

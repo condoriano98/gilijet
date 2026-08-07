@@ -26,8 +26,10 @@ REMOTE_DIR="/opt/gilijet"
 REMOTE_ENV="/root/.gilijet/.env"
 TARGET="${USER}@${HOST}"
 
-# Allow customising the seed-on-first-boot via local env.
-SEED_ON_START="${SEED_ON_START:-1}"
+# Off by default: entrypoint.sh runs prisma/seed.ts on every boot, not just the
+# first, so leaving this on republished the sample operators after every deploy.
+# Opt in explicitly with SEED_ON_START=1 when standing up a fresh environment.
+SEED_ON_START="${SEED_ON_START:-0}"
 
 ssh_opts=(
   -o BatchMode=yes
