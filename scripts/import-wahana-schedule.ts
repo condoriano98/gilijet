@@ -1,14 +1,21 @@
 /**
  * Republish PT Wahana Virendra Group's timetable from their price sheet.
  *
- * Retires only this operator's own live schedules — other operators on the
- * platform are left alone.
+ * Retires this operator's own live schedules and replaces them with the 24
+ * sailings in lib/wahana-schedule.ts. Other operators are left alone unless
+ * --exclusive is passed, which retires them too — for when the platform is
+ * meant to carry this operator and nobody else.
  *
- * Run with --dry-run first: it prints exactly what it would retire and create
+ * Vessels must exist first, because the sheet has no capacity column and
+ * capacity is what stops a sailing being oversold. Either create them in the
+ * dashboard or state the seat counts with --capacity.
+ *
+ * Always --dry-run first: it prints exactly what it would retire and create
  * without touching anything.
  *
- *   pnpm tsx scripts/import-wahana-schedule.ts --dry-run
- *   pnpm tsx scripts/import-wahana-schedule.ts
+ *   pnpm import:wahana --dry-run
+ *   pnpm import:wahana --capacity "Cantika 09=80,ROSE=60,WGO 5=60" --exclusive --dry-run
+ *   pnpm import:wahana --capacity "Cantika 09=80,ROSE=60,WGO 5=60" --exclusive
  */
 
 import { Prisma } from "@prisma/client";
@@ -20,9 +27,37 @@ import { baseFareOf } from "../lib/fares";
 import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from "../lib/wahana-schedule";
 
 const dryRun = process.argv.includes("--dry-run");
+const exclusive = process.argv.includes("--exclusive");
 
 function say(...args: unknown[]) {
   console.log(dryRun ? "[dry-run]" : "[import]", ...args);
+}
+
+/**
+ * `--capacity "Cantika 09=80,ROSE=60"` — seat counts for vessels that do not
+ * exist yet. The sheet has no capacity column and capacity is what stops a
+ * sailing being oversold, so it is supplied deliberately or not at all.
+ */
+function parseCapacities(): Map<string, number> {
+  const arg = process.argv.find((a) => a.startsWith("--capacity="));
+  const inline = arg
+    ? arg.slice("--capacity=".length)
+    : process.argv[process.argv.indexOf("--capacity") + 1];
+  const out = new Map<string, number>();
+  if (!arg && !process.argv.includes("--capacity")) return out;
+  for (const pair of (inline ?? "").split(",")) {
+    const at = pair.lastIndexOf("=");
+    const name = pair.slice(0, at).trim();
+    const seats = Number(pair.slice(at + 1).trim());
+    if (!name || !Number.isInteger(seats) || seats <= 0) {
+      throw new Error(
+        `Bad --capacity entry ${JSON.stringify(pair)}. ` +
+          `Expected "Vessel Name=seats", e.g. --capacity "ROSE=60,WGO 5=60".`,
+      );
+    }
+    out.set(name, seats);
+  }
+  return out;
 }
 
 async function main() {
@@ -37,24 +72,60 @@ async function main() {
   }
 
   // Boats carry the seat count, which is what stops a sailing being oversold.
-  // The price sheet has no capacity column, so a missing boat is a hard stop
-  // rather than a guess.
+  // The price sheet has no capacity column, so a vessel that does not exist yet
+  // needs its seat count stated explicitly — never guessed.
+  const capacities = parseCapacities();
   const boatNames = [...new Set(WAHANA_DEPARTURES.map((d) => d.boat))];
   const boats = await prisma.boat.findMany({
     where: { operatorId: operator.id, name: { in: boatNames }, ...activeBoat },
   });
   const byName = new Map(boats.map((b) => [b.name, b]));
   const missing = boatNames.filter((n) => !byName.has(n));
-  if (missing.length) {
+  const unpriced = missing.filter((n) => !capacities.has(n));
+  if (unpriced.length) {
     throw new Error(
-      `Missing boats for ${WAHANA_OPERATOR}: ${missing.join(", ")}. ` +
-        `Add them in the operator dashboard with their real capacity and ` +
-        `registration number, then re-run.`,
+      `No vessel on record for ${WAHANA_OPERATOR}: ${unpriced.join(", ")}. ` +
+        `Either add them in the operator dashboard with their real capacity and ` +
+        `registration number, or pass seat counts here, e.g. ` +
+        `--capacity "${unpriced.map((n) => `${n}=60`).join(",")}".`,
     );
+  }
+  for (const name of missing) {
+    say(`will create vessel ${name} with ${capacities.get(name)} seats`);
   }
   for (const [name, boat] of byName) {
     say(`boat ${name}: capacity ${boat.capacity}, reg ${boat.registrationNumber}`);
   }
+
+  // Everything on the platform that is not this operator. Retiring it is what
+  // "these are all my company's boats" means in practice.
+  const others = exclusive
+    ? await prisma.operator.findMany({
+        where: { ...activeOperator, id: { not: operator.id } },
+        select: {
+          id: true,
+          companyName: true,
+          boats: {
+            where: activeBoat,
+            select: {
+              id: true,
+              name: true,
+              schedules: { where: activeSchedule, select: { id: true } },
+            },
+          },
+        },
+      })
+    : [];
+  if (exclusive) {
+    say(`--exclusive: retiring ${others.length} other operator(s):`);
+    for (const o of others) {
+      say(`  - ${o.companyName} (${o.boats.map((b) => b.name).join(", ") || "no boats"})`);
+    }
+  }
+  const otherBoatIds = others.flatMap((o) => o.boats.map((b) => b.id));
+  const otherScheduleIds = others.flatMap((o) =>
+    o.boats.flatMap((b) => b.schedules.map((s) => s.id)),
+  );
 
   // Scoped to this operator's own boats. An unscoped retire would withdraw
   // every other operator on the platform as a side effect of republishing one
@@ -86,7 +157,7 @@ async function main() {
   // business growing a second, weaker version of that.
   const bookedLegs = await prisma.leg.count({
     where: {
-      scheduleId: { in: retiringIds },
+      scheduleId: { in: [...retiringIds, ...otherScheduleIds] },
       departureDate: { gte: now },
       status: { not: "CANCELLED" },
       bookings: { some: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } } },
@@ -142,6 +213,57 @@ async function main() {
       },
     });
     say(`retired ${retired.count} schedule(s), closed ${closed.count} future leg(s)`);
+
+    if (exclusive && others.length) {
+      const [ops, otherBoats, otherScheds, otherLegs] = await Promise.all([
+        tx.operator.updateMany({
+          where: { id: { in: others.map((o) => o.id) } },
+          data: { deletedAt: now, status: "SUSPENDED" },
+        }),
+        tx.boat.updateMany({
+          where: { id: { in: otherBoatIds } },
+          data: { deletedAt: now, status: "INACTIVE" },
+        }),
+        tx.schedule.updateMany({
+          where: { id: { in: otherScheduleIds } },
+          data: { deletedAt: now, status: "INACTIVE" },
+        }),
+        tx.leg.updateMany({
+          where: {
+            scheduleId: { in: otherScheduleIds },
+            departureDate: { gte: now },
+            status: { in: ["OPEN", "FULL"] },
+          },
+          data: {
+            status: "CANCELLED",
+            cancellationReason: "Operator retired from the platform",
+          },
+        }),
+      ]);
+      say(
+        `retired ${ops.count} other operator(s), ${otherBoats.count} boat(s), ` +
+          `${otherScheds.count} schedule(s); closed ${otherLegs.count} future leg(s)`,
+      );
+    }
+
+    // Registration numbers are the boat's unique key, and the sheet has none.
+    // Derive a stable placeholder so a re-run finds the same vessel instead of
+    // creating a duplicate; the operator can correct it in the dashboard.
+    for (const name of missing) {
+      const boat = await tx.boat.create({
+        data: {
+          operatorId: operator.id,
+          name,
+          registrationNumber: `WVG-${name.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`,
+          capacity: capacities.get(name)!,
+          photos: [],
+          description: `${WAHANA_OPERATOR} vessel, from the operator price sheet.`,
+          status: "ACTIVE",
+        },
+      });
+      byName.set(name, boat);
+      say(`created vessel ${name} (${boat.capacity} seats, reg ${boat.registrationNumber})`);
+    }
 
     const ids: string[] = [];
     for (const d of WAHANA_DEPARTURES) {
