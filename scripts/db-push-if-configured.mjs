@@ -73,11 +73,18 @@ if (!pooled && !direct) {
 
 console.log("[db-push] Running prisma db push (no --accept-data-loss)");
 const res = spawnSync("pnpm", ["prisma", "db", "push", "--skip-generate"], {
-  stdio: "inherit",
+  // Capture rather than inherit so the failure below can name the actual
+  // cause. Both streams are echoed verbatim first, so nothing is hidden.
+  stdio: ["inherit", "pipe", "pipe"],
+  encoding: "utf8",
   // schema.prisma reads these two names and no others, so map whatever we
   // resolved onto them rather than relying on them being set already.
   env: { ...process.env, DATABASE_URL: pooled || direct, DIRECT_URL: direct },
 });
+
+const output = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+if (res.stdout) process.stdout.write(res.stdout);
+if (res.stderr) process.stderr.write(res.stderr);
 
 if (res.status !== 0) {
   console.error("[db-push] FAILED — see error above. Failing the build.");
@@ -88,9 +95,37 @@ if (res.status !== 0) {
   console.error("[db-push] touches them — a silent outage discovered by users, not");
   console.error("[db-push] by CI. A blocked deploy is visible and fixable in minutes.");
   console.error("[db-push]");
-  console.error("[db-push] Common cause: the direct connection is unavailable, so DDL");
-  console.error("[db-push] is attempted through the pgBouncer pooler (:6543). It needs");
-  console.error("[db-push] the direct connection (:5432).");
+
+  // `db push` makes the database match schema.prisma *exactly*, so any table
+  // created by hand — a CSV import, a scratch table in the Supabase editor —
+  // is something it wants to delete. Naming them beats the generic advice,
+  // because the fix is the opposite of what a connection error would need.
+  const doomed = [...output.matchAll(/about to drop the `([^`]+)` table/g)].map(
+    (m) => m[1],
+  );
+  if (doomed.length > 0) {
+    console.error(
+      `[db-push] Cause: ${doomed.length} table(s) exist in the database but not in`,
+    );
+    console.error("[db-push] prisma/schema.prisma, so the push wants to delete them:");
+    for (const t of doomed) console.error(`[db-push]   - ${t}`);
+    console.error("[db-push]");
+    console.error("[db-push] Do NOT add --accept-data-loss: that deletes them for real,");
+    console.error("[db-push] on every future build. Pick one instead:");
+    console.error("[db-push]   1. Move them out of the `public` schema — Prisma only");
+    console.error("[db-push]      manages `public`, so it stops seeing them:");
+    console.error("[db-push]        CREATE SCHEMA IF NOT EXISTS staging;");
+    for (const t of doomed) {
+      console.error(`[db-push]        ALTER TABLE public."${t}" SET SCHEMA staging;`);
+    }
+    console.error("[db-push]   2. Adopt them: `prisma db pull` writes accurate models");
+    console.error("[db-push]      into schema.prisma, after which they are preserved.");
+    console.error("[db-push]   3. Drop them deliberately, once you are sure.");
+  } else {
+    console.error("[db-push] Common cause: the direct connection is unavailable, so DDL");
+    console.error("[db-push] is attempted through the pgBouncer pooler (:6543). It needs");
+    console.error("[db-push] the direct connection (:5432).");
+  }
   process.exit(1);
 }
 console.log("[db-push] OK — schema in sync");
