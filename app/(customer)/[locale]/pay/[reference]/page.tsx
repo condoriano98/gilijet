@@ -98,10 +98,10 @@ export default async function PayPage({
     redirect(`/b/${reference}`);
   }
 
-  // Back from PayPal with an approved order. Capture and issue tickets here
-  // rather than waiting for the webhook: PayPal has already taken the money
-  // client-side, so a delayed webhook would leave a paid customer ticketless
-  // while the hold counts down. The webhook later no-ops as a duplicate.
+  // Back from PayPal with an approved order. Capture here rather than waiting
+  // for the webhook: PayPal has already taken the money client-side, so a
+  // delayed webhook would leave a paid booking counting down its hold timer.
+  // The webhook later no-ops as a duplicate.
   let paypalError: string | null = null;
   if (paypal === "return") {
     const outcome = await capturePaypalOrder(reference, token);

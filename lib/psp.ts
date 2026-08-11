@@ -6,11 +6,12 @@
  * refuses. It cannot settle IDR, so a PayPal booking is charged a presentment
  * amount at a stored rate; see lib/fx.ts quoteForeignCharge.
  *
- * Both converge on confirmPaymentAndIssueTickets, so ticketing, seat
- * finalisation and the confirmation email are identical either way.
+ * Both converge on recordPaymentAwaitingConfirmation, so settlement, seat
+ * handling and the payment-received notice are identical either way.
  *
  * The booking flow goes: reserve → /pay/{ref} → the customer picks a gateway →
- * that gateway's hosted page → payment confirmed → tickets issued.
+ * that gateway's hosted page → payment settles → admin rings the operator to
+ * check availability → tickets issued.
  */
 import { PaymentMethod, PaymentProvider } from "@prisma/client";
 import { prisma } from "./db";
@@ -30,7 +31,8 @@ import {
   type CaptureResult,
 } from "./paypal";
 import { quoteForeignCharge, type ForeignChargeQuote } from "./fx";
-import { confirmPaymentAndIssueTickets } from "./ticket-issuer";
+import { recordPaymentAwaitingConfirmation } from "./ticket-issuer";
+import { notifyPaymentReceived } from "./booking-notifications";
 
 /** True when a real (non-mock) gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
@@ -168,16 +170,19 @@ export async function quotePaypalIfAvailable(
 }
 
 export type PaypalCaptureOutcome =
-  | { ok: true; bookingReference: string; alreadyIssued: boolean }
+  | { ok: true; bookingReference: string; alreadyRecorded: boolean }
   | { ok: false; reason: string };
 
 /**
- * Capture an approved PayPal order and issue tickets in the same pass.
+ * Capture an approved PayPal order and record the booking as paid.
  *
  * Called from the pay page on return from PayPal — deliberately not waiting for
  * the webhook. PayPal takes the money client-side, so a delayed or lost webhook
- * would leave a paid customer with no ticket while the hold timer runs down.
- * The webhook still arrives and no-ops via `alreadyIssued`.
+ * would leave a paid customer with a booking still counting down its hold
+ * timer. The webhook still arrives and no-ops via `alreadyRecorded`.
+ *
+ * No boarding pass is issued here; that waits on the admin's call to the
+ * operator. See lib/ticket-issuer.ts.
  */
 export async function capturePaypalOrder(
   bookingReference: string,
@@ -238,7 +243,7 @@ export async function capturePaypalOrder(
     }
   }
 
-  const result = await confirmPaymentAndIssueTickets({
+  const result = await recordPaymentAwaitingConfirmation({
     bookingId: booking.id,
     paidAt: new Date(),
     method: PaymentMethod.PAYPAL,
@@ -259,10 +264,16 @@ export async function capturePaypalOrder(
     },
   });
 
+  if (!result.alreadyRecorded) {
+    notifyPaymentReceived(booking.id).catch((err) =>
+      console.error("[psp] notify failed:", err),
+    );
+  }
+
   return {
     ok: true,
     bookingReference: result.bookingReference,
-    alreadyIssued: result.alreadyIssued,
+    alreadyRecorded: result.alreadyRecorded,
   };
 }
 

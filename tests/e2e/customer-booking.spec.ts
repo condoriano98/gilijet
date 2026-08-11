@@ -2,8 +2,11 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Golden path: an anonymous customer lands on the homepage, searches for a
- * route, picks one of the QA schedules, fills the guest form, mock-pays,
- * and lands on a ticket page with a QR code.
+ * route, picks one of the QA schedules, fills the guest form, mock-pays, and
+ * lands on a booking page telling them their seat is being confirmed.
+ *
+ * Paying no longer produces a boarding pass — an admin has to reach the
+ * operator first — so the QR code is deliberately absent at this point.
  *
  * Relies on `pnpm seed:qa` having been run — see scripts/seed-qa.ts.
  */
@@ -42,5 +45,9 @@ test("anonymous customer can book a QA schedule end-to-end", async ({
     await page.getByRole("button", { name: /^Pay\s/ }).click();
     await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, { timeout: 30_000 });
   }
-  await expect(page.locator("body")).toContainText(/ticket|booking|qr/i);
+  await expect(page.locator("body")).toContainText(
+    /confirming your seat|payment received/i,
+  );
+  // The boarding pass is issued by an admin, not by payment, so no QR yet.
+  await expect(page.getByAltText(/QR code for ticket/i)).toHaveCount(0);
 });

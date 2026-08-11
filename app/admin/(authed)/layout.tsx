@@ -21,6 +21,7 @@ export default async function AdminLayout({
     { href: "/admin", label: "Overview" },
     { href: "/admin/operators", label: "Operators" },
     { href: "/admin/bookings", label: "Bookings" },
+    { href: "/admin/confirmations", label: "Confirmations" },
     { href: "/admin/refunds", label: "Refunds" },
     { href: "/admin/reschedules", label: "Reschedules" },
     // Operations (scheduling on behalf of operators) and the Owner Console

@@ -21,6 +21,8 @@ Never bypass `requireOperator` / `requireAdmin` / `requireSuperAdmin`. If a page
 - **Port name canonicalisation** → `lib/port-info.ts`. Use it when displaying or comparing port codes.
 - **Email** → `lib/email.ts`. Mock-fallback handled there when `RESEND_API_KEY` is absent.
 - **QR / ticket codes** → `lib/qr.ts` + `lib/references.ts`. QR HMAC uses `QR_HMAC_SECRET`.
+- **Payment → ticket gate** → `lib/ticket-issuer.ts`. Settling money only moves a booking to `AWAITING_CONFIRMATION`; tickets are minted by `issueTicketsForBooking` after an admin confirms availability with the operator by phone at `/admin/confirmations`. Never issue a boarding pass straight from a payment path.
+- **Customer notifications** → `lib/booking-notifications.ts` (email + WhatsApp together). WhatsApp transport is `lib/whatsapp.ts` (WATI, mock-falls-back when `WATI_*` absent).
 
 ## DB
 

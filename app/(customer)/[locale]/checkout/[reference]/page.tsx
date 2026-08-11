@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
-import { sendBookingConfirmation } from "@/lib/email";
+import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
+import { notifyPaymentReceived } from "@/lib/booking-notifications";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -46,7 +46,7 @@ async function simulatePayment(formData: FormData) {
     }
   })();
 
-  const result = await confirmPaymentAndIssueTickets({
+  const result = await recordPaymentAwaitingConfirmation({
     bookingId: booking.id,
     paidAt: new Date(),
     method: methodEnum,
@@ -54,20 +54,11 @@ async function simulatePayment(formData: FormData) {
     gatewayReference: `DEMO-${Date.now()}`,
   });
 
-  await sendBookingConfirmation({
-    to: booking.customerEmail,
-    customerName: booking.customerName,
-    bookingReference: result.bookingReference,
-    route: {
-      originPort: booking.leg.schedule.originPort,
-      destinationPort: booking.leg.schedule.destinationPort,
-    },
-    boatName: booking.leg.schedule.boat.name,
-    departureDate: booking.leg.departureDate,
-    totalAmount: Number(booking.totalAmount),
-    lookupUrl: `${env.APP_BASE_URL}/b/${result.bookingReference}`,
-    tickets: result.tickets,
-  }).catch((err) => console.error("[email] checkout send failed:", err));
+  if (!result.alreadyRecorded) {
+    await notifyPaymentReceived(booking.id).catch((err) =>
+      console.error("[checkout] notify failed:", err),
+    );
+  }
 
   redirect(`/b/${reference}`);
 }
@@ -92,14 +83,9 @@ export default async function CheckoutPage({
   });
   if (!booking) notFound();
 
-  if (booking.status === "CONFIRMED") redirect(`/b/${reference}`);
-  if (
-    booking.status === "EXPIRED" ||
-    booking.status === "CANCELLED_BY_CUSTOMER" ||
-    booking.status === "CANCELLED_BY_OPERATOR"
-  ) {
-    redirect(`/b/${reference}`);
-  }
+  // Anything past PENDING_PAYMENT — already paid, expired or cancelled — has
+  // nothing left to pay for here.
+  if (booking.status !== "PENDING_PAYMENT") redirect(`/b/${reference}`);
 
   const holdMinutes = env.BOOKING_HOLD_MINUTES ?? 30;
   const expiresAt = new Date(

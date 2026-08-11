@@ -487,7 +487,7 @@ export async function deleteSchedule(formData: FormData) {
       scheduleId: id,
       departureDate: { gte: now },
       status: { not: "CANCELLED" },
-      bookings: { some: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } } },
+      bookings: { some: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } } },
     },
   });
   if (bookedLegs > 0) {

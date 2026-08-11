@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentMethod } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
+import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
+import { notifyPaymentReceived } from "@/lib/booking-notifications";
 import { normalizePaymentMethod } from "@/lib/psp";
 import {
   readNotification,
   readNotificationHeaders,
   verifyDokuNotification,
 } from "@/lib/doku";
-import { sendBookingConfirmation } from "@/lib/email";
-import { env } from "@/lib/env";
 
 /**
  * DOKU HTTP notification endpoint.
  *
  * DOKU POSTs a signed JSON body when a payment settles. We recompute the
  * signature over the raw request bytes — re-serialising parsed JSON changes the
- * digest — then converge on `confirmPaymentAndIssueTickets`, which is
- * idempotent, so a redelivered notification issues no second set of tickets.
+ * digest — then converge on `recordPaymentAwaitingConfirmation`, which is
+ * idempotent, so a redelivered notification cannot re-notify the customer.
+ *
+ * Settling money does not issue a boarding pass: the booking parks in
+ * AWAITING_CONFIRMATION until an admin has rung the operator. See
+ * lib/ticket-issuer.ts.
  *
  * Notification path: /api/webhooks/doku
  */
@@ -133,7 +136,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await confirmPaymentAndIssueTickets({
+    const result = await recordPaymentAwaitingConfirmation({
       bookingId: booking.id,
       paidAt: new Date(),
       method,
@@ -145,33 +148,22 @@ export async function POST(req: NextRequest) {
       data: {
         rawWebhookData: payload as never,
         // Clear any earlier decline: this booking is paid, and a stale reason
-        // would keep the retry prompt showing on a confirmed booking.
+        // would keep the retry prompt showing on a paid booking.
         failedReason: null,
       },
     });
 
-    if (!result.alreadyIssued) {
-      sendBookingConfirmation({
-        to: booking.customerEmail,
-        customerName: booking.customerName,
-        bookingReference: result.bookingReference,
-        route: {
-          originPort: booking.leg.schedule.originPort,
-          destinationPort: booking.leg.schedule.destinationPort,
-        },
-        boatName: booking.leg.schedule.boat.name,
-        departureDate: booking.leg.departureDate,
-        totalAmount: Number(booking.totalAmount),
-        lookupUrl: `${env.APP_BASE_URL}/b/${result.bookingReference}`,
-        tickets: result.tickets,
-      }).catch((err) => console.error("[doku-webhook] email failed:", err));
+    if (!result.alreadyRecorded) {
+      notifyPaymentReceived(booking.id).catch((err) =>
+        console.error("[doku-webhook] notify failed:", err),
+      );
     }
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
       data: { status: "PROCESSED", processedAt: new Date(), errorMessage: null },
     });
-    return NextResponse.json({ ok: true, status: "confirmed" });
+    return NextResponse.json({ ok: true, status: "awaiting_confirmation" });
   } catch (err) {
     console.error("[doku-webhook] handler error:", err);
     await prisma.webhookEvent

@@ -286,6 +286,12 @@ model Booking {
   promotionId          String?
   discountAmount       Decimal       @default(0) @db.Decimal(12, 2)
   reminderSentAt       DateTime?
+  // Manual availability check: who rang the operator, when, and what they were
+  // told. availabilityDecidedAt is set on both approve and reject; the booking
+  // status says which way it went.
+  availabilityDecidedAt   DateTime?
+  availabilityDecidedById String?
+  availabilityNote        String?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -319,6 +325,11 @@ model Booking {
 
 enum BookingStatus {
   PENDING_PAYMENT
+  // Paid, but the seat is not promised yet. Operators here work by phone
+  // rather than through the dashboard, so an admin rings them to check the
+  // boat is actually running before any boarding pass goes out. Seats stay
+  // held on the Leg for the whole of this window.
+  AWAITING_CONFIRMATION
   CONFIRMED
   CANCELLED_BY_CUSTOMER
   CANCELLED_BY_OPERATOR

@@ -94,8 +94,8 @@ async function settlePendingPaypalOrder(
     const order = await getOrder(orderId);
     if (!order.completed) return false;
 
-    const { confirmPaymentAndIssueTickets } = await import("./ticket-issuer");
-    await confirmPaymentAndIssueTickets({
+    const { recordPaymentAwaitingConfirmation } = await import("./ticket-issuer");
+    await recordPaymentAwaitingConfirmation({
       bookingId,
       paidAt: new Date(),
       method: "PAYPAL",

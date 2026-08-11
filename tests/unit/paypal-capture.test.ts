@@ -22,7 +22,11 @@ vi.mock("@/lib/paypal", () => ({
 }));
 
 vi.mock("@/lib/ticket-issuer", () => ({
-  confirmPaymentAndIssueTickets: mocks.confirm,
+  recordPaymentAwaitingConfirmation: mocks.confirm,
+}));
+
+vi.mock("@/lib/booking-notifications", () => ({
+  notifyPaymentReceived: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { capturePaypalOrder } from "@/lib/psp";
@@ -57,13 +61,13 @@ describe("capturePaypalOrder", () => {
     mocks.captureOrder.mockReset();
     mocks.confirm
       .mockReset()
-      .mockResolvedValue({ bookingReference: "GLJ-AAA111", alreadyIssued: false });
+      .mockResolvedValue({ bookingReference: "GLJ-AAA111", alreadyRecorded: false });
   });
 
   it("captures and issues tickets on a matching completed order", async () => {
     mocks.captureOrder.mockResolvedValue(completedCapture());
     const out = await capturePaypalOrder("GLJ-AAA111");
-    expect(out).toMatchObject({ ok: true, alreadyIssued: false });
+    expect(out).toMatchObject({ ok: true, alreadyRecorded: false });
     // Fee is recorded in IDR, converted at the charge's own rate.
     expect(mocks.confirm).toHaveBeenCalledWith(
       expect.objectContaining({ bookingId: "bk-1", gatewayFee: 30_063 }),
@@ -125,10 +129,10 @@ describe("capturePaypalOrder", () => {
     mocks.captureOrder.mockResolvedValue(completedCapture());
     mocks.confirm.mockResolvedValue({
       bookingReference: "GLJ-AAA111",
-      alreadyIssued: true,
+      alreadyRecorded: true,
     });
     const out = await capturePaypalOrder("GLJ-AAA111");
-    expect(out).toMatchObject({ ok: true, alreadyIssued: true });
+    expect(out).toMatchObject({ ok: true, alreadyRecorded: true });
   });
 
   it("refuses when the booking was not paid through PayPal", async () => {

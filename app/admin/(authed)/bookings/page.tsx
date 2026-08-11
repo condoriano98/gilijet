@@ -25,6 +25,7 @@ import { formatLocalDateTime } from "@/lib/datetime";
 
 const STATUS_FILTERS: BookingStatus[] = [
   "PENDING_PAYMENT",
+  "AWAITING_CONFIRMATION",
   "CONFIRMED",
   "CANCELLED_BY_CUSTOMER",
   "CANCELLED_BY_OPERATOR",

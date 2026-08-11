@@ -116,7 +116,7 @@ export async function validatePromoCode(
     ].filter(Boolean) as Prisma.BookingWhereInput[];
     const prior = await prisma.booking.findFirst({
       where: {
-        status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
+        status: { in: ["PENDING_PAYMENT", "AWAITING_CONFIRMATION", "CONFIRMED"] },
         OR: priorOr,
       },
       select: { id: true },

@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { prisma } from "./db";
 import { env } from "./env";
-import { confirmPaymentAndIssueTickets } from "./ticket-issuer";
+import { recordPaymentAwaitingConfirmation } from "./ticket-issuer";
 import { releaseBookingSeats } from "./booking-engine";
-import { sendBookingConfirmation } from "./email";
+import { notifyPaymentReceived } from "./booking-notifications";
 import { normalizePaymentMethod } from "./psp";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ export async function processInvoicePaid(
     return { ok: false, error: "Booking not found", httpStatus: 404 };
   }
 
-  const result = await confirmPaymentAndIssueTickets({
+  const result = await recordPaymentAwaitingConfirmation({
     bookingId: booking.id,
     paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
     method: normalizePaymentMethod(data.payment_method ?? "BANK_TRANSFER"),
@@ -70,26 +70,13 @@ export async function processInvoicePaid(
     });
   }
 
-  if (!result.alreadyIssued) {
-    sendBookingConfirmation({
-      to: booking.customerEmail,
-      customerName: booking.customerName,
-      bookingReference: result.bookingReference,
-      route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
-      },
-      boatName: booking.leg.schedule.boat.name,
-      departureDate: booking.leg.departureDate,
-      totalAmount: Number(booking.totalAmount),
-      lookupUrl: `${env.APP_BASE_URL}/b/${result.bookingReference}`,
-      tickets: result.tickets,
-    }).catch((err) =>
-      console.error("[webhook-processor] email failed:", err),
+  if (!result.alreadyRecorded) {
+    notifyPaymentReceived(booking.id).catch((err) =>
+      console.error("[webhook-processor] notify failed:", err),
     );
   }
 
-  return { ok: true, status: "confirmed" };
+  return { ok: true, status: "awaiting_confirmation" };
 }
 
 export async function processInvoiceExpired(

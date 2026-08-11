@@ -100,6 +100,80 @@ async function renderBookingConfirmationHtml(
 </body></html>`;
 }
 
+// ─── Payment received, seat not yet confirmed ────────────────────────────────
+
+type PaymentReceivedArgs = {
+  to: string;
+  customerName: string;
+  bookingReference: string;
+  route: { originPort: string; destinationPort: string };
+  boatName: string;
+  departureDate: Date;
+  totalAmount: number;
+  lookupUrl: string;
+};
+
+/**
+ * Sent the moment money settles. Deliberately carries no QR code: the seat is
+ * not promised until an admin has reached the operator, and a boarding pass
+ * here would be a promise we cannot keep. Its job is to stop a paying customer
+ * hearing nothing at all.
+ */
+export async function sendPaymentReceivedEmail(
+  args: PaymentReceivedArgs,
+): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+  const subject = `Payment received for ${args.bookingReference} — confirming your seat`;
+  const html = `<!doctype html>
+<html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
+  <h2 style="margin:0 0 4px;">Payment received</h2>
+  <p style="margin:0 0 16px;color:#475569;">Thank you, ${escapeHtml(args.customerName)}. We have your payment of ${formatIDR(args.totalAmount)} for booking <strong>${escapeHtml(args.bookingReference)}</strong>.</p>
+  <div style="border:1px solid #fed7aa;background:#fff7ed;border-radius:8px;padding:16px;margin-bottom:16px;">
+    <div style="font-weight:600;margin-bottom:4px;">Your seat is being confirmed</div>
+    <div style="color:#7c2d12;font-size:14px;">We are checking this departure directly with the boat operator. Your boarding pass will arrive by email and WhatsApp once that is done — usually within a few hours. Please do not travel to the harbour until you have it.</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.boatName)}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
+  </table>
+  <p style="margin-top:16px;font-size:13px;color:#64748b;">
+    If the operator cannot take this departure we will cancel and refund you in full. Track your booking at
+    <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
+  </p>
+  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilibali</p>
+</body></html>`;
+
+  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    console.log(
+      `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
+        `        subject: ${subject}\n` +
+        `        lookup : ${args.lookupUrl}\n`,
+    );
+    return { delivered: false, provider: "console" };
+  }
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: env.RESEND_FROM_EMAIL,
+      to: [args.to],
+      subject,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`[email] Resend failed ${res.status}: ${text}`);
+    return { delivered: false, provider: "resend" };
+  }
+  return { delivered: true, provider: "resend" };
+}
+
 // ─── Password reset email ─────────────────────────────────────────────────────
 
 type PasswordResetArgs = {

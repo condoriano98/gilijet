@@ -160,7 +160,7 @@ async function main() {
       scheduleId: { in: [...retiringIds, ...otherScheduleIds] },
       departureDate: { gte: now },
       status: { not: "CANCELLED" },
-      bookings: { some: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } } },
+      bookings: { some: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } } },
     },
   });
   const blocked =

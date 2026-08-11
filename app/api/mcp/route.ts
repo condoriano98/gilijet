@@ -122,6 +122,7 @@ const TOOLS: ToolDef[] = [
           type: "string",
           enum: [
             "PENDING_PAYMENT",
+            "AWAITING_CONFIRMATION",
             "CONFIRMED",
             "CANCELLED_BY_CUSTOMER",
             "CANCELLED_BY_OPERATOR",

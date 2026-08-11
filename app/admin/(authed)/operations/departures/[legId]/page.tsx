@@ -54,7 +54,7 @@ export default async function DepartureDetailPage({
         },
       },
       bookings: {
-        where: { status: { in: ["CONFIRMED", "PENDING_PAYMENT"] } },
+        where: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } },
         orderBy: { createdAt: "asc" },
         select: {
           id: true,

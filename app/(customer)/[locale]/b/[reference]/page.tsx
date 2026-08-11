@@ -63,7 +63,13 @@ async function cancelAction(formData: FormData) {
   ) {
     redirect(`/b/${ref}?error=email_mismatch`);
   }
-  if (booking.status !== "CONFIRMED" && booking.status !== "PENDING_PAYMENT") {
+  // A booking still waiting on the operator call is cancellable too — the
+  // customer has paid and is entitled to back out on the normal refund tiers.
+  if (
+    booking.status !== "CONFIRMED" &&
+    booking.status !== "PENDING_PAYMENT" &&
+    booking.status !== "AWAITING_CONFIRMATION"
+  ) {
     redirect(`/b/${ref}?error=not_cancellable`);
   }
   if (booking.leg.departureDate.getTime() <= Date.now()) {
@@ -147,6 +153,7 @@ function statusBadge(status: string) {
     case "CONFIRMED":
       return "success" as const;
     case "PENDING_PAYMENT":
+    case "AWAITING_CONFIRMATION":
       return "warning" as const;
     case "EXPIRED":
     case "CANCELLED_BY_CUSTOMER":
@@ -247,7 +254,9 @@ export default async function BookingLookupPage({
       : null;
   const canCancel =
     departureFuture &&
-    (booking.status === "CONFIRMED" || booking.status === "PENDING_PAYMENT");
+    (booking.status === "CONFIRMED" ||
+      booking.status === "PENDING_PAYMENT" ||
+      booking.status === "AWAITING_CONFIRMATION");
 
   return (
     <div className="container py-8">
@@ -332,6 +341,26 @@ export default async function BookingLookupPage({
                   Complete payment
                 </Link>
               </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {booking.status === "AWAITING_CONFIRMATION" ? (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="space-y-2 pt-6">
+              <p className="text-sm font-medium text-amber-900">
+                Payment received — we&apos;re confirming your seat
+              </p>
+              <p className="text-sm text-amber-900">
+                We check every departure directly with the boat operator before
+                issuing a boarding pass. Yours will arrive by email and WhatsApp
+                once that&apos;s done, usually within a few hours.
+              </p>
+              <p className="text-sm text-amber-900">
+                Please don&apos;t travel to the harbour until you have it. If
+                the operator can&apos;t take this departure we&apos;ll cancel
+                and refund you in full.
+              </p>
             </CardContent>
           </Card>
         ) : null}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentMethod } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { confirmPaymentAndIssueTickets } from "@/lib/ticket-issuer";
+import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
+import { notifyPaymentReceived } from "@/lib/booking-notifications";
 import { paypalFeeAsIdr } from "@/lib/psp";
 import {
   readCaptureFromWebhook,
@@ -158,13 +159,19 @@ async function handleEvent(
         }
       }
 
-      await confirmPaymentAndIssueTickets({
+      const result = await recordPaymentAwaitingConfirmation({
         bookingId: booking.id,
         paidAt: new Date(),
         method: PaymentMethod.PAYPAL,
         gatewayReference: payment?.gatewayReference ?? capture.captureId,
         gatewayFee: paypalFeeAsIdr(capture.feeAmount, payment?.fxRate ?? null),
       });
+
+      if (!result.alreadyRecorded) {
+        notifyPaymentReceived(booking.id).catch((err) =>
+          console.error("[paypal-webhook] notify failed:", err),
+        );
+      }
 
       await prisma.payment.update({
         where: { bookingId: booking.id },
@@ -177,7 +184,7 @@ async function handleEvent(
         },
       });
 
-      return { ok: true, status: "confirmed" };
+      return { ok: true, status: "awaiting_confirmation" };
     }
 
     case "PAYMENT.CAPTURE.DENIED":

@@ -138,7 +138,7 @@ export async function subtreeBlockers(s: Subtree): Promise<PurgeBlockers> {
     prisma.booking.count({
       where: {
         id: { in: s.bookingIds },
-        status: { in: ["CONFIRMED", "PENDING_PAYMENT"] },
+        status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] },
         leg: { departureDate: { gte: new Date() } },
       },
     }),
