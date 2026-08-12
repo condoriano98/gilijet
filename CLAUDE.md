@@ -1,4 +1,4 @@
-# Gilijet — Agent rules
+# Gilifast — Agent rules
 
 Next.js 14 / App Router boat-ticketing MVP. Postgres via Prisma. Auth via signed HttpOnly cookies (`jose`). Payments via DOKU Checkout (mock when keys absent). Timezone for all customer-facing times is **WITA (Asia/Makassar)**.
 

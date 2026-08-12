@@ -7,7 +7,7 @@ import {
   signState,
 } from "@/lib/google-oauth";
 
-const STATE_COOKIE = "gilijet_google_state";
+const STATE_COOKIE = "gilifast_google_state";
 
 export async function GET(req: Request) {
   if (!isGoogleOAuthEnabled()) {

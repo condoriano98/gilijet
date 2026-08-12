@@ -327,7 +327,7 @@ export async function createOrder(
         },
       ],
       application_context: {
-        brand_name: "Gilijet",
+        brand_name: "Gilifast",
         user_action: "PAY_NOW",
         shipping_preference: "NO_SHIPPING",
         return_url: params.returnUrl,

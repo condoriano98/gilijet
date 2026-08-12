@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "About · Gilibali" };
+export const metadata = { title: "About · Gilifast" };
 
 export default function AboutPage() {
   return (
@@ -9,10 +9,10 @@ export default function AboutPage() {
         <Link href="/" className="text-sm text-sky-700 no-underline hover:underline">
           ← Home
         </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">About Gilibali</h1>
+        <h1 className="mt-4 text-3xl font-bold tracking-tight">About Gilifast</h1>
 
         <p className="text-lg text-slate-700">
-          Gilibali is Indonesia&apos;s easiest way to book a boat ticket. From the
+          Gilifast is Indonesia&apos;s easiest way to book a boat ticket. From the
           Gili islands to Komodo, from Bali to Lombok, we connect travelers
           with verified boat operators in a few taps.
         </p>

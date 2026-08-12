@@ -17,10 +17,10 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Remapped to the Gilibali Figma brand: the consumer pages reference
-        // gilijet-deep/ocean/foam for accents, so redefining these values
+        // Remapped to the Gilifast Figma brand: the consumer pages reference
+        // gilifast-deep/ocean/foam for accents, so redefining these values
         // rebrands the whole consumer surface to electric blue + periwinkle.
-        gilijet: {
+        gilifast: {
           deep: "#103BE9",
           ocean: "#0052D4",
           foam: "#E1E7FF",

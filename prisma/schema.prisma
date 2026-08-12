@@ -1,4 +1,4 @@
-// Gilijet — boat ticketing platform
+// Gilifast — boat ticketing platform
 // See REQUIREMENTS.md §5 for design notes.
 
 generator client {
@@ -258,7 +258,7 @@ model Booking {
   customerId           String?
   operatorId           String
   agentId              String?
-  salesChannel         SalesChannel  @default(GILIJET)
+  salesChannel         SalesChannel  @default(GILIFAST)
   salesStaffId         String?
   salesAgentId         String?
   agentCommissionAmount  Decimal?    @db.Decimal(14, 2)
@@ -1031,6 +1031,13 @@ model WeatherForecast {
 // ============== ERP — SALES CHANNELS & AGENTS ==============
 
 enum SalesChannel {
+  GILIFAST
+  // Pre-rename value for the same thing: our own platform. Existing Booking
+  // rows still carry it, and dropping an enum value those rows reference is
+  // destructive — `prisma db push` would refuse the whole push. Kept for the
+  // same reason as the legacy PaymentProvider values above. Anything asking
+  // "was this sold on our platform?" must match both; see DIRECT_SALES_CHANNELS
+  // in lib/operator-erp-queries.ts.
   GILIJET
   WALK_IN
   TRAVEL_AGENT

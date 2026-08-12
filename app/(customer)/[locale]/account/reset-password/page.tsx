@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata = { title: "Reset password · Gilibali" };
+export const metadata = { title: "Reset password · Gilifast" };
 
 async function resetPasswordAction(formData: FormData) {
   "use server";

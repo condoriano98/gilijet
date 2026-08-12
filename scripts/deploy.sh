@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deploy Gilijet to a fresh Ubuntu/Debian Linux box over SSH as root.
+# Deploy Gilifast to a fresh Ubuntu/Debian Linux box over SSH as root.
 #
 # Usage:
 #   scripts/deploy.sh                       # uses default host 188.166.177.164
@@ -10,8 +10,8 @@
 # What it does:
 #   1. Pings the box over SSH.
 #   2. Installs Docker + rsync on first run (idempotent).
-#   3. Generates ~/.gilijet/.env on the server (secrets persist across deploys).
-#   4. rsyncs the repo into /opt/gilijet on the server.
+#   3. Generates ~/.gilifast/.env on the server (secrets persist across deploys).
+#   4. rsyncs the repo into /opt/gilifast on the server.
 #   5. `docker compose up -d --build` to (re)launch the app on port 80.
 #   6. Tails health for ~30s and prints the URL.
 #
@@ -22,8 +22,8 @@ USER="${SSH_USER:-root}"
 SSH_KEY_ARG=""
 if [ -n "${SSH_KEY:-}" ]; then SSH_KEY_ARG="-i $SSH_KEY"; fi
 
-REMOTE_DIR="/opt/gilijet"
-REMOTE_ENV="/root/.gilijet/.env"
+REMOTE_DIR="/opt/gilifast"
+REMOTE_ENV="/root/.gilifast/.env"
 TARGET="${USER}@${HOST}"
 
 # Off by default: entrypoint.sh runs prisma/seed.ts on every boot, not just the
@@ -80,7 +80,18 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp  || true
 fi
 
-mkdir -p /opt/gilijet /root/.gilijet
+# Pre-rename boxes keep their state at the old gilijet paths. Move it rather
+# than starting fresh: /root/.gilijet/.env holds QR_HMAC_SECRET, and
+# regenerating that invalidates the QR on every ticket already issued.
+if [ -d /root/.gilijet ] && [ ! -d /root/.gilifast ]; then
+  mv /root/.gilijet /root/.gilifast
+  echo "  migrated /root/.gilijet -> /root/.gilifast (secrets preserved)"
+fi
+if [ -d /opt/gilijet ] && [ ! -d /opt/gilifast ]; then
+  mv /opt/gilijet /opt/gilifast
+  echo "  migrated /opt/gilijet -> /opt/gilifast"
+fi
+mkdir -p /opt/gilifast /root/.gilifast
 REMOTE
 echo "✓ Prereqs ok"
 
@@ -222,7 +233,7 @@ for i in $(seq 1 20); do
     echo "  Live → ${BASE}/"
     echo "  Admin login → ${BASE}/admin/login"
     if [ "${SEED_ON_START}" = "1" ]; then
-      echo "  Seeded admin → admin@gilijet.local / changeme123 (CHANGE IT)"
+      echo "  Seeded admin → admin@gilifast.local / changeme123 (CHANGE IT)"
     fi
     exit 0
   fi

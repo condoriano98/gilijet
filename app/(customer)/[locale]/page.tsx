@@ -134,7 +134,7 @@ export default async function HomePage() {
         <div className="container relative">
           <div className="mx-auto max-w-6xl text-center">
             <h1 className="mx-auto max-w-4xl text-4xl font-display font-extrabold leading-[0.98] text-white drop-shadow-lg sm:text-6xl lg:text-7xl">
-              Let Journey Begin with Gilibali!
+              Let Journey Begin with Gilifast!
             </h1>
             {/* Solid white, not white/90: the value proposition was rendering
                 at lower contrast than the heading above it. */}
@@ -147,7 +147,7 @@ export default async function HomePage() {
 
       {/* Wave divider behind search card */}
       <div className="relative z-0">
-        <WaveDivider fillClass="fill-gilijet-foam" />
+        <WaveDivider fillClass="fill-gilifast-foam" />
 
         {/* Search card — overlaps the hero/content boundary. Circular photo
             blob on the left (Figma motif) + the live search form. */}
@@ -190,7 +190,7 @@ export default async function HomePage() {
 
       {/* ─── DEPARTING SOON ─── */}
       {hasDepartures && (
-        <section className="bg-gilijet-foam">
+        <section className="bg-gilifast-foam">
           <div className="container pt-8 pb-10">
             <DepartingToday departures={departures} />
           </div>
@@ -204,7 +204,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded bg-gilijet-coral px-2 py-0.5 text-xs font-bold text-white">
+                  <span className="rounded bg-gilifast-coral px-2 py-0.5 text-xs font-bold text-white">
                     PROMO
                   </span>
                   <h3 className="text-lg font-display font-bold text-amber-900">
@@ -230,7 +230,7 @@ export default async function HomePage() {
                   )}
                 </p>
               </div>
-              <Button asChild className="w-full bg-gilijet-coral hover:bg-gilijet-coralDeep sm:w-auto">
+              <Button asChild className="w-full bg-gilifast-coral hover:bg-gilifast-coralDeep sm:w-auto">
                 <Link href="/search">Book now</Link>
               </Button>
             </div>
@@ -252,7 +252,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/search"
-              className="hidden text-sm font-medium text-gilijet-deep hover:underline sm:inline"
+              className="hidden text-sm font-medium text-gilifast-deep hover:underline sm:inline"
             >
               See all →
             </Link>
@@ -269,7 +269,7 @@ export default async function HomePage() {
                 >
                   <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
                     <div className="flex items-center gap-4 p-4">
-                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-gilijet-foam">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-gilifast-foam">
                         {photo && (
                           <Image
                             src={photo.url}
@@ -296,7 +296,7 @@ export default async function HomePage() {
                         </div>
                         <div className="mt-1">
                           <span className="text-xs text-slate-500">from </span>
-                          <span className="text-lg font-bold text-gilijet-deep">
+                          <span className="text-lg font-bold text-gilifast-deep">
                             IDR {route.cheapestPriceIDR.toLocaleString("id-ID")}
                           </span>
                         </div>
@@ -386,10 +386,10 @@ export default async function HomePage() {
                     key={dest.slug}
                     href={`/search?destination=${encodeURIComponent(dest.destinationPort)}`}
                     aria-label={`Browse boats to ${dest.name}`}
-                    className="group block focus:outline-none focus:ring-2 focus:ring-gilijet-ocean rounded-lg"
+                    className="group block focus:outline-none focus:ring-2 focus:ring-gilifast-ocean rounded-lg"
                   >
                     <Card className="overflow-hidden transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
-                      <div className="relative h-36 bg-gradient-to-br from-gilijet-ocean to-gilijet-deep">
+                      <div className="relative h-36 bg-gradient-to-br from-gilifast-ocean to-gilifast-deep">
                         {photo && (
                           <Image
                             src={photo.url}
@@ -414,7 +414,7 @@ export default async function HomePage() {
                           <Badge variant="outline">{dest.routes} routes</Badge>
                           <div>
                             <span className="text-slate-500">from </span>
-                            <span className="font-semibold text-gilijet-deep">
+                            <span className="font-semibold text-gilifast-deep">
                               IDR {dest.from.toLocaleString("id-ID")}
                             </span>
                           </div>
@@ -470,7 +470,7 @@ export default async function HomePage() {
             ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gilijet-foam text-2xl text-gilijet-deep">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gilifast-foam text-2xl text-gilifast-deep">
                     ✓
                   </div>
                   <div className="font-semibold text-slate-900">{badge.title}</div>
@@ -483,7 +483,7 @@ export default async function HomePage() {
       </section>
 
       {/* ─── HOW IT WORKS ─── */}
-      <section className="bg-gilijet-foam py-16">
+      <section className="bg-gilifast-foam py-16">
         <div className="container">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
@@ -503,7 +503,7 @@ export default async function HomePage() {
                 { step: "4", title: t("howItWorks.step4Title"), desc: t("howItWorks.step4Desc") },
               ].map((s) => (
                 <div key={s.step} className="relative text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilijet-deep text-lg font-bold text-white">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilifast-deep text-lg font-bold text-white">
                     {s.step}
                   </div>
                   <div className="mt-3 font-semibold text-slate-900">{s.title}</div>

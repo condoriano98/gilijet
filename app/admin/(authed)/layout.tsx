@@ -41,7 +41,7 @@ export default async function AdminLayout({
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/admin" className="text-lg font-semibold text-sky-700">
-              Gilibali · Admin
+              Gilifast · Admin
             </Link>
             <nav className="hidden gap-1 md:flex">
               {nav.map((item) => (

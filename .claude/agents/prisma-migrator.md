@@ -5,7 +5,7 @@ tools: Read, Edit, Bash
 model: sonnet
 ---
 
-You own schema changes for the gilijet Postgres database.
+You own schema changes for the gilifast Postgres database.
 
 ## Workflow
 

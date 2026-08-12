@@ -49,7 +49,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
       <div className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700">
         <p className="font-semibold">What happens next:</p>
         <ul className="mt-2 list-inside space-y-1">
-          <li>✓ Gilijet admin will review all your documents</li>
+          <li>✓ Gilifast admin will review all your documents</li>
           <li>✓ We&apos;ll verify your KYB information</li>
           <li>✓ Your account will be activated</li>
           <li>✓ You&apos;ll receive an email confirmation</li>
@@ -110,7 +110,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          By submitting this form, you confirm that all information is accurate and agree to Gilijet&apos;s terms of service.
+          By submitting this form, you confirm that all information is accurate and agree to Gilifast&apos;s terms of service.
         </p>
       </form>
     </div>

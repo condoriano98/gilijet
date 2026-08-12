@@ -1,4 +1,4 @@
-# Gilijet
+# Gilifast
 
 Small-boat ticketing platform for Indonesia — customer booking, an operator
 back office, and a platform admin console. Mobile-first, built on Next.js 15 +
@@ -59,12 +59,12 @@ QA seed logins (from `scripts/seed-qa.ts`, all password `qaqaqaqa`):
 
 | Role | Email | Entry point |
 |---|---|---|
-| Admin | `qa-admin@gilijet.local` | `/admin/login` |
-| Operator | `qa-operator@gilijet.local` | `/operator/login` |
-| Customer | `qa-customer@gilijet.local` | `/account/login` (redirects to `/en/…`) |
+| Admin | `qa-admin@gilifast.local` | `/admin/login` |
+| Operator | `qa-operator@gilifast.local` | `/operator/login` |
+| Customer | `qa-customer@gilifast.local` | `/account/login` (redirects to `/en/…`) |
 
 `pnpm db:seed` instead loads the fuller demo set, defaulting to
-`admin@gilijet.local` / `changeme123`.
+`admin@gilifast.local` / `changeme123`.
 
 > **Rotate that password before any deploy.** `docker-compose.yml` defaults
 > `SEED_ADMIN_PASSWORD` to `changeme123`, so an environment seeded without
@@ -104,6 +104,30 @@ every login page down with `P2021`.
 
 Soft deletes: `Operator`, `Boat` and `Schedule` carry `deletedAt`, so list
 queries must filter `deletedAt: null`.
+
+### Storage names still say `gilijet`
+
+The brand is Gilifast, but four identifiers in `docker-compose.yml` — the
+compose project `name`, `POSTGRES_DB`, `POSTGRES_USER`, and the credentials in
+`DATABASE_URL` — deliberately still read `gilijet`. They are not branding; they
+are where the production data physically lives. The compose project name
+namespaces the volume, so the live cluster is `gilijet_db-data`, and
+`POSTGRES_DB`/`POSTGRES_USER` do not rename anything on an already-initialised
+volume — changing them just points the app at a role and database that do not
+exist.
+
+Renaming them is a dump-and-restore on the droplet, not an edit:
+
+```bash
+docker compose exec db pg_dump -U gilijet gilijet > /root/gilijet-backup.sql
+# then: bring the stack down, edit the four identifiers, docker compose up -d,
+# and restore into the new database before letting the app start.
+```
+
+`SalesChannel.GILIJET` is retained in `prisma/schema.prisma` for the same
+reason — existing `Booking` rows reference it, and dropping an in-use enum
+value makes `prisma db push` refuse the whole push. `lib/sales-channel.ts`
+folds it onto `GILIFAST` for every display and grouping.
 
 ## Route groups
 
@@ -147,7 +171,7 @@ Enable it by setting `MCP_REVIEWER_TOKEN` (32+ chars). While it is unset the
 endpoint returns 503, so it never serves unauthenticated. Give the reviewer:
 
 ```bash
-claude mcp add --scope user --transport http gilijet-review \
+claude mcp add --scope user --transport http gilifast-review \
   https://<your-host>/api/mcp \
   --header "Authorization: Bearer <token>"
 ```
@@ -183,13 +207,13 @@ Honest state, so nobody plans against features that do not work:
 - **No TLS unless `APP_DOMAIN` is set.** DOKU accepts notifications over plain
   HTTP, so the droplet works on a bare IP — but payment notifications and
   card-holder traffic then travel in the clear, which is not where you want to
-  be taking real money. Setting `APP_DOMAIN` in `~/.gilijet/.env` to a domain
+  be taking real money. Setting `APP_DOMAIN` in `~/.gilifast/.env` to a domain
   whose A record points at the box makes the `caddy` service issue and renew a
   Let's Encrypt certificate automatically, and `deploy.sh` rewrites
   `APP_BASE_URL` to match. Until DNS resolves, Caddy cannot obtain a
   certificate and the site will not serve, so point the A record first.
 - **Live keys must be present on the server, not just in a dashboard.** Until
-  `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set in `~/.gilijet/.env` the app
+  `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set in `~/.gilifast/.env` the app
   runs in mock mode and takes no real money — checkout falls back to the
   built-in dummy flow. `deploy.sh` prints which integrations are live at the
   end of every deploy, and `/admin/diagnostics` shows the same from the

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Practical guides for boat travel across Indonesia: choosing operators, reading sea conditions, avoiding seasickness, and timing your crossing.",
   alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Gilibali Blog — Boat travel guides for Indonesia",
+    title: "Gilifast Blog — Boat travel guides for Indonesia",
     description:
       "Practical guides for boat travel across Indonesia: operators, sea conditions, seasonality, and trip planning.",
     type: "website",
@@ -28,8 +28,8 @@ export default function BlogIndex() {
     <div className="container py-10">
       <div className="mx-auto max-w-3xl">
         <header className="mb-10">
-          <p className="text-sm font-medium uppercase tracking-wide text-gilijet-ocean">
-            Gilibali Blog
+          <p className="text-sm font-medium uppercase tracking-wide text-gilifast-ocean">
+            Gilifast Blog
           </p>
           <h1 className="mt-2 text-3xl font-display font-extrabold text-slate-900 sm:text-4xl">
             Boat travel guides for Indonesia
@@ -47,7 +47,7 @@ export default function BlogIndex() {
                 <h2 className="text-xl font-display font-bold text-slate-900 sm:text-2xl">
                   <Link
                     href={`/blog/${meta.slug}`}
-                    className="hover:text-gilijet-ocean hover:underline"
+                    className="hover:text-gilifast-ocean hover:underline"
                   >
                     {meta.title}
                   </Link>
@@ -72,7 +72,7 @@ export default function BlogIndex() {
                 </div>
                 <Link
                   href={`/blog/${meta.slug}`}
-                  className="mt-3 inline-block text-sm font-medium text-gilijet-ocean hover:underline"
+                  className="mt-3 inline-block text-sm font-medium text-gilifast-ocean hover:underline"
                 >
                   Read more →
                 </Link>

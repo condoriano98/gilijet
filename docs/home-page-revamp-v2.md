@@ -14,7 +14,7 @@ V1 Phase A already shipped — real photography registry, live popular routes fr
 **What the screenshot reveals as broken or weak:**
 1. The hero photo isn't loading — `picsum.photos` issues a 302 redirect to `fastly.picsum.photos`, which Next/Image rejects because that hostname isn't in `next.config.mjs` `images.remotePatterns`. Result: the hero falls through to the scrim gradient and looks like a solid blue background.
 2. The search form defaults `from` and `to` to the same port ("Sanur" → "Sanur") because both pull from `props.origins[0]`. The Search button is then disabled and a fresh visitor sees an obviously-wrong default state.
-3. The page reads as a generic OTA — Tailwind `sky-*` palette, centered serif headline, no distinguishing visual identity. Nothing says "Gilijet" specifically.
+3. The page reads as a generic OTA — Tailwind `sky-*` palette, centered serif headline, no distinguishing visual identity. Nothing says "Gilifast" specifically.
 
 **Non-goals for this task:** new product features, backend changes, new API surfaces, operator-side work, mobile native, locale switching, destination/route SEO pages. Phase B/C/D from V1 are still on hold.
 
@@ -167,7 +167,7 @@ i.e. give the promo banner a fixed positive top margin regardless of whether the
 
 ## V2 Phase 2 — Real visual identity (IMPLEMENT NOW)
 
-Four sub-tasks. Establishes that Gilijet looks like Gilijet, not a generic OTA template.
+Four sub-tasks. Establishes that Gilifast looks like Gilifast, not a generic OTA template.
 
 ### 2.1 Color palette
 
@@ -178,7 +178,7 @@ Four sub-tasks. Establishes that Gilijet looks like Gilijet, not a generic OTA t
 ```ts
 extend: {
   colors: {
-    gilijet: {
+    gilifast: {
       deep: "#0a3d62",    // primary brand — deep Indonesian Ocean
       ocean: "#1e6091",   // 1-shade-lighter for hover states
       foam: "#e8f4fa",    // very-light background tint
@@ -190,17 +190,17 @@ extend: {
 ```
 
 **Apply.** Global replacements in `app/(customer)/page.tsx`:
-- `bg-sky-600` → `bg-gilijet-deep`
-- `text-sky-700` → `text-gilijet-deep`
+- `bg-sky-600` → `bg-gilifast-deep`
+- `text-sky-700` → `text-gilifast-deep`
 - `text-sky-50` → keep (these are on dark backgrounds and white-ish is right)
-- `from-sky-900/85 via-sky-700/75 to-cyan-600/70` → `from-gilijet-deep/85 via-gilijet-ocean/75 to-gilijet-deep/60` (the hero scrim)
-- `bg-sky-50` (How it works section) → `bg-gilijet-foam`
-- CTA buttons in promo banner: `bg-amber-600 hover:bg-amber-700` → `bg-gilijet-coral hover:bg-gilijet-coralDeep`
+- `from-sky-900/85 via-sky-700/75 to-cyan-600/70` → `from-gilifast-deep/85 via-gilifast-ocean/75 to-gilifast-deep/60` (the hero scrim)
+- `bg-sky-50` (How it works section) → `bg-gilifast-foam`
+- CTA buttons in promo banner: `bg-amber-600 hover:bg-amber-700` → `bg-gilifast-coral hover:bg-gilifast-coralDeep`
 
 **Do NOT** mass-replace `sky-*` across the entire codebase — only the home page and its components. Other surfaces (operator portal, admin) are out of scope.
 
 **Acceptance.**
-- Every `sky-*` reference in `app/(customer)/page.tsx`, `components/customer/departing-today.tsx`, and `components/customer/reviews-carousel.tsx` either maps to `gilijet-*` or is intentionally preserved (with a comment).
+- Every `sky-*` reference in `app/(customer)/page.tsx`, `components/customer/departing-today.tsx`, and `components/customer/reviews-carousel.tsx` either maps to `gilifast-*` or is intentionally preserved (with a comment).
 - Coral is used **only** on primary CTAs (promo "Book now", main search button if Phase 2.4 hero rework touches it). Never on body text, never on hover states for non-CTA links.
 
 ---
@@ -248,7 +248,7 @@ Apply `font-display` to all `<h1>`, `<h2>`, `<h3>` on the home page only. Body a
 
 ### 2.3 Wave section dividers
 
-**Problem.** Section boundaries on the page are hard `bg-slate-50` / `bg-gilijet-foam` blocks. Reads as utilitarian.
+**Problem.** Section boundaries on the page are hard `bg-slate-50` / `bg-gilifast-foam` blocks. Reads as utilitarian.
 
 **Change.** Add a single reusable SVG wave divider component:
 
@@ -280,7 +280,7 @@ export function WaveDivider({
 Mount between sections where the background colour changes:
 - After the hero, before the "departing soon" / promo banner — fill matches the next section's background.
 - Between "Explore Indonesia by sea" (slate-50) and the reviews section (white) — fill matches white.
-- Between "How it works" (gilijet-foam) and "Operator CTA" (white) — fill matches white.
+- Between "How it works" (gilifast-foam) and "Operator CTA" (white) — fill matches white.
 
 **Acceptance.**
 - Three wave dividers visible at section boundaries.
@@ -295,7 +295,7 @@ Mount between sections where the background colour changes:
 
 **Change.** Rebuild the hero `<section>` in `app/(customer)/page.tsx` to:
 
-1. **Photo brightness reduced to ~60%** via the scrim. Scrim should be a single dark gradient `from-gilijet-deep/70 via-gilijet-deep/50 to-transparent` going **left-to-right**, not corner-to-corner. Leaves the right side of the photo more visible.
+1. **Photo brightness reduced to ~60%** via the scrim. Scrim should be a single dark gradient `from-gilifast-deep/70 via-gilifast-deep/50 to-transparent` going **left-to-right**, not corner-to-corner. Leaves the right side of the photo more visible.
 
 2. **Left-aligned headline**, max-width `36ch`. Move the existing centered text:
 
@@ -318,7 +318,7 @@ Mount between sections where the background colour changes:
 
 4. **Photo credit** in the bottom-right corner of the hero, small white/70 text: "Photo by {credit}". Pull from `HERO_PHOTO.credit`.
 
-5. Keep the existing `Badge`, just change its background to `bg-gilijet-coral/20 text-white border-white/20` so the brand coral makes a small first appearance.
+5. Keep the existing `Badge`, just change its background to `bg-gilifast-coral/20 text-white border-white/20` so the brand coral makes a small first appearance.
 
 **Do NOT** add hero animations, parallax, or video backgrounds. Static photo only — perf budget says no.
 
@@ -341,8 +341,8 @@ Mount between sections where the background colour changes:
 - [ ] `pnpm add react-day-picker date-fns`
 - [ ] `components/ui/date-picker.tsx` created; replaces both `<Input type="date">` instances in `search-form.tsx`
 - [ ] Promo banner top margin reviewed in the no-departures case
-- [ ] `tailwind.config.ts` extended with `gilijet.deep / ocean / foam / coral / coralDeep`
-- [ ] All `sky-*` references in `app/(customer)/page.tsx`, `components/customer/departing-today.tsx`, `components/customer/reviews-carousel.tsx` mapped to `gilijet-*` per the rules in 2.1
+- [ ] `tailwind.config.ts` extended with `gilifast.deep / ocean / foam / coral / coralDeep`
+- [ ] All `sky-*` references in `app/(customer)/page.tsx`, `components/customer/departing-today.tsx`, `components/customer/reviews-carousel.tsx` mapped to `gilifast-*` per the rules in 2.1
 - [ ] Plus Jakarta Sans loaded via `next/font/google` in `app/layout.tsx`; `font-display` Tailwind utility applied to home-page H1/H2/H3 only
 - [ ] `components/ui/wave-divider.tsx` created; mounted at three section boundaries on the home page
 - [ ] Hero rebuilt per 2.4 — left-aligned, scrim, overlapping search card, photo credit
@@ -455,7 +455,7 @@ Lighthouse thresholds (Chrome DevTools, mobile profile): Performance ≥ 80, Acc
 
 3. **Display font.** Plus Jakarta Sans is recommended. Alternatives that work: Manrope (more neutral), Sora (more modern), Inter (safest). If you prefer one, say so; the executor swaps the `next/font/google` import only.
 
-4. **Promo banner copy.** Hardcoded `GILIJET15`, "Save 15% on Gili Islands routes", "Book before 31 May 2026" date is in the past as of mid-2026. Should the promo banner be deleted entirely, made dynamic from the `Promotion` table, or just have its dates updated? Recommend: pull from `Promotion` table where `isActive: true AND expiresAt > now()`, render the most recent. If empty, hide. (This may grow scope — flag if not desired.)
+4. **Promo banner copy.** Hardcoded `GILIFAST15`, "Save 15% on Gili Islands routes", "Book before 31 May 2026" date is in the past as of mid-2026. Should the promo banner be deleted entirely, made dynamic from the `Promotion` table, or just have its dates updated? Recommend: pull from `Promotion` table where `isActive: true AND expiresAt > now()`, render the most recent. If empty, hide. (This may grow scope — flag if not desired.)
 
 5. **Hero photo licensing for `public/`.** Committing photo binaries to git inflates clone size. Alternative: serve via Supabase Storage (`**.supabase.co` is already in remotePatterns) and reference the storage URL in the registry. Recommend `public/` for V1 simplicity; flag if repo size is a concern.
 

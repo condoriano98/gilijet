@@ -29,14 +29,14 @@ export default function BestPriceGuaranteePage() {
               We believe you should always get the best deal. If you find a
               lower price for the <strong>same operator, route, and departure
               date</strong> on another platform within 24 hours of booking,
-              we&apos;ll credit the difference as a Gilibali voucher.
+              we&apos;ll credit the difference as a Gilifast voucher.
             </p>
 
             <h2 className="text-base font-semibold text-slate-900">
               How it works
             </h2>
             <ol className="list-inside list-decimal space-y-2">
-              <li>Book your trip on Gilibali as usual.</li>
+              <li>Book your trip on Gilifast as usual.</li>
               <li>
                 If you spot a lower price elsewhere for the identical sailing,
                 take a screenshot showing the operator name, route, date, and
@@ -49,7 +49,7 @@ export default function BestPriceGuaranteePage() {
               </li>
               <li>
                 We&apos;ll verify the price within one business day. If it
-                matches, we&apos;ll credit the difference to your Gilibali
+                matches, we&apos;ll credit the difference to your Gilifast
                 account as a voucher for your next trip.
               </li>
             </ol>
@@ -74,7 +74,7 @@ export default function BestPriceGuaranteePage() {
                 Cannot be combined with promotional codes or group discounts.
               </li>
               <li>
-                Gilibali reserves the right to modify or discontinue this
+                Gilifast reserves the right to modify or discontinue this
                 guarantee at any time.
               </li>
             </ul>

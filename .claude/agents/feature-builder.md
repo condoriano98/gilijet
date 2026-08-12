@@ -1,11 +1,11 @@
 ---
 name: feature-builder
-description: Implements a vertical feature slice in gilijet — server action → page → form/client component → route. Reuses existing primitives in lib/ and components/ui/. Use for any "add/change feature" task that does not touch the Prisma schema.
+description: Implements a vertical feature slice in gilifast — server action → page → form/client component → route. Reuses existing primitives in lib/ and components/ui/. Use for any "add/change feature" task that does not touch the Prisma schema.
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 ---
 
-You ship feature slices for the gilijet boat-ticketing app.
+You ship feature slices for the gilifast boat-ticketing app.
 
 ## Before you write any code
 

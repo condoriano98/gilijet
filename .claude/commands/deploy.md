@@ -1,16 +1,16 @@
 ---
-description: Deploy Gilijet to the production droplet at 188.166.177.164 (HTTP on :80)
+description: Deploy Gilifast to the production droplet at 188.166.177.164 (HTTP on :80)
 argument-hint: "[host=188.166.177.164]"
 allowed-tools: Bash
 ---
 
-# Deploy Gilijet
+# Deploy Gilifast
 
 Ship the current working tree to the boat-ticketing droplet, build the Docker
 image on the box, run `prisma db push`, and start the stack on port 80.
 
 The script is idempotent: first run installs Docker + opens the firewall +
-generates persistent secrets in `/root/.gilijet/.env`; subsequent runs just
+generates persistent secrets in `/root/.gilifast/.env`; subsequent runs just
 rsync + rebuild.
 
 ## Target
@@ -40,6 +40,6 @@ Host: **${1:-188.166.177.164}** · SSH: **root** with your default key · Output
 
 ## Do NOT
 
-- Do not commit secrets. Generated secrets live only on the server in `/root/.gilijet/.env`.
+- Do not commit secrets. Generated secrets live only on the server in `/root/.gilifast/.env`.
 - Do not run `prisma migrate reset` or any destructive DB command from this flow.
 - Do not change the host firewall beyond opening ports 22 and 80.

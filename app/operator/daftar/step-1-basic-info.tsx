@@ -25,7 +25,7 @@ export function Step1BasicInfo({ error }: { error?: string }) {
               required
               minLength={3}
               maxLength={100}
-              placeholder="PT Gilijet Transportasi"
+              placeholder="PT Gilifast Transportasi"
             />
           </div>
           <div className="space-y-2">
@@ -49,7 +49,7 @@ export function Step1BasicInfo({ error }: { error?: string }) {
               name="email"
               type="email"
               required
-              placeholder="operator@gilijet.com"
+              placeholder="operator@gilifast.com"
             />
           </div>
           <div className="space-y-2">

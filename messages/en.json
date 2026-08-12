@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Gilibali",
+    "appName": "Gilifast",
     "tagline": "Island-hop with confidence",
     "subtitle": "Book verified fast boats and ferries across Indonesia. Pay your way, get e-tickets instantly.",
     "search": "Search",
@@ -61,7 +61,7 @@
     "routes": "{count} routes",
     "reviewsTitle": "What travellers say",
     "reviewsSubtitle": "Real reviews from real bookings",
-    "whyTitle": "Why book with Gilibali",
+    "whyTitle": "Why book with Gilifast",
     "whySubtitle": "The same convenience you expect for flights — now for boats",
     "howTitle": "How it works",
     "howSubtitle": "Four steps to your boarding pass",
@@ -157,18 +157,18 @@
   },
   "bestPriceGuarantee": {
     "title": "Best Price Guarantee",
-    "intro": "We believe you should always get the best deal. If you find a lower price for the same operator, route, and departure date on another platform within 24 hours of booking, we'll credit the difference as a Gilibali voucher.",
+    "intro": "We believe you should always get the best deal. If you find a lower price for the same operator, route, and departure date on another platform within 24 hours of booking, we'll credit the difference as a Gilifast voucher.",
     "howItWorks": "How it works",
-    "step1": "Book your trip on Gilibali as usual.",
+    "step1": "Book your trip on Gilifast as usual.",
     "step2": "If you spot a lower price elsewhere for the identical sailing, take a screenshot showing the operator name, route, date, and total price.",
-    "step3": "Contact us within 24 hours of your booking via WhatsApp (+62 812 3456 7890) or email (support@gilijet.com) with the screenshot and your booking reference.",
-    "step4": "We'll verify the price within one business day. If it matches, we'll credit the difference to your Gilibali account as a voucher for your next trip.",
+    "step3": "Contact us within 24 hours of your booking via WhatsApp (+62 812 3456 7890) or email (support@gilifast.com) with the screenshot and your booking reference.",
+    "step4": "We'll verify the price within one business day. If it matches, we'll credit the difference to your Gilifast account as a voucher for your next trip.",
     "terms": "Terms",
     "term1": "The competing price must be publicly listed and bookable by the general public (no member-only or agent-only rates).",
     "term2": "The comparison is on the total fare per passenger in IDR, including any booking fees.",
     "term3": "Voucher credit is capped at Rp 50,000 or 20% of the original fare, whichever is lower.",
     "term4": "Cannot be combined with promotional codes or group discounts.",
-    "term5": "Gilibali reserves the right to modify or discontinue this guarantee at any time.",
+    "term5": "Gilifast reserves the right to modify or discontinue this guarantee at any time.",
     "searchRoutes": "Search routes"
   }
 }

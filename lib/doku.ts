@@ -2,7 +2,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 import { env } from "./env";
 
 /**
- * DOKU Checkout — the payment gateway for gilijet.
+ * DOKU Checkout — the payment gateway for gilifast.
  *
  * DOKU Checkout is a hosted payment page: we POST /checkout/v1/payment with a
  * signed request, get back a URL, and send the customer there. They pick a

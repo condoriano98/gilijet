@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { computeErpFee } from "./erp-pricing";
+import { DIRECT_SALES_CHANNELS } from "./sales-channel";
 
 export async function agentCommissionYtd(operatorId: string): Promise<number> {
   const yearStart = new Date(new Date().getFullYear(), 0, 1);
@@ -30,7 +31,7 @@ export async function erpFeeYtd(operatorId: string): Promise<number> {
         operatorId,
         status: "CONFIRMED",
         createdAt: { gte: yearStart },
-        salesChannel: { not: "GILIJET" },
+        salesChannel: { notIn: DIRECT_SALES_CHANNELS },
       },
       select: { id: true, totalAmount: true, tickets: { select: { id: true } } },
       orderBy: { id: "asc" },

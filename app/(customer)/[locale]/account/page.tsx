@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export const metadata = { title: "My account · Gilibali" };
+export const metadata = { title: "My account · Gilifast" };
 
 async function logoutAction() {
   "use server";

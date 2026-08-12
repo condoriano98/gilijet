@@ -51,7 +51,7 @@ export function PromoCodeInput({ baseAmount }: { baseAmount: number }) {
         <Input
           id="promoCode"
           name="promoCode"
-          placeholder="e.g. GILIJET15"
+          placeholder="e.g. GILIFAST15"
           value={code}
           onChange={(e) => {
             setCode(e.target.value.toUpperCase());

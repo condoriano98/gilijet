@@ -2,7 +2,7 @@
 
 ## Context
 
-Giligetaway is a working B2B fast-boat platform that operates in Gilijet's exact market (Bali ↔ Gili ↔ Lombok ↔ Nusa Penida). Their public agent API at `https://giligetaway-agent-api.my.id` was studied on 2026-06-11. Three pieces of intel matter:
+Giligetaway is a working B2B fast-boat platform that operates in Gilifast's exact market (Bali ↔ Gili ↔ Lombok ↔ Nusa Penida). Their public agent API at `https://giligetaway-agent-api.my.id` was studied on 2026-06-11. Three pieces of intel matter:
 
 1. **Real market pricing** (June and July/August 2026 timetables) — useful as a seed-data anchor and a pricing sanity check.
 2. **A canonical port list** the market actually uses.
@@ -37,7 +37,7 @@ Edit `lib/seed-data.ts`:
   ```ts
   {
     key: "samudra-jet",
-    email: "samudra-jet@gilijet.local",
+    email: "samudra-jet@gilifast.local",
     companyName: "PT. SAMUDRA JET BALI",
     contactPerson: "Samudra Jet Bali",
     phoneNumber: "+62 361 234 5680",
@@ -168,7 +168,7 @@ These belong in Phase 3 of `docs/db-expansion-plan.md`. Recorded here only so th
 
 3. **Return trips.** Giligetaway prices return as exactly 2× oneway, which means it's a UX convenience, not a separate product. When we add it: create two `Booking` rows linked by `returnBookingId String?`, no schema discount logic. Already aligned with `lib/booking-engine.ts`.
 
-4. **Hotel transfer upsell.** Giligetaway's booking accepts `transport_id`, `quantity`, `transport_type: pickup|dropoff`. Out of scope for Gilijet MVP. If it ever lands: separate `BookingExtra` table with a polymorphic `type` enum. Do not bake it into `Booking`.
+4. **Hotel transfer upsell.** Giligetaway's booking accepts `transport_id`, `quantity`, `transport_type: pickup|dropoff`. Out of scope for Gilifast MVP. If it ever lands: separate `BookingExtra` table with a polymorphic `type` enum. Do not bake it into `Booking`.
 
 5. **Passport / nationality at booking.** Already supported via `Passenger.passportId` and `nationality`. Keep them required for cross-island routes; relaxing them is a separate decision.
 

@@ -263,9 +263,9 @@ export async function POST(req: Request) {
       return result(id, {
         protocolVersion: PROTOCOL_VERSION,
         capabilities: { tools: {}, resources: {} },
-        serverInfo: { name: "gilijet-review", version: "1.0.0" },
+        serverInfo: { name: "gilifast-review", version: "1.0.0" },
         instructions:
-          "Read-only review access to Gilijet. No tool can modify anything. Call list_features first to see what exists — statuses distinguish shipped features from placeholders, schema-only models and unreachable routes. All times are WITA (UTC+8); all amounts are IDR.",
+          "Read-only review access to Gilifast. No tool can modify anything. Call list_features first to see what exists — statuses distinguish shipped features from placeholders, schema-only models and unreachable routes. All times are WITA (UTC+8); all amounts are IDR.",
       });
 
     case "notifications/initialized":
@@ -315,7 +315,7 @@ export async function POST(req: Request) {
       return result(id, {
         resources: [
           {
-            uri: "gilijet://features",
+            uri: "gilifast://features",
             name: "Feature catalog",
             description: "Full inventory with statuses, routes, modules and models.",
             mimeType: "application/json",
@@ -325,7 +325,7 @@ export async function POST(req: Request) {
 
     case "resources/read": {
       const uri = typeof params?.uri === "string" ? params.uri : "";
-      if (uri !== "gilijet://features") {
+      if (uri !== "gilifast://features") {
         return rpcError(id, -32602, `Unknown resource "${uri}"`);
       }
       return result(id, {

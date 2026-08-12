@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 /**
- * Refund policy (see gilibali.com Terms & Conditions §5.1).
+ * Refund policy (see gilifast.com Terms & Conditions §5.1).
  *
  *  More than 7 days (168 hrs) before departure → 100% refund
  *  48 hours – 7 days before departure          → 50%  refund

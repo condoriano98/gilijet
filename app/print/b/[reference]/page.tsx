@@ -94,7 +94,7 @@ export default async function PrintTicketPage({
         </div>
 
         <div className="print-header">
-          <div className="print-brand">Gilibali · Boarding Pass</div>
+          <div className="print-brand">Gilifast · Boarding Pass</div>
           <div className="print-ref">Booking {booking.bookingReference}</div>
         </div>
 

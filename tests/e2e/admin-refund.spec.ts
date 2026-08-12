@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("admin can log in and view the refunds queue", async ({ page }) => {
   await page.goto("/admin/login");
 
-  await page.getByLabel(/email/i).fill("qa-admin@gilijet.local");
+  await page.getByLabel(/email/i).fill("qa-admin@gilifast.local");
   await page.getByLabel(/password/i).fill("qaqaqaqa");
   await page.getByRole("button", { name: /log ?in|sign ?in/i }).click();
 

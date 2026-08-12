@@ -38,7 +38,7 @@
     --mekari-neutral-50: #F8FAFC;
     --mekari-surface: #FFFFFF;
 
-    /* Gilibali consumer brand — electric blue + cyan (Figma source of truth) */
+    /* Gilifast consumer brand — electric blue + cyan (Figma source of truth) */
     --gj-blue: #103BE9;
     --gj-blue-dark: #00228E;
     --gj-cyan: #00AEEF;
@@ -53,7 +53,7 @@
     --shadow-list: 0 0 15px rgba(0, 0, 0, 0.06);
   }
 
-  /* Scoped consumer palette: remaps the shadcn semantic layer to the Gilibali
+  /* Scoped consumer palette: remaps the shadcn semantic layer to the Gilifast
      brand so every primitive rendered inside the customer surface picks up
      electric blue / cyan / periwinkle. Operator + admin stay on the default
      (Mekari) palette because this class is only applied to (customer). */

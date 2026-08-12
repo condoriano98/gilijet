@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 // Standalone, self-branded merchant-verification page for Wahana Virendra
-// (a sibling brand of gilibali.com — both operated by CV Hi Bali Nusa
+// (a sibling brand of gilifast.com — both operated by CV Hi Bali Nusa
 // Tenggara). Ported verbatim from the supplied document so the public
 // URL matches what payment-gateway merchant verification expects. All
 // styles are scoped under `.wv-page` so the document's global reset does
@@ -288,7 +288,7 @@ const BODY = `
 <div class="container">
 
   <div class="notice">
-    ⚠️ <strong>Penting:</strong> Dengan melakukan pemesanan tiket melalui akun ini, WhatsApp, atau platform mitra kami (gilibali.com · gilifast.com), Anda dianggap telah membaca dan menyetujui seluruh syarat dan ketentuan berikut.
+    ⚠️ <strong>Penting:</strong> Dengan melakukan pemesanan tiket melalui akun ini, WhatsApp, atau platform mitra kami (gilifast.com), Anda dianggap telah membaca dan menyetujui seluruh syarat dan ketentuan berikut.
   </div>
 
   <!-- 1. TENTANG KAMI -->
@@ -298,8 +298,7 @@ const BODY = `
       <p><strong>Wahana Virendra Fast Boat</strong> adalah penyedia layanan pemesanan tiket kapal cepat (fast boat / speedboat) yang melayani rute antar pulau di wilayah Bali, Lombok, Gili, dan sekitarnya.</p>
       <p>Kami beroperasi sebagai agen tiket resmi dan berkolaborasi dengan operator kapal berlisensi dari Direktorat Jenderal Perhubungan Laut. Layanan pemesanan online juga tersedia melalui platform mitra kami:</p>
       <ul>
-        <li>🌐 <strong>gilibali.com</strong> — platform ticketing fast boat Bali &amp; Gili</li>
-        <li>🌐 <strong>gilifast.com</strong> — platform informasi dan pemesanan rute Gili</li>
+        <li>🌐 <strong>gilifast.com</strong> — platform ticketing fast boat Bali, Gili &amp; sekitarnya</li>
       </ul>
       <p>Kontak: <strong>+62 859-5376-4142</strong> (WhatsApp) · Instagram: <strong>@wahanavirendrafastboat</strong></p>
     </div>
@@ -324,7 +323,7 @@ const BODY = `
       <ul>
         <li>Transfer bank (BCA, BNI, BRI, Mandiri, dan bank lainnya)</li>
         <li>QRIS (scan QR, berlaku untuk semua e-wallet dan m-banking)</li>
-        <li>Kartu kredit/debit (melalui platform online gilibali.com atau gilifast.com)</li>
+        <li>Kartu kredit/debit (melalui platform online gilifast.com)</li>
         <li>Tunai (khusus pemesanan langsung di lokasi)</li>
       </ul>
       <p><strong>3.2</strong> Bukti pembayaran harus dikirimkan melalui WhatsApp untuk konfirmasi. Pemesanan yang belum dikonfirmasi pembayarannya dalam waktu <strong>2 jam</strong> akan dianggap batal secara otomatis.</p>
@@ -464,14 +463,13 @@ const BODY = `
     <div class="contact-item">📸 @wahanavirendrafastboat</div>
     <a href="https://wa.me/6285953764142?text=Halo%20Wahana%20Virendra%2C%20saya%20ingin%20pesan%20tiket%20fast%20boat" class="wa-btn">💬 Chat WhatsApp Sekarang</a>
     <div class="brand-links" style="margin-top:16px;">
-      <a href="https://gilibali.com" class="brand-link">🌐 gilibali.com</a>
       <a href="https://gilifast.com" class="brand-link">🌐 gilifast.com</a>
     </div>
   </div>
 
   <!-- FOOTER -->
   <div class="footer">
-    <p>© 2026 Wahana Virendra Fast Boat · Bagian dari ekosistem <a href="https://gilibali.com">gilibali.com</a> &amp; <a href="https://gilifast.com">gilifast.com</a></p>
+    <p>© 2026 Wahana Virendra Fast Boat · Bagian dari ekosistem <a href="https://gilifast.com">gilifast.com</a></p>
     <p style="margin-top:4px;">Dikelola oleh <strong>CV Hi Bali Nusa Tenggara</strong> · Berlaku sejak Juni 2026</p>
     <p style="margin-top:4px;color:#aaa;font-size:11px;">Kantor Mataram: Jl. Swakarya No.5B, Kekalik Jaya, Sekarbela, Mataram, NTB &nbsp;|&nbsp; Kantor Denpasar: Jl. Cokroaminoto No.70, Pemecutan Kaja, Denpasar Utara, Bali</p>
     <p style="margin-top:8px;color:#aaa;font-size:11px;">Halaman ini merupakan dokumen resmi Syarat &amp; Ketentuan yang dapat dijadikan referensi verifikasi merchant.</p>

@@ -20,9 +20,9 @@ You load deterministic QA fixtures.
 
 ## QA personas (fixed)
 
-- Admin: `qa-admin@gilijet.local` / `qaqaqaqa`
-- Operator: `qa-operator@gilijet.local` / `qaqaqaqa`
-- Customer: `qa-customer@gilijet.local` / `qaqaqaqa`
+- Admin: `qa-admin@gilifast.local` / `qaqaqaqa`
+- Operator: `qa-operator@gilifast.local` / `qaqaqaqa`
+- Customer: `qa-customer@gilifast.local` / `qaqaqaqa`
 - Boat: "QA Boat" (slug `qa-boat`) belonging to the QA operator
 - Schedules: 3 over the next 14 days, fixed slugs `qa-sched-1/2/3`
 - Booking: 1 paid booking on `qa-sched-1` for the QA customer

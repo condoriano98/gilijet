@@ -21,9 +21,9 @@ import { computeRefundDeadline, snapshotCurrentPolicy } from "../lib/refunds";
 const prisma = new PrismaClient();
 
 const QA = {
-  adminEmail: "qa-admin@gilijet.local",
-  operatorEmail: "qa-operator@gilijet.local",
-  customerEmail: "qa-customer@gilijet.local",
+  adminEmail: "qa-admin@gilifast.local",
+  operatorEmail: "qa-operator@gilifast.local",
+  customerEmail: "qa-customer@gilifast.local",
   password: "qaqaqaqa",
   boatReg: "QA-BOAT-001",
   schedules: [
@@ -248,9 +248,9 @@ async function main() {
   // -------- A second operator + boat + schedules --------
   // Gives "popular routes" multi-operator counts and "active operators" ≥ 2.
   const operator2 = await prisma.operator.upsert({
-    where: { email: "qa-operator2@gilijet.local" },
+    where: { email: "qa-operator2@gilifast.local" },
     create: {
-      email: "qa-operator2@gilijet.local",
+      email: "qa-operator2@gilifast.local",
       passwordHash: passHash,
       companyName: "Bali Fast Cruise",
       contactPerson: "QA Operator 2",
@@ -338,7 +338,7 @@ async function main() {
     {
       name: "Made Suweca",
       rating: 5,
-      text: "I use Gilijet weekly for work. Reliable schedules, instant tickets, and customer support actually responds within minutes on WhatsApp.",
+      text: "I use Gilifast weekly for work. Reliable schedules, instant tickets, and customer support actually responds within minutes on WhatsApp.",
     },
     {
       name: "Anya Kusuma",
@@ -349,7 +349,7 @@ async function main() {
 
   for (let i = 0; i < REVIEWERS.length; i++) {
     const r = REVIEWERS[i]!;
-    const email = `reviewer-${i + 1}@gilijet.local`;
+    const email = `reviewer-${i + 1}@gilifast.local`;
 
     const reviewer = await prisma.customer.upsert({
       where: { email },

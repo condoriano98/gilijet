@@ -289,7 +289,7 @@ export default async function SearchPage({
           search card floating over its lower edge. */}
       <div className="relative mt-4 overflow-hidden rounded-[10px] bg-brand px-6 pb-24 pt-8">
         <p className="text-sm font-medium text-brand-periwinkle">
-          Let Journey Begin with Gilibali!
+          Let Journey Begin with Gilifast!
         </p>
         <h1 className="mt-1 max-w-xl font-display text-2xl font-extrabold leading-[1.05] text-white sm:text-4xl">
           Find the best deals on boats for your trip
@@ -452,7 +452,7 @@ export default async function SearchPage({
                       </span>
                     ) : null}
                     {showTravelAgain ? (
-                      <Badge variant="outline" className="border-gilijet-ocean text-gilijet-ocean">
+                      <Badge variant="outline" className="border-gilifast-ocean text-gilifast-ocean">
                         Travel Again
                       </Badge>
                     ) : null}

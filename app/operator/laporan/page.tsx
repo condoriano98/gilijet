@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { salesChannelLabel, SALES_CHANNELS } from "@/lib/sales-channel";
 import {
   revenueByChannel,
   occupancyByRoute,
@@ -27,29 +28,10 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-const CHANNELS = [
-  "GILIJET",
-  "WALK_IN",
-  "TRAVEL_AGENT",
-  "PHONE",
-  "EXTERNAL_AGGREGATOR",
-] as const;
-
 const MONTH_NAMES = [
   "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
   "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
 ];
-
-function channelLabel(ch: string): string {
-  const map: Record<string, string> = {
-    GILIJET: "Gilibali",
-    WALK_IN: "Walk-in",
-    TRAVEL_AGENT: "Agen",
-    PHONE: "Telepon",
-    EXTERNAL_AGGREGATOR: "Aggregator",
-  };
-  return map[ch] ?? ch;
-}
 
 function ymLabel(ym: string): string {
   const [y, m] = ym.split("-");
@@ -131,7 +113,7 @@ async function RevenueByChannel({
 
   const present = new Set<string>();
   for (const rec of perMonth) for (const k of Object.keys(rec)) present.add(k);
-  const channels = CHANNELS.filter((c) => present.has(c));
+  const channels = SALES_CHANNELS.filter((c) => present.has(c));
 
   return (
     <Card>
@@ -171,7 +153,7 @@ async function RevenueByChannel({
                   return (
                     <tr key={ch} className="bg-mekari-surface">
                       <td className="px-4 py-3 text-mekari-neutral-700">
-                        {channelLabel(ch)}
+                        {salesChannelLabel(ch)}
                       </td>
                       {vals.map((v, i) => (
                         <td

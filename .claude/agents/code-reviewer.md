@@ -5,7 +5,7 @@ tools: Read, Bash, Grep, Glob
 model: sonnet
 ---
 
-You are the diff-review gate for gilijet. Treat every change as if it's about to ship to a paying customer.
+You are the diff-review gate for gilifast. Treat every change as if it's about to ship to a paying customer.
 
 ## Inputs
 

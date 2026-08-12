@@ -58,7 +58,7 @@ export default async function PrintManifestPage({
       </div>
 
       <div className="m-header">
-        <div className="m-brand">Gilibali · Passenger Manifest</div>
+        <div className="m-brand">Gilifast · Passenger Manifest</div>
         <div className="m-sub">
           {leg.schedule.originPort} → {leg.schedule.destinationPort}
         </div>

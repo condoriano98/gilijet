@@ -9,7 +9,7 @@ import { Logo } from "@/components/customer/logo";
 // layout — and all child routes that don't otherwise read cookies
 // or hit the DB — fully statically renderable.
 //
-// `gj-brand` scopes the electric-blue Gilibali (Figma) palette to the
+// `gj-brand` scopes the electric-blue Gilifast (Figma) palette to the
 // consumer surface; operator/admin keep the Mekari palette.
 export default function CustomerLayout({
   children,
@@ -31,7 +31,7 @@ export default function CustomerLayout({
       </div>
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-2">
-          <Link href="/" className="shrink-0 text-brand" aria-label="Gilibali home">
+          <Link href="/" className="shrink-0 text-brand" aria-label="Gilifast home">
             <Logo />
           </Link>
           {/* Below `sm` only "Book now" and the menu render. The full row is
@@ -60,7 +60,7 @@ export default function CustomerLayout({
   );
 }
 
-/* Signature Gilibali footer: electric-blue field, real links, stacked
+/* Signature Gilifast footer: electric-blue field, real links, stacked
    translucent white waves along the bottom edge (Figma "Footer"). */
 function SiteFooter() {
   const year = new Date().getFullYear();
@@ -70,7 +70,7 @@ function SiteFooter() {
         <div>
           <Logo className="items-start text-white" />
           <p className="mt-3 max-w-xs text-white/80">
-            Let Journey Begin with Gilibali! Book fast boats across Indonesia —
+            Let Journey Begin with Gilifast! Book fast boats across Indonesia —
             verified operators, transparent prices, fair refunds.
           </p>
         </div>

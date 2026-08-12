@@ -25,7 +25,7 @@ type BookingConfirmationArgs = {
 export async function sendBookingConfirmation(
   args: BookingConfirmationArgs,
 ): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
-  const subject = `Your Gilibali booking ${args.bookingReference}`;
+  const subject = `Your Gilifast booking ${args.bookingReference}`;
   const html = await renderBookingConfirmationHtml(args);
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
@@ -95,7 +95,7 @@ async function renderBookingConfirmationHtml(
     <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
   </p>
   <p style="margin-top:8px;color:#94a3b8;font-size:12px;">
-    Selamat jalan! — Gilibali
+    Selamat jalan! — Gilifast
   </p>
 </body></html>`;
 }
@@ -141,7 +141,7 @@ export async function sendPaymentReceivedEmail(
     If the operator cannot take this departure we will cancel and refund you in full. Track your booking at
     <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
   </p>
-  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilibali</p>
+  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilifast</p>
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
@@ -184,7 +184,7 @@ type PasswordResetArgs = {
 export async function sendPasswordResetEmail(
   args: PasswordResetArgs,
 ): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
-  const subject = "Reset your Gilibali password";
+  const subject = "Reset your Gilifast password";
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h1 style="margin:0 0 16px 0;font-size:22px;">Reset your password</h1>
@@ -311,7 +311,7 @@ async function renderDepartureReminderHtml(
   <p style="margin-top:16px;color:#475569;font-size:14px;">
     View your booking at <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
   </p>
-  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilibali</p>
+  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilifast</p>
 </body></html>`;
 }
 
@@ -359,7 +359,7 @@ export async function sendCancellationEmail(
   <p style="margin-top:16px;color:#475569;font-size:14px;">
     View your booking at <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
   </p>
-  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilibali</p>
+  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilifast</p>
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
@@ -411,7 +411,7 @@ export async function sendRefundProcessedEmail(
   <p style="margin-top:16px;color:#475569;font-size:14px;">
     View details at <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
   </p>
-  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilibali</p>
+  <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilifast</p>
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {

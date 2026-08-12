@@ -1,3 +1,15 @@
+# The project is Gilifast. Four identifiers below deliberately still say
+# "gilijet", and renaming them would take the production database offline:
+#
+#   * `name:` namespaces the volumes, so the live data lives in
+#     `gilijet_db-data`. Renaming the project makes compose look for
+#     `gilifast_db-data`, find nothing, and initialise an empty cluster.
+#   * POSTGRES_DB / POSTGRES_USER do not rename anything on an already
+#     initialised volume — they only change what the app asks for, and the
+#     existing cluster has no `gilifast` role or database to hand it.
+#
+# They are internal storage names no customer ever sees. Renaming them is a
+# dump-and-restore, not an edit; see the note in README.md.
 name: gilijet
 
 services:
@@ -32,7 +44,7 @@ services:
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.08}
       BOOKING_HOLD_MINUTES: ${BOOKING_HOLD_MINUTES:-30}
       SEED_ON_START: ${SEED_ON_START:-0}
-      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@gilijet.local}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@gilifast.local}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-changeme123}
       SEED_OPERATOR_EMAIL: ${SEED_OPERATOR_EMAIL:-operator@example.com}
       SEED_OPERATOR_PASSWORD: ${SEED_OPERATOR_PASSWORD:-changeme123}

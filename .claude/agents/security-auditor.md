@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash, WebFetch
 model: sonnet
 ---
 
-You are the security gate for gilijet's payment + auth surfaces.
+You are the security gate for gilifast's payment + auth surfaces.
 
 ## Scope (always check these files when in scope)
 

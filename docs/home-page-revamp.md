@@ -11,7 +11,7 @@
 
 `app/(customer)/page.tsx` is the marketing landing page. Today it renders:
 - Hero with gradient + `SearchForm`
-- Hardcoded promo banner (`GILIJET15`)
+- Hardcoded promo banner (`GILIFAST15`)
 - Hardcoded `POPULAR_ROUTES` (6 emoji-prefixed routes with fake prices)
 - Hardcoded `FEATURED_DESTINATIONS` (4 destinations with gradient placeholder cards)
 - Hardcoded `TRUST_BADGES` and four-step "How it works"
@@ -203,7 +203,7 @@ Query `Review` joined with `Booking` + `Schedule`, filter `rating >= 4`, `text` 
 - Pagination dots at the bottom; clicking a dot stops the auto-rotation for that session.
 - Empty state: render a curated set of 3 mock-but-realistic reviews from a constant in the same component, clearly tagged as "from our pilot users" if the DB is empty. Decide with reviewer: hide entirely vs curated fallback. **Recommend hide entirely**.
 
-3. Mount on `app/(customer)/page.tsx` after "Featured destinations", before "Why book with Gilijet".
+3. Mount on `app/(customer)/page.tsx` after "Featured destinations", before "Why book with Gilifast".
 
 **Acceptance.**
 

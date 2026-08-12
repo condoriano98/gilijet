@@ -27,10 +27,10 @@ export function NearestPortCard() {
   if (!nearest || nearest.distanceKm > 200) return null;
 
   return (
-    <Card className="border-gilijet-ocean/30 bg-gradient-to-r from-gilijet-foam to-white">
+    <Card className="border-gilifast-ocean/30 bg-gradient-to-r from-gilifast-foam to-white">
       <CardContent className="flex flex-col gap-4 pt-5 pb-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gilijet-ocean">
+          <p className="text-xs font-medium uppercase tracking-wide text-gilifast-ocean">
             Nearest to you
           </p>
           <p className="mt-1 text-lg font-display font-bold text-slate-900">

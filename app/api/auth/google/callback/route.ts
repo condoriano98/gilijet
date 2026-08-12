@@ -9,7 +9,7 @@ import {
   verifyState,
 } from "@/lib/google-oauth";
 
-const STATE_COOKIE = "gilijet_google_state";
+const STATE_COOKIE = "gilifast_google_state";
 
 function loginError(req: Request, code: string) {
   return NextResponse.redirect(
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 
   // Require Google to have verified the email before we trust the linkage to
   // an existing customer. Without this, anyone could create a Google account
-  // with someone else's email and take over their Gilibali account.
+  // with someone else's email and take over their Gilifast account.
   if (!profile.emailVerified) {
     return loginError(req, "google_unverified");
   }

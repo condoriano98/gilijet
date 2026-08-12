@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Terms & Conditions",
-  description: "Gilibali booking terms, cancellation policy, and refund schedule.",
+  description: "Gilifast booking terms, cancellation policy, and refund schedule.",
 };
 
 function Section({
@@ -35,7 +35,7 @@ export default function TermsPage() {
         </Link>
 
         <div className="mt-4 border-b pb-6">
-          <h1 className="text-3xl font-bold tracking-tight">GILIBALI.COM</h1>
+          <h1 className="text-3xl font-bold tracking-tight">GILIFAST.COM</h1>
           <p className="mt-1 text-sm text-slate-600">Fast Boat Ticketing Platform</p>
           <p className="mt-1 text-xs text-slate-500">
             Bali • Gili Trawangan • Gili Air • Gili Meno • Lombok (Bangsal) ·
@@ -51,7 +51,7 @@ export default function TermsPage() {
 
         <p className="mt-6 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <strong>IMPORTANT:</strong> By purchasing a ticket or using the
-          gilibali.com platform, you confirm that you have read, understood, and
+          gilifast.com platform, you confirm that you have read, understood, and
           agreed to all Terms &amp; Conditions set out in this document. If you
           do not agree with any part of these terms, please do not proceed with
           your booking.
@@ -61,7 +61,7 @@ export default function TermsPage() {
           <p>In these Terms &amp; Conditions, the following definitions apply:</p>
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              <strong>&quot;Platform&quot;</strong> means the gilibali.com
+              <strong>&quot;Platform&quot;</strong> means the gilifast.com
               website, mobile application, and all related digital booking
               services.
             </li>
@@ -103,26 +103,26 @@ export default function TermsPage() {
           </ul>
         </Section>
 
-        <Section n="2" title="About gilibali.com">
+        <Section n="2" title="About gilifast.com">
           <p>
-            2.1 gilibali.com is an independent online ticketing platform that
+            2.1 gilifast.com is an independent online ticketing platform that
             facilitates the booking and purchase of fast boat tickets from and
             between Bali, the Gili Islands (Gili Trawangan, Gili Air, Gili
             Meno), Lombok (Bangsal Harbour), Nusa Penida, and Nusa Lembongan.
           </p>
           <p>
-            2.2 gilibali.com acts as a ticketing agent and intermediary. We are
+            2.2 gilifast.com acts as a ticketing agent and intermediary. We are
             not the owner or operator of any vessel. The contract of carriage is
             between the Passenger and the relevant boat Operator.
           </p>
           <p>
             2.3 While we endeavour to ensure accurate scheduling, pricing, and
-            availability information, gilibali.com cannot guarantee information
+            availability information, gilifast.com cannot guarantee information
             provided by third-party Operators and shall not be held liable for
             any inaccuracies.
           </p>
           <p>
-            2.4 gilibali.com is operated by CV Hi Bali Nusa Tenggara, a company
+            2.4 gilifast.com is operated by CV Hi Bali Nusa Tenggara, a company
             registered in Indonesia. Registered address: Jl. Swakarya Raya
             No.5B, Kekalik Jaya, Kec. Sekarbela, Kota Mataram, Nusa Tenggara
             Barat 83114, Indonesia.
@@ -132,12 +132,12 @@ export default function TermsPage() {
         <Section n="3" title="Booking & Payment">
           <p>
             <strong>3.1 Booking Process.</strong> All bookings made through
-            gilibali.com are subject to seat availability at the time of
+            gilifast.com are subject to seat availability at the time of
             purchase. A booking is only confirmed upon receipt of full payment
             and issuance of a booking confirmation email and/or e-ticket.
           </p>
           <p>
-            <strong>3.2 Payment Methods.</strong> gilibali.com accepts the
+            <strong>3.2 Payment Methods.</strong> gilifast.com accepts the
             following payment methods:
           </p>
           <ul className="list-disc space-y-1 pl-5">
@@ -149,14 +149,14 @@ export default function TermsPage() {
           </ul>
           <p>
             Payment processing is handled by DOKU, licensed
-            payment gateway providers regulated by Bank Indonesia. gilibali.com
+            payment gateway providers regulated by Bank Indonesia. gilifast.com
             does not store card or bank account details.
           </p>
           <p>
             <strong>3.3 Payment Currency.</strong> All transactions are
             processed in Indonesian Rupiah (IDR). For international card
             payments, your card issuer will apply the applicable exchange rate
-            and may charge foreign transaction fees, for which gilibali.com
+            and may charge foreign transaction fees, for which gilifast.com
             bears no responsibility.
           </p>
           <p>
@@ -170,7 +170,7 @@ export default function TermsPage() {
             <strong>3.5 Ticket Validity.</strong> Each ticket is valid for the
             specific passenger(s), route, date, and departure time stated on the
             e-ticket. Tickets are non-transferable to other passengers unless
-            otherwise approved in writing by gilibali.com.
+            otherwise approved in writing by gilifast.com.
           </p>
           <p>
             <strong>3.6 Convenience Fee.</strong> A convenience fee or payment
@@ -194,7 +194,7 @@ export default function TermsPage() {
           </p>
           <p>
             4.3 Failure to check in on time will result in forfeiture of the
-            seat without refund. gilibali.com and the Operator accept no
+            seat without refund. gilifast.com and the Operator accept no
             responsibility for late arrivals due to traffic, transfer delays, or
             any other cause.
           </p>
@@ -216,7 +216,7 @@ export default function TermsPage() {
           <p>
             <strong>5.1 Cancellation by Passenger.</strong> All cancellation
             requests must be submitted in writing via email to info@balinusafast.com
-            or through the &apos;Manage Booking&apos; feature on gilibali.com.
+            or through the &apos;Manage Booking&apos; feature on gilifast.com.
             Verbal or WhatsApp cancellations will not be accepted unless
             confirmed by written email. The following refund schedule applies:
           </p>
@@ -310,10 +310,10 @@ export default function TermsPage() {
           <p>
             <strong>5.3 Cancellation by Operator.</strong> In the event that the
             Operator cancels a departure (including cancellations due to Force
-            Majeure, adverse weather, or mechanical reasons), gilibali.com will
+            Majeure, adverse weather, or mechanical reasons), gilifast.com will
             offer the Passenger, at their choice: (a) a full refund of the ticket
-            value paid to gilibali.com, or (b) a free reschedule to the next
-            available departure on the same route. gilibali.com shall not be
+            value paid to gilifast.com, or (b) a free reschedule to the next
+            available departure on the same route. gilifast.com shall not be
             liable for any secondary losses incurred by the Passenger as a result
             of a cancelled sailing, including but not limited to accommodation
             bookings, onward flights, or pre-booked tours.
@@ -330,7 +330,7 @@ export default function TermsPage() {
             are subject to sea and weather conditions. Departures may be delayed,
             diverted, or cancelled at the discretion of the vessel captain or
             port authority. In such cases, the options in Clause 5.3 above apply.
-            gilibali.com shall not be held responsible for losses arising from
+            gilifast.com shall not be held responsible for losses arising from
             Force Majeure events.
           </p>
         </Section>
@@ -348,7 +348,7 @@ export default function TermsPage() {
           </p>
           <p>
             6.3 <strong>Liability for Luggage:</strong> The Operator and
-            gilibali.com accept no responsibility for loss, damage, or theft of
+            gilifast.com accept no responsibility for loss, damage, or theft of
             passenger luggage during transit, port handling, or shuttle
             transfers. Passengers are strongly advised to arrange comprehensive
             travel insurance.
@@ -377,7 +377,7 @@ export default function TermsPage() {
           <p>
             7.4 Sea crossings can be rough, particularly in adverse weather.
             Passengers with medical conditions, pregnant passengers, infants, and
-            the elderly should seek medical advice before travelling. gilibali.com
+            the elderly should seek medical advice before travelling. gilifast.com
             and the Operator accept no liability for sea sickness or medical
             incidents during transit.
           </p>
@@ -388,14 +388,14 @@ export default function TermsPage() {
           </p>
           <p>
             7.6 Passengers must ensure they hold valid travel documents, including
-            visas if required. gilibali.com accepts no responsibility for denied
+            visas if required. gilifast.com accepts no responsibility for denied
             entry or boarding due to insufficient travel documentation.
           </p>
         </Section>
 
         <Section n="8" title="Safety Standards">
           <p>
-            8.1 All Operators listed on gilibali.com are required to hold valid
+            8.1 All Operators listed on gilifast.com are required to hold valid
             licenses and certifications from Indonesian maritime authorities,
             including compliance with regulations issued by the Directorate
             General of Sea Transportation (Direktorat Jenderal Perhubungan Laut),
@@ -407,8 +407,8 @@ export default function TermsPage() {
             extinguishers.
           </p>
           <p>
-            8.3 gilibali.com endeavours to list only reputable and
-            safety-compliant Operators; however, gilibali.com does not
+            8.3 gilifast.com endeavours to list only reputable and
+            safety-compliant Operators; however, gilifast.com does not
             independently inspect or certify any vessel and cannot guarantee the
             safety standards of third-party Operators.
           </p>
@@ -422,26 +422,26 @@ export default function TermsPage() {
 
         <Section n="9" title="Intellectual Property & Website Use">
           <p>
-            9.1 All content on gilibali.com — including but not limited to text,
+            9.1 All content on gilifast.com — including but not limited to text,
             images, logos, route maps, pricing information, and booking system
-            interfaces — is the intellectual property of gilibali.com or its
+            interfaces — is the intellectual property of gilifast.com or its
             content licensors and is protected under the copyright laws of
             Indonesia and applicable international treaties.
           </p>
           <p>
-            9.2 No content from gilibali.com may be reproduced, distributed,
+            9.2 No content from gilifast.com may be reproduced, distributed,
             modified, or used for commercial purposes without prior written
-            consent from gilibali.com.
+            consent from gilifast.com.
           </p>
           <p>
             9.3 Automated scraping, crawling, or extraction of pricing or
-            scheduling data from gilibali.com is strictly prohibited.
+            scheduling data from gilifast.com is strictly prohibited.
           </p>
         </Section>
 
         <Section n="10" title="Privacy & Data">
           <p>
-            10.1 gilibali.com collects personal data (name, email, phone number,
+            10.1 gilifast.com collects personal data (name, email, phone number,
             nationality, passport number) solely for the purposes of processing
             bookings, issuing tickets, and communicating with passengers about
             their journey.
@@ -452,7 +452,7 @@ export default function TermsPage() {
             booking.
           </p>
           <p>
-            10.3 By making a booking, Passengers consent to gilibali.com
+            10.3 By making a booking, Passengers consent to gilifast.com
             processing their personal data for the purposes stated in this clause.
           </p>
           <p>
@@ -461,7 +461,7 @@ export default function TermsPage() {
             requirements.
           </p>
           <p>
-            10.5 gilibali.com takes reasonable technical measures to protect
+            10.5 gilifast.com takes reasonable technical measures to protect
             personal data in accordance with applicable Indonesian data
             protection laws, including Law No. 27 of 2022 on Personal Data
             Protection (Undang-Undang Perlindungan Data Pribadi).
@@ -469,7 +469,7 @@ export default function TermsPage() {
         </Section>
 
         <Section n="11" title="Limitation of Liability">
-          <p>11.1 gilibali.com is a ticketing intermediary and shall not be liable for:</p>
+          <p>11.1 gilifast.com is a ticketing intermediary and shall not be liable for:</p>
           <ul className="list-disc space-y-1 pl-5">
             <li>Delays, cancellations, diversions, or schedule changes by the Operator;</li>
             <li>Loss, injury, or damage to passengers or their property during transit;</li>
@@ -481,7 +481,7 @@ export default function TermsPage() {
             <li>Technical failures of the booking platform that are beyond our reasonable control.</li>
           </ul>
           <p>
-            11.2 The maximum liability of gilibali.com in any circumstances shall
+            11.2 The maximum liability of gilifast.com in any circumstances shall
             not exceed the face value of the ticket(s) purchased.
           </p>
           <p>
@@ -493,7 +493,7 @@ export default function TermsPage() {
 
         <Section n="12" title="Chargebacks & Payment Disputes">
           <p>
-            12.1 By completing a purchase on gilibali.com, Passengers agree that
+            12.1 By completing a purchase on gilifast.com, Passengers agree that
             once a ticket has been issued and the relevant service has been
             provided (i.e., boarding has taken place), they waive the right to
             initiate a chargeback, payment reversal, or dispute through their card
@@ -501,8 +501,8 @@ export default function TermsPage() {
           </p>
           <p>
             12.2 For service failures or disputes, Passengers are required to
-            contact gilibali.com in writing at info@balinusafast.com before
-            initiating any bank or card dispute. gilibali.com will endeavour to
+            contact gilifast.com in writing at info@balinusafast.com before
+            initiating any bank or card dispute. gilifast.com will endeavour to
             resolve all legitimate complaints within 5 business days.
           </p>
           <p>
@@ -513,13 +513,13 @@ export default function TermsPage() {
 
         <Section n="13" title="Modifications to Terms">
           <p>
-            13.1 gilibali.com reserves the right to amend these Terms &amp;
+            13.1 gilifast.com reserves the right to amend these Terms &amp;
             Conditions at any time. The most current version will be published at
-            gilibali.com/terms. By continuing to use the Platform after any such
+            gilifast.com/terms. By continuing to use the Platform after any such
             amendment, Passengers accept the updated terms.
           </p>
           <p>
-            13.2 gilibali.com reserves the right to modify prices, schedules, and
+            13.2 gilifast.com reserves the right to modify prices, schedules, and
             route availability without prior notice. Prices confirmed at the time
             of payment will be honoured for confirmed bookings.
           </p>
@@ -545,7 +545,7 @@ export default function TermsPage() {
           </p>
           <dl className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
             <dt className="font-semibold">Website:</dt>
-            <dd>www.gilibali.com</dd>
+            <dd>www.gilifast.com</dd>
             <dt className="font-semibold">Email:</dt>
             <dd>info@balinusafast.com</dd>
             <dt className="font-semibold">WhatsApp:</dt>
@@ -561,11 +561,11 @@ export default function TermsPage() {
         </Section>
 
         <p className="mt-8 border-t pt-6 text-sm text-slate-600">
-          By completing a purchase on gilibali.com, you confirm that you have
+          By completing a purchase on gilifast.com, you confirm that you have
           read and agreed to these Terms &amp; Conditions.
           <br />
           <span className="text-slate-400">
-            gilibali.com — Your Gateway to the Gili Islands
+            gilifast.com — Your Gateway to the Gili Islands
           </span>
         </p>
       </div>

@@ -60,7 +60,7 @@ export default async function BlogPost({
     author: { "@type": "Organization", name: post.meta.author },
     publisher: {
       "@type": "Organization",
-      name: "Gilibali",
+      name: "Gilifast",
     },
     mainEntityOfPage: `${base}/blog/${post.meta.slug}`,
     keywords: post.meta.tags.join(", "),
@@ -115,7 +115,7 @@ export default async function BlogPost({
                 <li key={meta.slug}>
                   <Link
                     href={`/blog/${meta.slug}`}
-                    className="font-medium text-gilijet-ocean hover:underline"
+                    className="font-medium text-gilifast-ocean hover:underline"
                   >
                     {meta.title}
                   </Link>

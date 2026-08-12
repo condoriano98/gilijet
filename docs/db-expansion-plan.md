@@ -9,7 +9,7 @@
 
 ## Context
 
-Gilijet is a Next.js 14 boat-ticketing MVP for Indonesian inter-island routes. Stack: Prisma + Postgres, jose-signed cookie auth, Xendit/Mayar/Midtrans for payments, WITA (Asia/Makassar) timezone. The database currently has 16 models and 11 enums but **no migrations folder** — schema management runs through `prisma db push` against an empty dev DB. There is no production data to preserve.
+Gilifast is a Next.js 14 boat-ticketing MVP for Indonesian inter-island routes. Stack: Prisma + Postgres, jose-signed cookie auth, Xendit/Mayar/Midtrans for payments, WITA (Asia/Makassar) timezone. The database currently has 16 models and 11 enums but **no migrations folder** — schema management runs through `prisma db push` against an empty dev DB. There is no production data to preserve.
 
 The schema is shaped correctly for the domain (Schedule template → Leg instance → Booking → Ticket, with Payment / Refund / WebhookEvent / AuditLog as side tables). The work below hardens it for feature expansion without rewriting anything.
 

@@ -47,11 +47,11 @@ export async function GET(
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Gilibali//Booking//EN",
+    "PRODID:-//Gilifast//Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${booking.bookingReference}@gilijet`,
+    `UID:${booking.bookingReference}@gilifast`,
     `DTSTAMP:${toIcsUtc(new Date())}`,
     `DTSTART:${toIcsUtc(departureDate)}`,
     `DTEND:${toIcsUtc(arrival)}`,
@@ -67,7 +67,7 @@ export async function GET(
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="gilijet-${booking.bookingReference}.ics"`,
+      "Content-Disposition": `attachment; filename="gilifast-${booking.bookingReference}.ics"`,
     },
   });
 }

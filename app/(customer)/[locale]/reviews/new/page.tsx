@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StarRating } from "@/components/customer/star-rating";
 
-export const metadata = { title: "Rate your trip · Gilibali" };
+export const metadata = { title: "Rate your trip · Gilifast" };
 
 const reviewSchema = z.object({
   bookingId: z.string().min(1),

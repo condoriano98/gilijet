@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireOperator } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatLocalDate } from "@/lib/datetime";
+import { salesChannelLabel, SALES_CHANNELS } from "@/lib/sales-channel";
 import {
   revenueByChannel,
   occupancyByRoute,
@@ -38,17 +39,6 @@ function toCsv(rows: (string | number)[][]): string {
   return rows.map((r) => r.map(csvEscape).join(",")).join("\r\n");
 }
 
-function channelLabel(ch: string): string {
-  const map: Record<string, string> = {
-    GILIJET: "Gilibali",
-    WALK_IN: "Walk-in",
-    TRAVEL_AGENT: "Agen",
-    PHONE: "Telepon",
-    EXTERNAL_AGGREGATOR: "Aggregator",
-  };
-  return map[ch] ?? ch;
-}
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ kind: string }> },
@@ -80,18 +70,12 @@ export async function GET(
     );
     const present = new Set<string>();
     for (const rec of perMonth) for (const k of Object.keys(rec)) present.add(k);
-    const channels = [
-      "GILIJET",
-      "WALK_IN",
-      "TRAVEL_AGENT",
-      "PHONE",
-      "EXTERNAL_AGGREGATOR",
-    ].filter((c) => present.has(c));
+    const channels = SALES_CHANNELS.filter((c) => present.has(c));
     header = ["Saluran", ...months.map((m) => m.label), "Total"];
     rows = channels.map((ch) => {
       const vals = perMonth.map((rec) => rec[ch] ?? 0);
       const total = vals.reduce((s, v) => s + v, 0);
-      return [channelLabel(ch), ...vals, total];
+      return [salesChannelLabel(ch), ...vals, total];
     });
   } else if (kind === "occupancy-by-route") {
     const routes = await occupancyByRoute(operatorId, rangeFrom, rangeTo);

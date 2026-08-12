@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test("operator can log in and view a leg manifest", async ({ page }) => {
   await page.goto("/operator/login");
 
-  await page.getByLabel(/email/i).fill("qa-operator@gilijet.local");
+  await page.getByLabel(/email/i).fill("qa-operator@gilifast.local");
   await page.getByLabel(/password/i).fill("qaqaqaqa");
   await page.getByRole("button", { name: /log ?in|sign ?in/i }).click();
 

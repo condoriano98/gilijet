@@ -121,7 +121,7 @@ export async function startPaypalOrder(
     orderId: booking.bookingReference,
     amount: quote.amount,
     currency: quote.currency,
-    description: `Gilijet ${booking.leg.schedule.originPort} → ${booking.leg.schedule.destinationPort}`,
+    description: `Gilifast ${booking.leg.schedule.originPort} → ${booking.leg.schedule.destinationPort}`,
     returnUrl: `${env.APP_BASE_URL}/pay/${booking.bookingReference}?paypal=return`,
     cancelUrl: `${env.APP_BASE_URL}/pay/${booking.bookingReference}?paypal=cancel`,
   });

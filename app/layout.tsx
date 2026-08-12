@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-// Inter is the Figma brand face for Gilibali (display + UI).
+// Inter is the Figma brand face for Gilifast (display + UI).
 const displayFont = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -11,7 +11,7 @@ const displayFont = Inter({
 });
 
 const SITE_URL = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
-const SITE_TITLE = "Gilibali — Boat tickets across Indonesia";
+const SITE_TITLE = "Gilifast — Boat tickets across Indonesia";
 const SITE_DESCRIPTION =
   "Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.";
 
@@ -19,10 +19,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s · Gilibali",
+    template: "%s · Gilifast",
   },
   description: SITE_DESCRIPTION,
-  applicationName: "Gilibali",
+  applicationName: "Gilifast",
   keywords: [
     "boat tickets Indonesia",
     "Bali to Gili fast boat",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    siteName: "Gilibali",
+    siteName: "Gilifast",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     locale: "en_ID",
@@ -66,7 +66,7 @@ export const viewport: Viewport = {
 const ORGANIZATION_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Gilibali",
+  name: "Gilifast",
   legalName: "CV Hi Bali Nusa Tenggara",
   url: SITE_URL,
   description: SITE_DESCRIPTION,
@@ -82,7 +82,7 @@ const ORGANIZATION_JSONLD = {
 const WEBSITE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Gilibali",
+  name: "Gilifast",
   url: SITE_URL,
   potentialAction: {
     "@type": "SearchAction",

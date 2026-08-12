@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { validatePromoCode } from "@/lib/promotions";
 
 /**
- * GET /api/promos/validate?code=GILIJET15&amount=500000
+ * GET /api/promos/validate?code=GILIFAST15&amount=500000
  * Returns: { valid: true, discountAmount, description } | { valid: false, error }
  * Public — no auth. Doesn't mutate anything.
  */

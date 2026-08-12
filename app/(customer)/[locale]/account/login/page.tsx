@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GoogleSignInButton } from "@/components/customer/google-signin-button";
 
-export const metadata = { title: "Sign in · Gilibali" };
+export const metadata = { title: "Sign in · Gilifast" };
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -81,7 +81,7 @@ export default async function CustomerLoginPage({
       <div className="mx-auto max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Sign in to Gilibali</CardTitle>
+            <CardTitle>Sign in to Gilifast</CardTitle>
             <CardDescription>
               Manage bookings, see ticket history, and check in faster.
             </CardDescription>
@@ -168,7 +168,7 @@ export default async function CustomerLoginPage({
                 Sign in
               </Button>
               <div className="text-center text-sm text-slate-600">
-                New to Gilibali?{" "}
+                New to Gilifast?{" "}
                 <Link
                   href={`/account/register${next ? `?next=${encodeURIComponent(next)}` : ""}`}
                   className="font-medium text-sky-700 hover:underline"

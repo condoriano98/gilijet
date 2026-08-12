@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GoogleSignInButton } from "@/components/customer/google-signin-button";
 
-export const metadata = { title: "Create account · Gilibali" };
+export const metadata = { title: "Create account · Gilifast" };
 
 const registerSchema = z.object({
   fullName: z.string().min(2).max(120),
@@ -83,7 +83,7 @@ export default async function CustomerRegisterPage({
       <div className="mx-auto max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Create your Gilibali account</CardTitle>
+            <CardTitle>Create your Gilifast account</CardTitle>
             <CardDescription>
               Save passenger details, see past trips, and skip the form on
               future bookings.

@@ -9,21 +9,14 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { agentCommissionYtd, erpFeeYtd } from "@/lib/operator-erp-queries";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-
-function channelLabel(ch: string): string {
-  const map: Record<string, string> = {
-    GILIJET: "Gilibali", WALK_IN: "Walk-in", TRAVEL_AGENT: "Agen",
-    PHONE: "Telepon", EXTERNAL_AGGREGATOR: "Aggregator",
-  };
-  return map[ch] ?? ch;
-}
+import { salesChannelLabel, normalizeSalesChannel } from "@/lib/sales-channel";
 
 function channelVariant(ch: string): "success" | "warning" | "danger" | "neutral" | "info" {
   const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-    GILIJET: "info", WALK_IN: "success", TRAVEL_AGENT: "warning",
+    GILIFAST: "info", WALK_IN: "success", TRAVEL_AGENT: "warning",
     PHONE: "neutral", EXTERNAL_AGGREGATOR: "neutral",
   };
-  return map[ch] ?? "neutral";
+  return map[normalizeSalesChannel(ch)] ?? "neutral";
 }
 
 function bookingStatusVariant(s: string): "success" | "warning" | "danger" | "neutral" | "info" {
@@ -114,7 +107,7 @@ export default async function PenjualanPage({
       header: "Saluran",
       render: (row: BookingRow) => (
         <StatusBadge variant={channelVariant(row.salesChannel)}>
-          {channelLabel(row.salesChannel)}
+          {salesChannelLabel(row.salesChannel)}
         </StatusBadge>
       ),
     },

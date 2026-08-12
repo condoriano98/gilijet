@@ -83,7 +83,7 @@ export async function sendBoardingPassWhatsapp(args: {
     `Tiket: ${args.ticketCodes.join(", ")}`,
     ``,
     `Boarding pass dan QR code: ${args.lookupUrl}`,
-    `Tunjukkan QR code tersebut di dermaga. Selamat jalan! — Gilibali`,
+    `Tunjukkan QR code tersebut di dermaga. Selamat jalan! — Gilifast`,
   ].join("\n");
   return sendText(args.to, body);
 }

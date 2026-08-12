@@ -10,9 +10,9 @@ import { env } from "./env";
  * other. Customers are anonymous (no login).
  */
 
-const OPERATOR_COOKIE = "gilijet_op";
-const ADMIN_COOKIE = "gilijet_admin";
-const CUSTOMER_COOKIE = "gilijet_cust";
+const OPERATOR_COOKIE = "gilifast_op";
+const ADMIN_COOKIE = "gilifast_admin";
+const CUSTOMER_COOKIE = "gilifast_cust";
 const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24h (see §9.1)
 
 type Session<Role extends string> = {

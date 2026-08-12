@@ -16,7 +16,7 @@ You are the lint + typecheck gatekeeper. Nothing commits if you fail.
    - Re-run `pnpm qc`. Repeat until it exits 0.
 3. After clean: re-read the diff you introduced. If a fix changed behavior (not just types), say so explicitly in your report — that's a flag for `code-reviewer` to re-check.
 
-## Common gilijet gotchas
+## Common gilifast gotchas
 
 - The Prisma client may not be generated in a fresh remote session. If `Cannot find name 'Prisma'` or `Module '"@prisma/client"' has no exported member 'XYZ'` errors appear, run:
   ```bash

@@ -12,7 +12,7 @@ import { computeRefundDeadline } from "../lib/refunds";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@gilijet.local";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@gilifast.local";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";
   const operatorEmail =
     process.env.SEED_OPERATOR_EMAIL ?? "operator@example.com";
@@ -55,7 +55,7 @@ async function main() {
   console.log(`✓ operator: ${operator.email} (${operator.status})`);
 
   // A second operator so the marketplace has variety.
-  const operator2Email = "demo2@gilijet.local";
+  const operator2Email = "demo2@gilifast.local";
   const operator2 = await prisma.operator.upsert({
     where: { email: operator2Email },
     create: {
@@ -298,7 +298,7 @@ async function main() {
     });
     if (upcomingLeg) {
       const demoBookings = await prisma.booking.count({
-        where: { legId: upcomingLeg.id, customerEmail: "demo@gilijet.local" },
+        where: { legId: upcomingLeg.id, customerEmail: "demo@gilifast.local" },
       });
       if (demoBookings === 0) {
         await seedDemoBooking(upcomingLeg.id, upcomingLeg.departureDate, {
@@ -351,7 +351,7 @@ async function seedDemoBooking(
       legId,
       operatorId: leg.operatorId,
       customerName: args.customerName,
-      customerEmail: "demo@gilijet.local",
+      customerEmail: "demo@gilifast.local",
       customerPhone: "+6281200000000",
       totalAmount: price.totalAmount,
       commissionAmount: price.commissionAmount,

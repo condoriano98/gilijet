@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       legId,
       customer: {
         name: customerName ?? "Walk-in Customer",
-        email: `walkin+${Date.now()}@gilijet.internal`,
+        email: `walkin+${Date.now()}@gilifast.internal`,
         phone: "-",
       },
       passengers,

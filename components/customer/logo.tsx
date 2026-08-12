@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Gilibali wordmark lockup — a stylised speedboat mark above the
- * "GILIBALI.com" bold-italic wordmark. Single-colour (currentColor) so it
+ * Gilifast wordmark lockup — a stylised speedboat mark above the
+ * "GILIFAST.com" bold-italic wordmark. Single-colour (currentColor) so it
  * reads as blue on the white header and white on the blue footer.
  */
 export function Logo({ className }: { className?: string }) {
@@ -12,7 +12,7 @@ export function Logo({ className }: { className?: string }) {
         "inline-flex select-none flex-col items-center leading-none",
         className,
       )}
-      aria-label="Gilibali"
+      aria-label="Gilifast"
     >
       <svg
         viewBox="0 0 132 50"
@@ -29,7 +29,7 @@ export function Logo({ className }: { className?: string }) {
         <path d="M52 31 L59 16 L90 16 C105 16 118 22 127 31 Z" />
       </svg>
       <span className="mt-1 font-display text-xl font-extrabold italic tracking-tight [font-stretch:condensed]">
-        GILIBALI<span className="align-top text-[0.5em] font-bold not-italic tracking-normal">.com</span>
+        GILIFAST<span className="align-top text-[0.5em] font-bold not-italic tracking-normal">.com</span>
       </span>
     </span>
   );
