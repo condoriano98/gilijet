@@ -150,6 +150,13 @@ if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi
 
 Exit 1 builds, exit 0 skips — inverted from the intuition.
 
+Without it both projects build on every push to either branch, and the
+dangerous half is subtle: a push to `staging` would create a *preview* on the
+production project, and if that project's database variables are scoped to
+Preview as well as Production, its build runs `prisma db push` — with the
+staging branch's schema — against the **production database**. Never scope
+`DATABASE_URL` / `DIRECT_URL` to Preview on `gilifast`.
+
 **Staging is a separate project rather than a preview branch** for two reasons.
 Vercel Cron only fires on Production deployments, so the three routes in
 `vercel.json` would never run on a preview. And `db-push-if-configured.mjs`
@@ -168,8 +175,44 @@ what `app/robots.ts` keys on to keep staging out of Google.
 | `DATABASE_URL` / `DIRECT_URL` | `db push` runs on every build |
 | `AUTH_SECRET` | shared ⇒ a staging session cookie authenticates against production |
 | `QR_HMAC_SECRET` | shared ⇒ a staging boarding pass validates at a real dock. Never rotate the production value — it invalidates every ticket already issued |
-| `CRON_SECRET` | separate blast radius; also what Vercel Cron sends as its bearer token |
+| `CRON_SECRET` | separate blast radius; also what Vercel Cron sends as its bearer token. It must **exist** on staging — Vercel only injects the bearer when the var is present, and the routes fail closed, so a missing value means all three crons 401 forever and the log still looks fine |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | shared ⇒ staging reads production's KYB documents. See below |
 | `APP_BASE_URL` | no fallback to `VERCEL_URL`; unset it becomes `http://localhost:3000` and that string lands in PayPal return URLs and every booking link in email and WhatsApp |
+
+`AUTH_SECRET` deserves the sharp version: `requireAdmin()` in `lib/auth.ts`
+reads `adminRole` straight off the JWT and never re-checks the database. Shared,
+you log into staging as the `qa-admin@gilifast.local` / `qaqaqaqa` account that
+`pnpm seed:qa` creates unconditionally as `SUPER_ADMIN`, paste the
+`gilifast_admin` cookie at gilifast.com, and you are a production super-admin
+without ever holding a production credential.
+
+`QR_HMAC_SECRET` is not really about forgery — check-in looks the ticket up in
+the database, so a staging pass cannot board a real boat either way. It is about
+which message the crew sees. Shared, a staging pass scanned at a real dock
+returns *"Ticket not found in the system"*, which reads as a system fault, and
+the human response to a system fault at 07:55 is to wave the passenger through.
+Different, it returns *"QR code is not a valid Gilifast ticket"* — unambiguous.
+
+### Staging needs its own storage bucket
+
+`app/api/operator/document-upload/route.ts` and `lib/operator-documents.ts`
+both build a Supabase client from `SUPABASE_URL` + `SUPABASE_ANON_KEY` against a
+hardcoded bucket named `operator-documents`. If staging inherits production's
+pair, the staging admin UI mints signed URLs to real operators' SIUP, NPWP,
+vessel licences and insurance certificates — reachable by anyone with that
+seeded QA admin login. Create a private bucket named exactly
+`operator-documents` in the staging Supabase project and replicate the storage
+policies; uploads go through the **anon** key, so anon `INSERT` must be allowed.
+
+### `PAYPAL_IS_PRODUCTION=false` is not a safety guard
+
+Unlike DOKU — where `baseUrl()` in `lib/doku.ts` picks the host with no
+fallback — `accessToken()` in `lib/paypal.ts` retries the *other* host on a
+`401 invalid_client` and caches whichever one accepts the credentials. So live
+PayPal keys sitting in the staging project charge real customers real money;
+the flag costs one wasted round-trip and logs a warning suggesting you flip it.
+**Putting sandbox credentials there is the only mechanism.** `pnpm
+paypal:selftest` asks both hosts and names the one that answers.
 
 `RESEND_*` and `WATI_*` are left unset on staging. Neither transport has an
 environment guard — they send to whatever address or number is on the booking,
