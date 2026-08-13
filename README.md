@@ -129,6 +129,60 @@ reason — existing `Booking` rows reference it, and dropping an in-use enum
 value makes `prisma db push` refuse the whole push. `lib/sales-channel.ts`
 folds it onto `GILIFAST` for every display and grouping.
 
+## Environments
+
+Two Vercel projects on the same repo, each with its own Supabase database:
+
+| | Production | Staging |
+|---|---|---|
+| Vercel project | `gilifast` | `gilifast-staging` |
+| Production Branch | `main` | `staging` |
+| Domain | gilifast.com | staging.gilifast.com |
+| DOKU | live keys, `DOKU_IS_PRODUCTION=true` | unset → mock checkout |
+| PayPal | live keys, `PAYPAL_IS_PRODUCTION=true` | sandbox keys, `=false` |
+
+Flow is feature branch → `staging` → `main`. Each project carries an Ignored
+Build Step so it only builds its own branch:
+
+```bash
+if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi
+```
+
+Exit 1 builds, exit 0 skips — inverted from the intuition.
+
+**Staging is a separate project rather than a preview branch** for two reasons.
+Vercel Cron only fires on Production deployments, so the three routes in
+`vercel.json` would never run on a preview. And `db-push-if-configured.mjs`
+only hard-fails a build with no resolvable database URL when
+`VERCEL_ENV === "production"` — anywhere else it silently skips the schema push
+and deploys anyway. A separate project gets both behaviours.
+
+The flip side: `VERCEL_ENV` is `"production"` on **both** projects, so it can
+never distinguish them. `APP_BASE_URL` is the only reliable signal, which is
+what `app/robots.ts` keys on to keep staging out of Google.
+
+### Secrets that must differ
+
+| Var | Why |
+|---|---|
+| `DATABASE_URL` / `DIRECT_URL` | `db push` runs on every build |
+| `AUTH_SECRET` | shared ⇒ a staging session cookie authenticates against production |
+| `QR_HMAC_SECRET` | shared ⇒ a staging boarding pass validates at a real dock. Never rotate the production value — it invalidates every ticket already issued |
+| `CRON_SECRET` | separate blast radius; also what Vercel Cron sends as its bearer token |
+| `APP_BASE_URL` | no fallback to `VERCEL_URL`; unset it becomes `http://localhost:3000` and that string lands in PayPal return URLs and every booking link in email and WhatsApp |
+
+`RESEND_*` and `WATI_*` are left unset on staging. Neither transport has an
+environment guard — they send to whatever address or number is on the booking,
+so a production dump restored into staging would message real customers. Unset,
+both log to the console and the rendered output still shows in function logs.
+
+DOKU has no sandbox account for this merchant (`api-sandbox.doku.com` rejects
+the live credentials), so staging runs DOKU in mock mode and uses the built-in
+dummy checkout at `/checkout/[reference]`. A consequence worth knowing:
+`verifyDokuNotification()` fails closed when DOKU is unconfigured, so
+`/api/webhooks/doku` returns 401 on staging and DOKU webhook changes can only
+be exercised in production.
+
 ## Route groups
 
 | Path | Audience | Guard |

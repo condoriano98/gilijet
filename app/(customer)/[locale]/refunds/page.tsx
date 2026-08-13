@@ -28,9 +28,9 @@ export default function RefundsPage() {
         </p>
 
         <p className="rounded-md bg-sky-50 px-4 py-3 not-prose text-sm text-sky-900">
-          By completing a booking on gilifast.com, gilifast.com, or
-          balinusafast.com, you confirm that you have read and agree to this
-          policy. It forms part of our{" "}
+          By completing a booking on gilifast.com or balinusafast.com, you
+          confirm that you have read and agree to this policy. It forms part of
+          our{" "}
           <Link href="/terms" className="underline">
             Terms &amp; Conditions
           </Link>
@@ -41,8 +41,7 @@ export default function RefundsPage() {
         <h2 className="mt-8 text-xl font-semibold">1. About this policy</h2>
         <p>
           This page sets out what happens when you need to cancel or change your
-          fast boat ticket booked through gilifast.com, gilifast.com, or
-          balinusafast.com.
+          fast boat ticket booked through gilifast.com or balinusafast.com.
         </p>
         <p>
           We act as a ticketing agent — we sell tickets on behalf of licensed
