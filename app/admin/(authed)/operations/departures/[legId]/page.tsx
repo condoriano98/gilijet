@@ -69,7 +69,6 @@ export default async function DepartureDetailPage({
   });
   if (!leg) notFound();
 
-  const booked = leg.totalCapacity - leg.availableSeats;
   const passengers = leg.bookings.flatMap((b) => b.tickets);
   const closed = leg.status === "CANCELLED" || leg.status === "SAILED";
 
@@ -123,9 +122,10 @@ export default async function DepartureDetailPage({
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Capacity</CardTitle>
+            <CardTitle>Passengers</CardTitle>
             <CardDescription>
-              {booked} of {leg.totalCapacity} seats booked.
+              {passengers.length} passenger{passengers.length === 1 ? "" : "s"} on
+              confirmed and held bookings.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -135,7 +135,8 @@ export default async function DepartureDetailPage({
             <CardTitle>Price</CardTitle>
             <CardDescription>
               Applies to this departure only. The schedule&apos;s base price is
-              unchanged, and the {booked} seat(s) already sold keep what they
+              unchanged, and the {passengers.length} passenger
+              {passengers.length === 1 ? "" : "s"} already sold keep what they
               were charged.
             </CardDescription>
           </CardHeader>

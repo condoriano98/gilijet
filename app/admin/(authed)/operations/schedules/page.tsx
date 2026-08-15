@@ -60,7 +60,6 @@ export default async function OperationsSchedulesPage({
         boat: {
           select: {
             name: true,
-            capacity: true,
             operator: { select: { id: true, companyName: true } },
           },
         },
@@ -146,12 +145,7 @@ export default async function OperationsSchedulesPage({
                     <TableCell className="text-sm">
                       {s.boat.operator.companyName}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {s.boat.name}{" "}
-                      <span className="text-muted-foreground">
-                        ({s.boat.capacity})
-                      </span>
-                    </TableCell>
+                    <TableCell className="text-sm">{s.boat.name}</TableCell>
                     <TableCell className="font-mono text-sm">
                       {s.departureTime}
                     </TableCell>

@@ -20,6 +20,14 @@ const DEFAULT_DAYS_AHEAD = 14;
  */
 export const BOOKING_HORIZON_DAYS = 60;
 
+/**
+ * Capacity shown nowhere in the UI. Seats stay enforced internally so the
+ * anti-oversell guard in the booking engine keeps working, but operators are
+ * not asked about vessel capacity anymore — new boats default to a large
+ * placeholder that is never surfaced to customers.
+ */
+export const DEFAULT_BOAT_CAPACITY = 999;
+
 export type CapacityChange =
   | { ok: true; totalCapacity: number; availableSeats: number }
   | { ok: false; booked: number };

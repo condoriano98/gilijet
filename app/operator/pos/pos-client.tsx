@@ -16,7 +16,6 @@ type LegOption = {
   route: string;
   boatName: string;
   departureTime: string;
-  availableSeats: number;
   basePrice: number;
 };
 
@@ -91,8 +90,7 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">{leg.availableSeats} kursi</p>
-                    <p className="text-xs text-mekari-neutral-500">{formatIDR(leg.basePrice)}/pax</p>
+                    <p className="text-sm text-mekari-neutral-500">{formatIDR(leg.basePrice)}/pax</p>
                   </div>
                 </div>
                 <Button className="mt-3 w-full bg-mekari-primary hover:bg-mekari-primary-600" size="sm">

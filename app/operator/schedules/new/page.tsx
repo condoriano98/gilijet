@@ -169,7 +169,7 @@ export default async function NewSchedulePage({
               >
                 {activeBoats.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.name} · {b.capacity} seats
+                    {b.name}
                   </option>
                 ))}
               </select>

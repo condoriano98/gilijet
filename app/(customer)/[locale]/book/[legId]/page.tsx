@@ -222,9 +222,6 @@ export default async function BookPage({
               <span className="text-muted-foreground">Per passenger:</span>{" "}
               <span className="font-semibold">{formatIDR(unitPrice)}</span>
             </div>
-            <div className="text-muted-foreground">
-              {leg.availableSeats} seats remaining
-            </div>
           </CardContent>
         </Card>
 

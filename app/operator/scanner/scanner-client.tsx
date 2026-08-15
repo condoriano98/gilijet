@@ -21,8 +21,6 @@ type LegOption = {
   boat: string;
   departureDate: string;
   status: string;
-  sold: number;
-  capacity: number;
 };
 
 type Outcome = {
@@ -126,8 +124,7 @@ export function ScannerClient({
               >
                 {options.map((o) => (
                   <option key={o.id} value={o.id}>
-                    {formatDateTimeID(o.departureDate)} · {o.label} ·{" "}
-                    {o.boat} ({o.sold}/{o.capacity})
+                    {formatDateTimeID(o.departureDate)} · {o.label} · {o.boat}
                   </option>
                 ))}
               </select>

@@ -70,37 +70,6 @@ export async function revenueByChannel(
   return result;
 }
 
-export async function occupancyByRoute(
-  operatorId: string,
-  from: Date,
-  to: Date,
-): Promise<Array<{ originPort: string; destinationPort: string; occupancyPct: number }>> {
-  const legs = await prisma.leg.findMany({
-    where: {
-      operatorId,
-      departureDate: { gte: from, lte: to },
-      schedule: { deletedAt: null, boat: { deletedAt: null } },
-    },
-    include: { schedule: { select: { originPort: true, destinationPort: true } } },
-  });
-  const routeMap = new Map<string, { totalCap: number; totalSold: number }>();
-  for (const leg of legs) {
-    const key = `${leg.schedule.originPort}|${leg.schedule.destinationPort}`;
-    const existing = routeMap.get(key) ?? { totalCap: 0, totalSold: 0 };
-    existing.totalCap += leg.totalCapacity;
-    existing.totalSold += leg.totalCapacity - leg.availableSeats;
-    routeMap.set(key, existing);
-  }
-  return Array.from(routeMap.entries()).map(([key, val]) => {
-    const [originPort, destinationPort] = key.split("|");
-    return {
-      originPort,
-      destinationPort,
-      occupancyPct: val.totalCap > 0 ? Math.round((val.totalSold / val.totalCap) * 100) : 0,
-    };
-  });
-}
-
 export async function refundRatioByMonth(
   operatorId: string,
   from: Date,

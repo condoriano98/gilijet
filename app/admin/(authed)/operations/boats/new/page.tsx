@@ -98,23 +98,6 @@ export default async function NewBoatPage({
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="capacity">Passenger capacity</Label>
-              <Input
-                id="capacity"
-                name="capacity"
-                type="number"
-                min="1"
-                max="500"
-                defaultValue={40}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Departures inherit this. Adjust an individual sailing from the
-                departures board.
-              </p>
-            </div>
-
-            <div className="grid gap-1.5">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"

@@ -9,7 +9,6 @@ const selectClass =
 export type PickerBoat = {
   id: string;
   name: string;
-  capacity: number;
   operatorId: string;
 };
 
@@ -88,7 +87,7 @@ export function OperatorBoatPicker({
           </option>
           {forOperator.map((b) => (
             <option key={b.id} value={b.id}>
-              {b.name} ({b.capacity} seats)
+              {b.name}
             </option>
           ))}
         </select>

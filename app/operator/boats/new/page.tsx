@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireOperator } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { DEFAULT_BOAT_CAPACITY } from "@/lib/legs";
 import {
   Card,
   CardContent,
@@ -24,7 +25,6 @@ const newBoatSchema = z.object({
     .string()
     .min(2, "Registration number is required")
     .max(40),
-  capacity: z.coerce.number().int().min(1).max(500),
   description: z.string().max(1000).optional().or(z.literal("")),
 });
 
@@ -42,7 +42,6 @@ async function createBoatAction(formData: FormData) {
   const parsed = newBoatSchema.safeParse({
     name: formData.get("name"),
     registrationNumber: formData.get("registrationNumber"),
-    capacity: formData.get("capacity"),
     description: formData.get("description"),
   });
   if (!parsed.success) {
@@ -59,7 +58,7 @@ async function createBoatAction(formData: FormData) {
         operatorId: session.sub,
         name: parsed.data.name,
         registrationNumber: parsed.data.registrationNumber,
-        capacity: parsed.data.capacity,
+        capacity: DEFAULT_BOAT_CAPACITY,
         description: parsed.data.description || null,
         photos,
         status: "ACTIVE",
@@ -72,7 +71,7 @@ async function createBoatAction(formData: FormData) {
       action: "created",
       userId: session.sub,
       userRole: "OPERATOR",
-      newState: { name: boat.name, capacity: boat.capacity },
+      newState: { name: boat.name },
     });
 
     redirect("/operator/boats");
@@ -115,8 +114,8 @@ export default async function NewBoatPage({
           <CardHeader>
             <CardTitle>Vessel details</CardTitle>
             <CardDescription>
-              Capacity is locked in once departures are generated; bumping it
-              later only affects future legs.
+              Give the boat a name and registration number. Departures are
+              generated from the schedule.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -136,17 +135,6 @@ export default async function NewBoatPage({
                 <Input
                   id="registrationNumber"
                   name="registrationNumber"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity (seats)</Label>
-                <Input
-                  id="capacity"
-                  name="capacity"
-                  type="number"
-                  min={1}
-                  max={500}
                   required
                 />
               </div>

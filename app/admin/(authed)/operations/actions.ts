@@ -11,6 +11,7 @@ import {
   BOOKING_HORIZON_DAYS,
   cancelLeg,
   generateLegsForSchedule,
+  DEFAULT_BOAT_CAPACITY,
 } from "@/lib/legs";
 
 /**
@@ -54,7 +55,7 @@ async function assertBoatOwnedBy(boatId: string, operatorId: string) {
 async function scheduleWithOwner(scheduleId: string) {
   return prisma.schedule.findFirst({
     where: { id: scheduleId, deletedAt: null },
-    include: { boat: { select: { id: true, operatorId: true, capacity: true } } },
+    include: { boat: { select: { id: true, operatorId: true } } },
   });
 }
 
@@ -64,7 +65,6 @@ const boatSchema = z.object({
   operatorId: z.string().min(1, "Pick an operator"),
   name: z.string().min(2, "Name must be at least 2 characters").max(120),
   registrationNumber: z.string().min(2, "Registration number is required").max(40),
-  capacity: z.coerce.number().int().min(1).max(500),
   description: z.string().max(1000).optional().or(z.literal("")),
 });
 
@@ -74,7 +74,6 @@ export async function createBoat(formData: FormData) {
     operatorId: formData.get("operatorId"),
     name: formData.get("name"),
     registrationNumber: formData.get("registrationNumber"),
-    capacity: formData.get("capacity"),
     description: formData.get("description"),
   });
   if (!parsed.success) fail(`${OPS}/boats/new`, parsed.error.issues[0].message);
@@ -93,7 +92,7 @@ export async function createBoat(formData: FormData) {
         operatorId: operator.id,
         name: d.name,
         registrationNumber: d.registrationNumber.trim(),
-        capacity: d.capacity,
+        capacity: DEFAULT_BOAT_CAPACITY,
         description: d.description || null,
         photos: [],
         status: "ACTIVE",
@@ -128,7 +127,6 @@ export async function updateBoat(formData: FormData) {
   const parsed = boatSchema.omit({ operatorId: true }).safeParse({
     name: formData.get("name"),
     registrationNumber: formData.get("registrationNumber"),
-    capacity: formData.get("capacity"),
     description: formData.get("description"),
   });
   if (!parsed.success) fail(`${OPS}/boats/${id}`, parsed.error.issues[0].message);
@@ -145,7 +143,6 @@ export async function updateBoat(formData: FormData) {
       data: {
         name: d.name,
         registrationNumber: d.registrationNumber.trim(),
-        capacity: d.capacity,
         description: d.description || null,
         status: formData.get("status") === "INACTIVE" ? "INACTIVE" : "ACTIVE",
       },
@@ -163,8 +160,8 @@ export async function updateBoat(formData: FormData) {
     action: "updated_by_admin",
     userId: session.sub,
     userRole: "ADMIN",
-    previousState: { name: prev.name, capacity: prev.capacity, status: prev.status },
-    newState: { name: d.name, capacity: d.capacity },
+    previousState: { name: prev.name, status: prev.status },
+    newState: { name: d.name },
   });
 
   revalidatePath(`${OPS}/boats`);

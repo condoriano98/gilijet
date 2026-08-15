@@ -439,7 +439,7 @@ const OPERATOR: Feature[] = [
     modules: ["lib/operator-erp-queries.ts", "lib/erp-pricing.ts"],
     models: ["Booking", "Leg", "Refund"],
     notes:
-      "Five kinds: revenue-by-channel, occupancy-by-route, refund-ratio, agent-leaderboard, cancellation-weather.",
+      "Four kinds: revenue-by-channel, refund-ratio, agent-leaderboard, cancellation-weather.",
   },
   {
     id: "operator-settings",

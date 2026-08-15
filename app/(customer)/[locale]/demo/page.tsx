@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Check, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -18,7 +17,6 @@ const DUMMY_BOATS = [
     arrival: "10:30",
     duration: "2h 30m",
     price: 375000,
-    seats: 8,
     vessel: "Fast Boat",
   },
   {
@@ -29,7 +27,6 @@ const DUMMY_BOATS = [
     arrival: "12:00",
     duration: "2h 30m",
     price: 295000,
-    seats: 12,
     vessel: "Fast Boat",
   },
   {
@@ -40,7 +37,6 @@ const DUMMY_BOATS = [
     arrival: "14:15",
     duration: "3h 15m",
     price: 195000,
-    seats: 25,
     vessel: "Ferry",
   },
 ];
@@ -135,9 +131,6 @@ function BoatSelectionStep({
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-slate-900">IDR {boat.price.toLocaleString("id-ID")}</div>
-                <Badge variant="outline" className="mt-1 text-xs">
-                  {boat.seats} seats left
-                </Badge>
               </div>
             </div>
           </CardContent>

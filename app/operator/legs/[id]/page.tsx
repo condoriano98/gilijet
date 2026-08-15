@@ -202,10 +202,8 @@ export default async function LegManifestPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Seats sold</CardDescription>
-            <CardTitle className="text-3xl">
-              {leg.totalCapacity - leg.availableSeats}/{leg.totalCapacity}
-            </CardTitle>
+            <CardDescription>Total passengers</CardDescription>
+            <CardTitle className="text-3xl">{allTickets.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>

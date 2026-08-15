@@ -85,10 +85,7 @@ export default async function OperationsBoatDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
-          <CardDescription>
-            The owning operator is fixed. Capacity changes apply to departures
-            generated from now on, not to ones already created.
-          </CardDescription>
+          <CardDescription>The owning operator is fixed.</CardDescription>
         </CardHeader>
         <form action={updateBoat}>
           <CardContent className="space-y-4">
@@ -111,18 +108,6 @@ export default async function OperationsBoatDetailPage({
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="capacity">Passenger capacity</Label>
-                <Input
-                  id="capacity"
-                  name="capacity"
-                  type="number"
-                  min="1"
-                  max="500"
-                  defaultValue={boat.capacity}
-                  required
-                />
-              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="status">Status</Label>
                 <select

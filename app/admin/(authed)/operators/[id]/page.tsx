@@ -368,7 +368,6 @@ export default async function OperatorDetailPage({
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Registration #</TableHead>
-                  <TableHead>Capacity</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -379,7 +378,6 @@ export default async function OperatorDetailPage({
                     <TableCell className="font-mono text-xs">
                       {b.registrationNumber}
                     </TableCell>
-                    <TableCell>{b.capacity}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{b.status}</Badge>
                     </TableCell>

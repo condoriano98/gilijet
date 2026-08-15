@@ -36,7 +36,6 @@ export default async function OperationsBoatsPage({
       id: true,
       name: true,
       registrationNumber: true,
-      capacity: true,
       status: true,
       operator: { select: { companyName: true } },
       _count: { select: { schedules: true } },
@@ -80,7 +79,6 @@ export default async function OperationsBoatsPage({
                   <TableHead>Boat</TableHead>
                   <TableHead>Operator</TableHead>
                   <TableHead>Registration</TableHead>
-                  <TableHead className="text-right">Capacity</TableHead>
                   <TableHead className="text-right">Schedules</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -102,7 +100,6 @@ export default async function OperationsBoatsPage({
                     <TableCell className="font-mono text-xs">
                       {b.registrationNumber}
                     </TableCell>
-                    <TableCell className="text-right">{b.capacity}</TableCell>
                     <TableCell className="text-right">
                       {b._count.schedules}
                     </TableCell>

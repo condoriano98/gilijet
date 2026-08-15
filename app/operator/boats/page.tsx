@@ -28,9 +28,7 @@ export default async function OperatorBoatsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Boats</h1>
-          <p className="text-sm text-muted-foreground">
-            Your fleet. Capacity here drives every departure&apos;s seat count.
-          </p>
+          <p className="text-sm text-muted-foreground">Your fleet.</p>
         </div>
         <Button asChild>
           <Link href="/operator/boats/new">New boat</Link>
@@ -55,7 +53,6 @@ export default async function OperatorBoatsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Registration #</TableHead>
-                  <TableHead>Capacity</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -67,7 +64,6 @@ export default async function OperatorBoatsPage() {
                     <TableCell className="font-mono text-xs">
                       {b.registrationNumber}
                     </TableCell>
-                    <TableCell>{b.capacity}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{b.status}</Badge>
                     </TableCell>

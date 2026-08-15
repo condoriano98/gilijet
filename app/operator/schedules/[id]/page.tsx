@@ -170,7 +170,7 @@ export default async function EditSchedulePage({
             <CardTitle>Edit schedule</CardTitle>
             <CardDescription>
               Changes apply to future leg generation. Existing legs keep their
-              original price and capacity.
+              original price.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -292,7 +292,6 @@ export default async function EditSchedulePage({
                       {formatLocalDateTime(leg.departureDate)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {leg.availableSeats}/{leg.totalCapacity} seats open ·{" "}
                       {formatIDR(Number(leg.basePrice))}
                     </div>
                   </div>

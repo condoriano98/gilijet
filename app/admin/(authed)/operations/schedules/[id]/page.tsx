@@ -61,8 +61,6 @@ export default async function OperationsScheduleDetailPage({
           id: true,
           departureDate: true,
           status: true,
-          totalCapacity: true,
-          availableSeats: true,
         },
       },
     },
@@ -78,7 +76,7 @@ export default async function OperationsScheduleDetailPage({
     prisma.boat.findMany({
       where: { deletedAt: null, status: "ACTIVE", operatorId: schedule.boat.operatorId },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, capacity: true, operatorId: true },
+      select: { id: true, name: true, operatorId: true },
     }),
   ]);
 
@@ -234,7 +232,6 @@ export default async function OperationsScheduleDetailPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Departure (WITA)</TableHead>
-                  <TableHead>Seats</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
@@ -243,9 +240,6 @@ export default async function OperationsScheduleDetailPage({
                 {schedule.legs.map((l) => (
                   <TableRow key={l.id}>
                     <TableCell>{formatLocalDateTime(l.departureDate)}</TableCell>
-                    <TableCell className="text-sm">
-                      {l.totalCapacity - l.availableSeats}/{l.totalCapacity} booked
-                    </TableCell>
                     <TableCell>
                       <Badge variant={l.status === "OPEN" ? "success" : "outline"}>
                         {l.status}

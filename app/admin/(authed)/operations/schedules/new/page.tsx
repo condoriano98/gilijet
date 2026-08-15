@@ -32,7 +32,7 @@ export default async function NewSchedulePage({
     prisma.boat.findMany({
       where: { deletedAt: null, status: "ACTIVE" },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, capacity: true, operatorId: true },
+      select: { id: true, name: true, operatorId: true },
     }),
   ]);
 
