@@ -291,8 +291,7 @@ export default async function ReschedulePage({
                     <div className="text-xs text-muted-foreground">
                       {leg.schedule.boat.name} ·{" "}
                       {leg.schedule.durationMinutes} min ·{" "}
-                      {formatIDR(Number(leg.basePrice))}/pax ·{" "}
-                      {leg.availableSeats} seats left
+                      {formatIDR(Number(leg.basePrice))}/pax
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">

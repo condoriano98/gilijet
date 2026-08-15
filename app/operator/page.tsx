@@ -10,7 +10,6 @@ import Link from "next/link";
 import {
   Banknote,
   Ticket,
-  Users,
   Ship,
 } from "lucide-react";
 
@@ -75,9 +74,6 @@ export default async function OperatorDashboard() {
   const weekRevenueNum = Number(weekRevenue._sum.operatorAmount ?? 0);
   const monthRevenueNum = Number(monthRevenue._sum.operatorAmount ?? 0);
   const todayTickets = todayRevenue._count;
-  const totalCapacity = todayLegs.reduce((s, l) => s + l.totalCapacity, 0);
-  const totalSold = todayLegs.reduce((s, l) => s + (l.totalCapacity - l.availableSeats), 0);
-  const occupancyPct = totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0;
   const sailedCount = todayLegs.filter((l) => l.status === "SAILED").length;
 
   const firstName = session.email.split("@")[0];
@@ -90,7 +86,6 @@ export default async function OperatorDashboard() {
     { key: "time",   header: "Waktu" },
     { key: "route",  header: "Rute" },
     { key: "boat",   header: "Kapal" },
-    { key: "seats",  header: "Manifest", align: "center" as const },
     { key: "status", header: "Status" },
     { key: "action", header: "Aksi", align: "right" as const },
   ];
@@ -100,7 +95,6 @@ export default async function OperatorDashboard() {
     time: <span className="font-mono font-medium">{formatLocalTime(leg.departureDate)}</span>,
     route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
     boat: leg.schedule.boat.name,
-    seats: `${leg.totalCapacity - leg.availableSeats}/${leg.totalCapacity}`,
     status: <StatusBadge variant={statusVariant[leg.status] ?? "neutral"}>{leg.status}</StatusBadge>,
     action: (
       <Button asChild variant="outline" size="sm">
@@ -120,7 +114,7 @@ export default async function OperatorDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard
           label="Pendapatan Hari Ini"
           value={formatRupiah(todayRevenueNum)}
@@ -132,12 +126,6 @@ export default async function OperatorDashboard() {
           value={String(todayTickets)}
           icon={<Ticket size={20} />}
           accent="green"
-        />
-        <KpiCard
-          label="Tingkat Okupansi Rata-rata"
-          value={`${occupancyPct}%`}
-          icon={<Users size={20} />}
-          accent="orange"
         />
         <KpiCard
           label="Keberangkatan Hari Ini"

@@ -5,13 +5,11 @@ import { formatLocalDate } from "@/lib/datetime";
 import { salesChannelLabel, SALES_CHANNELS } from "@/lib/sales-channel";
 import {
   revenueByChannel,
-  occupancyByRoute,
   refundRatioByMonth,
 } from "@/lib/operator-erp-queries";
 
 const VALID_KINDS = new Set([
   "revenue-by-channel",
-  "occupancy-by-route",
   "refund-ratio",
   "agent-leaderboard",
   "cancellation-weather",
@@ -77,13 +75,6 @@ export async function GET(
       const total = vals.reduce((s, v) => s + v, 0);
       return [salesChannelLabel(ch), ...vals, total];
     });
-  } else if (kind === "occupancy-by-route") {
-    const routes = await occupancyByRoute(operatorId, rangeFrom, rangeTo);
-    header = ["Rute", "Okupansi (%)"];
-    rows = routes.map((r) => [
-      `${r.originPort} → ${r.destinationPort}`,
-      r.occupancyPct,
-    ]);
   } else if (kind === "refund-ratio") {
     const data = await refundRatioByMonth(operatorId, rangeFrom, rangeTo);
     header = ["Bulan", "Rasio Refund"];

@@ -443,9 +443,7 @@ export default async function SearchPage({
                     </Badge>
                     {urgency ? (
                       <Badge variant={urgency.tone}>{urgency.label}</Badge>
-                    ) : (
-                      <Badge variant="success">{leg.availableSeats} seats left</Badge>
-                    )}
+                    ) : null}
                     {leg.availableSeats < passengers ? (
                       <span className="text-red-600">
                         Not enough seats for {passengers}

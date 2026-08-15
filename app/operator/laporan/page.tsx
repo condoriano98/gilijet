@@ -14,13 +14,11 @@ import {
 import { salesChannelLabel, SALES_CHANNELS } from "@/lib/sales-channel";
 import {
   revenueByChannel,
-  occupancyByRoute,
   refundRatioByMonth,
 } from "@/lib/operator-erp-queries";
 
 const TABS = [
   { key: "revenue-by-channel", label: "Pendapatan per Saluran" },
-  { key: "occupancy-by-route", label: "Okupansi per Rute" },
   { key: "refund-ratio", label: "Rasio Refund" },
   { key: "agent-leaderboard", label: "Peringkat Agen" },
   { key: "cancellation-weather", label: "Pembatalan & Cuaca" },
@@ -81,9 +79,6 @@ export default async function LaporanPage({
 
       {tab === "revenue-by-channel" && (
         <RevenueByChannel operatorId={operatorId} now={now} />
-      )}
-      {tab === "occupancy-by-route" && (
-        <OccupancyByRoute operatorId={operatorId} from={rangeFrom} to={rangeTo} />
       )}
       {tab === "refund-ratio" && (
         <RefundRatio operatorId={operatorId} from={rangeFrom} to={rangeTo} />
@@ -173,43 +168,6 @@ async function RevenueByChannel({
             </table>
           </div>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-async function OccupancyByRoute({
-  operatorId,
-  from,
-  to,
-}: {
-  operatorId: string;
-  from: Date;
-  to: Date;
-}) {
-  const routes = await occupancyByRoute(operatorId, from, to);
-  type Row = { id: string; route: string; occupancyPct: number };
-  const rows: Row[] = routes.map((r, i) => ({
-    id: String(i),
-    route: `${r.originPort} → ${r.destinationPort}`,
-    occupancyPct: r.occupancyPct,
-  }));
-  const columns = [
-    { key: "route", header: "Rute" },
-    {
-      key: "occupancyPct",
-      header: "Okupansi",
-      align: "right" as const,
-      render: (r: Row) => `${r.occupancyPct}%`,
-    },
-  ];
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Okupansi per Rute (6 bulan terakhir)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={columns} data={rows} emptyMessage="Belum ada data okupansi" />
       </CardContent>
     </Card>
   );

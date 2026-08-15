@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 const updateBoatSchema = z.object({
   id: z.string(),
   name: z.string().min(2).max(120),
-  capacity: z.coerce.number().int().min(1).max(500),
   description: z.string().max(1000).optional().or(z.literal("")),
   status: z.nativeEnum(BoatStatus),
 });
@@ -41,7 +40,6 @@ async function updateBoatAction(formData: FormData) {
   const parsed = updateBoatSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
-    capacity: formData.get("capacity"),
     description: formData.get("description"),
     status: formData.get("status"),
   });
@@ -61,7 +59,6 @@ async function updateBoatAction(formData: FormData) {
     where: { id: parsed.data.id },
     data: {
       name: parsed.data.name,
-      capacity: parsed.data.capacity,
       description: parsed.data.description || null,
       status: parsed.data.status,
       photos,
@@ -76,12 +73,10 @@ async function updateBoatAction(formData: FormData) {
     userRole: "OPERATOR",
     previousState: {
       name: existing.name,
-      capacity: existing.capacity,
       status: existing.status,
     },
     newState: {
       name: updated.name,
-      capacity: updated.capacity,
       status: updated.status,
     },
   });
@@ -136,32 +131,18 @@ export default async function EditBoatPage({
               <Label htmlFor="name">Boat name</Label>
               <Input id="name" name="name" defaultValue={boat.name} required />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity</Label>
-                <Input
-                  id="capacity"
-                  name="capacity"
-                  type="number"
-                  min={1}
-                  max={500}
-                  defaultValue={boat.capacity}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue={boat.status}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="MAINTENANCE">Maintenance</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                name="status"
+                defaultValue={boat.status}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>

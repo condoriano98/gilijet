@@ -26,8 +26,6 @@ export default async function OperatorScannerPage({
     boat: l.schedule.boat.name,
     departureDate: l.departureDate.toISOString(),
     status: l.status,
-    sold: l.totalCapacity - l.availableSeats,
-    capacity: l.totalCapacity,
   }));
 
   return <ScannerClient options={options} initialLegId={initialLegId} />;

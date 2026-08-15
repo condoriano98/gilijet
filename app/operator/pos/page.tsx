@@ -28,7 +28,6 @@ export default async function PosPage() {
     route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
     boatName: leg.schedule.boat.name,
     departureTime: formatLocalTime(leg.departureDate),
-    availableSeats: leg.availableSeats,
     basePrice: Number(leg.basePrice),
   }));
 

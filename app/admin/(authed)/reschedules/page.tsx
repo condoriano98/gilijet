@@ -246,8 +246,7 @@ export default async function AdminReschedulesPage({
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {r.originalLeg.schedule.originPort} →{" "}
-                    {r.originalLeg.schedule.destinationPort} ·{" "}
-                    {r.requestedLeg.availableSeats} seats on requested leg
+                    {r.originalLeg.schedule.destinationPort}
                   </div>
                   {r.customerNote ? (
                     <p className="mt-2 text-xs italic text-slate-700">

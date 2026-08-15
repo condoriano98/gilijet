@@ -64,8 +64,6 @@ export default async function OperationsDeparturesPage({
         id: true,
         departureDate: true,
         status: true,
-        totalCapacity: true,
-        availableSeats: true,
         operator: { select: { companyName: true } },
         schedule: {
           select: { originPort: true, destinationPort: true, boat: { select: { name: true } } },
@@ -148,60 +146,52 @@ export default async function OperationsDeparturesPage({
                   <TableHead>Route</TableHead>
                   <TableHead>Operator</TableHead>
                   <TableHead>Boat</TableHead>
-                  <TableHead className="text-right">Booked</TableHead>
+                  <TableHead className="text-right">Bookings</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {legs.map((l) => {
-                  const booked = l.totalCapacity - l.availableSeats;
-                  const pct =
-                    l.totalCapacity > 0
-                      ? Math.round((booked / l.totalCapacity) * 100)
-                      : 0;
-                  return (
-                    <TableRow key={l.id}>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {formatLocalDateTime(l.departureDate)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {l.schedule.originPort} → {l.schedule.destinationPort}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {l.operator.companyName}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {l.schedule.boat.name}
-                      </TableCell>
-                      <TableCell className="text-right text-sm">
-                        {booked}/{l.totalCapacity}{" "}
-                        <span className="text-muted-foreground">({pct}%)</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            l.status === "OPEN"
-                              ? "success"
-                              : l.status === "CANCELLED"
-                                ? "destructive"
-                                : "outline"
-                          }
-                        >
-                          {l.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          href={`/admin/operations/departures/${l.id}`}
-                          className="text-sm text-sky-700 hover:underline"
-                        >
-                          Manage
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {legs.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {formatLocalDateTime(l.departureDate)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {l.schedule.originPort} → {l.schedule.destinationPort}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {l.operator.companyName}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {l.schedule.boat.name}
+                    </TableCell>
+                    <TableCell className="text-right text-sm">
+                      {l._count.bookings}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          l.status === "OPEN"
+                            ? "success"
+                            : l.status === "CANCELLED"
+                              ? "destructive"
+                              : "outline"
+                        }
+                      >
+                        {l.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        href={`/admin/operations/departures/${l.id}`}
+                        className="text-sm text-sky-700 hover:underline"
+                      >
+                        Manage
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}

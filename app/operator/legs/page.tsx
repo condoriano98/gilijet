@@ -132,7 +132,6 @@ export default async function OperatorLegsPage({
                   <TableHead>Time</TableHead>
                   <TableHead>Route</TableHead>
                   <TableHead>Boat</TableHead>
-                  <TableHead>Seats</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -148,9 +147,6 @@ export default async function OperatorLegsPage({
                       {l.schedule.originPort} → {l.schedule.destinationPort}
                     </TableCell>
                     <TableCell>{l.schedule.boat.name}</TableCell>
-                    <TableCell>
-                      {l.totalCapacity - l.availableSeats}/{l.totalCapacity}
-                    </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(l.status)}>
                         {l.status}
