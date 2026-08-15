@@ -25,7 +25,6 @@ import { formatIDR } from "@/lib/utils";
 import { findConnections } from "@/lib/connection-search";
 import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 import { getSeaCondition } from "@/lib/sea-conditions";
-import { seatUrgency } from "@/lib/seat-urgency";
 import { getCustomerSession } from "@/lib/auth";
 import { getLatestRates, formatWithDisplay } from "@/lib/fx";
 
@@ -372,7 +371,6 @@ export default async function SearchPage({
           ) : null}
           {legsWithAdjustedPricing.map((leg) => {
             const rating = ratingsByScheduleId.get(leg.scheduleId);
-            const urgency = seatUrgency(leg.availableSeats);
             const travelAgainKey = `${leg.schedule.originPort}|${leg.schedule.destinationPort}|${leg.operatorId}`;
             const showTravelAgain = travelAgainRoutes.has(travelAgainKey);
             const priceIdr = Number(leg.adjustedPrice);
@@ -441,14 +439,6 @@ export default async function SearchPage({
                     <Badge variant="success">
                       Direct · {leg.schedule.durationMinutes}m
                     </Badge>
-                    {urgency ? (
-                      <Badge variant={urgency.tone}>{urgency.label}</Badge>
-                    ) : null}
-                    {leg.availableSeats < passengers ? (
-                      <span className="text-red-600">
-                        Not enough seats for {passengers}
-                      </span>
-                    ) : null}
                     {showTravelAgain ? (
                       <Badge variant="outline" className="border-gilifast-ocean text-gilifast-ocean">
                         Travel Again

@@ -556,8 +556,6 @@ export async function upcomingDepartures(args: { operatorId?: string; limit?: nu
       select: {
         departureDate: true,
         status: true,
-        totalCapacity: true,
-        availableSeats: true,
         basePrice: true,
         operator: { select: { companyName: true } },
         schedule: { select: { originPort: true, destinationPort: true } },
@@ -567,21 +565,13 @@ export async function upcomingDepartures(args: { operatorId?: string; limit?: nu
   ]);
 
   return page(
-    rows.map((l) => {
-      const booked = l.totalCapacity - l.availableSeats;
-      return {
-        departure: witaTime(l.departureDate),
-        route: `${l.schedule.originPort} → ${l.schedule.destinationPort}`,
-        operator: l.operator.companyName,
-        status: l.status,
-        seats: `${booked}/${l.totalCapacity} booked`,
-        occupancy:
-          l.totalCapacity > 0
-            ? `${((booked / l.totalCapacity) * 100).toFixed(0)}%`
-            : null,
-        basePrice: money(l.basePrice),
-      };
-    }),
+    rows.map((l) => ({
+      departure: witaTime(l.departureDate),
+      route: `${l.schedule.originPort} → ${l.schedule.destinationPort}`,
+      operator: l.operator.companyName,
+      status: l.status,
+      basePrice: money(l.basePrice),
+    })),
     total,
     MAX_LIMIT,
   );

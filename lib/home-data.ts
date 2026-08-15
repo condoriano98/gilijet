@@ -7,8 +7,6 @@ export type DepartingSoon = {
   origin: string;
   destination: string;
   departureUtc: string;
-  availableSeats: number;
-  totalCapacity: number;
   priceIDR: number;
   operatorName: string;
   boatName: string;
@@ -50,8 +48,6 @@ export async function getDepartingSoon(
     origin: leg.schedule.originPort,
     destination: leg.schedule.destinationPort,
     departureUtc: leg.departureDate.toISOString(),
-    availableSeats: leg.availableSeats,
-    totalCapacity: leg.totalCapacity,
     priceIDR: Number(leg.basePrice),
     operatorName: leg.schedule.boat.operator.companyName,
     boatName: leg.schedule.boat.name,

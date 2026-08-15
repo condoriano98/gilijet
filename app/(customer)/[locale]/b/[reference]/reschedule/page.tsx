@@ -256,7 +256,8 @@ export default async function ReschedulePage({
         {candidateLegs.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No departures with enough seats on this date. Try another date.
+              No departures with enough availability on this date. Try another
+              date.
             </CardContent>
           </Card>
         ) : (
@@ -268,7 +269,7 @@ export default async function ReschedulePage({
               </CardTitle>
               <CardDescription>
                 {formatLocalDate(startUtc, "EEEE, dd MMM yyyy")} · {seatCount}{" "}
-                seat{seatCount === 1 ? "" : "s"}
+                passenger{seatCount === 1 ? "" : "s"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">

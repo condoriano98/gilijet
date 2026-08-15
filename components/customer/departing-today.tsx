@@ -64,12 +64,6 @@ function DepartureCard({
         ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
         : "bg-gilifast-foam text-gilifast-deep ring-1 ring-gilifast-ocean/30";
 
-  const seatPct = Math.max(
-    4,
-    Math.round((departure.availableSeats / departure.totalCapacity) * 100),
-  );
-  const seatsLow = departure.availableSeats <= 3;
-
   return (
     <Link
       href={`/book/${departure.legId}`}
@@ -86,21 +80,6 @@ function DepartureCard({
         </div>
         <div className="mt-0.5 truncate text-xs text-slate-500">
           {departure.operatorName} · {departure.boatName}
-        </div>
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-xs">
-            <span
-              className={seatsLow ? "font-semibold text-rose-700" : "text-slate-600"}
-            >
-              {departure.availableSeats} of {departure.totalCapacity} seats left
-            </span>
-          </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-full rounded-full ${seatsLow ? "bg-rose-500" : "bg-gilifast-ocean"}`}
-              style={{ width: `${seatPct}%` }}
-            />
-          </div>
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div>

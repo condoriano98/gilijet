@@ -73,12 +73,11 @@ const CUSTOMER: Feature[] = [
     routes: ["app/(customer)/[locale]/search/page.tsx"],
     modules: [
       "lib/connection-search.ts",
-      "lib/seat-urgency.ts",
       "lib/sea-conditions.ts",
       "lib/fx.ts",
     ],
     models: ["Leg", "Schedule", "Boat"],
-    notes: "Includes multi-leg connecting routes and seat-scarcity cues.",
+    notes: "Includes multi-leg connecting routes.",
   },
   {
     id: "customer-booking",
