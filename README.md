@@ -105,6 +105,21 @@ every login page down with `P2021`.
 Soft deletes: `Operator`, `Boat` and `Schedule` carry `deletedAt`, so list
 queries must filter `deletedAt: null`.
 
+### Database reference PDF
+
+`docs/database.pdf` documents all 38 tables and 41 enums — columns, types,
+constraints, foreign keys with their `onDelete` behaviour, and indexes. It is
+**generated from `prisma/schema.prisma`**, carrying the schema's own comments
+through, so it cannot drift:
+
+```bash
+pnpm docs:db          # regenerate after any schema change
+```
+
+Requires `reportlab` (`pip install reportlab`). Regenerate and commit it with
+any PR that changes the schema; hand-editing the PDF guarantees it disagrees
+with the database on the next push.
+
 ### Storage names still say `gilijet`
 
 The brand is Gilifast, but four identifiers in `docker-compose.yml` — the

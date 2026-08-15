@@ -22,6 +22,7 @@
     "seed:qa": "tsx scripts/seed-qa.ts",
     "import:wahana": "tsx scripts/import-wahana-schedule.ts",
     "purge:dummy": "tsx scripts/purge-dummy-data.ts",
+    "docs:db": "python3 scripts/schema-docs.py",
     "doku:selftest": "tsx scripts/doku-selftest.ts",
     "paypal:selftest": "tsx scripts/paypal-selftest.ts",
     "qc": "pnpm lint && pnpm typecheck",
