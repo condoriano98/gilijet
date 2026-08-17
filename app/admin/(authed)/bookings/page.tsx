@@ -145,6 +145,7 @@ export default async function AdminBookingsPage({
                   <TableHead>Reference</TableHead>
                   <TableHead>Route</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -177,6 +178,7 @@ export default async function AdminBookingsPage({
                         {b.customerEmail}
                       </div>
                     </TableCell>
+                    <TableCell className="text-sm">{b.customerPhone}</TableCell>
                     <TableCell>{formatIDR(Number(b.totalAmount))}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{b.status.replace(/_/g, " ")}</Badge>
