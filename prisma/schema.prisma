@@ -157,6 +157,7 @@ model Boat {
   name               String
   registrationNumber String     @unique
   capacity           Int
+  category           String     @default("Public")
   photos             String[] // URLs
   description        String?
   status             BoatStatus @default(ACTIVE)

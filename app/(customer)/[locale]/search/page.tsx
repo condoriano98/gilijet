@@ -125,7 +125,7 @@ export default async function SearchPage({
     : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
   type LegWithSchedule = Prisma.LegGetPayload<{
-    include: { schedule: { include: { boat: true } } };
+    include: { schedule: { include: { boat: { include: { operator: true } } } } };
   }>;
   let legs: LegWithSchedule[] = [];
   let legsError = false;
@@ -149,7 +149,7 @@ export default async function SearchPage({
         },
       },
       include: {
-        schedule: { include: { boat: true } },
+        schedule: { include: { boat: { include: { operator: true } } } },
       },
       orderBy: { departureDate: "asc" },
       take: 50,
@@ -438,6 +438,12 @@ export default async function SearchPage({
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <Badge variant="success">
                       Direct · {leg.schedule.durationMinutes}m
+                    </Badge>
+                    <Badge variant="outline">
+                      {leg.schedule.boat.category}
+                    </Badge>
+                    <Badge variant="outline">
+                      {leg.schedule.boat.operator.companyName}
                     </Badge>
                     {showTravelAgain ? (
                       <Badge variant="outline" className="border-gilifast-ocean text-gilifast-ocean">
