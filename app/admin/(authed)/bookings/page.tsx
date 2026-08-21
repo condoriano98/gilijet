@@ -63,6 +63,7 @@ export default async function AdminBookingsPage({
     take: 200,
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      promotion: true,
     },
   });
 
@@ -139,7 +140,7 @@ export default async function AdminBookingsPage({
               Nothing here yet.
             </p>
           ) : (
-            <Table>
+            <Table className="min-w-[1280px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
@@ -148,6 +149,9 @@ export default async function AdminBookingsPage({
                   <TableHead>Phone</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Nationality</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Promo Code</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
@@ -183,6 +187,20 @@ export default async function AdminBookingsPage({
                     <TableCell>
                       <Badge variant="outline">{b.status.replace(/_/g, " ")}</Badge>
                     </TableCell>
+                    <TableCell className="text-sm">
+                      {b.customerNationality}
+                    </TableCell>
+                    <TableCell
+                      className="max-w-[180px] truncate text-sm text-muted-foreground"
+                      title={customerNotes(b.notes) ?? undefined}
+                    >
+                      {customerNotes(b.notes)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {b.promotion && (
+                        <span className="font-mono text-xs">{b.promotion.code}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatLocalDateTime(b.createdAt)}
                     </TableCell>
@@ -195,6 +213,16 @@ export default async function AdminBookingsPage({
       </Card>
     </div>
   );
+}
+
+function customerNotes(notes: string | null): string | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as { customerNotes?: string };
+    return parsed.customerNotes || null;
+  } catch {
+    return notes;
+  }
 }
 
 function FilterChip({
