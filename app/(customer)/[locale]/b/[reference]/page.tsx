@@ -381,13 +381,14 @@ export default async function BookingLookupPage({
                       Add to calendar
                     </a>
                   </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link
-                      href={`/print/b/${booking.bookingReference}`}
+                  <Button asChild size="sm">
+                    <a
+                      href={`/api/bookings/${booking.bookingReference}/boarding-pass`}
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      Download PDF
-                    </Link>
+                      Boarding pass PDF
+                    </a>
                   </Button>
                 </div>
               </div>

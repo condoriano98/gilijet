@@ -63,6 +63,79 @@ async function sendText(to: string, body: string): Promise<WhatsappResult> {
   return { delivered: true, provider: "wati" };
 }
 
+/**
+ * Send a file as a WhatsApp document.
+ *
+ * WATI takes the bytes directly as multipart/form-data, so the PDF never has
+ * to be parked at a public URL — which matters here, because a boarding pass
+ * carries passenger names and a scannable QR.
+ */
+async function sendDocument(
+  to: string,
+  file: Buffer,
+  filename: string,
+  caption: string,
+): Promise<WhatsappResult> {
+  const number = normalizeWhatsappNumber(to);
+  if (!number) {
+    console.error(`[whatsapp] unusable number ${to} — skipping document`);
+    return { delivered: false, provider: "console" };
+  }
+
+  if (!isWhatsappConfigured()) {
+    console.log(
+      `\n[whatsapp] (no WATI_API_KEY) → would send ${filename} ` +
+        `(${(file.length / 1024).toFixed(0)} KB) to ${number}\n${caption}\n`,
+    );
+    return { delivered: false, provider: "console" };
+  }
+
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(file)], { type: "application/pdf" }),
+    filename,
+  );
+
+  const base = env.WATI_API_URL!.replace(/\/+$/, "");
+  const url =
+    `${base}/api/v1/sendSessionFile/${number}` +
+    `?caption=${encodeURIComponent(caption)}`;
+  // No Content-Type header: fetch sets it with the multipart boundary, and
+  // overriding it produces a body WATI cannot parse.
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.WATI_API_KEY}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`[whatsapp] WATI file send failed ${res.status}: ${text}`);
+    return { delivered: false, provider: "wati" };
+  }
+  return { delivered: true, provider: "wati" };
+}
+
+/** The boarding pass PDF itself, as a WhatsApp document. */
+export async function sendBoardingPassDocument(args: {
+  to: string;
+  customerName: string;
+  bookingReference: string;
+  route: { originPort: string; destinationPort: string };
+  departureDate: Date;
+  pdf: Buffer;
+  filename: string;
+}): Promise<WhatsappResult> {
+  const caption = [
+    `Halo ${args.customerName}, boarding pass Anda terlampir.`,
+    `${args.route.originPort} → ${args.route.destinationPort}`,
+    `${formatLocalDateTime(args.departureDate)} WITA`,
+    `Kode booking: ${args.bookingReference}`,
+    `Tunjukkan QR code di dermaga. Selamat jalan! — Gilifast`,
+  ].join("\n");
+  return sendDocument(args.to, args.pdf, args.filename, caption);
+}
+
 export async function sendBoardingPassWhatsapp(args: {
   to: string;
   customerName: string;

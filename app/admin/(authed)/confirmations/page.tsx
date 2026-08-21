@@ -155,13 +155,14 @@ export default async function AdminConfirmationsPage({
                 twice.
               </>
             )}{" "}
-            <Link
-              href={`/print/b/${ref}`}
+            <a
+              href={`/api/bookings/${ref}/boarding-pass`}
               target="_blank"
+              rel="noopener noreferrer"
               className="underline"
             >
-              Open the pass to send by hand
-            </Link>
+              Open the PDF to send by hand
+            </a>
             .
           </CardContent>
         </Card>

@@ -10,6 +10,9 @@ import type { IssuedTicket } from "./ticket-issuer";
  * the booking flow stays exercisable in dev.
  */
 
+/** A file to attach. `content` is raw bytes; Resend wants them base64-encoded. */
+export type EmailAttachment = { filename: string; content: Buffer };
+
 type BookingConfirmationArgs = {
   to: string;
   customerName: string;
@@ -20,6 +23,7 @@ type BookingConfirmationArgs = {
   totalAmount: number;
   lookupUrl: string;
   tickets: IssuedTicket[];
+  attachments?: EmailAttachment[];
 };
 
 export async function sendBookingConfirmation(
@@ -33,7 +37,12 @@ export async function sendBookingConfirmation(
       `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n` +
-        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(", ")}\n`,
+        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(", ")}\n` +
+        (args.attachments?.length
+          ? `        attach : ${args.attachments
+              .map((a) => `${a.filename} (${(a.content.length / 1024).toFixed(0)} KB)`)
+              .join(", ")}\n`
+          : ""),
     );
     return { delivered: false, provider: "console" };
   }
@@ -49,6 +58,14 @@ export async function sendBookingConfirmation(
       to: [args.to],
       subject,
       html,
+      ...(args.attachments?.length
+        ? {
+            attachments: args.attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content.toString("base64"),
+            })),
+          }
+        : {}),
     }),
   });
   if (!res.ok) {

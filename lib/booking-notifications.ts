@@ -6,10 +6,15 @@ import {
   sendPaymentReceivedEmail,
 } from "./email";
 import {
+  sendBoardingPassDocument,
   sendBoardingPassWhatsapp,
   sendOperatorUnavailableWhatsapp,
   sendPaymentReceivedWhatsapp,
 } from "./whatsapp";
+import {
+  boardingPassFilename,
+  generateBoardingPassPdf,
+} from "./boarding-pass";
 import type { IssuedTicket } from "./ticket-issuer";
 
 /**
@@ -91,35 +96,56 @@ export async function notifyBoardingPassIssued(
   const booking = await load(bookingId);
   if (!booking) return;
   const url = lookupUrl(booking.bookingReference);
+  const route = {
+    originPort: booking.leg.schedule.originPort,
+    destinationPort: booking.leg.schedule.destinationPort,
+  };
+
+  // Rendered once and shared by both channels — it is the same document, and
+  // generating it twice would double the work on the admin's approve click.
+  // A failure here must not cost the customer their confirmation, so it falls
+  // back to the link-only WhatsApp message rather than sending nothing.
+  let pdf: Buffer | null = null;
+  try {
+    pdf = await generateBoardingPassPdf(booking.bookingReference);
+  } catch (err) {
+    console.error("[notify:boarding-pass] PDF generation failed:", err);
+  }
+  const filename = boardingPassFilename(booking.bookingReference);
 
   await Promise.allSettled([
     sendBookingConfirmation({
       to: booking.customerEmail,
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
-      route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
-      },
+      route,
       boatName: booking.leg.schedule.boat.name,
       departureDate: booking.leg.departureDate,
       totalAmount: Number(booking.totalAmount),
       lookupUrl: url,
       tickets,
+      attachments: pdf ? [{ filename, content: pdf }] : undefined,
     }),
-    sendBoardingPassWhatsapp({
-      to: booking.customerPhone,
-      customerName: booking.customerName,
-      bookingReference: booking.bookingReference,
-      route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
-      },
-      boatName: booking.leg.schedule.boat.name,
-      departureDate: booking.leg.departureDate,
-      ticketCodes: tickets.map((t) => t.ticketCode),
-      lookupUrl: url,
-    }),
+    pdf
+      ? sendBoardingPassDocument({
+          to: booking.customerPhone,
+          customerName: booking.customerName,
+          bookingReference: booking.bookingReference,
+          route,
+          departureDate: booking.leg.departureDate,
+          pdf,
+          filename,
+        })
+      : sendBoardingPassWhatsapp({
+          to: booking.customerPhone,
+          customerName: booking.customerName,
+          bookingReference: booking.bookingReference,
+          route,
+          boatName: booking.leg.schedule.boat.name,
+          departureDate: booking.leg.departureDate,
+          ticketCodes: tickets.map((t) => t.ticketCode),
+          lookupUrl: url,
+        }),
   ]).then(logFailures("boarding-pass"));
 }
 
