@@ -140,7 +140,7 @@ export default async function AdminBookingsPage({
               Nothing here yet.
             </p>
           ) : (
-            <Table className="min-w-[1280px]">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
@@ -150,7 +150,7 @@ export default async function AdminBookingsPage({
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Nationality</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead className="w-[320px]">Notes</TableHead>
                   <TableHead>Promo Code</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
@@ -158,7 +158,7 @@ export default async function AdminBookingsPage({
               <TableBody>
                 {bookings.map((b) => (
                   <TableRow key={b.id}>
-                    <TableCell className="font-mono text-xs">
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
                       <Link
                         href={`/b/${b.bookingReference}`}
                         className="hover:underline"
@@ -167,7 +167,7 @@ export default async function AdminBookingsPage({
                         {b.bookingReference}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <div className="text-sm">
                         {b.leg.schedule.originPort} → {b.leg.schedule.destinationPort}
                       </div>
@@ -176,13 +176,21 @@ export default async function AdminBookingsPage({
                         {formatLocalDateTime(b.leg.departureDate)}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{b.customerName}</div>
-                      <div className="text-xs text-muted-foreground">
+                    <TableCell className="max-w-[160px]">
+                      <div
+                        className="truncate text-sm"
+                        title={b.customerName}
+                      >
+                        {b.customerName}
+                      </div>
+                      <div
+                        className="truncate text-xs text-muted-foreground"
+                        title={b.customerEmail}
+                      >
                         {b.customerEmail}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="whitespace-nowrap text-sm">
                       {waNumber(b.customerPhone) ? (
                         <a
                           href={`https://wa.me/${waNumber(b.customerPhone)}`}
@@ -196,25 +204,24 @@ export default async function AdminBookingsPage({
                         b.customerPhone
                       )}
                     </TableCell>
-                    <TableCell>{formatIDR(Number(b.totalAmount))}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{b.status.replace(/_/g, " ")}</Badge>
+                    <TableCell className="whitespace-nowrap">
+                      {formatIDR(Number(b.totalAmount))}
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="whitespace-nowrap">
+                      <Badge variant="outline" className="px-3 py-1">
+                        {b.status.replace(/_/g, " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">
                       {b.customerNationality}
                     </TableCell>
-                    <TableCell
-                      className="max-w-[180px] truncate text-sm text-muted-foreground"
-                      title={customerNotes(b.notes) ?? undefined}
-                    >
+                    <TableCell className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
                       {customerNotes(b.notes)}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {b.promotion && (
-                        <span className="font-mono text-xs">{b.promotion.code}</span>
-                      )}
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {b.promotion?.code}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {formatLocalDateTime(b.createdAt)}
                     </TableCell>
                   </TableRow>
