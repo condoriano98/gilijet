@@ -5,6 +5,7 @@ const tabs = [
   { href: "/admin/console", label: "Overview" },
   { href: "/admin/console/coupons", label: "Coupons" },
   { href: "/admin/console/pricing", label: "Pricing" },
+  { href: "/admin/console/alerts", label: "Alerts" },
 ];
 
 export default async function ConsoleLayout({

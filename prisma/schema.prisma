@@ -67,6 +67,7 @@ enum AuditEntityType {
   TICKET
   PROMOTION
   RESCHEDULE_REQUEST
+  PLATFORM_CONFIG
 }
 
 enum AuditUserRole {
@@ -537,6 +538,14 @@ model PlatformConfig {
   childMultiplier   Decimal  @default(0.5) @db.Decimal(5, 4)
   infantMultiplier  Decimal  @default(0) @db.Decimal(5, 4)
   defaultPricingTiers Json?
+  // Where booking alerts go, and the WATI template that carries them. Kept on
+  // the config row rather than only in env so the on-call number can move
+  // between staff without a redeploy. Env supplies the fallback; see
+  // lib/admin-alerts.ts.
+  adminWhatsappNumber String?
+  adminAlertTemplate  String?
+  alertOnNewBooking   Boolean  @default(true)
+  alertOnBookingPaid  Boolean  @default(true)
   updatedBy         String?
   updatedAt         DateTime @updatedAt @default(now())
 }

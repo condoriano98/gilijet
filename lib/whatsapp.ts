@@ -136,6 +136,72 @@ export async function sendBoardingPassDocument(args: {
   return sendDocument(args.to, args.pdf, args.filename, caption);
 }
 
+/**
+ * Send a pre-approved WATI template.
+ *
+ * WhatsApp only lets a business open a conversation with a template; a plain
+ * session message reaches someone only within 24 hours of *them* messaging the
+ * business. Staff alerts are always business-initiated and the recipient never
+ * messages in, so a session message there fails every time. Templates are the
+ * only mechanism that works.
+ *
+ * `params` map to the {{placeholders}} declared on the template in WATI, by
+ * name. A name the template does not declare is ignored by WATI rather than
+ * rejected, so a template edited to drop a variable degrades quietly.
+ */
+export async function sendTemplateMessage(args: {
+  to: string;
+  templateName: string;
+  broadcastName: string;
+  params: Record<string, string>;
+}): Promise<WhatsappResult> {
+  const number = normalizeWhatsappNumber(args.to);
+  if (!number) {
+    console.error(`[whatsapp] unusable number ${args.to} — skipping template`);
+    return { delivered: false, provider: "console" };
+  }
+
+  const rendered = Object.entries(args.params)
+    .map(([k, v]) => `  ${k}: ${v}`)
+    .join("\n");
+
+  if (!isWhatsappConfigured()) {
+    console.log(
+      `\n[whatsapp] (no WATI_API_KEY) → would send template ` +
+        `"${args.templateName}" to ${number}\n${rendered}\n`,
+    );
+    return { delivered: false, provider: "console" };
+  }
+
+  const base = env.WATI_API_URL!.replace(/\/+$/, "");
+  const res = await fetch(
+    `${base}/api/v1/sendTemplateMessage?whatsappNumber=${number}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.WATI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        template_name: args.templateName,
+        broadcast_name: args.broadcastName,
+        parameters: Object.entries(args.params).map(([name, value]) => ({
+          name,
+          value,
+        })),
+      }),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(
+      `[whatsapp] WATI template "${args.templateName}" failed ${res.status}: ${text}`,
+    );
+    return { delivered: false, provider: "wati" };
+  }
+  return { delivered: true, provider: "wati" };
+}
+
 export async function sendBoardingPassWhatsapp(args: {
   to: string;
   customerName: string;

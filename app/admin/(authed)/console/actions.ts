@@ -316,3 +316,62 @@ export async function setOperatorCommission(formData: FormData) {
   revalidatePath("/admin/console/pricing");
   redirect("/admin/console/pricing?ok=1");
 }
+
+// ---------- booking alerts ----------
+
+const alertSchema = z.object({
+  // Free-form because normalizeWhatsappNumber accepts 08…, +62…, 62… and
+  // strips punctuation; validating a shape here would reject numbers WATI
+  // takes. Blank clears the setting and turns alerts off.
+  adminWhatsappNumber: z.string().trim().max(32),
+  adminAlertTemplate: z.string().trim().max(128),
+  alertOnNewBooking: z.coerce.boolean(),
+  alertOnBookingPaid: z.coerce.boolean(),
+});
+
+export async function saveAlertConfig(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const parsed = alertSchema.safeParse({
+    adminWhatsappNumber: formData.get("adminWhatsappNumber") ?? "",
+    adminAlertTemplate: formData.get("adminAlertTemplate") ?? "",
+    alertOnNewBooking: formData.get("alertOnNewBooking") === "on",
+    alertOnBookingPaid: formData.get("alertOnBookingPaid") === "on",
+  });
+  if (!parsed.success) {
+    redirect(
+      `/admin/console/alerts?error=${encodeURIComponent(parsed.error.issues[0].message)}`,
+    );
+  }
+  const d = parsed.data;
+  const values = {
+    adminWhatsappNumber: d.adminWhatsappNumber || null,
+    adminAlertTemplate: d.adminAlertTemplate || null,
+    alertOnNewBooking: d.alertOnNewBooking,
+    alertOnBookingPaid: d.alertOnBookingPaid,
+    updatedBy: session.email,
+  };
+  await prisma.platformConfig.upsert({
+    where: { id: "default" },
+    update: values,
+    create: { id: "default", ...values },
+  });
+
+  await audit({
+    entityType: "PLATFORM_CONFIG",
+    entityId: "default",
+    action: "alert_config_updated",
+    userId: session.sub,
+    userRole: "ADMIN",
+    // The number is deliberately not logged: audit rows are read widely and a
+    // staff mobile number does not need to be in all of them.
+    newState: {
+      hasNumber: Boolean(d.adminWhatsappNumber),
+      template: d.adminAlertTemplate || null,
+      alertOnNewBooking: d.alertOnNewBooking,
+      alertOnBookingPaid: d.alertOnBookingPaid,
+    },
+  });
+
+  revalidatePath("/admin/console/alerts");
+  redirect("/admin/console/alerts?ok=1");
+}

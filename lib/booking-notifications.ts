@@ -15,6 +15,7 @@ import {
   boardingPassFilename,
   generateBoardingPassPdf,
 } from "./boarding-pass";
+import { alertAdminBookingPaid } from "./admin-alerts";
 import type { IssuedTicket } from "./ticket-issuer";
 
 /**
@@ -86,6 +87,10 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
       lookupUrl: url,
     }),
   ]).then(logFailures("payment-received"));
+
+  // Staff alert: this is the moment the admin has something to do — ring the
+  // operator and confirm the boat. Swallows its own errors.
+  void alertAdminBookingPaid(bookingId);
 }
 
 /** The admin reached the operator and the seat is real. Boarding pass goes out. */

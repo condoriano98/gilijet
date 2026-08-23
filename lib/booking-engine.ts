@@ -10,6 +10,7 @@ import {
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { resolvePlatformPricing } from "./platform-config";
 import { newBookingReference } from "./references";
+import { alertAdminNewBooking } from "./admin-alerts";
 import { validatePromoCode, applyPromoCode } from "./promotions";
 import { isDokuMock } from "./doku";
 
@@ -97,7 +98,7 @@ export async function reserveSeatsAndCreateBooking(
     );
   }
 
-  return prisma.$transaction(async (tx) => {
+  const reserved = await prisma.$transaction(async (tx) => {
     const leg = await tx.leg.findUnique({
       where: { id: args.legId },
       include: {
@@ -315,6 +316,13 @@ export async function reserveSeatsAndCreateBooking(
       bookingReference: booking.bookingReference,
     };
   });
+
+  // Fired after the commit, never inside it: a rolled-back reservation must
+  // not ping anyone, and an unreachable WATI must not fail the booking. The
+  // alert swallows its own errors, so this is deliberately not awaited.
+  void alertAdminNewBooking(reserved.bookingId);
+
+  return reserved;
 }
 
 /**

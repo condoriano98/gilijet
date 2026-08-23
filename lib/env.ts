@@ -41,6 +41,12 @@ const envSchema = z.object({
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),
 
+  // Fallback destination + WATI template for staff booking alerts. The
+  // PlatformConfig row wins when set, so these only cover a fresh environment
+  // that has no config row yet. See lib/admin-alerts.ts.
+  ADMIN_WHATSAPP_NUMBER: z.string().optional(),
+  ADMIN_ALERT_TEMPLATE: z.string().optional(),
+
   CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
