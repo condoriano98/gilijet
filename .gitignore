@@ -48,4 +48,3 @@ prisma/dev.db-journal
 .vscode
 .idea
 test-results/
-.env*
