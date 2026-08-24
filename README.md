@@ -102,6 +102,19 @@ separate. A build that cannot resolve a database now fails rather than
 silently skipping the push — schema drift used to reach production and take
 every login page down with `P2021`.
 
+`scripts/db-push-if-configured.mjs` also refuses a resolved URL that is not
+a Supabase host (`*.pooler.supabase.com` / `*.supabase.co`). The Vercel
+deployment has exactly one legitimate database, so a different host almost
+always means a var from a removed integration (Vercel Postgres, Neon, a
+personal test DB) is shadowing the real Supabase URL in one of the five
+candidate names above — a much more useful diagnosis than the P1013 Prisma
+throws once a malformed value reaches it. Set `ALLOW_NON_SUPABASE_DB=1` to
+skip the check for the one legitimate exception: pointing a one-off local
+`pnpm build` at a non-Supabase Postgres on purpose. This check applies only
+to this script — `lib/db.ts` stays provider-agnostic because the droplet
+deployment (see below) runs its own, deliberately non-Supabase Postgres and
+shares that file.
+
 Soft deletes: `Operator`, `Boat` and `Schedule` carry `deletedAt`, so list
 queries must filter `deletedAt: null`.
 

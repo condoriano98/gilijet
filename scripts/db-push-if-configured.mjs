@@ -77,6 +77,29 @@ function describe(value) {
 
 const VALID_SCHEMES = ["postgresql://", "postgres://"];
 
+/**
+ * This project's Vercel deployment is Supabase-only — see the "Storage names
+ * still say gilijet" note in README.md for why the droplet's own Postgres is
+ * a deliberately separate, non-Supabase database. Restricting *this* script
+ * to Supabase hosts is safe only because the Docker build short-circuits
+ * above at SKIP_DB_PUSH=1 before this file ever resolves a URL; the droplet's
+ * own `prisma db push` runs from docker/entrypoint.sh, a wholly separate path
+ * this file never touches.
+ *
+ * Matches both connection styles Supabase issues:
+ *   pooler:  aws-0-<region>.pooler.supabase.com   (project id in the username)
+ *   direct:  db.<project-ref>.supabase.co
+ */
+const SUPABASE_HOST = /(^|\.)(pooler\.supabase\.com|supabase\.co)$/;
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+}
+
 /** Fail with something actionable rather than passing a bad string to Prisma. */
 function checkScheme(picked, role) {
   if (!picked) return;
@@ -102,6 +125,39 @@ function checkScheme(picked, role) {
   process.exit(1);
 }
 
+/**
+ * Refuse a URL that authenticates and even parses as Postgres but does not
+ * point at Supabase. On Vercel this project has exactly one legitimate
+ * database, so a non-Supabase host here is never a valid second environment
+ * — it is a stray var from a since-removed integration (Vercel Postgres,
+ * Neon, a personal test DB) that has been silently shadowing the real one.
+ * Set ALLOW_NON_SUPABASE_DB=1 for the one legitimate exception: pointing a
+ * one-off local build at a non-Supabase Postgres on purpose.
+ */
+function checkSupabaseOnly(picked, role) {
+  if (!picked || process.env.ALLOW_NON_SUPABASE_DB === "1") return;
+  const host = hostOf(picked.value);
+  if (host && SUPABASE_HOST.test(host)) return;
+
+  console.error(`[db-push] ${picked.name} does not point at Supabase.`);
+  console.error(`[db-push] It is the ${role} connection, host: ${JSON.stringify(host ?? "(unparseable)")}`);
+  console.error("[db-push]");
+  console.error("[db-push] This project's Vercel deployment has exactly one legitimate");
+  console.error("[db-push] database — Supabase — so a different host here usually means a");
+  console.error("[db-push] var from another, no-longer-used integration (Vercel Postgres,");
+  console.error("[db-push] Neon, a personal test DB) is shadowing the real Supabase URL.");
+  console.error("[db-push]");
+  console.error("[db-push] Fix: in Vercel → Settings → Environment Variables, delete any");
+  console.error(`[db-push] ${picked.name} that is not from Supabase, then copy the real one`);
+  console.error("[db-push] from Supabase → Settings → Database → Connection string:");
+  console.error("[db-push]   pooled  :6543, host *.pooler.supabase.com → DATABASE_URL");
+  console.error("[db-push]   direct  :5432, host db.*.supabase.co      → DIRECT_URL");
+  console.error("[db-push]");
+  console.error("[db-push] Intentionally using a non-Supabase Postgres? Set");
+  console.error("[db-push] ALLOW_NON_SUPABASE_DB=1 to skip this check.");
+  process.exit(1);
+}
+
 // Keep this list in step with resolveDatabaseUrl() in lib/db.ts.
 const pooledPick = pick([
   "DATABASE_URL",
@@ -118,6 +174,9 @@ const directPick =
 
 checkScheme(pooledPick, "pooled");
 if (directPick !== pooledPick) checkScheme(directPick, "direct");
+
+checkSupabaseOnly(pooledPick, "pooled");
+if (directPick !== pooledPick) checkSupabaseOnly(directPick, "direct");
 
 const pooled = pooledPick?.value;
 const direct = directPick?.value;
