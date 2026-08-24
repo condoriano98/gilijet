@@ -40,20 +40,87 @@ if (process.env.SKIP_DB_PUSH === "1") {
   process.exit(0);
 }
 
+/**
+ * First env var in `names` that holds a non-empty value, with the name kept
+ * so failures can say which one is at fault. Prisma's P1013 reports only that
+ * "the scheme is not recognized" — with five candidate variables that is not
+ * enough to act on.
+ *
+ * The value is trimmed: a trailing newline survives a copy-paste into a
+ * dashboard field and produces exactly that error, with nothing visible on
+ * screen to explain it.
+ */
+function pick(names) {
+  for (const name of names) {
+    const raw = process.env[name];
+    if (raw && raw.trim()) {
+      const value = raw.trim();
+      if (value !== raw) {
+        console.warn(`[db-push] ${name} had surrounding whitespace — trimmed.`);
+      }
+      return { name, value };
+    }
+  }
+  return null;
+}
+
+/**
+ * Describe a URL without ever printing credentials. Cuts at the scheme
+ * separator, or 24 characters, whichever comes first — enough to see what went
+ * wrong, never enough to leak a password into a build log.
+ */
+function describe(value) {
+  const sep = value.indexOf("://");
+  const cut = sep === -1 ? 24 : Math.min(sep + 3, 24);
+  return `${JSON.stringify(value.slice(0, cut))}… (${value.length} chars)`;
+}
+
+const VALID_SCHEMES = ["postgresql://", "postgres://"];
+
+/** Fail with something actionable rather than passing a bad string to Prisma. */
+function checkScheme(picked, role) {
+  if (!picked) return;
+  if (VALID_SCHEMES.some((s) => picked.value.startsWith(s))) return;
+
+  console.error(`[db-push] ${picked.name} is not a usable Postgres URL.`);
+  console.error(`[db-push] It is the ${role} connection, and it begins ${describe(picked.value)}`);
+  console.error("[db-push] Prisma needs it to start with postgresql:// or postgres://");
+  console.error("[db-push]");
+  console.error("[db-push] The usual causes, in the order they actually happen:");
+  console.error('[db-push]   - Quotes pasted into the value. A dashboard field stores');
+  console.error('[db-push]     "postgresql://…" literally, quotes and all.');
+  console.error("[db-push]   - The whole psql command copied, not just the URL:");
+  console.error("[db-push]     psql 'postgresql://…'  →  keep only the part inside quotes.");
+  console.error("[db-push]   - A Supabase API URL (https://<ref>.supabase.co) pasted in by");
+  console.error("[db-push]     mistake. That is SUPABASE_URL, not a database connection.");
+  console.error("[db-push]   - prisma+postgres:// from Prisma Accelerate. db push needs the");
+  console.error("[db-push]     underlying Postgres URL, not the Accelerate proxy.");
+  console.error("[db-push]");
+  console.error("[db-push] Supabase → Settings → Database → Connection string gives both:");
+  console.error("[db-push]   pooled  :6543 → DATABASE_URL");
+  console.error("[db-push]   direct  :5432 → DIRECT_URL   (db push needs this one)");
+  process.exit(1);
+}
+
 // Keep this list in step with resolveDatabaseUrl() in lib/db.ts.
-const pooled =
-  process.env.DATABASE_URL ||
-  process.env.POSTGRES_PRISMA_URL ||
-  process.env.POSTGRES_URL;
+const pooledPick = pick([
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL",
+]);
 
 // DDL needs a direct, non-pooled connection — pgBouncer (:6543) can't run
 // it. POSTGRES_URL_NON_POOLING is what the Supabase integration sets for
 // that. Falling back to the pooled URL usually fails, but it fails loudly
 // with a real error rather than being skipped.
-const direct =
-  process.env.DIRECT_URL ||
-  process.env.POSTGRES_URL_NON_POOLING ||
-  pooled;
+const directPick =
+  pick(["DIRECT_URL", "POSTGRES_URL_NON_POOLING"]) ?? pooledPick;
+
+checkScheme(pooledPick, "pooled");
+if (directPick !== pooledPick) checkScheme(directPick, "direct");
+
+const pooled = pooledPick?.value;
+const direct = directPick?.value;
 
 if (!pooled && !direct) {
   if (process.env.VERCEL_ENV === "production") {
@@ -71,7 +138,10 @@ if (!pooled && !direct) {
   process.exit(0);
 }
 
-console.log("[db-push] Running prisma db push (no --accept-data-loss)");
+console.log(
+  `[db-push] Running prisma db push (no --accept-data-loss) — ` +
+    `pooled from ${pooledPick?.name ?? "none"}, direct from ${directPick?.name ?? "none"}`,
+);
 const res = spawnSync("pnpm", ["prisma", "db", "push", "--skip-generate"], {
   // Capture rather than inherit so the failure below can name the actual
   // cause. Both streams are echoed verbatim first, so nothing is hidden.
