@@ -5,7 +5,12 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: "standalone",
+  // Next 16.3 removed the whole-app NFT trace file (next-server.js.nft.json)
+  // when a build adapter is active, which breaks Vercel's onBuildComplete when
+  // output:"standalone" is also set (upstream vercel/next.js#96646). Standalone
+  // is only needed for the self-hosted Docker droplet, so disable it on Vercel
+  // and keep it everywhere else.
+  output: process.env.VERCEL ? undefined : "standalone",
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
