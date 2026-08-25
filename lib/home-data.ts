@@ -1,5 +1,36 @@
 import { prisma } from "./db";
 
+// =================== Available ports ===================
+
+export type PortsByRegion = Array<{
+  region: string;
+  ports: Array<{ name: string; shortCode: string }>;
+}>;
+
+export async function getAvailablePorts(): Promise<PortsByRegion> {
+  const ports = await prisma.port.findMany({
+    where: { isActive: true, deletedAt: null },
+    select: { name: true, shortCode: true, island: true },
+    orderBy: [{ island: 'asc' }, { name: 'asc' }],
+  });
+
+  const grouped = new Map<string, Array<{ name: string; shortCode: string }>>();
+  for (const port of ports) {
+    const region = port.island || 'Other';
+    if (!grouped.has(region)) {
+      grouped.set(region, []);
+    }
+    grouped.get(region)!.push({ name: port.name, shortCode: port.shortCode });
+  }
+
+  return Array.from(grouped.entries())
+    .sort(([regionA], [regionB]) => regionA.localeCompare(regionB))
+    .map(([region, ports]) => ({
+      region,
+      ports: ports.sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+}
+
 // =================== Departing soon ===================
 
 export type DepartingSoon = {

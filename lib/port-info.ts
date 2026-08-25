@@ -21,6 +21,13 @@ const PORTS: Record<string, PortInfo> = {
     lat: -8.529,
     lng: 115.508,
   },
+  Kusamba: {
+    address: "Kusamba Beach, Bali",
+    dockTip: "Beach departure point",
+    arrivalBuffer: 30,
+    lat: -8.715,
+    lng: 115.570,
+  },
   Serangan: {
     address: "Jl. Tukad Punggawa, Serangan, Denpasar Selatan, Bali 80229",
     dockTip: "Enter through Serangan harbour gate. Samudra Jet terminal is the blue building on the north side.",
@@ -51,12 +58,47 @@ const PORTS: Record<string, PortInfo> = {
     lat: -8.727,
     lng: 115.544,
   },
+  "Banjar Nyuh": {
+    address: "Pelabuhan Banjar Nyuh, Nusa Penida",
+    dockTip: "Main dock at Nusa Penida",
+    arrivalBuffer: 30,
+    lat: -8.727,
+    lng: 115.544,
+  },
+  Buyuk: {
+    address: "Buyuk, Nusa Penida",
+    dockTip: "Beach landing",
+    arrivalBuffer: 30,
+    lat: -8.738,
+    lng: 115.535,
+  },
+  Sampalan: {
+    address: "Sampalan, Nusa Penida",
+    dockTip: "Port at Nusa Penida",
+    arrivalBuffer: 30,
+    lat: -8.708,
+    lng: 115.532,
+  },
   "Nusa Lembongan": {
     address: "Pelabuhan Jungut Batu, Nusa Lembongan, Klungkung, Bali 80771",
     dockTip: "Jungut Batu beach landing — boats anchor offshore; you'll wade or use a small skiff (included).",
     arrivalBuffer: 30,
     lat: -8.680,
     lng: 115.445,
+  },
+  "Jungut Batu": {
+    address: "Pelabuhan Jungut Batu, Nusa Lembongan",
+    dockTip: "Main dock at Nusa Lembongan",
+    arrivalBuffer: 30,
+    lat: -8.680,
+    lng: 115.445,
+  },
+  "Mushroom Bay": {
+    address: "Mushroom Bay, Nusa Lembongan",
+    dockTip: "Alternative dock at Nusa Lembongan",
+    arrivalBuffer: 30,
+    lat: -8.685,
+    lng: 115.455,
   },
 
   // ═══ GILI ISLANDS ═══
@@ -81,8 +123,6 @@ const PORTS: Record<string, PortInfo> = {
     lat: -8.351,
     lng: 116.062,
   },
-
-  // ═══ LOMBOK ═══
   "Gili Gede": {
     address: "Gili Gede harbour, Sekotong, West Lombok, NTB 83365",
     dockTip: "Southwest Lombok island. Smaller and less visited — boats dock at the main wooden pier.",
@@ -90,6 +130,8 @@ const PORTS: Record<string, PortInfo> = {
     lat: -8.720,
     lng: 115.980,
   },
+
+  // ═══ LOMBOK ═══
   Bangsal: {
     address: "Pelabuhan Bangsal, Pemenang, North Lombok, NTB 83352",
     dockTip: "Public harbour — fast boats use the dedicated wooden jetty south of the main port. Watch for touts.",
@@ -103,6 +145,20 @@ const PORTS: Record<string, PortInfo> = {
     arrivalBuffer: 30,
     lat: -8.492,
     lng: 116.044,
+  },
+  "Teluk Kodek": {
+    address: "Teluk Kodek, Lombok",
+    dockTip: "Port at Teluk Kodek",
+    arrivalBuffer: 30,
+    lat: -8.440,
+    lng: 116.150,
+  },
+  "Teluk Nara": {
+    address: "Teluk Nara, Lombok",
+    dockTip: "Port at Teluk Nara",
+    arrivalBuffer: 30,
+    lat: -8.508,
+    lng: 116.015,
   },
   "Kuta Lombok": {
     address: "Jl. Pariwisata, Kuta, Pujut, Central Lombok, NTB 83573",

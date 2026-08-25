@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export function SearchFilters({
   const [priceInput, setPriceInput] = React.useState(
     maxPrice ? String(maxPrice) : "",
   );
+  const [isPending, startTransition] = useTransition();
 
   function pushParam(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -47,7 +49,9 @@ export function SearchFilters({
         params.set(key, value);
       }
     }
-    router.push(`/search?${params.toString()}`);
+    startTransition(() => {
+      router.push(`/search?${params.toString()}`);
+    });
   }
 
   function applyPriceFilter() {
@@ -173,6 +177,17 @@ export function SearchFilters({
           </div>
         </div>
       </div>
+
+      {isPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="rounded-lg bg-white px-6 py-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-brand" />
+              <span className="text-sm font-medium text-slate-700">Loading results...</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
