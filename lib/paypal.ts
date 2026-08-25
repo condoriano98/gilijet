@@ -1,4 +1,5 @@
 import { env } from "./env";
+import type { GatewayModeOverride } from "./payment-mode";
 
 /**
  * PayPal Standard Checkout — the backup gateway for cards DOKU declines.
@@ -70,7 +71,22 @@ const otherHost = (h: PaypalHost): PaypalHost => (h === "live" ? "sandbox" : "li
  */
 let resolvedHost: PaypalHost | null = null;
 
+/**
+ * Runtime host override, set by lib/payment-mode.ts from the PlatformConfig
+ * row. ENV (the default) follows the PAYPAL_IS_PRODUCTION flag. Changing it
+ * forgets any previously proven host: the override picks a new first guess,
+ * and the credentials re-prove whichever host actually issued them.
+ */
+let modeOverride: GatewayModeOverride = "ENV";
+
+export function setPaypalModeOverride(mode: GatewayModeOverride): void {
+  modeOverride = mode;
+  resolvedHost = null;
+}
+
 function configuredHost(): PaypalHost {
+  if (modeOverride === "SANDBOX") return "sandbox";
+  if (modeOverride === "LIVE") return "live";
   return env.PAYPAL_IS_PRODUCTION ? "live" : "sandbox";
 }
 
@@ -106,10 +122,11 @@ export function isPaypalLive(): boolean {
 // ─── OAuth ──────────────────────────────────────────────────────────────────
 
 /**
- * PayPal access tokens last ~9 hours. Cache in module scope and refresh a
- * minute early so a token never expires mid-request.
+ * PayPal access tokens last ~9 hours. Cache per host so a runtime override can
+ * flip to the other host without waiting on a token minted at this one; refresh
+ * a minute early so a token never expires mid-request.
  */
-let cachedToken: { value: string; expiresAt: number; host: PaypalHost } | null = null;
+let cachedTokens: Partial<Record<PaypalHost, { value: string; expiresAt: number }>> = {};
 
 type TokenAttempt =
   | { ok: true; value: string; expiresIn: number }
@@ -158,11 +175,15 @@ async function accessToken(): Promise<{ token: string; host: PaypalHost }> {
   if (!isPaypalConfigured()) throw new PaypalNotConfiguredError();
 
   const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now) {
-    return { token: cachedToken.value, host: cachedToken.host };
+  const preferred = paypalHost();
+  const cached = cachedTokens[preferred];
+  if (cached && cached.expiresAt > now) {
+    // A cached token is as much proof of the host as a fresh one.
+    resolvedHost = preferred;
+    return { token: cached.value, host: preferred };
   }
 
-  const first = paypalHost();
+  const first = preferred;
   const attempts: { host: PaypalHost; result: TokenAttempt }[] = [];
   attempts.push({ host: first, result: await requestToken(first) });
 
@@ -195,21 +216,23 @@ async function accessToken(): Promise<{ token: string; host: PaypalHost }> {
   }
 
   if (won.host !== configuredHost() && resolvedHost !== won.host) {
+    const source =
+      modeOverride !== "ENV"
+        ? `console override (${modeOverride})`
+        : "env flag (PAYPAL_IS_PRODUCTION)";
     console.warn(
       `[paypal] credentials belong to the ${won.host} host, not the ` +
-        `${configuredHost()} host that PAYPAL_IS_PRODUCTION selects — using ` +
-        `${won.host}. Set PAYPAL_IS_PRODUCTION="${won.host === "live"}" to skip ` +
-        `this extra round-trip.`,
+        `${configuredHost()} host that the ${source} selects — using ` +
+        `${won.host}.`,
     );
   }
   resolvedHost = won.host;
 
-  cachedToken = {
+  cachedTokens[won.host] = {
     value: won.result.value,
     expiresAt: now + Math.max(0, won.result.expiresIn - 60) * 1000,
-    host: won.host,
   };
-  return { token: cachedToken.value, host: cachedToken.host };
+  return { token: cachedTokens[won.host]!.value, host: won.host };
 }
 
 /**
@@ -234,7 +257,8 @@ const AUTH_RETRY_COOLDOWN_MS = 60_000;
  */
 export async function paypalCredentialsWork(): Promise<boolean> {
   if (!isPaypalLive()) return false;
-  if (cachedToken && cachedToken.expiresAt > Date.now()) return true;
+  const cached = cachedTokens[paypalHost()];
+  if (cached && cached.expiresAt > Date.now()) return true;
   if (Date.now() - lastAuthFailureAt < AUTH_RETRY_COOLDOWN_MS) return false;
 
   try {
@@ -592,6 +616,8 @@ export function pingPaypal(): {
   modeProven: boolean;
   currency: string;
   webhookConfigured: boolean;
+  /** The console override applied, ENV when the env flag decides. */
+  override: GatewayModeOverride;
 } {
   const mode = !isPaypalConfigured() ? "mock" : paypalHost();
   return {
@@ -600,5 +626,6 @@ export function pingPaypal(): {
     modeProven: paypalHostIsProven(),
     currency: paypalPresentmentCurrency(),
     webhookConfigured: Boolean(env.PAYPAL_WEBHOOK_ID),
+    override: modeOverride,
   };
 }

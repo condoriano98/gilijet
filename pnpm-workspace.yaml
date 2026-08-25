@@ -1,0 +1,12 @@
+# pnpm v10 build-script approval. These packages need their postinstall to run
+# (native binaries: esbuild, sharp, @swc/core; Prisma engines; @parcel/watcher;
+# unrs-resolver). Without this, pnpm prompts non-interactively and skips them.
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

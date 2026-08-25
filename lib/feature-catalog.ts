@@ -157,7 +157,7 @@ const CUSTOMER: Feature[] = [
     area: "customer",
     name: "Localisation (en/id/zh/ja)",
     status: "shipped",
-    routes: ["middleware.ts", "i18n/routing.ts"],
+    routes: ["proxy.ts", "i18n/routing.ts"],
     modules: [],
     models: [],
     notes:
@@ -680,7 +680,7 @@ const PLATFORM: Feature[] = [
     modules: ["lib/auth.ts", "lib/login-throttle.ts"],
     models: ["Admin", "Operator", "Customer", "LoginAttempt"],
     notes:
-      "Signed HttpOnly JWT cookies, separate per audience. Roles are SUPER_ADMIN/STAFF for admins; there is no read-only role. Enforced per page/action — middleware.ts does no auth.",
+      "Signed HttpOnly JWT cookies, separate per audience. Roles are SUPER_ADMIN/STAFF for admins; there is no read-only role. Enforced per page/action — proxy.ts does no auth.",
   },
   {
     id: "platform-audit",

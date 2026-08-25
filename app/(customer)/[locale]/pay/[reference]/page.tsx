@@ -7,8 +7,9 @@ import {
   startDokuCheckout,
   startPaypalOrder,
 } from "@/lib/psp";
-import { isDokuMock } from "@/lib/doku";
+import { isDokuMock, pingDoku } from "@/lib/doku";
 import { isPaypalLive, paypalHost } from "@/lib/paypal";
+import { applyGatewayModeOverrides } from "@/lib/payment-mode";
 import { env } from "@/lib/env";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { formatIDR } from "@/lib/utils";
@@ -80,6 +81,11 @@ export default async function PayPage({
 }) {
   const { reference } = await params;
   const { error, paypal, token } = await searchParams;
+
+  // Reflect any console sandbox/live override before deciding what the page
+  // says about each gateway (see lib/payment-mode.ts).
+  await applyGatewayModeOverrides();
+
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     include: {
@@ -124,6 +130,11 @@ export default async function PayPage({
   // can end up on sandbox. A sandbox capture still issues a real ticket for a
   // real sailing while no money moves, so say so before anyone pays.
   const paypalIsTestMode = Boolean(paypalQuote) && paypalHost() === "sandbox";
+
+  // Same warning for DOKU: real keys pointed at the sandbox host collect test
+  // payments that would still confirm a booking.
+  const doku = pingDoku();
+  const dokuIsTestMode = !isDokuMock() && doku.mode === "sandbox";
 
   // A recorded DOKU decline is exactly why someone would need the backup, so
   // lead with it rather than leaving them to retry the card that just failed.
@@ -181,6 +192,12 @@ export default async function PayPage({
                 <p className="rounded-md bg-amber-50 p-3 text-center text-xs text-amber-800">
                   Your last payment did not go through. You can try again, or
                   pay by card through PayPal below.
+                </p>
+              ) : null}
+
+              {dokuIsTestMode ? (
+                <p className="rounded-md bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-900">
+                  DOKU is in test mode — no real payment will be taken.
                 </p>
               ) : null}
 

@@ -264,9 +264,9 @@ be exercised in production.
 | `app/admin/(authed)/console/…` | owner only | `requireSuperAdmin()` |
 | `app/api/…` | REST, webhooks, cron | signature or `CRON_SECRET` |
 
-`middleware.ts` handles locale routing only and performs **no** auth, so every
-page, server action and route handler must call its own guard. A missing guard
-is an open endpoint with nothing behind it.
+`proxy.ts` (Next 16's renamed middleware) handles locale routing only and
+performs **no** auth, so every page, server action and route handler must call
+its own guard. A missing guard is an open endpoint with nothing behind it.
 
 ## Single sources of truth
 

@@ -7,6 +7,7 @@ import {
   paypalPresentmentCurrency,
 } from "@/lib/paypal";
 import { quoteForeignCharge, MAX_RATE_AGE_MS } from "@/lib/fx";
+import { applyGatewayModeOverrides } from "@/lib/payment-mode";
 import { formatLocalDateTime } from "@/lib/datetime";
 import { env } from "@/lib/env";
 import {
@@ -47,6 +48,10 @@ function StatusRow({ row }: { row: Row }) {
 
 export default async function DiagnosticsPage() {
   await requireSuperAdmin();
+
+  // Reflect any console sandbox/live override before pinging, so this page
+  // reports the host checkout will actually use (see lib/payment-mode.ts).
+  await applyGatewayModeOverrides();
 
   const doku = pingDoku();
   const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
@@ -94,10 +99,10 @@ export default async function DiagnosticsPage() {
       label: "Mode",
       ok: paypal.mode === "live",
       detail: !paypal.modeProven
-        ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)`
+        ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`
         : paypalTestModeOnLiveSite
           ? "sandbox — takes NO real money, but DOKU is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing."
-          : `${paypal.mode} (confirmed by PayPal)`,
+          : `${paypal.mode} (confirmed by PayPal)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`,
     },
     { label: `FX rate (${currency})`, ok: fxOk, detail: fxDetail },
     {
@@ -127,7 +132,7 @@ export default async function DiagnosticsPage() {
         ? "set"
         : "not set — requests cannot be signed",
     },
-    { label: "Mode", ok: doku.mode === "live", detail: doku.mode },
+    { label: "Mode", ok: doku.mode === "live", detail: doku.mode === "mock" ? "mock (no keys set)" : `${doku.mode}${doku.override !== "ENV" ? ` (console override: ${doku.override})` : " (from DOKU_IS_PRODUCTION)"}` },
     {
       label: "Takes real payments",
       ok: isDokuLive(),

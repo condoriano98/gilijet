@@ -5,12 +5,14 @@ const mocks = vi.hoisted(() => ({
   paymentUpdate: vi.fn(),
   captureOrder: vi.fn(),
   confirm: vi.fn(),
+  configFind: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   prisma: {
     booking: { findUnique: mocks.findUnique, update: vi.fn() },
     payment: { update: mocks.paymentUpdate },
+    platformConfig: { findUnique: mocks.configFind },
   },
 }));
 
@@ -19,6 +21,7 @@ vi.mock("@/lib/paypal", () => ({
   createOrder: vi.fn(),
   isPaypalLive: () => true,
   paypalPresentmentCurrency: () => "USD",
+  setPaypalModeOverride: vi.fn(),
 }));
 
 vi.mock("@/lib/ticket-issuer", () => ({
@@ -58,6 +61,7 @@ describe("capturePaypalOrder", () => {
   beforeEach(() => {
     mocks.findUnique.mockReset().mockResolvedValue(BOOKING);
     mocks.paymentUpdate.mockReset().mockResolvedValue({});
+    mocks.configFind.mockReset().mockResolvedValue(null);
     mocks.captureOrder.mockReset();
     mocks.confirm
       .mockReset()

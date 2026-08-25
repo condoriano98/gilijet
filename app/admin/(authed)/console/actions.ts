@@ -317,6 +317,53 @@ export async function setOperatorCommission(formData: FormData) {
   redirect("/admin/console/pricing?ok=1");
 }
 
+// ---------- payment gateway modes ----------
+
+const paymentModeSchema = z.object({
+  dokuMode: z.enum(["ENV", "SANDBOX", "LIVE"]),
+  paypalMode: z.enum(["ENV", "SANDBOX", "LIVE"]),
+});
+
+/**
+ * Runtime sandbox/live override for the payment gateways, stored on the
+ * PlatformConfig row so staging can be pinned to a host without a redeploy.
+ * ENV restores the DOKU_IS_PRODUCTION / PAYPAL_IS_PRODUCTION env behaviour.
+ * See lib/payment-mode.ts.
+ */
+export async function savePaymentModes(formData: FormData) {
+  const session = await requireSuperAdmin();
+  const parsed = paymentModeSchema.safeParse({
+    dokuMode: String(formData.get("dokuMode") ?? "ENV").toUpperCase(),
+    paypalMode: String(formData.get("paypalMode") ?? "ENV").toUpperCase(),
+  });
+  if (!parsed.success) {
+    redirect(
+      `/admin/console/payments?error=${encodeURIComponent("Invalid gateway mode selection")}`,
+    );
+  }
+  const d = parsed.data;
+  const values = {
+    dokuMode: d.dokuMode,
+    paypalMode: d.paypalMode,
+    updatedBy: session.email,
+  };
+  await prisma.platformConfig.upsert({
+    where: { id: "default" },
+    update: values,
+    create: { id: "default", ...values },
+  });
+  await audit({
+    entityType: "PLATFORM_CONFIG",
+    entityId: "default",
+    action: "payment_modes_updated",
+    userId: session.sub,
+    userRole: "ADMIN",
+    newState: { dokuMode: d.dokuMode, paypalMode: d.paypalMode },
+  });
+  revalidatePath("/admin/console/payments");
+  redirect("/admin/console/payments?ok=1");
+}
+
 // ---------- booking alerts ----------
 
 const alertSchema = z.object({

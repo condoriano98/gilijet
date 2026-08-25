@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { env } from "./env";
+import type { GatewayModeOverride } from "./payment-mode";
 
 /**
  * DOKU Checkout — the payment gateway for gilifast.
@@ -36,10 +37,28 @@ const CHECKOUT_PATH = "/checkout/v1/payment";
 /** Path DOKU POSTs notifications to; also the Request-Target they sign with. */
 export const NOTIFICATION_PATH = "/api/webhooks/doku";
 
+const LIVE_BASE = "https://api.doku.com";
+const SANDBOX_BASE = "https://api-sandbox.doku.com";
+
+/**
+ * Runtime host override, set by lib/payment-mode.ts from the PlatformConfig
+ * row. ENV (the default) follows the DOKU_IS_PRODUCTION flag.
+ */
+let modeOverride: GatewayModeOverride = "ENV";
+
+export function setDokuModeOverride(mode: GatewayModeOverride): void {
+  modeOverride = mode;
+}
+
+/** Live host or not: a console override wins, then the env flag. */
+function effectiveProduction(): boolean {
+  if (modeOverride === "SANDBOX") return false;
+  if (modeOverride === "LIVE") return true;
+  return env.DOKU_IS_PRODUCTION;
+}
+
 function baseUrl(): string {
-  return env.DOKU_IS_PRODUCTION
-    ? "https://api.doku.com"
-    : "https://api-sandbox.doku.com";
+  return effectiveProduction() ? LIVE_BASE : SANDBOX_BASE;
 }
 
 export function isDokuConfigured(): boolean {
@@ -356,10 +375,12 @@ export function pingDoku(): {
   mode: "live" | "sandbox" | "mock";
   clientIdPrefix: string;
   secretPresent: boolean;
+  /** The console override applied, ENV when the env flag decides. */
+  override: GatewayModeOverride;
 } {
   const mode = !isDokuConfigured()
     ? "mock"
-    : env.DOKU_IS_PRODUCTION
+    : effectiveProduction()
       ? "live"
       : "sandbox";
   return {
@@ -367,5 +388,6 @@ export function pingDoku(): {
     mode,
     clientIdPrefix: env.DOKU_CLIENT_ID ? env.DOKU_CLIENT_ID.slice(0, 8) + "…" : "",
     secretPresent: Boolean(env.DOKU_SECRET_KEY),
+    override: modeOverride,
   };
 }

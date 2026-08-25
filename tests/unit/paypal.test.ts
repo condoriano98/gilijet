@@ -224,6 +224,10 @@ describe("paypalCredentialsWork", () => {
   };
 
   it("is false when nothing is configured, without calling out", async () => {
+    // Explicitly empty, so the test does not depend on what the local .env
+    // happens to contain.
+    vi.stubEnv("PAYPAL_CLIENT_ID", "");
+    vi.stubEnv("PAYPAL_CLIENT_SECRET", "");
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const { paypalCredentialsWork } = await loadPaypal();

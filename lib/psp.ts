@@ -31,6 +31,7 @@ import {
   type CaptureResult,
 } from "./paypal";
 import { quoteForeignCharge, type ForeignChargeQuote } from "./fx";
+import { applyGatewayModeOverrides } from "./payment-mode";
 import { recordPaymentAwaitingConfirmation } from "./ticket-issuer";
 import { notifyPaymentReceived } from "./booking-notifications";
 
@@ -47,6 +48,10 @@ export function isAnyPSPConfigured(): boolean {
 export async function startDokuCheckout(
   bookingReference: string,
 ): Promise<CreateCheckoutResult> {
+  // Pick up any console sandbox/live override before opening the checkout, so
+  // the host follows the latest PlatformConfig value (see lib/payment-mode.ts).
+  await applyGatewayModeOverrides();
+
   const booking = await prisma.booking.findUnique({
     where: { bookingReference },
     include: { payment: true },
@@ -102,6 +107,8 @@ export type PaypalOrderResult = {
 export async function startPaypalOrder(
   bookingReference: string,
 ): Promise<PaypalOrderResult> {
+  await applyGatewayModeOverrides();
+
   const booking = await prisma.booking.findUnique({
     where: { bookingReference },
     include: {
@@ -159,6 +166,7 @@ export async function startPaypalOrder(
 export async function quotePaypalIfAvailable(
   idrTotal: number,
 ): Promise<ForeignChargeQuote | null> {
+  await applyGatewayModeOverrides();
   if (!isPaypalLive()) return null;
   if (!(await paypalCredentialsWork())) return null;
   try {
@@ -188,6 +196,8 @@ export async function capturePaypalOrder(
   bookingReference: string,
   orderIdFromReturn?: string | null,
 ): Promise<PaypalCaptureOutcome> {
+  await applyGatewayModeOverrides();
+
   const booking = await prisma.booking.findUnique({
     where: { bookingReference },
     include: { payment: true },
