@@ -21,6 +21,7 @@ type PriceRow = {
   CATEGORY: string;
   CLASS: string;
   SEASON: string;
+  TRIP: string;
   daysOfWeeks: string;
 };
 

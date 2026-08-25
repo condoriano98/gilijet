@@ -124,6 +124,7 @@ async function main() {
         originPort: row.originPort,
         destinationPort: row.destinationPort,
         departureTime: row.departureTime,
+        arrivalTime: row.arrivalTime,
         durationMinutes: parseInt(row.durationMinutes, 10),
         basePrice: parseInt(row.basePrice.replace(/,/g, ""), 10),
       });
