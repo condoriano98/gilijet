@@ -117,6 +117,21 @@ export function signComponents(components: string, secretKey: string): string {
 
 // ─── Create checkout ────────────────────────────────────────────────────────
 
+/**
+ * DOKU's checkout endpoint accepts only alphabetic characters in
+ * customer.name ("Invalid name format, name not allowed use special
+ * character" otherwise). The booking name is free text a customer typed, so
+ * strip everything that is not a letter or a space before signing, and fall
+ * back to a neutral label if nothing survives.
+ */
+export function sanitizeDokuName(raw: string): string {
+  const cleaned = raw
+    .replace(/[^\p{L}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || "Customer";
+}
+
 export type CreateCheckoutParams = {
   /** Our bookingReference — DOKU's invoice_number, echoed back on notify. */
   orderId: string;
@@ -166,7 +181,7 @@ export async function createCheckout(
       payment_due_date: params.expiryMinutes ?? 60,
     },
     customer: {
-      name: params.payerName,
+      name: sanitizeDokuName(params.payerName),
       email: params.payerEmail,
       phone: params.payerPhone.replace(/[^\d]/g, ""),
     },

@@ -173,6 +173,30 @@ describe("verifyDokuNotification", () => {
   });
 });
 
+describe("sanitizeDokuName", () => {
+  it("keeps letters and spaces, and drops special characters", async () => {
+    const { sanitizeDokuName } = await loadDoku();
+    expect(sanitizeDokuName("asdkfjaafdls;jk")).toBe("asdkfjaafdls jk");
+    expect(sanitizeDokuName("Mr. John O'Brien - Smith")).toBe("Mr John O Brien Smith");
+  });
+
+  it("collapses whitespace and trims", async () => {
+    const { sanitizeDokuName } = await loadDoku();
+    expect(sanitizeDokuName("  Iman   Manuel  ")).toBe("Iman Manuel");
+  });
+
+  it("falls back to a neutral label when nothing survives", async () => {
+    const { sanitizeDokuName } = await loadDoku();
+    expect(sanitizeDokuName("!!!;;;")).toBe("Customer");
+    expect(sanitizeDokuName("")).toBe("Customer");
+  });
+
+  it("keeps accented letters", async () => {
+    const { sanitizeDokuName } = await loadDoku();
+    expect(sanitizeDokuName("José da Silva")).toBe("José da Silva");
+  });
+});
+
 describe("readNotification", () => {
   it("treats only SUCCESS as paid", async () => {
     const { readNotification } = await loadDoku();
