@@ -188,7 +188,7 @@ async function main() {
               method: "QRIS",
               status: "SUCCESSFUL",
               paidAt: new Date(),
-               gatewayProvider: "DOKU",
+               gatewayProvider: "MIDTRANS",
 
             },
           },
@@ -422,7 +422,7 @@ async function main() {
             method: "QRIS",
             status: "SUCCESSFUL",
             paidAt: new Date(),
-            gatewayProvider: "DOKU",
+            gatewayProvider: "MIDTRANS",
           },
         },
       },

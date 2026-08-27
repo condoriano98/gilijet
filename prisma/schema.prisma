@@ -532,10 +532,10 @@ model PromotionRedemption {
 model PlatformConfig {
   id                String   @id @default("default")
   commissionRate    Decimal  @default(0.08) @db.Decimal(5, 4)
-  // Runtime gateway mode overrides. ENV follows the DOKU_IS_PRODUCTION /
+  // Runtime gateway mode overrides. ENV follows the MIDTRANS_IS_PRODUCTION /
   // PAYPAL_IS_PRODUCTION env flags; SANDBOX / LIVE force the host without a
   // redeploy. See lib/payment-mode.ts.
-  dokuMode          GatewayMode @default(ENV)
+  midtransMode      GatewayMode @default(ENV)
   paypalMode        GatewayMode @default(ENV)
   serviceFeeType    DiscountType?
   serviceFeeValue   Decimal  @default(0) @db.Decimal(12, 2)
@@ -561,7 +561,7 @@ enum DiscountType {
 }
 
 /// How a payment gateway's live/sandbox host is chosen at runtime. ENV follows
-/// the DOKU_IS_PRODUCTION / PAYPAL_IS_PRODUCTION flags; the other two force it.
+/// the MIDTRANS_IS_PRODUCTION / PAYPAL_IS_PRODUCTION flags; the other two force it.
 enum GatewayMode {
   ENV
   SANDBOX

@@ -16,7 +16,7 @@ import {
  * PayPal POSTs a signed JSON envelope on payment events. We verify it through
  * PayPal's postback endpoint — which requires the raw request bytes, so the
  * body is read as text before any parsing — then converge on the same
- * `confirmPaymentAndIssueTickets` path the DOKU webhook uses.
+ * `confirmPaymentAndIssueTickets` path the Midtrans webhook uses.
  *
  * This is the backstop, not the primary path: the pay page already captures
  * server-side on return from PayPal, so in the normal case this webhook lands
@@ -146,7 +146,7 @@ async function handleEvent(
     case "PAYMENT.CAPTURE.COMPLETED": {
       if (!capture.completed) return { ok: true, status: "ignored" };
 
-      // Amount integrity, mirroring the DOKU webhook: never confirm on a
+      // Amount integrity, mirroring the Midtrans webhook: never confirm on a
       // capture that doesn't match what we quoted in the presentment currency.
       if (capture.amount && payment?.presentmentAmount) {
         const captured = Number(capture.amount);
@@ -191,7 +191,7 @@ async function handleEvent(
     case "PAYMENT.CAPTURE.REVERSED": {
       // The customer's money never arrived. Leave the booking PENDING_PAYMENT
       // so the existing hold timer decides its fate — a failed attempt is not
-      // terminal, exactly as a DOKU non-success notification is treated.
+      // terminal, exactly as a Midtrans non-success notification is treated.
       if (payment) {
         await prisma.payment.update({
           where: { bookingId: booking.id },

@@ -51,13 +51,13 @@ services:
 
       # Payment gateway. Until these reach the container the app runs in mock
       # mode and takes no real money, whatever the dashboard says.
-      DOKU_CLIENT_ID: ${DOKU_CLIENT_ID:-}
-      DOKU_SECRET_KEY: ${DOKU_SECRET_KEY:-}
-      DOKU_IS_PRODUCTION: ${DOKU_IS_PRODUCTION:-false}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY:-}
+      MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION:-false}
 
-      # Backup gateway for cards DOKU declines. PAYPAL_IS_PRODUCTION picks the
-      # host the credentials are sent to; live keys against the sandbox host
-      # come back 401 invalid_client and PayPal is silently not offered.
+      # Backup gateway for cards Midtrans declines. PAYPAL_IS_PRODUCTION picks
+      # the host the credentials are sent to; live keys against the sandbox
+      # host come back 401 invalid_client and PayPal is silently not offered.
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
       PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
@@ -73,7 +73,7 @@ services:
     expose:
       - "3000"
 
-  # Terminates TLS so DOKU notifications and card-holder traffic are not
+  # Terminates TLS so Midtrans notifications and card-holder traffic are not
   # carried in the clear. Certificates are issued and renewed by Caddy from
   # Let's Encrypt with no manual step, and persist in the caddy-data volume so
   # redeploys do not re-request them and burn rate limits.

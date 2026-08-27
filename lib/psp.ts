@@ -1,10 +1,10 @@
 /**
  * Payment orchestration across two gateways.
  *
- * DOKU Checkout is primary and settles IDR. PayPal is the backup for cards DOKU
- * declines — a different rail, so it often accepts what an Indonesian acquirer
- * refuses. It cannot settle IDR, so a PayPal booking is charged a presentment
- * amount at a stored rate; see lib/fx.ts quoteForeignCharge.
+ * Midtrans Snap is primary and settles IDR. PayPal is the backup for cards
+ * Midtrans declines — a different rail, so it often accepts what an Indonesian
+ * acquirer refuses. It cannot settle IDR, so a PayPal booking is charged a
+ * presentment amount at a stored rate; see lib/fx.ts quoteForeignCharge.
  *
  * Both converge on recordPaymentAwaitingConfirmation, so settlement, seat
  * handling and the payment-received notice are identical either way.
@@ -18,10 +18,10 @@ import { prisma } from "./db";
 import { env } from "./env";
 import {
   createCheckout,
-  isDokuConfigured,
-  isDokuMock,
+  isMidtransConfigured,
+  isMidtransMock,
   type CreateCheckoutResult,
-} from "./doku";
+} from "./midtrans";
 import {
   captureOrder,
   createOrder,
@@ -37,15 +37,15 @@ import { notifyPaymentReceived } from "./booking-notifications";
 
 /** True when a real (non-mock) gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
-  return isDokuConfigured() && !isDokuMock();
+  return isMidtransConfigured() && !isMidtransMock();
 }
 
 /**
- * Open a DOKU checkout for a booking.  Called from the pay page server action.
- * Persists the invoice number as the gateway reference so the notification can
- * correlate back to this booking later.
+ * Open a Midtrans Snap checkout for a booking.  Called from the pay page server
+ * action. Persists the order id as the gateway reference so the notification
+ * can correlate back to this booking later.
  */
-export async function startDokuCheckout(
+export async function startMidtransCheckout(
   bookingReference: string,
 ): Promise<CreateCheckoutResult> {
   // Pick up any console sandbox/live override before opening the checkout, so
@@ -76,13 +76,13 @@ export async function startDokuCheckout(
     data: {
       method: "BANK_TRANSFER",
       status: "PENDING",
-      gatewayProvider: PaymentProvider.DOKU,
-      gatewayReference: result.invoiceNumber,
+      gatewayProvider: PaymentProvider.MIDTRANS,
+      gatewayReference: result.orderId,
     },
   });
   await prisma.booking.update({
     where: { id: booking.id },
-    data: { paymentGatewayRef: result.invoiceNumber },
+    data: { paymentGatewayRef: result.orderId },
   });
 
   return result;
@@ -101,7 +101,7 @@ export type PaypalOrderResult = {
  * Quote the booking in the presentment currency and open a PayPal order.
  *
  * Propagates `FxRateUnavailableError` when no fresh rate exists. Callers must
- * treat that as "PayPal is unavailable" and leave the customer on DOKU —
+ * treat that as "PayPal is unavailable" and leave the customer on Midtrans —
  * charging a guessed rate is worse than not offering the option.
  */
 export async function startPaypalOrder(
@@ -299,8 +299,8 @@ export function paypalFeeAsIdr(
 }
 
 /**
- * Normalise a DOKU channel id into a PaymentMethod enum.  Throws on unknown
- * values so new channels are never silently dropped.
+ * Normalise a gateway channel id / payment_type into a PaymentMethod enum.
+ * Throws on unknown values so new channels are never silently dropped.
  */
 export function normalizePaymentMethod(raw: string): PaymentMethod {
   const upper = raw.toUpperCase();
@@ -319,46 +319,27 @@ export function normalizePaymentMethod(raw: string): PaymentMethod {
     LINKAJA: PaymentMethod.LINKAJA,
     QRIS: PaymentMethod.QRIS,
     CREDIT_CARD: PaymentMethod.CREDIT_CARD,
-    // DOKU channel ids. The virtual accounts below are the ones our enum names
-    // individually; every other bank falls through to BANK_TRANSFER.
-    VIRTUAL_ACCOUNT_BCA: PaymentMethod.VA_BCA,
-    VIRTUAL_ACCOUNT_BNI: PaymentMethod.VA_BNI,
-    VIRTUAL_ACCOUNT_BRI: PaymentMethod.VA_BRI,
-    VIRTUAL_ACCOUNT_BANK_MANDIRI: PaymentMethod.VA_MANDIRI,
-    VIRTUAL_ACCOUNT_BANK_SYARIAH_MANDIRI: PaymentMethod.VA_MANDIRI,
-    VIRTUAL_ACCOUNT_BANK_PERMATA: PaymentMethod.VA_PERMATA,
-    VIRTUAL_ACCOUNT_BANK_CIMB: PaymentMethod.VA_PERMATA,
-    ONLINE_TO_OFFLINE_ALFA: PaymentMethod.BANK_TRANSFER,
-    ONLINE_TO_OFFLINE_INDOMARET: PaymentMethod.BANK_TRANSFER,
-    PEER_TO_PEER_AKULAKU: PaymentMethod.BANK_TRANSFER,
-    EMONEY_OVO: PaymentMethod.OVO,
-    EMONEY_DANA: PaymentMethod.DANA,
-    EMONEY_SHOPEE_PAY: PaymentMethod.SHOPEEPAY,
-    EMONEY_LINKAJA: PaymentMethod.LINKAJA,
-    EMONEY_DOKU: PaymentMethod.BANK_TRANSFER,
-    QRIS_DOKU: PaymentMethod.QRIS,
-    CREDIT_CARD_DOKU: PaymentMethod.CREDIT_CARD,
-    DOKU: PaymentMethod.BANK_TRANSFER,
-    PENDING: PaymentMethod.BANK_TRANSFER,
+    // Midtrans payment types (Snap notification `payment_type`).
+    BANK_TRANSFER_BCA: PaymentMethod.VA_BCA,
+    BANK_TRANSFER_BNI: PaymentMethod.VA_BNI,
+    BANK_TRANSFER_BRI: PaymentMethod.VA_BRI,
+    BANK_TRANSFER_MANDIRI: PaymentMethod.VA_MANDIRI,
+    BANK_TRANSFER_PERMATA: PaymentMethod.VA_PERMATA,
+    BANK_TRANSFER_VA: PaymentMethod.BANK_TRANSFER,
+    ECHANNEL: PaymentMethod.BANK_TRANSFER,
+    CSTORE: PaymentMethod.BANK_TRANSFER,
+    AKULAKU: PaymentMethod.BANK_TRANSFER,
+    KREDIVO: PaymentMethod.BANK_TRANSFER,
+    BCA_KLIKPAY: PaymentMethod.BANK_TRANSFER,
+    BCA_KLIKBCA: PaymentMethod.BANK_TRANSFER,
+    BRI_EPAY: PaymentMethod.BANK_TRANSFER,
+    CIMB_CLICKS: PaymentMethod.BANK_TRANSFER,
+    DANAMON_ONLINE: PaymentMethod.BANK_TRANSFER,
+    UOB_EZPAY: PaymentMethod.BANK_TRANSFER,
+    INDOMARET: PaymentMethod.BANK_TRANSFER,
+    ALFAMART: PaymentMethod.BANK_TRANSFER,
   };
   if (mapping[upper]) return mapping[upper];
-
-  // Channel-family prefixes are checked before brand substrings, because the
-  // brands overlap: VIRTUAL_ACCOUNT_BANK_DANAMON contains "DANA" and would
-  // otherwise be recorded as a DANA e-wallet payment rather than a transfer.
-  if (upper.startsWith("VIRTUAL_ACCOUNT")) {
-    if (upper.includes("BCA")) return PaymentMethod.VA_BCA;
-    if (upper.includes("BNI")) return PaymentMethod.VA_BNI;
-    if (upper.includes("BRI")) return PaymentMethod.VA_BRI;
-    if (upper.includes("MANDIRI")) return PaymentMethod.VA_MANDIRI;
-    if (upper.includes("PERMATA") || upper.includes("CIMB")) {
-      return PaymentMethod.VA_PERMATA;
-    }
-    return PaymentMethod.BANK_TRANSFER;
-  }
-  if (upper.startsWith("ONLINE_TO_OFFLINE") || upper.startsWith("PEER_TO_PEER")) {
-    return PaymentMethod.BANK_TRANSFER;
-  }
 
   if (upper.includes("SHOPEE")) return PaymentMethod.SHOPEEPAY;
   if (upper.includes("GOPAY")) return PaymentMethod.GOPAY;

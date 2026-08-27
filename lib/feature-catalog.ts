@@ -96,12 +96,12 @@ const CUSTOMER: Feature[] = [
   {
     id: "customer-payment",
     area: "customer",
-    name: "Payment (DOKU Checkout)",
+    name: "Payment (Midtrans Snap)",
     status: "shipped",
     routes: ["app/(customer)/[locale]/pay/[reference]/page.tsx"],
-    modules: ["lib/psp.ts", "lib/doku.ts"],
+    modules: ["lib/psp.ts", "lib/midtrans.ts"],
     models: ["Payment"],
-    notes: "Falls back to a mock gateway when DOKU keys are absent.",
+    notes: "Falls back to a mock gateway when Midtrans keys are absent.",
   },
   {
     id: "customer-ticket",
@@ -584,15 +584,15 @@ const API: Feature[] = [
     area: "api",
     name: "Payment webhooks",
     status: "shipped",
-    routes: ["app/api/webhooks/doku/route.ts"],
+    routes: ["app/api/webhooks/midtrans/route.ts"],
     modules: [
-      "lib/doku.ts",
+      "lib/midtrans.ts",
       "lib/webhook-processor.ts",
       "lib/ticket-issuer.ts",
     ],
     models: ["Payment", "WebhookEvent", "Ticket"],
     notes:
-      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. DOKU is the only gateway.",
+      "Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. Midtrans is the only gateway.",
   },
   {
     id: "api-cron-active",

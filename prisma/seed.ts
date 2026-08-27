@@ -364,7 +364,7 @@ async function seedDemoBooking(
           method: "QRIS",
           status: "SUCCESSFUL",
           paidAt: new Date(),
-          gatewayProvider: "DOKU",
+          gatewayProvider: "MIDTRANS",
         },
       },
     },

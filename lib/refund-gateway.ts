@@ -1,4 +1,4 @@
-import { isDokuConfigured } from "./doku";
+import { isMidtransConfigured } from "./midtrans";
 import { isPaypalLive, refundCapture } from "./paypal";
 import { prisma } from "./db";
 import { PaymentProvider } from "@prisma/client";
@@ -6,7 +6,7 @@ import { PaymentProvider } from "@prisma/client";
 /**
  * Dispatch a refund to whichever gateway took the money.
  *
- * DOKU refunds are raised from its dashboard for the MVP, signalled by
+ * Midtrans refunds are raised from its dashboard for the MVP, signalled by
  * returning null rather than pretending money moved. PayPal refunds
  * programmatically, and must return the currency it captured.
  */
@@ -24,7 +24,7 @@ export async function refundViaGateway(args: {
     return refundPaypal(args);
   }
 
-  // DOKU refunds are raised from the DOKU dashboard for the MVP.
+  // Midtrans refunds are raised from the Midtrans dashboard for the MVP.
   return null;
 }
 
@@ -81,5 +81,5 @@ async function refundPaypal(args: {
 }
 
 export function isAnyRefundGatewayConfigured(): boolean {
-  return isDokuConfigured() || isPaypalLive();
+  return isMidtransConfigured() || isPaypalLive();
 }

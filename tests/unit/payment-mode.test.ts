@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 /**
  * Runtime gateway sandbox/live overrides (lib/payment-mode.ts + the setters in
- * lib/doku.ts / lib/paypal.ts). The env flags stay the default; the override
- * is the staging-only knob that forces the host without a redeploy.
+ * lib/midtrans.ts / lib/paypal.ts). The env flags stay the default; the
+ * override is the staging-only knob that forces the host without a redeploy.
  */
 
 const mocks = vi.hoisted(() => ({ configFind: vi.fn() }));
@@ -12,9 +12,9 @@ vi.mock("@/lib/db", () => ({
   prisma: { platformConfig: { findUnique: mocks.configFind } },
 }));
 
-async function loadDoku() {
+async function loadMidtrans() {
   vi.resetModules();
-  return import("@/lib/doku");
+  return import("@/lib/midtrans");
 }
 
 async function loadPaypal() {
@@ -28,19 +28,18 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("DOKU runtime mode override", () => {
+describe("Midtrans runtime mode override", () => {
   const withKeys = () => {
-    vi.stubEnv("DOKU_CLIENT_ID", "BRN-0001-1234567890");
-    vi.stubEnv("DOKU_SECRET_KEY", "SK-secret-key");
+    vi.stubEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-1234567890");
   };
 
-  it("forces the sandbox host even when DOKU_IS_PRODUCTION=true", async () => {
+  it("forces the sandbox host even when MIDTRANS_IS_PRODUCTION=true", async () => {
     withKeys();
-    vi.stubEnv("DOKU_IS_PRODUCTION", "true");
-    const doku = await loadDoku();
-    doku.setDokuModeOverride("SANDBOX");
+    vi.stubEnv("MIDTRANS_IS_PRODUCTION", "true");
+    const midtrans = await loadMidtrans();
+    midtrans.setMidtransModeOverride("SANDBOX");
 
-    expect(doku.pingDoku()).toMatchObject({
+    expect(midtrans.pingMidtrans()).toMatchObject({
       mode: "sandbox",
       override: "SANDBOX",
     });
@@ -55,16 +54,14 @@ describe("DOKU runtime mode override", () => {
           status: 200,
           text: async () =>
             JSON.stringify({
-              response: {
-                payment: { url: "https://checkout.doku.com/x" },
-                order: { invoice_number: "BK-1" },
-              },
+              token: "snap-token",
+              redirect_url: "https://app.sandbox.midtrans.com/snap/v2/vtweb/x",
             }),
         };
       }),
     );
 
-    const result = await doku.createCheckout({
+    const result = await midtrans.createCheckout({
       orderId: "BK-1",
       amount: 650000,
       payerName: "Ayu",
@@ -72,23 +69,25 @@ describe("DOKU runtime mode override", () => {
       payerPhone: "081234000111",
       callbackUrl: "https://gilifast.com/b/BK-1",
     });
-    expect(urls[0]).toBe("https://api-sandbox.doku.com/checkout/v1/payment");
-    expect(result.paymentUrl).toBe("https://checkout.doku.com/x");
+    expect(urls[0]).toBe(
+      "https://app.sandbox.midtrans.com/snap/v1/transactions",
+    );
+    expect(result.paymentUrl).toContain("app.sandbox.midtrans.com");
   });
 
-  it("forces the live host when DOKU_IS_PRODUCTION=false", async () => {
+  it("forces the live host when MIDTRANS_IS_PRODUCTION=false", async () => {
     withKeys();
-    vi.stubEnv("DOKU_IS_PRODUCTION", "false");
-    const doku = await loadDoku();
-    doku.setDokuModeOverride("LIVE");
-    expect(doku.pingDoku()).toMatchObject({ mode: "live", override: "LIVE" });
+    vi.stubEnv("MIDTRANS_IS_PRODUCTION", "false");
+    const midtrans = await loadMidtrans();
+    midtrans.setMidtransModeOverride("LIVE");
+    expect(midtrans.pingMidtrans()).toMatchObject({ mode: "live", override: "LIVE" });
   });
 
   it("ENV keeps following the env flag", async () => {
     withKeys();
-    vi.stubEnv("DOKU_IS_PRODUCTION", "false");
-    const doku = await loadDoku();
-    expect(doku.pingDoku()).toMatchObject({ mode: "sandbox", override: "ENV" });
+    vi.stubEnv("MIDTRANS_IS_PRODUCTION", "false");
+    const midtrans = await loadMidtrans();
+    expect(midtrans.pingMidtrans()).toMatchObject({ mode: "sandbox", override: "ENV" });
   });
 });
 
@@ -217,46 +216,44 @@ describe("PayPal runtime mode override", () => {
 describe("applyGatewayModeOverrides (PlatformConfig)", () => {
   it("pushes the stored modes into both gateways", async () => {
     mocks.configFind.mockReset().mockResolvedValue({
-      dokuMode: "SANDBOX",
+      midtransMode: "SANDBOX",
       paypalMode: "SANDBOX",
     });
-    vi.stubEnv("DOKU_CLIENT_ID", "id");
-    vi.stubEnv("DOKU_SECRET_KEY", "sk");
+    vi.stubEnv("MIDTRANS_SERVER_KEY", "sk");
     vi.stubEnv("PAYPAL_CLIENT_ID", "pid");
     vi.stubEnv("PAYPAL_CLIENT_SECRET", "psk");
-    vi.stubEnv("DOKU_IS_PRODUCTION", "true");
+    vi.stubEnv("MIDTRANS_IS_PRODUCTION", "true");
     vi.stubEnv("PAYPAL_IS_PRODUCTION", "true");
 
     vi.resetModules();
     const { applyGatewayModeOverrides } = await import("@/lib/payment-mode");
-    const doku = await import("@/lib/doku");
+    const midtrans = await import("@/lib/midtrans");
     const paypal = await import("@/lib/paypal");
 
     await applyGatewayModeOverrides();
 
-    expect(doku.pingDoku().mode).toBe("sandbox");
-    expect(doku.pingDoku().override).toBe("SANDBOX");
+    expect(midtrans.pingMidtrans().mode).toBe("sandbox");
+    expect(midtrans.pingMidtrans().override).toBe("SANDBOX");
     expect(paypal.pingPaypal().mode).toBe("sandbox");
     expect(paypal.pingPaypal().override).toBe("SANDBOX");
   });
 
   it("defaults to ENV when the config row is missing", async () => {
     mocks.configFind.mockReset().mockResolvedValue(null);
-    vi.stubEnv("DOKU_CLIENT_ID", "id");
-    vi.stubEnv("DOKU_SECRET_KEY", "sk");
+    vi.stubEnv("MIDTRANS_SERVER_KEY", "sk");
     vi.stubEnv("PAYPAL_CLIENT_ID", "pid");
     vi.stubEnv("PAYPAL_CLIENT_SECRET", "psk");
-    vi.stubEnv("DOKU_IS_PRODUCTION", "false");
+    vi.stubEnv("MIDTRANS_IS_PRODUCTION", "false");
     vi.stubEnv("PAYPAL_IS_PRODUCTION", "false");
 
     vi.resetModules();
     const { applyGatewayModeOverrides } = await import("@/lib/payment-mode");
-    const doku = await import("@/lib/doku");
+    const midtrans = await import("@/lib/midtrans");
     const paypal = await import("@/lib/paypal");
 
     await applyGatewayModeOverrides();
 
-    expect(doku.pingDoku()).toMatchObject({ mode: "sandbox", override: "ENV" });
+    expect(midtrans.pingMidtrans()).toMatchObject({ mode: "sandbox", override: "ENV" });
     expect(paypal.pingPaypal()).toMatchObject({
       mode: "sandbox",
       override: "ENV",

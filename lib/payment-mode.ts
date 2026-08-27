@@ -1,18 +1,18 @@
 import { prisma } from "./db";
-import { setDokuModeOverride } from "./doku";
+import { setMidtransModeOverride } from "./midtrans";
 import { setPaypalModeOverride } from "./paypal";
 
 /**
  * Runtime payment-gateway mode overrides.
  *
  * Each gateway's live/sandbox host is normally decided by an environment flag
- * (DOKU_IS_PRODUCTION / PAYPAL_IS_PRODUCTION). A superadmin can override that
+ * (MIDTRANS_IS_PRODUCTION / PAYPAL_IS_PRODUCTION). A superadmin can override that
  * per gateway from the owner console, stored on the singleton PlatformConfig
  * row, so staging can be pinned to sandbox — or flipped to live — without a
  * redeploy. This is the staging-only knob; main still drives everything from
  * env.
  *
- * The overrides are pushed into module-level state in lib/doku.ts and
+ * The overrides are pushed into module-level state in lib/midtrans.ts and
  * lib/paypal.ts via applyGatewayModeOverrides(), called at every entry point
  * that matters — checkout start, the pay page, diagnostics, webhook handling.
  * Applying is idempotent and cheap: a single PK read on the config row.
@@ -24,22 +24,22 @@ export const PLATFORM_CONFIG_ID = "default";
 export type GatewayModeOverride = "ENV" | "SANDBOX" | "LIVE";
 
 export async function readGatewayModeOverrides(): Promise<{
-  doku: GatewayModeOverride;
+  midtrans: GatewayModeOverride;
   paypal: GatewayModeOverride;
 }> {
   const config = await prisma.platformConfig.findUnique({
     where: { id: PLATFORM_CONFIG_ID },
-    select: { dokuMode: true, paypalMode: true },
+    select: { midtransMode: true, paypalMode: true },
   });
   return {
-    doku: config?.dokuMode ?? "ENV",
+    midtrans: config?.midtransMode ?? "ENV",
     paypal: config?.paypalMode ?? "ENV",
   };
 }
 
 /** Read the overrides and push them into the gateway modules. */
 export async function applyGatewayModeOverrides(): Promise<void> {
-  const { doku, paypal } = await readGatewayModeOverrides();
-  setDokuModeOverride(doku);
+  const { midtrans, paypal } = await readGatewayModeOverrides();
+  setMidtransModeOverride(midtrans);
   setPaypalModeOverride(paypal);
 }

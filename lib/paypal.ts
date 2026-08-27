@@ -2,13 +2,13 @@ import { env } from "./env";
 import type { GatewayModeOverride } from "./payment-mode";
 
 /**
- * PayPal Standard Checkout — the backup gateway for cards DOKU declines.
+ * PayPal Standard Checkout — the backup gateway for cards Midtrans declines.
  *
- * DOKU handles the domestic rails and settles IDR, but rejects certain cards.
- * PayPal is a different rail entirely — its own global acquiring plus PayPal
- * balance — so it is the option most likely to accept a card an Indonesian
- * acquirer turns down. The customer pays through PayPal's hosted page, so no
- * card data reaches us.
+ * Midtrans handles the domestic rails and settles IDR, but rejects certain
+ * cards. PayPal is a different rail entirely — its own global acquiring plus
+ * PayPal balance — so it is the option most likely to accept a card an
+ * Indonesian acquirer turns down. The customer pays through PayPal's hosted
+ * page, so no card data reaches us.
  *
  * THE CURRENCY CONSTRAINT: PayPal does not settle IDR. Every PayPal payment is
  * therefore cross-currency — the booking's IDR total stays authoritative and we
@@ -18,7 +18,7 @@ import type { GatewayModeOverride } from "./payment-mode";
  *
  * MOCK MODE: when PAYPAL_CLIENT_ID is absent or starts with "test_mock_" every
  * call returns a dummy order that the frontend routes to the built-in dummy
- * /checkout flow, matching how lib/doku.ts degrades.
+ * /checkout flow, matching how lib/midtrans.ts degrades.
  *
  * Docs: https://developer.paypal.com/docs/api/orders/v2/
  * Webhooks: https://developer.paypal.com/api/rest/webhooks/rest/
