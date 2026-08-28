@@ -537,6 +537,7 @@ model PlatformConfig {
   // redeploy. See lib/payment-mode.ts.
   midtransMode      GatewayMode @default(ENV)
   paypalMode        GatewayMode @default(ENV)
+  dokuMode          GatewayMode? // Legacy DOKU gateway field, retained for data preservation
   serviceFeeType    DiscountType?
   serviceFeeValue   Decimal  @default(0) @db.Decimal(12, 2)
   adultMultiplier   Decimal  @default(1) @db.Decimal(5, 4)
