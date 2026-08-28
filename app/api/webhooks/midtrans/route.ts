@@ -5,6 +5,8 @@ import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
 import { notifyPaymentReceived } from "@/lib/booking-notifications";
 import { normalizePaymentMethod } from "@/lib/psp";
 import {
+  bookingReferenceFromOrderId,
+  fetchTransactionStatus,
   readNotification,
   verifyMidtransNotification,
 } from "@/lib/midtrans";
@@ -14,8 +16,11 @@ import {
  *
  * Midtrans POSTs a signed payload when a payment settles. We recompute the
  * signature_key (SHA-512 over order_id + status_code + gross_amount + server
- * key), then converge on `recordPaymentAwaitingConfirmation`, which is
- * idempotent, so a redelivered notification cannot re-notify the customer.
+ * key), then re-read the transaction from Midtrans before treating money as
+ * received — that signature does not cover `transaction_status`, so the body
+ * alone cannot be trusted to say "paid". From there we converge on
+ * `recordPaymentAwaitingConfirmation`, which is idempotent, so a redelivered
+ * notification cannot re-notify the customer.
  *
  * Settling money does not issue a boarding pass: the booking parks in
  * AWAITING_CONFIRMATION until an admin has rung the operator. See
@@ -49,19 +54,29 @@ export async function POST(req: NextRequest) {
   }
 
   const notification = readNotification(payload);
-  const reference = notification.orderId;
-  if (!reference) {
+  if (!notification.orderId) {
     // Nothing to correlate against — ack so Midtrans stops retrying.
     return NextResponse.json({ ok: true, ignored: true });
   }
+  // Retries carry a counter on the order id; the booking is the prefix.
+  const reference = bookingReferenceFromOrderId(notification.orderId);
 
-  if (!notification.success) {
-    // A failed or pending attempt is not terminal: the hold timer still runs
-    // and the customer may retry, so the booking status is left alone. But it
-    // is recorded — an unrecorded decline is invisible, and these are what tell
-    // us whether the PayPal backup is actually recovering those customers.
+  if (notification.declined) {
+    // A decline is not terminal for the booking: the hold timer still runs and
+    // the customer may retry, so the booking status is left alone. But it is
+    // recorded — an unrecorded decline is invisible, and these are what tell us
+    // whether the PayPal backup is actually recovering those customers.
     await recordFailedAttempt(reference, notification, payload);
     return NextResponse.json({ ok: true, recorded: notification.status });
+  }
+
+  if (!notification.success) {
+    // In flight, not failed: `pending` fires as soon as a VA number is issued,
+    // which is how every bank transfer starts, and a card `capture` can sit at
+    // `challenge` awaiting fraud review. Ack without touching the payment —
+    // recording a decline here would tell a customer looking at their VA
+    // number that the payment had failed.
+    return NextResponse.json({ ok: true, pending: notification.status });
   }
 
   const eventType = "payment.success";
@@ -90,11 +105,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
+  // The signature covers order_id, status_code and gross_amount — not
+  // transaction_status. Ask Midtrans directly rather than believing a body
+  // that says it was paid, and use that answer for everything below.
+  const confirmedPayload = await fetchTransactionStatus(notification.orderId);
+  if (!confirmedPayload) {
+    // Unconfirmable, not refused. 500 so Midtrans redelivers rather than us
+    // silently dropping a payment that may well be real.
+    console.error(
+      `[midtrans-webhook] could not confirm ${notification.orderId} with Midtrans`,
+    );
+    return NextResponse.json(
+      { ok: false, error: "Could not confirm transaction" },
+      { status: 500 },
+    );
+  }
+
+  const confirmed = readNotification(confirmedPayload);
+  if (!confirmed.success) {
+    console.error(
+      `[midtrans-webhook] ${reference} claimed ${notification.status} but Midtrans reports ${confirmed.status}`,
+    );
+    return NextResponse.json(
+      { ok: false, error: "Transaction is not settled" },
+      { status: 409 },
+    );
+  }
+
   // Amount integrity: never confirm a booking on a mismatched paid amount.
-  // The signature already covers the body, but this catches a stale or
-  // re-created order carrying a different total.
-  if (notification.amount !== null) {
-    const paid = Math.round(notification.amount);
+  // Catches a stale or re-created order carrying a different total.
+  if (confirmed.amount !== null) {
+    const paid = Math.round(confirmed.amount);
     const owed = Math.round(Number(booking.totalAmount));
     if (paid !== owed) {
       console.error(
@@ -112,7 +153,9 @@ export async function POST(req: NextRequest) {
       provider: "midtrans",
       eventType,
       externalRef: reference,
-      rawPayload: payload as never,
+      // The confirmed payload, not the posted one: this is the record of what
+      // Midtrans itself says happened.
+      rawPayload: confirmedPayload as never,
       status: "PROCESSING",
       attempts: 1,
       lastAttemptAt: new Date(),
@@ -125,10 +168,10 @@ export async function POST(req: NextRequest) {
     // ticket a customer who has already paid.
     let method: PaymentMethod = PaymentMethod.BANK_TRANSFER;
     try {
-      method = normalizePaymentMethod(notification.paymentType ?? "BANK_TRANSFER");
+      method = normalizePaymentMethod(confirmed.paymentType ?? "BANK_TRANSFER");
     } catch {
       console.warn(
-        `[midtrans-webhook] unknown payment type ${notification.paymentType} for ${reference}`,
+        `[midtrans-webhook] unknown payment type ${confirmed.paymentType} for ${reference}`,
       );
     }
 
@@ -136,13 +179,13 @@ export async function POST(req: NextRequest) {
       bookingId: booking.id,
       paidAt: new Date(),
       method,
-      gatewayReference: notification.transactionId ?? reference,
+      gatewayReference: confirmed.transactionId ?? notification.orderId,
     });
 
     await prisma.payment.update({
       where: { bookingId: booking.id },
       data: {
-        rawWebhookData: payload as never,
+        rawWebhookData: confirmedPayload as never,
         // Clear any earlier decline: this booking is paid, and a stale reason
         // would keep the retry prompt showing on a paid booking.
         failedReason: null,

@@ -34,6 +34,22 @@ export class MidtransNotConfiguredError extends Error {
 
 const SNAP_PATH = "/snap/v1/transactions";
 
+/**
+ * Separates the booking reference from the retry counter in an order id.
+ *
+ * Midtrans will not charge twice against one order_id, and a customer whose
+ * card was declined has to be able to try again. Snap does not catch the reuse
+ * when the token is created — it mints a second token happily and the charge
+ * then fails with a 406 once the customer has picked a payment method, so a
+ * reused id looks fine here and breaks in front of the customer.
+ *
+ * A tilde is the only safe separator: order ids allow `-`, `_`, `.` and `~`,
+ * the booking reference already uses `-`, and its random suffix can be all
+ * digits (`BK-2026-05-234567`), so stripping a trailing `-N` would eat part of
+ * a legitimate reference.
+ */
+const ATTEMPT_SEPARATOR = "~";
+
 /** Path Midtrans POSTs notifications to; used in docs and diagnostics. */
 export const NOTIFICATION_PATH = "/api/webhooks/midtrans";
 
@@ -120,7 +136,7 @@ export async function createCheckout(
 ): Promise<CreateCheckoutResult> {
   if (isMidtransMock()) {
     return {
-      paymentUrl: `/checkout/${params.orderId}`,
+      paymentUrl: `/checkout/${bookingReferenceFromOrderId(params.orderId)}`,
       orderId: params.orderId,
       sessionId: null,
     };
@@ -162,8 +178,11 @@ export async function createCheckout(
   });
   const text = await res.text();
   if (!res.ok) {
+    const hint = /has already been taken|conflict/i.test(text)
+      ? ` — order_id ${params.orderId} already exists at Midtrans; a retry needs a fresh counter (see nextOrderId).`
+      : "";
     throw new Error(
-      `MIDTRANS ${baseUrl()}${SNAP_PATH} ${res.status}: ${text.slice(0, 500)}`,
+      `MIDTRANS ${baseUrl()}${SNAP_PATH} ${res.status}: ${text.slice(0, 500)}${hint}`,
     );
   }
 
@@ -181,6 +200,41 @@ export async function createCheckout(
     orderId: params.orderId,
     sessionId: json.token ?? null,
   };
+}
+
+// ─── Order ids ──────────────────────────────────────────────────────────────
+
+/**
+ * Strip the retry counter off an order id to get back the booking reference.
+ * Order ids that were never suffixed pass through unchanged.
+ */
+export function bookingReferenceFromOrderId(orderId: string): string {
+  const i = orderId.indexOf(ATTEMPT_SEPARATOR);
+  return i < 0 ? orderId : orderId.slice(0, i);
+}
+
+/**
+ * The order id for the next attempt on a booking.
+ *
+ * Derived from the previously stored reference rather than a new column: that
+ * reference already records which attempt is outstanding.
+ */
+export function nextOrderId(
+  bookingReference: string,
+  previousOrderId?: string | null,
+): string {
+  if (!previousOrderId) return bookingReference;
+  if (bookingReferenceFromOrderId(previousOrderId) !== bookingReference) {
+    // A reference from another booking (or another gateway) says nothing about
+    // attempts on this one. Start over.
+    return bookingReference;
+  }
+  const suffix = previousOrderId.slice(
+    bookingReference.length + ATTEMPT_SEPARATOR.length,
+  );
+  const attempt = suffix ? Number(suffix) : 1;
+  const next = Number.isInteger(attempt) && attempt >= 1 ? attempt + 1 : 2;
+  return `${bookingReference}${ATTEMPT_SEPARATOR}${next}`;
 }
 
 /**
@@ -248,6 +302,60 @@ export function verifyMidtransNotification(args: {
   }
 }
 
+// ─── Authoritative status lookup ────────────────────────────────────────────
+
+/** Core API host — status lookups and refunds, as opposed to the Snap host. */
+function apiBaseUrl(): string {
+  return effectiveProduction()
+    ? "https://api.midtrans.com"
+    : "https://api.sandbox.midtrans.com";
+}
+
+/**
+ * Ask Midtrans what actually happened to an order.
+ *
+ * The signature covers only order_id, status_code and gross_amount —
+ * `transaction_status` is NOT signed. So a captured `pending` notification
+ * (status_code 201) can be replayed with the status flipped to `settlement`
+ * and it still verifies. That is not hypothetical here: the droplet serves
+ * plain HTTP until APP_DOMAIN is set, which puts notifications on the wire in
+ * the clear.
+ *
+ * The status endpoint answers over an authenticated channel and returns the
+ * same field names as a notification, so `readNotification` reads its response
+ * directly. Returns null when no answer can be obtained — callers must treat
+ * that as "not confirmed", never as success.
+ */
+export async function fetchTransactionStatus(
+  orderId: string,
+): Promise<Record<string, unknown> | null> {
+  const serverKey = env.MIDTRANS_SERVER_KEY;
+  if (!serverKey) return null;
+
+  try {
+    const res = await fetch(
+      `${apiBaseUrl()}/v2/${encodeURIComponent(orderId)}/status`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Basic ${Buffer.from(`${serverKey}:`).toString("base64")}`,
+        },
+      },
+    );
+    const text = await res.text();
+    if (!text) return null;
+    const json = JSON.parse(text) as Record<string, unknown>;
+    // Midtrans answers 200 with the real outcome in status_code, so a 404
+    // ("Transaction doesn't exist") arrives as an ordinary response body.
+    if (json.status_code === "404" || json.status_code === "401") return null;
+    return json;
+  } catch (err) {
+    console.error(`[midtrans] status lookup failed for ${orderId}:`, err);
+    return null;
+  }
+}
+
 /** Payment states Midtrans reports on a notification. */
 export type MidtransNotification = {
   orderId: string | null;
@@ -255,6 +363,13 @@ export type MidtransNotification = {
   status: string;
   /** True only for a settled payment; anything else must not issue tickets. */
   success: boolean;
+  /**
+   * True only for a terminally failed attempt. Distinct from `!success`:
+   * Midtrans fires a `pending` notification the moment a VA number is issued,
+   * which is the normal first step of a bank transfer. Treating that as a
+   * decline tells a customer holding a live VA that their payment failed.
+   */
+  declined: boolean;
   amount: number | null;
   /** payment_type verbatim (bank_transfer, qris, credit_card, …). */
   paymentType: string | null;
@@ -269,6 +384,9 @@ export type MidtransNotification = {
  * Midtrans reports a wide surface of states; only a payment that actually
  * settled counts as success. Cards additionally carry a fraud_status that must
  * be `accept` (or absent) — a `challenge` is not money in the bank yet.
+ *
+ * Failure is reported separately from `!success` because most non-success
+ * states are still in flight: see `declined`.
  */
 export function readNotification(
   payload: Record<string, unknown>,
@@ -282,11 +400,20 @@ export function readNotification(
   const success =
     (status === "capture" || status === "settlement") && fraudAccepted;
 
+  // Terminal failures only. `pending` (VA issued, awaiting transfer),
+  // `authorize` and a `capture` held at `challenge` are all still live, and
+  // `refund` / `partial_refund` are bookkeeping on a payment that succeeded.
+  const declined =
+    status === "deny" ||
+    status === "cancel" ||
+    status === "expire" ||
+    status === "failure";
+
   const rawAmount = payload.gross_amount;
   const amount =
     rawAmount === undefined ? null : Number(String(rawAmount).replace(/[^\d.]/g, ""));
 
-  const failureReason = !success
+  const failureReason = declined
     ? (payload.status_message
         ? String(payload.status_message)
         : status) || null
@@ -296,6 +423,7 @@ export function readNotification(
     orderId: payload.order_id ? String(payload.order_id) : null,
     status,
     success,
+    declined,
     amount: amount !== null && Number.isFinite(amount) ? amount : null,
     paymentType: payload.payment_type ? String(payload.payment_type) : null,
     transactionId: payload.transaction_id ? String(payload.transaction_id) : null,

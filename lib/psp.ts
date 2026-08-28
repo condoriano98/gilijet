@@ -20,6 +20,7 @@ import {
   createCheckout,
   isMidtransConfigured,
   isMidtransMock,
+  nextOrderId,
   type CreateCheckoutResult,
 } from "./midtrans";
 import {
@@ -44,6 +45,12 @@ export function isAnyPSPConfigured(): boolean {
  * Open a Midtrans Snap checkout for a booking.  Called from the pay page server
  * action. Persists the order id as the gateway reference so the notification
  * can correlate back to this booking later.
+ *
+ * A retry after a decline cannot reuse the bare booking reference: Snap issues
+ * the token happily and then rejects the charge with a 406 once the customer
+ * has picked a method, so `nextOrderId` counts the attempt. Only a Midtrans
+ * reference counts as a prior attempt; a leftover PayPal order id would
+ * otherwise be read as one.
  */
 export async function startMidtransCheckout(
   bookingReference: string,
@@ -61,8 +68,13 @@ export async function startMidtransCheckout(
     throw new Error("Booking is no longer awaiting payment");
   }
 
+  const previousOrderId =
+    booking.payment?.gatewayProvider === PaymentProvider.MIDTRANS
+      ? booking.payment.gatewayReference
+      : null;
+
   const result = await createCheckout({
-    orderId: booking.bookingReference,
+    orderId: nextOrderId(bookingReference, previousOrderId),
     amount: Math.round(Number(booking.totalAmount)),
     payerName: booking.customerName,
     payerEmail: booking.customerEmail,

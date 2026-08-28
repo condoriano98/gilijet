@@ -229,3 +229,171 @@ describe("normalizePaymentMethod against Midtrans payment types", () => {
     expect(normalizePaymentMethod("cstore")).toBe("BANK_TRANSFER");
   });
 });
+describe("in-flight states are not declines", () => {
+  /**
+   * `pending` is how every bank transfer starts — Midtrans fires it the moment
+   * a VA number is issued. Recording that as a decline sets Payment.failedReason
+   * and puts "your last payment did not go through" in front of a customer
+   * holding a perfectly good VA.
+   */
+  it("does not treat a pending VA notification as failed", async () => {
+    const { readNotification } = await loadMidtrans();
+    const n = readNotification({
+      transaction_status: "pending",
+      status_code: "201",
+      payment_type: "bank_transfer",
+      status_message: "Success, Bank Transfer transaction is created",
+    });
+    expect(n.success).toBe(false);
+    expect(n.declined).toBe(false);
+    expect(n.failureReason).toBeNull();
+  });
+
+  it("does not treat a card held for fraud review as failed", async () => {
+    const { readNotification } = await loadMidtrans();
+    const n = readNotification({
+      transaction_status: "capture",
+      fraud_status: "challenge",
+      payment_type: "credit_card",
+    });
+    expect(n.success).toBe(false);
+    expect(n.declined).toBe(false);
+  });
+
+  it.each(["deny", "cancel", "expire", "failure"])(
+    "treats %s as a terminal decline",
+    async (status) => {
+      const { readNotification } = await loadMidtrans();
+      const n = readNotification({ transaction_status: status });
+      expect(n.success).toBe(false);
+      expect(n.declined).toBe(true);
+      expect(n.failureReason).toBe(status);
+    },
+  );
+});
+
+describe("order ids", () => {
+  const REF = "BK-2026-05-A4C9F1";
+
+  it("uses the bare booking reference for a first attempt", async () => {
+    const { nextOrderId } = await loadMidtrans();
+    expect(nextOrderId(REF, null)).toBe(REF);
+  });
+
+  it("counts up on every retry, because a reused id fails at charge time", async () => {
+    const { nextOrderId } = await loadMidtrans();
+    const second = nextOrderId(REF, REF);
+    expect(second).toBe(`${REF}~2`);
+    expect(nextOrderId(REF, second)).toBe(`${REF}~3`);
+  });
+
+  it("ignores a reference belonging to another booking or gateway", async () => {
+    const { nextOrderId } = await loadMidtrans();
+    expect(nextOrderId(REF, "5XY12345PP678901Z")).toBe(REF);
+  });
+
+  it("recovers the booking reference from a suffixed order id", async () => {
+    const { bookingReferenceFromOrderId } = await loadMidtrans();
+    expect(bookingReferenceFromOrderId(`${REF}~3`)).toBe(REF);
+    expect(bookingReferenceFromOrderId(REF)).toBe(REF);
+  });
+
+  it("does not mistake an all-digit reference suffix for a retry counter", async () => {
+    const { bookingReferenceFromOrderId, nextOrderId } = await loadMidtrans();
+    // The reference alphabet includes 2-9, so this is a real reference.
+    // Splitting on the last dash would truncate it to `BK-2026-05`.
+    expect(bookingReferenceFromOrderId("BK-2026-05-234567")).toBe("BK-2026-05-234567");
+    expect(nextOrderId("BK-2026-05-234567", "BK-2026-05-234567")).toBe(
+      "BK-2026-05-234567~2",
+    );
+  });
+});
+
+describe("fetchTransactionStatus", () => {
+  /**
+   * The signature covers order_id, status_code and gross_amount only. A
+   * captured `pending` notification replayed with the status flipped to
+   * `settlement` therefore verifies, so the webhook re-reads the transaction
+   * over the authenticated channel instead of believing the body.
+   */
+  it("a forged settlement still passes signature verification", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", SERVER_KEY);
+    const { verifyMidtransNotification, readNotification } = await loadMidtrans();
+    const payload: Record<string, unknown> = {
+      order_id: "GLJ-1",
+      status_code: "201",
+      gross_amount: "650000.00",
+      // Outside the signature — an attacker edits this freely.
+      transaction_status: "settlement",
+      signature_key: expectedSignature({
+        orderId: "GLJ-1",
+        statusCode: "201",
+        grossAmount: "650000.00",
+      }),
+    };
+    expect(verifyMidtransNotification({ payload })).toBe(true);
+    expect(readNotification(payload).success).toBe(true);
+  });
+
+  it("reads the status response, which carries notification field names", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", SERVER_KEY);
+    const { fetchTransactionStatus, readNotification } = await loadMidtrans();
+    const fetchMock = vi.fn(async (_url: string) =>
+      new Response(
+        JSON.stringify({
+          status_code: "201",
+          order_id: "GLJ-1",
+          gross_amount: "650000.00",
+          transaction_status: "pending",
+          payment_type: "bank_transfer",
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload = await fetchTransactionStatus("GLJ-1");
+    expect(payload).not.toBeNull();
+    // The truth that overrides a forged body.
+    expect(readNotification(payload!).success).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.sandbox.midtrans.com/v2/GLJ-1/status",
+      expect.objectContaining({ method: "GET" }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("returns null — never a success — when the order is unknown or the key is refused", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", SERVER_KEY);
+    const { fetchTransactionStatus } = await loadMidtrans();
+    for (const code of ["404", "401"]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(JSON.stringify({ status_code: code }))),
+      );
+      expect(await fetchTransactionStatus("GLJ-1"), code).toBeNull();
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it("returns null rather than throwing when the lookup itself fails", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", SERVER_KEY);
+    const { fetchTransactionStatus } = await loadMidtrans();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("ECONNRESET");
+      }),
+    );
+    expect(await fetchTransactionStatus("GLJ-1")).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("does not call out at all when no server key is configured", async () => {
+    const { fetchTransactionStatus } = await loadMidtrans();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchTransactionStatus("GLJ-1")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});
