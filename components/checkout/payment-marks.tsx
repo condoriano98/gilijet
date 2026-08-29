@@ -21,14 +21,15 @@ export function PaypalMark({ className = "h-5 w-5" }: { className?: string }) {
 }
 
 /**
- * What the DOKU page will offer, shown before the customer commits to leaving.
+ * What the Midtrans page will offer, shown before the customer commits to
+ * leaving.
  *
- * Deliberately the payment *methods* rather than a DOKU wordmark: an
+ * Deliberately the payment *methods* rather than a Midtrans wordmark: an
  * Indonesian customer recognises BCA and QRIS instantly and the acquirer not at
  * all, and this is the row that tells them the local options live behind the
- * blue button rather than the PayPal one.
+ * button rather than the PayPal one.
  */
-const DOKU_METHODS = [
+const MIDTRANS_METHODS = [
   { icon: Building2, label: "Bank transfer" },
   { icon: QrCode, label: "QRIS" },
   { icon: Wallet, label: "E-wallet" },
@@ -36,10 +37,10 @@ const DOKU_METHODS = [
   { icon: Store, label: "Minimarket" },
 ] as const;
 
-export function DokuMethodMarks() {
+export function MidtransMethodMarks() {
   return (
     <ul className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
-      {DOKU_METHODS.map(({ icon: Icon, label }) => (
+      {MIDTRANS_METHODS.map(({ icon: Icon, label }) => (
         <li
           key={label}
           className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600"

@@ -320,20 +320,20 @@ export async function setOperatorCommission(formData: FormData) {
 // ---------- payment gateway modes ----------
 
 const paymentModeSchema = z.object({
-  dokuMode: z.enum(["ENV", "SANDBOX", "LIVE"]),
+  midtransMode: z.enum(["ENV", "SANDBOX", "LIVE"]),
   paypalMode: z.enum(["ENV", "SANDBOX", "LIVE"]),
 });
 
 /**
  * Runtime sandbox/live override for the payment gateways, stored on the
  * PlatformConfig row so staging can be pinned to a host without a redeploy.
- * ENV restores the DOKU_IS_PRODUCTION / PAYPAL_IS_PRODUCTION env behaviour.
+ * ENV restores the MIDTRANS_IS_PRODUCTION / PAYPAL_IS_PRODUCTION env behaviour.
  * See lib/payment-mode.ts.
  */
 export async function savePaymentModes(formData: FormData) {
   const session = await requireSuperAdmin();
   const parsed = paymentModeSchema.safeParse({
-    dokuMode: String(formData.get("dokuMode") ?? "ENV").toUpperCase(),
+    midtransMode: String(formData.get("midtransMode") ?? "ENV").toUpperCase(),
     paypalMode: String(formData.get("paypalMode") ?? "ENV").toUpperCase(),
   });
   if (!parsed.success) {
@@ -343,7 +343,7 @@ export async function savePaymentModes(formData: FormData) {
   }
   const d = parsed.data;
   const values = {
-    dokuMode: d.dokuMode,
+    midtransMode: d.midtransMode,
     paypalMode: d.paypalMode,
     updatedBy: session.email,
   };
@@ -358,7 +358,7 @@ export async function savePaymentModes(formData: FormData) {
     action: "payment_modes_updated",
     userId: session.sub,
     userRole: "ADMIN",
-    newState: { dokuMode: d.dokuMode, paypalMode: d.paypalMode },
+    newState: { midtransMode: d.midtransMode, paypalMode: d.paypalMode },
   });
   revalidatePath("/admin/console/payments");
   redirect("/admin/console/payments?ok=1");

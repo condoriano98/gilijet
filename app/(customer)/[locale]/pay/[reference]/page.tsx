@@ -4,10 +4,10 @@ import { prisma } from "@/lib/db";
 import {
   capturePaypalOrder,
   quotePaypalIfAvailable,
-  startDokuCheckout,
+  startMidtransCheckout,
   startPaypalOrder,
 } from "@/lib/psp";
-import { isDokuMock, pingDoku } from "@/lib/doku";
+import { isMidtransMock, pingMidtrans } from "@/lib/midtrans";
 import { isPaypalLive, paypalHost } from "@/lib/paypal";
 import { applyGatewayModeOverrides } from "@/lib/payment-mode";
 import { env } from "@/lib/env";
@@ -24,10 +24,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { PaymentCountdown } from "@/components/customer/payment-countdown";
-import { DokuRedirect } from "@/components/checkout/doku-redirect";
+import { MidtransRedirect } from "@/components/checkout/midtrans-redirect";
 import { PaypalButton } from "@/components/checkout/paypal-button";
 
-/** Server action: open a DOKU checkout and send the customer to it. */
+/** Server action: open a Midtrans checkout and send the customer to it. */
 async function startPaymentAction(formData: FormData) {
   "use server";
   const reference = String(formData.get("reference") ?? "");
@@ -39,10 +39,10 @@ async function startPaymentAction(formData: FormData) {
 
   let paymentUrl: string;
   try {
-    paymentUrl = (await startDokuCheckout(reference)).paymentUrl;
+    paymentUrl = (await startMidtransCheckout(reference)).paymentUrl;
   } catch (err) {
     if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
-    console.error(`[pay] could not open DOKU checkout for ${reference}:`, err);
+    console.error(`[pay] could not open Midtrans checkout for ${reference}:`, err);
     redirect(`/pay/${reference}?error=gateway`);
   }
   redirect(paymentUrl);
@@ -64,7 +64,7 @@ async function startPaypalAction(formData: FormData) {
   } catch (err) {
     if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
     // The rate can go stale between rendering the button and clicking it.
-    // Send them back to DOKU rather than charging a guessed rate.
+    // Send them back to Midtrans rather than charging a guessed rate.
     console.error(`[pay] could not open PayPal order for ${reference}:`, err);
     redirect(`/pay/${reference}?error=paypal`);
   }
@@ -117,8 +117,8 @@ export default async function PayPage({
     paypalError = "PayPal payment was cancelled. You can try again.";
   }
 
-  // No real DOKU keys → the built-in dummy checkout.
-  if (isDokuMock()) redirect(`/checkout/${reference}`);
+  // No real Midtrans keys → the built-in dummy checkout.
+  if (isMidtransMock()) redirect(`/checkout/${reference}`);
 
   const amountLabel = formatIDR(Number(booking.totalAmount));
 
@@ -131,14 +131,15 @@ export default async function PayPage({
   // real sailing while no money moves, so say so before anyone pays.
   const paypalIsTestMode = Boolean(paypalQuote) && paypalHost() === "sandbox";
 
-  // Same warning for DOKU: real keys pointed at the sandbox host collect test
-  // payments that would still confirm a booking.
-  const doku = pingDoku();
-  const dokuIsTestMode = !isDokuMock() && doku.mode === "sandbox";
+  // Same warning for Midtrans: real keys pointed at the sandbox host collect
+  // test payments that would still confirm a booking.
+  const midtrans = pingMidtrans();
+  const midtransIsTestMode = !isMidtransMock() && midtrans.mode === "sandbox";
 
-  // A recorded DOKU decline is exactly why someone would need the backup, so
-  // lead with it rather than leaving them to retry the card that just failed.
-  const dokuDeclined = Boolean(booking.payment?.failedReason);
+  // A recorded Midtrans decline is exactly why someone would need the backup,
+  // so lead with it rather than leaving them to retry the card that just
+  // failed.
+  const midtransDeclined = Boolean(booking.payment?.failedReason);
 
   return (
     <div className="container py-10">
@@ -188,20 +189,20 @@ export default async function PayPage({
                   {paypalError}
                 </p>
               ) : null}
-              {dokuDeclined ? (
+              {midtransDeclined ? (
                 <p className="rounded-md bg-amber-50 p-3 text-center text-xs text-amber-800">
                   Your last payment did not go through. You can try again, or
                   pay by card through PayPal below.
                 </p>
               ) : null}
 
-              {dokuIsTestMode ? (
+              {midtransIsTestMode ? (
                 <p className="rounded-md bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-900">
-                  DOKU is in test mode — no real payment will be taken.
+                  Midtrans is in test mode — no real payment will be taken.
                 </p>
               ) : null}
 
-              <DokuRedirect
+              <MidtransRedirect
                 bookingReference={booking.bookingReference}
                 amountLabel={amountLabel}
                 startAction={startPaymentAction}

@@ -5,24 +5,28 @@ import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
 import { notifyPaymentReceived } from "@/lib/booking-notifications";
 import { normalizePaymentMethod } from "@/lib/psp";
 import {
+  bookingReferenceFromOrderId,
+  fetchTransactionStatus,
   readNotification,
-  readNotificationHeaders,
-  verifyDokuNotification,
-} from "@/lib/doku";
+  verifyMidtransNotification,
+} from "@/lib/midtrans";
 
 /**
- * DOKU HTTP notification endpoint.
+ * Midtrans HTTP notification endpoint.
  *
- * DOKU POSTs a signed JSON body when a payment settles. We recompute the
- * signature over the raw request bytes — re-serialising parsed JSON changes the
- * digest — then converge on `recordPaymentAwaitingConfirmation`, which is
- * idempotent, so a redelivered notification cannot re-notify the customer.
+ * Midtrans POSTs a signed payload when a payment settles. We recompute the
+ * signature_key (SHA-512 over order_id + status_code + gross_amount + server
+ * key), then re-read the transaction from Midtrans before treating money as
+ * received — that signature does not cover `transaction_status`, so the body
+ * alone cannot be trusted to say "paid". From there we converge on
+ * `recordPaymentAwaitingConfirmation`, which is idempotent, so a redelivered
+ * notification cannot re-notify the customer.
  *
  * Settling money does not issue a boarding pass: the booking parks in
  * AWAITING_CONFIRMATION until an admin has rung the operator. See
  * lib/ticket-issuer.ts.
  *
- * Notification path: /api/webhooks/doku
+ * Notification path: /api/webhooks/midtrans
  */
 
 export async function GET() {
@@ -30,42 +34,49 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  // Raw bytes first — the signature covers the original serialization.
   const rawBody = await req.text();
 
-  if (
-    !verifyDokuNotification({
-      headers: readNotificationHeaders(req.headers),
-      rawBody,
-    })
-  ) {
+  let payload: Record<string, unknown>;
+  const contentType = req.headers.get("content-type") ?? "";
+  try {
+    payload = contentType.includes("application/json")
+      ? (JSON.parse(rawBody) as Record<string, unknown>)
+      : Object.fromEntries(new URLSearchParams(rawBody));
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+  }
+
+  if (!verifyMidtransNotification({ payload })) {
     return NextResponse.json(
       { ok: false, error: "Invalid signature" },
       { status: 401 },
     );
   }
 
-  let payload: Record<string, unknown>;
-  try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
-  }
-
   const notification = readNotification(payload);
-  const reference = notification.invoiceNumber;
-  if (!reference) {
-    // Nothing to correlate against — ack so DOKU stops retrying.
+  if (!notification.orderId) {
+    // Nothing to correlate against — ack so Midtrans stops retrying.
     return NextResponse.json({ ok: true, ignored: true });
+  }
+  // Retries carry a counter on the order id; the booking is the prefix.
+  const reference = bookingReferenceFromOrderId(notification.orderId);
+
+  if (notification.declined) {
+    // A decline is not terminal for the booking: the hold timer still runs and
+    // the customer may retry, so the booking status is left alone. But it is
+    // recorded — an unrecorded decline is invisible, and these are what tell us
+    // whether the PayPal backup is actually recovering those customers.
+    await recordFailedAttempt(reference, notification, payload);
+    return NextResponse.json({ ok: true, recorded: notification.status });
   }
 
   if (!notification.success) {
-    // A failed or pending attempt is not terminal: the hold timer still runs
-    // and the customer may retry, so the booking status is left alone. But it
-    // is recorded — an unrecorded decline is invisible, and these are what tell
-    // us whether the PayPal backup is actually recovering those customers.
-    await recordFailedAttempt(reference, notification, payload);
-    return NextResponse.json({ ok: true, recorded: notification.status });
+    // In flight, not failed: `pending` fires as soon as a VA number is issued,
+    // which is how every bank transfer starts, and a card `capture` can sit at
+    // `challenge` awaiting fraud review. Ack without touching the payment —
+    // recording a decline here would tell a customer looking at their VA
+    // number that the payment had failed.
+    return NextResponse.json({ ok: true, pending: notification.status });
   }
 
   const eventType = "payment.success";
@@ -73,7 +84,7 @@ export async function POST(req: NextRequest) {
   // Idempotency: skip if already processed or in-flight.
   const existing = await prisma.webhookEvent.findFirst({
     where: {
-      provider: "doku",
+      provider: "midtrans",
       eventType,
       externalRef: reference,
       status: { in: ["PROCESSED", "PROCESSING"] },
@@ -94,15 +105,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
+  // The signature covers order_id, status_code and gross_amount — not
+  // transaction_status. Ask Midtrans directly rather than believing a body
+  // that says it was paid, and use that answer for everything below.
+  const confirmedPayload = await fetchTransactionStatus(notification.orderId);
+  if (!confirmedPayload) {
+    // Unconfirmable, not refused. 500 so Midtrans redelivers rather than us
+    // silently dropping a payment that may well be real.
+    console.error(
+      `[midtrans-webhook] could not confirm ${notification.orderId} with Midtrans`,
+    );
+    return NextResponse.json(
+      { ok: false, error: "Could not confirm transaction" },
+      { status: 500 },
+    );
+  }
+
+  const confirmed = readNotification(confirmedPayload);
+  if (!confirmed.success) {
+    console.error(
+      `[midtrans-webhook] ${reference} claimed ${notification.status} but Midtrans reports ${confirmed.status}`,
+    );
+    return NextResponse.json(
+      { ok: false, error: "Transaction is not settled" },
+      { status: 409 },
+    );
+  }
+
   // Amount integrity: never confirm a booking on a mismatched paid amount.
-  // The signature already covers the body, but this catches a stale or
-  // re-created invoice carrying a different total.
-  if (notification.amount !== null) {
-    const paid = Math.round(notification.amount);
+  // Catches a stale or re-created order carrying a different total.
+  if (confirmed.amount !== null) {
+    const paid = Math.round(confirmed.amount);
     const owed = Math.round(Number(booking.totalAmount));
     if (paid !== owed) {
       console.error(
-        `[doku-webhook] amount mismatch for ${reference}: paid=${paid} owed=${owed}`,
+        `[midtrans-webhook] amount mismatch for ${reference}: paid=${paid} owed=${owed}`,
       );
       return NextResponse.json(
         { ok: false, error: "Amount mismatch" },
@@ -113,10 +150,12 @@ export async function POST(req: NextRequest) {
 
   const webhookEvent = await prisma.webhookEvent.create({
     data: {
-      provider: "doku",
+      provider: "midtrans",
       eventType,
       externalRef: reference,
-      rawPayload: payload as never,
+      // The confirmed payload, not the posted one: this is the record of what
+      // Midtrans itself says happened.
+      rawPayload: confirmedPayload as never,
       status: "PROCESSING",
       attempts: 1,
       lastAttemptAt: new Date(),
@@ -124,15 +163,15 @@ export async function POST(req: NextRequest) {
   });
 
   try {
-    // DOKU always names a channel; the fallback only covers a malformed
-    // notification, where guessing bank transfer beats refusing to ticket a
-    // customer who has already paid.
+    // Midtrans always names a payment type; the fallback only covers a
+    // malformed notification, where guessing bank transfer beats refusing to
+    // ticket a customer who has already paid.
     let method: PaymentMethod = PaymentMethod.BANK_TRANSFER;
     try {
-      method = normalizePaymentMethod(notification.channelCode ?? "BANK_TRANSFER");
+      method = normalizePaymentMethod(confirmed.paymentType ?? "BANK_TRANSFER");
     } catch {
       console.warn(
-        `[doku-webhook] unknown channel ${notification.channelCode} for ${reference}`,
+        `[midtrans-webhook] unknown payment type ${confirmed.paymentType} for ${reference}`,
       );
     }
 
@@ -140,13 +179,13 @@ export async function POST(req: NextRequest) {
       bookingId: booking.id,
       paidAt: new Date(),
       method,
-      gatewayReference: notification.identifier ?? reference,
+      gatewayReference: confirmed.transactionId ?? notification.orderId,
     });
 
     await prisma.payment.update({
       where: { bookingId: booking.id },
       data: {
-        rawWebhookData: payload as never,
+        rawWebhookData: confirmedPayload as never,
         // Clear any earlier decline: this booking is paid, and a stale reason
         // would keep the retry prompt showing on a paid booking.
         failedReason: null,
@@ -155,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     if (!result.alreadyRecorded) {
       notifyPaymentReceived(booking.id).catch((err) =>
-        console.error("[doku-webhook] notify failed:", err),
+        console.error("[midtrans-webhook] notify failed:", err),
       );
     }
 
@@ -165,7 +204,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: true, status: "awaiting_confirmation" });
   } catch (err) {
-    console.error("[doku-webhook] handler error:", err);
+    console.error("[midtrans-webhook] handler error:", err);
     await prisma.webhookEvent
       .update({
         where: { id: webhookEvent.id },
@@ -187,7 +226,7 @@ export async function POST(req: NextRequest) {
  * switch to a virtual account. Marking the payment failed would misrepresent a
  * booking that is still perfectly payable.
  *
- * externalRef carries DOKU's own transaction id as well as the booking
+ * externalRef carries Midtrans' own transaction id as well as the booking
  * reference, so three retries produce three rows. Keying on the booking alone
  * would dedupe them away and hide exactly the pattern worth seeing.
  */
@@ -196,19 +235,19 @@ async function recordFailedAttempt(
   notification: ReturnType<typeof readNotification>,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const externalRef = notification.identifier
-    ? `${reference}:${notification.identifier}`
+  const externalRef = notification.transactionId
+    ? `${reference}:${notification.transactionId}`
     : reference;
 
   try {
     const already = await prisma.webhookEvent.findFirst({
-      where: { provider: "doku", eventType: "payment.failed", externalRef },
+      where: { provider: "midtrans", eventType: "payment.failed", externalRef },
       select: { id: true },
     });
     if (!already) {
       await prisma.webhookEvent.create({
         data: {
-          provider: "doku",
+          provider: "midtrans",
           eventType: "payment.failed",
           externalRef,
           rawPayload: payload as never,
@@ -236,8 +275,8 @@ async function recordFailedAttempt(
       });
     }
   } catch (err) {
-    // Never let bookkeeping turn into a 500 — DOKU would retry the
+    // Never let bookkeeping turn into a 500 — Midtrans would retry the
     // notification, and there is nothing here worth retrying.
-    console.error(`[doku-webhook] could not record decline for ${reference}:`, err);
+    console.error(`[midtrans-webhook] could not record decline for ${reference}:`, err);
   }
 }

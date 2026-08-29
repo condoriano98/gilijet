@@ -1,5 +1,5 @@
 import { requireSuperAdmin } from "@/lib/auth";
-import { pingDoku, isDokuLive, NOTIFICATION_PATH } from "@/lib/doku";
+import { pingMidtrans, isMidtransLive, NOTIFICATION_PATH } from "@/lib/midtrans";
 import {
   pingPaypal,
   isPaypalLive,
@@ -53,7 +53,7 @@ export default async function DiagnosticsPage() {
   // reports the host checkout will actually use (see lib/payment-mode.ts).
   await applyGatewayModeOverrides();
 
-  const doku = pingDoku();
+  const midtrans = pingMidtrans();
   const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
 
   // Run the same call the pay page makes, so this page goes red exactly when
@@ -76,9 +76,9 @@ export default async function DiagnosticsPage() {
   const paypalAuthenticates = await paypalCredentialsWork();
   const paypal = pingPaypal();
 
-  // Sandbox PayPal alongside live DOKU means a booking can be "paid" in test
-  // money and still get a real ticket. That is worse than PayPal being off.
-  const paypalTestModeOnLiveSite = paypal.mode === "sandbox" && isDokuLive();
+  // Sandbox PayPal alongside live Midtrans means a booking can be "paid" in
+  // test money and still get a real ticket. That is worse than PayPal being off.
+  const paypalTestModeOnLiveSite = paypal.mode === "sandbox" && isMidtransLive();
 
   const paypalRows: Row[] = [
     {
@@ -101,7 +101,7 @@ export default async function DiagnosticsPage() {
       detail: !paypal.modeProven
         ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`
         : paypalTestModeOnLiveSite
-          ? "sandbox — takes NO real money, but DOKU is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing."
+          ? "sandbox — takes NO real money, but Midtrans is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing."
           : `${paypal.mode} (confirmed by PayPal)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`,
     },
     { label: `FX rate (${currency})`, ok: fxOk, detail: fxDetail },
@@ -121,22 +121,22 @@ export default async function DiagnosticsPage() {
 
   const rows: Row[] = [
     {
-      label: "Client ID",
-      ok: Boolean(doku.clientIdPrefix),
-      detail: doku.clientIdPrefix || "not set",
+      label: "Server key",
+      ok: Boolean(midtrans.serverKeyPrefix),
+      detail: midtrans.serverKeyPrefix || "not set",
     },
     {
-      label: "Secret key",
-      ok: doku.secretPresent,
-      detail: doku.secretPresent
+      label: "Client key",
+      ok: midtrans.secretPresent,
+      detail: midtrans.secretPresent
         ? "set"
         : "not set — requests cannot be signed",
     },
-    { label: "Mode", ok: doku.mode === "live", detail: doku.mode === "mock" ? "mock (no keys set)" : `${doku.mode}${doku.override !== "ENV" ? ` (console override: ${doku.override})` : " (from DOKU_IS_PRODUCTION)"}` },
+    { label: "Mode", ok: midtrans.mode === "live", detail: midtrans.mode === "mock" ? "mock (no keys set)" : `${midtrans.mode}${midtrans.override !== "ENV" ? ` (console override: ${midtrans.override})` : " (from MIDTRANS_IS_PRODUCTION)"}` },
     {
       label: "Takes real payments",
-      ok: isDokuLive(),
-      detail: isDokuLive()
+      ok: isMidtransLive(),
+      detail: isMidtransLive()
         ? "yes"
         : "no — checkout falls back to the dummy flow",
     },
@@ -154,10 +154,10 @@ export default async function DiagnosticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>DOKU Checkout</CardTitle>
+          <CardTitle>Midtrans Snap</CardTitle>
           <CardDescription>
-            Both credentials are required: the client id identifies us, the
-            secret signs every request and verifies every notification.
+            Both credentials are required: the server key authenticates the
+            checkout request, the client key identifies us to the hosted page.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,9 +187,9 @@ export default async function DiagnosticsPage() {
         <CardHeader>
           <CardTitle>Notification endpoint</CardTitle>
           <CardDescription>
-            Register this exact URL in the DOKU dashboard. DOKU signs the
-            request path, so a mismatch here fails verification even with the
-            right secret.
+            Register this exact URL in the Midtrans dashboard. Midtrans signs
+            the payload, so a mismatch here fails verification even with the
+            right server key.
           </CardDescription>
         </CardHeader>
         <CardContent>

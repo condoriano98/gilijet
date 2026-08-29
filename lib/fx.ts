@@ -85,7 +85,7 @@ export function formatWithDisplay(
  *
  * 72h, not 24h: refresh-fx runs daily on Vercel Hobby, so a 24h limit leaves
  * zero margin and one missed cron run would silently stop PayPal being offered
- * — precisely when a customer whose card DOKU declined needs it. Three days
+ * — precisely when a customer whose card Midtrans declined needs it. Three days
  * tolerates two consecutive failures and still refuses a genuinely stale rate.
  */
 export const MAX_RATE_AGE_MS = 72 * 60 * 60 * 1000;

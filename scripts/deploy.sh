@@ -127,20 +127,22 @@ ensure_key() {
 ensure_key CRON_SECRET "\$(openssl rand -hex 32)"
 
 # Set this to a domain whose A record points here and Caddy will serve HTTPS
-# for it automatically. Left blank the box stays on plain HTTP, which DOKU
+# for it automatically. Left blank the box stays on plain HTTP, which Midtrans
 # accepts but which sends payment notifications in the clear.
 ensure_key APP_DOMAIN "${APP_DOMAIN:-}"
 
-# APP_BASE_URL must follow the domain: it is what we hand DOKU as the callback
-# and notification base, so a stale http:// value here breaks payment silently.
+# APP_BASE_URL must follow the domain: it is what we hand Midtrans as the
+# callback and notification base, so a stale http:// value here breaks payment
+# silently.
 domain="\$(grep '^APP_DOMAIN=' "${REMOTE_ENV}" | cut -d= -f2-)"
 if [ -n "\$domain" ]; then
   sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=https://\$domain|" "${REMOTE_ENV}"
 fi
 
-ensure_key DOKU_CLIENT_ID ""
-ensure_key DOKU_SECRET_KEY ""
-ensure_key DOKU_IS_PRODUCTION "false"
+ensure_key MIDTRANS_SERVER_KEY ""
+ensure_key MIDTRANS_CLIENT_KEY ""
+ensure_key MIDTRANS_MERCHANT_ID ""
+ensure_key MIDTRANS_IS_PRODUCTION "false"
 ensure_key PAYPAL_CLIENT_ID ""
 ensure_key PAYPAL_CLIENT_SECRET ""
 ensure_key PAYPAL_WEBHOOK_ID ""
@@ -163,8 +165,8 @@ set -euo pipefail
 check() {
   if grep -qE "^\$1=.+" "${REMOTE_ENV}"; then echo "  ✓ \$1"; else echo "  ✗ \$1 (mock)"; fi
 }
-check DOKU_CLIENT_ID
-check DOKU_SECRET_KEY
+check MIDTRANS_SERVER_KEY
+check MIDTRANS_CLIENT_KEY
 check PAYPAL_CLIENT_ID
 check PAYPAL_CLIENT_SECRET
 check CRON_SECRET
@@ -178,11 +180,11 @@ if grep -qE '^PAYPAL_CLIENT_ID=.+' "${REMOTE_ENV}" &&
   echo "    sent to the sandbox host. Run 'pnpm paypal:selftest' to see which host"
   echo "    accepts them."
 fi
-if grep -q '^DOKU_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
+if grep -q '^MIDTRANS_IS_PRODUCTION=true' "${REMOTE_ENV}"; then
   base="\$(grep '^APP_BASE_URL=' "${REMOTE_ENV}" | cut -d= -f2-)"
   case "\$base" in
     https://*) ;;
-    *) echo "  ! DOKU_IS_PRODUCTION=true but APP_BASE_URL is \$base — notifications would travel in the clear" ;;
+    *) echo "  ! MIDTRANS_IS_PRODUCTION=true but APP_BASE_URL is \$base — notifications would travel in the clear" ;;
   esac
 fi
 REMOTE

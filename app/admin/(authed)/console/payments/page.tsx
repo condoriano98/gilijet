@@ -1,7 +1,7 @@
 import { requireSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { applyGatewayModeOverrides } from "@/lib/payment-mode";
-import { pingDoku } from "@/lib/doku";
+import { pingMidtrans } from "@/lib/midtrans";
 import { pingPaypal } from "@/lib/paypal";
 import { savePaymentModes } from "../actions";
 import {
@@ -47,10 +47,10 @@ export default async function PaymentsConsolePage({
   const config = await prisma.platformConfig.findUnique({
     where: { id: "default" },
   });
-  const doku = pingDoku();
+  const midtrans = pingMidtrans();
   const paypal = pingPaypal();
 
-  const dokuMode = config?.dokuMode ?? "ENV";
+  const midtransMode = config?.midtransMode ?? "ENV";
   const paypalMode = config?.paypalMode ?? "ENV";
 
   return (
@@ -73,18 +73,19 @@ export default async function PaymentsConsolePage({
           <CardTitle>Payment gateway modes</CardTitle>
           <CardDescription>
             Choose which host each gateway talks to. &ldquo;Follow env
-            vars&rdquo; keeps the DOKU_IS_PRODUCTION / PAYPAL_IS_PRODUCTION
-            behaviour; the other two override it from here, with no redeploy.
-            Saved to the database and read at every checkout.
+            vars&rdquo; keeps the MIDTRANS_IS_PRODUCTION /
+            PAYPAL_IS_PRODUCTION behaviour; the other two override it from
+            here, with no redeploy. Saved to the database and read at every
+            checkout.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={savePaymentModes} className="space-y-6">
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="dokuMode">DOKU Checkout</Label>
-                <Select name="dokuMode" defaultValue={dokuMode}>
-                  <SelectTrigger id="dokuMode">
+                <Label htmlFor="midtransMode">Midtrans Snap</Label>
+                <Select name="midtransMode" defaultValue={midtransMode}>
+                  <SelectTrigger id="midtransMode">
                     <SelectValue placeholder="Choose mode" />
                   </SelectTrigger>
                   <SelectContent>
@@ -97,13 +98,13 @@ export default async function PaymentsConsolePage({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   Effective:{" "}
-                  {doku.mode === "mock"
-                    ? "mock (no DOKU keys set)"
-                    : `${doku.mode} host`}
-                  {doku.override !== "ENV"
+                  {midtrans.mode === "mock"
+                    ? "mock (no Midtrans keys set)"
+                    : `${midtrans.mode} host`}
+                  {midtrans.override !== "ENV"
                     ? " — forced by this console"
-                    : doku.mode !== "mock"
-                      ? " — from DOKU_IS_PRODUCTION"
+                    : midtrans.mode !== "mock"
+                      ? " — from MIDTRANS_IS_PRODUCTION"
                       : ""}
                 </p>
               </div>

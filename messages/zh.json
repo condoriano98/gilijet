@@ -109,7 +109,7 @@
   "payment": {
     "completePayment": "完成付款",
     "amountDue": "应付金额",
-    "redirectNotice": "您将被重定向到DOKU安全结账页面，通过银行转账、银行卡、电子钱包或便利店支付。",
+    "redirectNotice": "您将被重定向到Midtrans安全结账页面，通过银行转账、银行卡、电子钱包或便利店支付。",
     "payAmount": "支付{amount}",
     "newInvoice": "生成新账单",
     "viewStatus": "查看预订状态"
@@ -122,9 +122,9 @@
     "eTicket": "即时电子票",
     "eTicketDesc": "二维码发送到您的邮箱",
     "secure": "安全支付",
-    "secureDesc": "由DOKU提供支持，印尼央行许可网关",
+    "secureDesc": "由Midtrans提供支持，印尼央行许可网关",
     "secureVerified": "安全、已验证、受监管",
-    "paymentsBy": "DOKU支付（印尼央行许可）",
+    "paymentsBy": "Midtrans支付（印尼央行许可）",
     "kycVerified": "所有运营商已通过KYC验证",
     "pdpCompliant": "符合UU PDP",
     "support24": "24小时客户支持"
