@@ -537,7 +537,6 @@ model PlatformConfig {
   // redeploy. See lib/payment-mode.ts.
   dokuMode          GatewayMode @default(ENV)
   paypalMode        GatewayMode @default(ENV)
-  midtransMode      GatewayMode? // Legacy: kept for staging DB compat, can be removed after cleaning the data
   serviceFeeType    DiscountType?
   serviceFeeValue   Decimal  @default(0) @db.Decimal(12, 2)
   adultMultiplier   Decimal  @default(1) @db.Decimal(5, 4)
