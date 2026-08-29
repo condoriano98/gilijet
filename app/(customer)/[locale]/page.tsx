@@ -15,6 +15,7 @@ import {
   getRecentReviews,
   getTrustNumbers,
   getActivePromo,
+  getAvailablePorts,
   TRUST_THRESHOLDS,
 } from "@/lib/home-data";
 import { photoForPort } from "@/lib/destination-photos";
@@ -29,18 +30,6 @@ const ARTICLE_IMAGES = [
 ];
 
 export const revalidate = 600;
-
-const SEED_ORIGINS = [
-  "Sanur",
-  "Padang Bai",
-  "Bangsal",
-  "Nusa Penida",
-  "Nusa Lembongan",
-  "Gili Trawangan",
-  "Lombok",
-  "Labuan Bajo",
-];
-const SEED_DESTINATIONS = SEED_ORIGINS;
 
 const FEATURED_DESTINATIONS = [
   {
@@ -87,7 +76,7 @@ function formatDuration(minutes: number): string {
 export default async function HomePage() {
   const t = await getTranslations();
 
-  const [departures, popularRoutes, reviews, trust, promo] = await Promise.all([
+  const [departures, popularRoutes, reviews, trust, promo, portsByRegion] = await Promise.all([
     getDepartingSoon().catch(() => []),
     getPopularRoutes().catch(() => []),
     getRecentReviews().catch(() => []),
@@ -98,7 +87,11 @@ export default async function HomePage() {
       activeOperators: 0,
     })),
     getActivePromo().catch(() => null),
+    getAvailablePorts().catch(() => []),
   ]);
+
+  // Extract port names for SearchForm (flattened list)
+  const allPorts = portsByRegion.flatMap(group => group.ports.map(p => p.name));
 
   const hasDepartures = departures.length > 0;
   const hasReviews = reviews.length > 0;
@@ -172,7 +165,7 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="flex-1">
-              <SearchForm origins={SEED_ORIGINS} destinations={SEED_DESTINATIONS} />
+              <SearchForm origins={allPorts} destinations={allPorts} portsByRegion={portsByRegion} />
             </div>
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">

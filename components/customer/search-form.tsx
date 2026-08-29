@@ -2,14 +2,18 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, ArrowLeftRight, Search as SearchIcon } from "lucide-react";
+import { useTransition } from "react";
+import { ArrowLeftRight, Search as SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Counter } from "@/components/ui/counter";
+import { GroupedPortSelect } from "@/components/ui/grouped-port-select";
+import type { PortsByRegion } from "@/lib/home-data";
 
 export type SearchFormProps = {
   origins: string[];
   destinations: string[];
+  portsByRegion: PortsByRegion;
   defaultOrigin?: string;
   defaultDestination?: string;
   defaultDate?: string;
@@ -32,12 +36,13 @@ const LABEL = "mb-2 block text-sm font-medium text-slate-500";
 
 export function SearchForm(props: SearchFormProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [tripType, setTripType] = React.useState<"one_way" | "round_trip">(
     props.defaultTripType ?? (props.defaultReturnDate ? "round_trip" : "one_way"),
   );
   const [origin, setOrigin] = React.useState(props.defaultOrigin ?? "");
   const [destination, setDestination] = React.useState(
-    props.defaultDestination ?? props.destinations[1] ?? "",
+    props.defaultDestination ?? "",
   );
   const [date, setDate] = React.useState(props.defaultDate ?? todayLocalYmd());
   const [returnDate, setReturnDate] = React.useState(
@@ -46,7 +51,6 @@ export function SearchForm(props: SearchFormProps) {
   const [passengers, setPassengers] = React.useState(
     props.defaultPassengers ?? 1,
   );
-  const [submitting, setSubmitting] = React.useState(false);
 
   function swap() {
     setOrigin(destination);
@@ -59,7 +63,6 @@ export function SearchForm(props: SearchFormProps) {
     // routes ending at `destination`. Destination + date are still required.
     if (!destination || origin === destination || !date) return;
     if (tripType === "round_trip" && (!returnDate || returnDate < date)) return;
-    setSubmitting(true);
     const params = new URLSearchParams({
       destination,
       date,
@@ -69,7 +72,9 @@ export function SearchForm(props: SearchFormProps) {
     if (tripType === "round_trip" && returnDate) {
       params.set("returnDate", returnDate);
     }
-    router.push(`/search?${params.toString()}`);
+    startTransition(() => {
+      router.push(`/search?${params.toString()}`);
+    });
   }
 
   return (
@@ -92,66 +97,49 @@ export function SearchForm(props: SearchFormProps) {
         ))}
       </div>
 
-      {/* From · swap · To (combined field, Figma) */}
+      {/* From · swap · To */}
       <div>
-        {/* Side-by-side only from `sm`. On a phone two columns leave ~100px of
-            text each, which truncated "Any departure port" to "Any c" — the one
-            thing this field exists to show. */}
         <div className="mb-2 hidden text-sm font-medium text-slate-500 sm:flex">
           <span className="flex-1">From:</span>
           <span className="w-14 shrink-0" />
           <span className="flex-1">To:</span>
         </div>
-        <div className="flex flex-col items-stretch rounded-[10px] border-2 border-slate-100 sm:flex-row">
-          <div className="flex min-w-0 flex-1 items-center gap-2 px-4">
-            <MapPin size={20} className="shrink-0 text-brand" />
-            <span className="shrink-0 text-sm font-medium text-slate-500 sm:hidden">
+        <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <span className="mb-1.5 block text-sm font-medium text-slate-500 sm:hidden">
               From:
             </span>
-            <select
-              aria-label="From"
+            <GroupedPortSelect
+              ports={props.portsByRegion}
               value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
-              className="h-14 w-full min-w-0 bg-transparent text-[15px] outline-none"
-            >
-              <option value="">Any departure port</option>
-              {props.origins.map((p) => (
-                <option key={p} value={p} disabled={p === destination}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              onValueChange={setOrigin}
+              placeholder="Any departure port"
+              disabledValue={destination}
+              className="sm:rounded-r-none sm:border-r-0"
+            />
           </div>
-          <div className="relative flex shrink-0 items-center justify-center border-t border-slate-100 sm:w-14 sm:border-l sm:border-t-0">
+          <div className="relative flex shrink-0 items-center justify-center sm:w-14 sm:-mx-1 sm:z-10">
             <button
               type="button"
               onClick={swap}
               aria-label="Swap origin and destination"
-              className="my-1 flex h-11 w-11 rotate-90 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark sm:my-0 sm:rotate-0"
+              className="flex h-11 w-11 rotate-90 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark sm:rotate-0"
             >
               <ArrowLeftRight size={18} />
             </button>
           </div>
-          <div className="flex min-w-0 flex-1 items-center gap-2 border-t border-slate-100 px-4 sm:border-t-0">
-            <MapPin size={20} className="shrink-0 text-brand" />
-            <span className="shrink-0 text-sm font-medium text-slate-500 sm:hidden">
+          <div className="flex-1">
+            <span className="mb-1.5 block text-sm font-medium text-slate-500 sm:hidden">
               To:
             </span>
-            <select
-              aria-label="To"
+            <GroupedPortSelect
+              ports={props.portsByRegion}
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              className="h-14 w-full min-w-0 bg-transparent text-[15px] outline-none"
-            >
-              <option value="" disabled>
-                Pick a destination
-              </option>
-              {props.destinations.map((p) => (
-                <option key={p} value={p} disabled={p === origin}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              onValueChange={setDestination}
+              placeholder="Pick a destination"
+              disabledValue={origin}
+              className="sm:rounded-l-none sm:border-l-0"
+            />
           </div>
         </div>
       </div>
@@ -201,11 +189,11 @@ export function SearchForm(props: SearchFormProps) {
 
       <Button
         type="submit"
-        disabled={submitting || origin === destination}
+        disabled={isPending || origin === destination}
         className="mt-5 h-14 w-full rounded-pill bg-brand text-base font-semibold text-white hover:bg-brand-dark"
       >
         <SearchIcon size={18} className="mr-2" />
-        {submitting ? "Searching…" : "Search"}
+        {isPending ? "Searching…" : "Search"}
       </Button>
     </form>
   );

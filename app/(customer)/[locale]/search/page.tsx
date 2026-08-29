@@ -27,6 +27,7 @@ import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 import { getSeaCondition } from "@/lib/sea-conditions";
 import { getCustomerSession } from "@/lib/auth";
 import { getLatestRates, formatWithDisplay } from "@/lib/fx";
+import { getAvailablePorts } from "@/lib/home-data";
 
 const querySchema = z.object({
   origin: z.string().min(2).optional(),
@@ -56,21 +57,17 @@ export default async function SearchPage({
   ];
   let origins = SEED;
   let destinations = SEED;
+  let portsByRegion: Awaited<ReturnType<typeof getAvailablePorts>> = [];
+
   try {
-    const schedules = await prisma.schedule.findMany({
-      where: { status: "ACTIVE", deletedAt: null, boat: { status: "ACTIVE", deletedAt: null } },
-      select: { originPort: true, destinationPort: true },
-    });
-    if (schedules.length > 0) {
-      origins = Array.from(
-        new Set([...SEED, ...schedules.map((s) => s.originPort)]),
-      ).sort();
-      destinations = Array.from(
-        new Set([...SEED, ...schedules.map((s) => s.destinationPort)]),
-      ).sort();
+    portsByRegion = await getAvailablePorts();
+    const ports = portsByRegion.flatMap(g => g.ports.map(p => p.name));
+    if (ports.length > 0) {
+      origins = Array.from(new Set([...SEED, ...ports])).sort();
+      destinations = Array.from(new Set([...SEED, ...ports])).sort();
     }
   } catch (err) {
-    console.error("[search] schedules query failed:", err);
+    console.error("[search] ports query failed:", err);
   }
 
   if (!parsed.success) {
@@ -92,6 +89,7 @@ export default async function SearchPage({
         <SearchForm
           origins={origins}
           destinations={destinations}
+          portsByRegion={portsByRegion}
           defaultOrigin={raw.origin}
           defaultDestination={raw.destination}
         />
@@ -290,14 +288,15 @@ export default async function SearchPage({
         <p className="text-sm font-medium text-brand-periwinkle">
           Let Journey Begin with Gilifast!
         </p>
-        <h1 className="mt-1 max-w-xl font-display text-2xl font-extrabold leading-[1.05] text-white sm:text-4xl">
+        <h1 className="mt-1  font-display text-xl font-extrabold  text-white sm:text-4xl">
           Find the best deals on boats for your trip
         </h1>
       </div>
-      <div className="relative z-10 -mt-24 mb-8 rounded-[10px] bg-white shadow-ambient">
+      <div className="relative z-10 -mt-12 mb-8 rounded-[10px] bg-white shadow-ambient">
         <SearchForm
           origins={origins}
           destinations={destinations}
+          portsByRegion={portsByRegion}
           defaultOrigin={origin}
           defaultDestination={destination}
           defaultDate={date}
