@@ -68,7 +68,7 @@ function SiteFooter() {
     <footer className="relative overflow-hidden bg-brand text-white">
       <div className="container relative z-10 grid gap-8 pb-32 pt-14 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <Logo className="items-start text-white" />
+          <Logo mono className="items-start text-white" />
           <p className="mt-3 max-w-xs text-white/80">
             Let Journey Begin with Gilifast! Book fast boats across Indonesia —
             verified operators, transparent prices, fair refunds.

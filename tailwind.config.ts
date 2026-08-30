@@ -34,6 +34,11 @@ const config: Config = {
           cyan: "#00AEEF",
           periwinkle: "#E1E7FF",
           ink: "#1F1F1F",
+          // Logo lockup only — the wordmark's navy/teal pair reads as its own
+          // mark rather than picking up the electric-blue UI accent.
+          navy: "#13315C",
+          teal: "#2BA6C4",
+          "teal-light": "#8ED6E6",
         },
         mekari: {
           primary: "#1B5FE3",
