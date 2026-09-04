@@ -56,6 +56,16 @@ const envSchema = z.object({
 
   CRON_SECRET: z.string().optional(),
 
+  // Kill switch for app/api/cron/auto-confirm, which mints tickets and mails
+  // boarding passes with no human in the loop. Default-off, and deliberately
+  // NOT coalesced in the degraded-mode block below: a partial env parse must
+  // leave the unattended issuer off rather than resurrect it.
+  AUTO_CONFIRM_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+    .default("false"),
+
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z
     .string()

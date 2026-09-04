@@ -244,8 +244,48 @@ Surfaced while tracing this flow; not fixed here — noted for visibility.
   `WebhookEventStatus.PROCESSED`, and the payment is never actually recorded. Looks
   like leftover code from the DOKU → Midtrans migration that the retry path didn't
   get updated for.
-- **No recurring nag for a stuck confirmation.** The only signal an admin gets that a
-  booking needs a phone call is the single `alertAdminBookingPaid` WhatsApp ping at
-  payment time. If it's missed or muted, nothing re-surfaces the booking except
-  someone manually opening `/admin/confirmations` — `app/api/cron/send-reminders/route.ts`
-  only handles pre-departure reminders for bookings already `CONFIRMED`.
+- **No recurring nag for a stuck confirmation.** *Largely addressed* by the
+  auto-confirm sweep (below), which drains every booking whose departure still
+  looks healthy. What remains is that a booking the sweep *refuses* — cancelled
+  leg, inactive schedule or boat, open refund — still relies on someone opening
+  `/admin/confirmations`; the only push signal is the one `alertAdminBookingPaid`
+  WhatsApp ping at payment time.
+- **`cancelLeg` strands paid bookings awaiting confirmation.** `lib/legs.ts`
+  `cancelLeg` cancels and refunds only bookings already `CONFIRMED`
+  (`where: { legId, status: "CONFIRMED" }`). A booking sitting in
+  `AWAITING_CONFIRMATION` when its leg is cancelled is left paid, uncancelled,
+  unrefunded, and with its seats never released. The auto-confirm sweep will not
+  ticket it — `issueTicketsForBooking`'s leg guard refuses a cancelled leg — so
+  it parks in `/admin/confirmations` (now badged "departure cancelled") until an
+  admin rejects it by hand. Fixing `cancelLeg` to sweep these up needs its own
+  change, because it makes `cancelLeg` lock `AWAITING_CONFIRMATION` bookings and
+  that interacts with the leg→booking lock ordering the issuer relies on.
+
+## Automatic issue (`AUTO_CONFIRM_ENABLED`)
+
+`app/api/cron/auto-confirm/route.ts` runs every 5 minutes from the compose cron
+sidecar and mints the pass without waiting for the phone call, but only where our
+own data says the departure is healthy:
+
+- booking `AWAITING_CONFIRMATION`, its `Payment` `SUCCESSFUL` with a `paidAt`
+- no `Refund` row (an open refund means a human is mid-decision)
+- leg `OPEN` **or** `FULL` — `FULL` is the normal case for a boat this booking
+  filled, since seats are decremented at reservation time — and not yet departed
+- schedule and boat both `ACTIVE` and not soft-deleted
+
+It issues under a SYSTEM actor (`availabilityDecidedById = "system:auto-confirm"`,
+`AuditLog.userRole = SYSTEM`, `newState.automated = true`) and then reuses
+`notifyBoardingPassIssued` unchanged. Anything it cannot clear is left untouched
+for `/admin/confirmations`. It never cancels and never refunds.
+
+Two guarded writes inside `issueTicketsForBooking` make this safe to run
+unattended: a no-op `leg.updateMany` that re-checks leg health under a row lock
+(closing the race against `cancelLeg`), and a conditional `booking.updateMany` on
+`status: "AWAITING_CONFIRMATION"` so exactly one caller can move the booking and
+therefore exactly one caller sends. Both also protect the manual admin path,
+which previously could ticket a cancelled leg from a stale page render.
+
+`Booking.boardingPassSentAt` covers the crash window between the transaction
+commit and the send; a second pass re-sends anything the sweep confirmed but
+never delivered, scoped by the SYSTEM sentinel so historical bookings — which all
+have a NULL column after `db push` — can never match.

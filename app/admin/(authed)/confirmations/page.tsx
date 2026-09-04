@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import {
   issueTicketsForBooking,
   rejectBookingAvailability,
+  type IssueResult,
 } from "@/lib/ticket-issuer";
 import {
   notifyBoardingPassIssued,
@@ -48,14 +49,28 @@ async function approveAction(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim();
   if (!bookingId) redirect("/admin/confirmations");
 
-  const result = await issueTicketsForBooking({
-    bookingId,
-    adminId: session.sub,
-    note: note || null,
-  });
+  let result: IssueResult;
+  try {
+    result = await issueTicketsForBooking({
+      bookingId,
+      actor: { role: "ADMIN", id: session.sub },
+      note: note || null,
+    });
+  } catch (err) {
+    // The leg guard refuses a cancelled or departed boat, which this page can
+    // still be showing from a stale render. Send the admin back with an
+    // explanation rather than an error boundary. issueTicketsForBooking never
+    // redirects, so nothing here can be swallowing a NEXT_REDIRECT.
+    console.error("[admin:confirmations] approve failed:", err);
+    redirect("/admin/confirmations?ok=unhealthy");
+  }
 
   if (!result.alreadyIssued) {
     await notifyBoardingPassIssued(bookingId, result.tickets);
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { boardingPassSentAt: new Date() },
+    });
   }
 
   redirect(
@@ -111,6 +126,7 @@ export default async function AdminConfirmationsPage({
       leg: {
         select: {
           departureDate: true,
+          status: true,
           schedule: {
             select: {
               originPort: true,
@@ -129,7 +145,9 @@ export default async function AdminConfirmationsPage({
       <div>
         <h1 className="text-2xl font-semibold">Seat confirmations</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          These customers have paid. Call the operator to check the boat is
+          These customers have paid and the auto-confirm sweep could not clear
+          them — the departure is cancelled, the schedule or boat is inactive, or
+          a refund is already open. Call the operator to check the boat is
           running and has room, then approve to send the boarding pass, or
           reject to cancel and refund in full.
         </p>
@@ -164,6 +182,15 @@ export default async function AdminConfirmationsPage({
               Open the PDF to send by hand
             </a>
             .
+          </CardContent>
+        </Card>
+      )}
+      {ok === "unhealthy" && (
+        <Card className="border-rose-200 bg-rose-50">
+          <CardContent className="py-3 text-sm text-rose-900">
+            That departure is cancelled, has already sailed, or is in the past,
+            so no boarding pass can be issued for it. Use{" "}
+            <strong>Unavailable — refund</strong> instead.
           </CardContent>
         </Card>
       )}
@@ -230,6 +257,14 @@ export default async function AdminConfirmationsPage({
                         <div className="text-xs text-muted-foreground">
                           {b.leg.schedule.boat.name}
                         </div>
+                        {(b.leg.status === "CANCELLED" ||
+                          b.leg.status === "SAILED") && (
+                          <Badge variant="destructive" className="mt-1">
+                            {b.leg.status === "CANCELLED"
+                              ? "departure cancelled"
+                              : "already sailed"}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="align-top text-sm">
                         <div>{b.operator.contactPerson}</div>

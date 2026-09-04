@@ -20,6 +20,18 @@ export type IssuedTicket = {
   qrPayload: string;
 };
 
+/** Sentinel written to Booking.availabilityDecidedById by the auto-confirm sweep. */
+export const SYSTEM_ACTOR_ID = "system:auto-confirm";
+
+/**
+ * Who is issuing. A union rather than an `automated` flag so that a SYSTEM row
+ * can never carry a human's id, and an ADMIN row can never be missing one —
+ * the audit trail is the only record of who promised the seat.
+ */
+export type IssueActor =
+  | { role: "ADMIN"; id: string }
+  | { role: "SYSTEM"; id: typeof SYSTEM_ACTOR_ID };
+
 export type IssueResult = {
   bookingReference: string;
   tickets: IssuedTicket[];
@@ -105,15 +117,18 @@ export async function recordPaymentAwaitingConfirmation(args: {
 }
 
 /**
- * Mint the tickets for a booking an admin has confirmed with the operator.
+ * Mint the tickets for a booking whose seat has been established — either by an
+ * admin ringing the operator, or by the auto-confirm sweep finding the leg
+ * healthy in our own data.
  *
  * Idempotent: re-running against an already-CONFIRMED booking returns the
  * existing tickets rather than minting a second set, so a double-clicked
- * approve button cannot double-issue.
+ * approve button cannot double-issue. Concurrency beyond that is handled by the
+ * two guarded writes below, not by this early return.
  */
 export async function issueTicketsForBooking(args: {
   bookingId: string;
-  adminId: string;
+  actor: IssueActor;
   note?: string | null;
 }): Promise<IssueResult> {
   return prisma.$transaction(async (tx) => {
@@ -152,15 +167,48 @@ export async function issueTicketsForBooking(args: {
       );
     }
 
-    await tx.booking.update({
-      where: { id: booking.id },
+    // A boarding pass for a cancelled or departed boat must not exist, whoever
+    // asked for it — so this is enforced here rather than in the callers.
+    //
+    // The no-op write is deliberate: it takes the row lock while re-evaluating
+    // the predicate against the latest committed row. Under READ COMMITTED a
+    // plain re-read would still race cancelLeg, which can cancel the leg
+    // between the caller's query and this transaction. Lock order matters —
+    // cancelLeg takes leg then bookings, so this must stay ahead of the
+    // booking write below or the two deadlock.
+    const legStillHealthy = await tx.leg.updateMany({
+      where: {
+        id: booking.legId,
+        status: { in: ["OPEN", "FULL"] },
+        departureDate: { gt: new Date() },
+      },
+      data: { updatedAt: new Date() },
+    });
+    if (legStillHealthy.count !== 1) {
+      throw new Error(
+        `Cannot issue tickets for ${booking.bookingReference}: departure is cancelled, sailed or in the past`,
+      );
+    }
+
+    // Conditional write, not a bare update: the findUnique above proves nothing
+    // by the time we get here. Exactly one caller can move the booking out of
+    // AWAITING_CONFIRMATION, so exactly one caller gets alreadyIssued:false and
+    // therefore exactly one sends the pass. Without this, a sweep racing an
+    // admin click mints two full sets of tickets.
+    const moved = await tx.booking.updateMany({
+      where: { id: booking.id, status: "AWAITING_CONFIRMATION" },
       data: {
         status: "CONFIRMED",
         availabilityDecidedAt: new Date(),
-        availabilityDecidedById: args.adminId,
+        availabilityDecidedById: args.actor.id,
         availabilityNote: args.note ?? null,
       },
     });
+    if (moved.count !== 1) {
+      throw new Error(
+        `Booking ${booking.bookingReference} was decided concurrently`,
+      );
+    }
 
     const issued: IssuedTicket[] = [];
     const departureYmd = ymdInZone(departureDate);
@@ -190,11 +238,12 @@ export async function issueTicketsForBooking(args: {
         entityType: "BOOKING",
         entityId: booking.id,
         action: "operator_confirmed_and_ticketed",
-        userRole: "ADMIN",
-        userId: args.adminId,
+        userRole: args.actor.role,
+        userId: args.actor.id,
         newState: {
           tickets: issued.map((t) => t.ticketCode),
           note: args.note ?? null,
+          automated: args.actor.role === "SYSTEM",
         },
       },
     });
@@ -223,6 +272,11 @@ export type RejectResult = {
  * Seats are released outside the transaction because releaseBookingSeats opens
  * its own; it reads the passenger list from notes when no tickets exist, which
  * is always the case here.
+ *
+ * Takes a plain adminId rather than the IssueActor union on purpose: refusing a
+ * booking owes the customer money, so it stays a human decision. The
+ * auto-confirm sweep only ever issues — it leaves anything it cannot ticket in
+ * the queue for someone to ring the operator about.
  */
 export async function rejectBookingAvailability(args: {
   bookingId: string;

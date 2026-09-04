@@ -602,11 +602,32 @@ const API: Feature[] = [
     routes: [
       "app/api/cron/retry-webhooks/route.ts",
       "app/api/cron/topup-legs/route.ts",
+      "app/api/cron/auto-confirm/route.ts",
       "vercel.json",
+      "docker-compose.yml",
     ],
-    modules: ["lib/legs.ts", "lib/webhook-processor.ts"],
-    models: ["WebhookEvent", "Leg"],
-    notes: "The only two jobs actually scheduled in vercel.json. CRON_SECRET-gated.",
+    modules: ["lib/legs.ts", "lib/webhook-processor.ts", "lib/ticket-issuer.ts"],
+    models: ["WebhookEvent", "Leg", "Booking", "Ticket"],
+    notes:
+      "CRON_SECRET-gated. retry-webhooks and topup-legs are scheduled in vercel.json; on the droplet the compose cron sidecar drives auto-confirm every 5 minutes and refresh-fx hourly, since vercel.json is inert there.",
+  },
+  {
+    id: "admin-auto-confirm",
+    area: "admin",
+    name: "Automatic seat confirmation and e-ticket issue",
+    status: "shipped",
+    routes: [
+      "app/api/cron/auto-confirm/route.ts",
+      "app/admin/(authed)/confirmations/page.tsx",
+    ],
+    modules: [
+      "lib/ticket-issuer.ts",
+      "lib/booking-notifications.ts",
+      "lib/boarding-pass.tsx",
+    ],
+    models: ["Booking", "Ticket", "Leg", "AuditLog"],
+    notes:
+      "Off unless AUTO_CONFIRM_ENABLED=true. Issues under a SYSTEM actor when the leg is OPEN/FULL, unsailed, and its schedule and boat are active; everything else falls through to the manual /admin/confirmations queue. Booking.boardingPassSentAt drives the repair pass that re-sends a pass minted before a crash.",
   },
   {
     id: "api-cron-unscheduled",
@@ -616,12 +637,11 @@ const API: Feature[] = [
     routes: [
       "app/api/cron/send-reminders/route.ts",
       "app/api/cron/poll-bmkg/route.ts",
-      "app/api/cron/refresh-fx/route.ts",
     ],
-    modules: ["lib/email.ts", "lib/fx.ts", "lib/weather-policy.ts"],
-    models: ["NotificationLog", "WeatherSnapshot", "FxRate"],
+    modules: ["lib/email.ts", "lib/weather-policy.ts"],
+    models: ["WeatherSnapshot"],
     notes:
-      "Implemented and callable but absent from vercel.json crons, so they never run on their own. Departure reminders, BMKG weather, and FX refresh are therefore effectively inactive.",
+      "Implemented and callable but driven by nothing — absent from vercel.json crons and from the compose cron sidecar. Departure reminders and BMKG weather are therefore effectively inactive.",
   },
   {
     id: "api-public",

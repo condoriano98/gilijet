@@ -21,7 +21,7 @@ Never bypass `requireOperator` / `requireAdmin` / `requireSuperAdmin`. If a page
 - **Port name canonicalisation** → `lib/port-info.ts`. Use it when displaying or comparing port codes.
 - **Email** → `lib/email.ts`. Mock-fallback handled there when `RESEND_API_KEY` is absent.
 - **QR / ticket codes** → `lib/qr.ts` + `lib/references.ts`. QR HMAC uses `QR_HMAC_SECRET`.
-- **Payment → ticket gate** → `lib/ticket-issuer.ts`. Settling money only moves a booking to `AWAITING_CONFIRMATION`; tickets are minted by `issueTicketsForBooking` after an admin confirms availability with the operator by phone at `/admin/confirmations`. Never issue a boarding pass straight from a payment path.
+- **Payment → ticket gate** → `lib/ticket-issuer.ts`. Settling money only moves a booking to `AWAITING_CONFIRMATION`. Never issue a boarding pass straight from a payment path — webhooks and checkout pages must not ticket. Tickets are minted by `issueTicketsForBooking`, which takes an `IssueActor` and has exactly two authorised callers: an admin confirming with the operator by phone at `/admin/confirmations`, and the `AUTO_CONFIRM_ENABLED`-gated sweep at `app/api/cron/auto-confirm/route.ts`, which issues only where the leg is `OPEN`/`FULL`, unsailed, and on an active schedule and boat. Anything the sweep refuses stays in `AWAITING_CONFIRMATION` for the admin queue; it never cancels or refunds.
 - **Customer notifications** → `lib/booking-notifications.ts` (email + WhatsApp together). WhatsApp transport is `lib/whatsapp.ts` (WATI, mock-falls-back when `WATI_*` absent).
 
 ## DB

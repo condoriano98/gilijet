@@ -294,6 +294,12 @@ model Booking {
   availabilityDecidedAt   DateTime?
   availabilityDecidedById String?
   availabilityNote        String?
+  // Stamped once the e-ticket fan-out has completed, on both the manual and the
+  // automatic path. Tickets are minted in a transaction that commits before the
+  // send, so a crash in between leaves a CONFIRMED booking whose customer got
+  // nothing and which no queue would ever surface again. Null here is what the
+  // auto-confirm repair pass looks for.
+  boardingPassSentAt   DateTime?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -323,6 +329,7 @@ model Booking {
   @@index([operatorId, createdAt])
   @@index([operatorId, salesChannel, createdAt])
   @@index([salesAgentId])
+  @@index([status, boardingPassSentAt])
 }
 
 enum BookingStatus {

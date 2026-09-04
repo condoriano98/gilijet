@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mocks = vi.hoisted(() => ({
   bookingFindUnique: vi.fn(),
   bookingUpdate: vi.fn(),
+  bookingUpdateMany: vi.fn(),
+  legUpdateMany: vi.fn(),
   paymentUpdate: vi.fn(),
   ticketCreate: vi.fn(),
   refundCreate: vi.fn(),
@@ -17,7 +19,9 @@ vi.mock("@/lib/db", () => ({
         booking: {
           findUnique: mocks.bookingFindUnique,
           update: mocks.bookingUpdate,
+          updateMany: mocks.bookingUpdateMany,
         },
+        leg: { updateMany: mocks.legUpdateMany },
         payment: { update: mocks.paymentUpdate },
         ticket: { create: mocks.ticketCreate },
         refund: { create: mocks.refundCreate },
@@ -39,6 +43,7 @@ import {
   recordPaymentAwaitingConfirmation,
   issueTicketsForBooking,
   rejectBookingAvailability,
+  SYSTEM_ACTOR_ID,
 } from "@/lib/ticket-issuer";
 
 const NOTES = JSON.stringify({
@@ -57,12 +62,16 @@ const baseBooking = (over: Record<string, unknown> = {}) => ({
   payment: { gatewayReference: "REF", method: "QRIS", gatewayFee: null },
   tickets: [],
   refund: null,
+  legId: "leg-1",
   leg: { departureDate: new Date("2026-09-01T02:00:00Z") },
   ...over,
 });
 
 beforeEach(() => {
   for (const m of Object.values(mocks)) m.mockReset();
+  // Healthy leg and an uncontested booking unless a test says otherwise.
+  mocks.legUpdateMany.mockResolvedValue({ count: 1 });
+  mocks.bookingUpdateMany.mockResolvedValue({ count: 1 });
   mocks.bookingUpdate.mockResolvedValue({});
   mocks.paymentUpdate.mockResolvedValue({});
   mocks.ticketCreate.mockResolvedValue({});
@@ -130,19 +139,101 @@ describe("issueTicketsForBooking", () => {
 
     const out = await issueTicketsForBooking({
       bookingId: "bk-1",
-      adminId: "admin-1",
+      actor: { role: "ADMIN", id: "admin-1" },
       note: "Called Pak Made, boat running",
     });
 
     expect(out.alreadyIssued).toBe(false);
     expect(out.tickets).toHaveLength(2);
     expect(mocks.ticketCreate).toHaveBeenCalledTimes(2);
-    expect(mocks.bookingUpdate).toHaveBeenCalledWith(
+    expect(mocks.bookingUpdateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: "bk-1", status: "AWAITING_CONFIRMATION" },
         data: expect.objectContaining({
           status: "CONFIRMED",
           availabilityDecidedById: "admin-1",
           availabilityNote: "Called Pak Made, boat running",
+        }),
+      }),
+    );
+    expect(mocks.auditCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userRole: "ADMIN", userId: "admin-1" }),
+      }),
+    );
+  });
+
+  it("refuses to ticket a departure that was cancelled underneath it", async () => {
+    mocks.bookingFindUnique.mockResolvedValue(
+      baseBooking({ status: "AWAITING_CONFIRMATION" }),
+    );
+    mocks.legUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      issueTicketsForBooking({
+        bookingId: "bk-1",
+        actor: { role: "ADMIN", id: "admin-1" },
+      }),
+    ).rejects.toThrow(/cancelled, sailed or in the past/);
+    expect(mocks.ticketCreate).not.toHaveBeenCalled();
+    expect(mocks.bookingUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("mints nothing when another caller decided the booking first", async () => {
+    mocks.bookingFindUnique.mockResolvedValue(
+      baseBooking({ status: "AWAITING_CONFIRMATION" }),
+    );
+    mocks.bookingUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      issueTicketsForBooking({
+        bookingId: "bk-1",
+        actor: { role: "SYSTEM", id: SYSTEM_ACTOR_ID },
+      }),
+    ).rejects.toThrow(/decided concurrently/);
+    expect(mocks.ticketCreate).not.toHaveBeenCalled();
+    // The loser must leave no audit row claiming it confirmed the seat.
+    expect(mocks.auditCreate).not.toHaveBeenCalled();
+  });
+
+  it("checks the leg before it writes the booking, so cancelLeg cannot deadlock", async () => {
+    mocks.bookingFindUnique.mockResolvedValue(
+      baseBooking({ status: "AWAITING_CONFIRMATION" }),
+    );
+
+    await issueTicketsForBooking({
+      bookingId: "bk-1",
+      actor: { role: "SYSTEM", id: SYSTEM_ACTOR_ID },
+    });
+
+    expect(mocks.legUpdateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.bookingUpdateMany.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("attributes an automated issue to SYSTEM, not to an admin", async () => {
+    mocks.bookingFindUnique.mockResolvedValue(
+      baseBooking({ status: "AWAITING_CONFIRMATION" }),
+    );
+
+    await issueTicketsForBooking({
+      bookingId: "bk-1",
+      actor: { role: "SYSTEM", id: SYSTEM_ACTOR_ID },
+    });
+
+    expect(mocks.auditCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userRole: "SYSTEM",
+          userId: SYSTEM_ACTOR_ID,
+          newState: expect.objectContaining({ automated: true }),
+        }),
+      }),
+    );
+    expect(mocks.bookingUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          availabilityDecidedById: SYSTEM_ACTOR_ID,
         }),
       }),
     );
@@ -161,7 +252,7 @@ describe("issueTicketsForBooking", () => {
 
     const out = await issueTicketsForBooking({
       bookingId: "bk-1",
-      adminId: "admin-1",
+      actor: { role: "ADMIN", id: "admin-1" },
     });
 
     expect(out.alreadyIssued).toBe(true);
@@ -174,7 +265,10 @@ describe("issueTicketsForBooking", () => {
     );
 
     await expect(
-      issueTicketsForBooking({ bookingId: "bk-1", adminId: "admin-1" }),
+      issueTicketsForBooking({
+        bookingId: "bk-1",
+        actor: { role: "ADMIN", id: "admin-1" },
+      }),
     ).rejects.toThrow(/Cannot issue tickets/);
     expect(mocks.ticketCreate).not.toHaveBeenCalled();
   });

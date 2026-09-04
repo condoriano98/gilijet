@@ -67,6 +67,10 @@ services:
       # Cron routes reject every call without this.
       CRON_SECRET: ${CRON_SECRET:-}
 
+      # Kill switch for the auto-confirm sweep. Off unless explicitly "true",
+      # so a fresh box never starts mailing boarding passes unattended.
+      AUTO_CONFIRM_ENABLED: ${AUTO_CONFIRM_ENABLED:-false}
+
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
     # No host port: caddy terminates and proxies to us over the compose network.
@@ -115,14 +119,27 @@ services:
           echo "[cron] CRON_SECRET is unset — cron routes will 401. Not starting."
           exit 1
         fi
+        hit() {
+          # 120s, not 30s: an auto-confirm sweep renders up to 25 PDFs and makes
+          # two sends each. A curl timeout does not cancel the server-side work
+          # anyway — the route's own latch is what prevents pile-up.
+          code=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 120 \
+            -H "Authorization: Bearer $$CRON_SECRET" \
+            "http://app:3000/api/cron/$$1" || true)
+          echo "[cron] $$1 -> $$code"
+        }
+        # 300s is the base clock; slower routes run on a multiple of it. 12 ticks
+        # = 1h, which keeps refresh-fx at the cadence it had before auto-confirm
+        # needed a faster loop. tick starts at 0 so refresh-fx still fires on
+        # container start, as the old loop did.
+        tick=0
         while true; do
-          for route in refresh-fx; do
-            code=$$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
-              -H "Authorization: Bearer $$CRON_SECRET" \
-              "http://app:3000/api/cron/$$route" || true)
-            echo "[cron] $$route -> $$code"
-          done
-          sleep 3600
+          hit auto-confirm
+          if [ $$(( tick % 12 )) -eq 0 ]; then
+            hit refresh-fx
+          fi
+          tick=$$(( tick + 1 ))
+          sleep 300
         done
 
 volumes:
