@@ -15,6 +15,7 @@ import {
   findCountryByCode,
   findCountryByName,
   parsePhone,
+  composePhone,
 } from "@/lib/countries";
 
 interface Props {
@@ -73,7 +74,7 @@ export function ContactFields({
         <input
           type="hidden"
           name="customerPhone"
-          value={`${phoneDialCode}${number}`}
+          value={composePhone(phoneDialCode, number)}
         />
       </div>
 

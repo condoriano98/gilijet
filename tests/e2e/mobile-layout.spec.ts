@@ -65,11 +65,13 @@ test("the departure and destination ports are readable, not truncated", async ({
   page,
 }) => {
   await page.goto("/");
-  const from = page.getByLabel("From");
+  // The origin control is a Radix combobox now, not a native <select> with a
+  // <label> — so it has no "From" accessible name. The stacked layout still
+  // exists so the full port name fits; a control narrower than ~180px is the
+  // bug this guards.
+  const from = page.getByRole("combobox").first();
   await expect(from).toBeVisible({ timeout: 15_000 });
 
-  // The stacked layout exists so the full port name fits; a select narrower
-  // than its own text is the bug this guards.
   const box = await from.boundingBox();
   expect(box!.width).toBeGreaterThan(180);
 });

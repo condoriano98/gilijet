@@ -40,6 +40,14 @@ const envSchema = z.object({
   WATI_TENANT_ID: z.string().optional(),
   WATI_API_URL: z.string().optional(),
 
+  // Meta WhatsApp Cloud API — alternative WhatsApp transport. The token must
+  // be a permanent system-user token with the whatsapp_business_messaging
+  // permission, and the phone number id is the WABA phone number's id.
+  META_WHATSAPP_TOKEN: z.string().optional(),
+  META_WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  // Meta templates are approved per language; staff alerts are Indonesian.
+  META_WHATSAPP_TEMPLATE_LANGUAGE: z.string().optional().default("id"),
+
   // Fallback destination + WATI template for staff booking alerts. The
   // PlatformConfig row wins when set, so these only cover a fresh environment
   // that has no config row yet. See lib/admin-alerts.ts.

@@ -3,6 +3,9 @@ import { formatLocalDateTime } from "./datetime";
 import { formatIDR } from "./utils";
 import { renderQrSvgDataUrl } from "./qr-render";
 import type { IssuedTicket } from "./ticket-issuer";
+import { appendFile, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 /**
  * Transactional email. Wired up to Resend when RESEND_API_KEY is set;
@@ -12,6 +15,71 @@ import type { IssuedTicket } from "./ticket-issuer";
 
 /** A file to attach. `content` is raw bytes; Resend wants them base64-encoded. */
 export type EmailAttachment = { filename: string; content: Buffer };
+
+/**
+ * When Resend is not configured, emails are "delivered" into a local inbox
+ * (a JSONL file) instead of being dropped on the console, so the booking flow
+ * stays exercisable locally with no email API — the sent messages are
+ * inspectable at /admin/diagnostics/email-inbox.
+ */
+export type LocalEmailMessage = {
+  id: string;
+  receivedAt: string;
+  kind:
+    | "booking-confirmation"
+    | "payment-received"
+    | "password-reset"
+    | "departure-reminder"
+    | "cancellation"
+    | "refund-processed";
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: string[];
+};
+
+const MAX_EMAIL_INBOX = 200;
+const EMAIL_INBOX_PATH =
+  process.env.EMAIL_INBOX_PATH ?? path.join(tmpdir(), "gilifast-email-inbox.jsonl");
+
+function recordEmail(
+  kind: LocalEmailMessage["kind"],
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: string[],
+): void {
+  const msg: LocalEmailMessage = {
+    id: crypto.randomUUID(),
+    receivedAt: new Date().toISOString(),
+    kind,
+    to,
+    subject,
+    html,
+    ...(attachments?.length ? { attachments } : {}),
+  };
+  void appendFile(EMAIL_INBOX_PATH, `${JSON.stringify(msg)}\n`).catch(() => undefined);
+}
+
+export async function getLocalEmailInbox(): Promise<LocalEmailMessage[]> {
+  const raw = await readFile(EMAIL_INBOX_PATH, "utf8").catch(() => "");
+  if (!raw) return [];
+  const lines = raw.split("\n").filter(Boolean);
+  const messages: LocalEmailMessage[] = [];
+  for (let i = lines.length - 1; i >= 0 && messages.length < MAX_EMAIL_INBOX; i -= 1) {
+    const msg = JSON.parse(lines[i]) as LocalEmailMessage;
+    if (msg && msg.id) messages.push(msg);
+  }
+  return messages;
+}
+
+export async function clearLocalEmailInbox(): Promise<void> {
+  await rm(EMAIL_INBOX_PATH, { force: true }).catch(() => undefined);
+}
+
+export function isEmailConfigured(): boolean {
+  return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL);
+}
 
 type BookingConfirmationArgs = {
   to: string;
@@ -28,11 +96,18 @@ type BookingConfirmationArgs = {
 
 export async function sendBookingConfirmation(
   args: BookingConfirmationArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = `Your Gilifast booking ${args.bookingReference}`;
   const html = await renderBookingConfirmationHtml(args);
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail(
+      "booking-confirmation",
+      args.to,
+      subject,
+      html,
+      args.attachments?.map((a) => a.filename),
+    );
     console.log(
       `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
@@ -44,7 +119,7 @@ export async function sendBookingConfirmation(
               .join(", ")}\n`
           : ""),
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -138,7 +213,7 @@ type PaymentReceivedArgs = {
  */
 export async function sendPaymentReceivedEmail(
   args: PaymentReceivedArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = `Payment received for ${args.bookingReference} — confirming your seat`;
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
@@ -162,12 +237,13 @@ export async function sendPaymentReceivedEmail(
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail("payment-received", args.to, subject, html);
     console.log(
       `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -200,7 +276,7 @@ type PasswordResetArgs = {
 
 export async function sendPasswordResetEmail(
   args: PasswordResetArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = "Reset your Gilifast password";
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
@@ -215,11 +291,12 @@ export async function sendPasswordResetEmail(
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail("password-reset", args.to, subject, html);
     console.log(
       `[email] (no RESEND_API_KEY) password-reset → ${args.to}\n` +
         `        url: ${args.resetUrl}`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -258,17 +335,18 @@ type DepartureReminderArgs = {
 
 export async function sendDepartureReminder(
   args: DepartureReminderArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = `Reminder: your boat departs tomorrow — ${args.bookingReference}`;
   const html = await renderDepartureReminderHtml(args);
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail("departure-reminder", args.to, subject, html);
     console.log(
       `[email] (no RESEND_API_KEY) departure-reminder → ${args.to}\n` +
         `        booking: ${args.bookingReference}\n` +
         `        tickets: ${args.tickets.map((t) => t.ticketCode).join(", ")}`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -356,7 +434,7 @@ type CancellationEmailArgs = {
 
 export async function sendCancellationEmail(
   args: CancellationEmailArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = `Booking ${args.bookingReference} cancelled`;
 
   const refundLine =
@@ -380,8 +458,9 @@ export async function sendCancellationEmail(
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail("cancellation", args.to, subject, html);
     console.log(`[email] (no RESEND_API_KEY) cancellation → ${args.to}`);
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -417,7 +496,7 @@ type RefundEmailArgs = {
 
 export async function sendRefundProcessedEmail(
   args: RefundEmailArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: "resend" | "local" }> {
   const subject = `Refund processed for ${args.bookingReference}`;
 
   const html = `<!doctype html>
@@ -432,8 +511,9 @@ export async function sendRefundProcessedEmail(
 </body></html>`;
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    recordEmail("refund-processed", args.to, subject, html);
     console.log(`[email] (no RESEND_API_KEY) refund-processed → ${args.to}`);
-    return { delivered: false, provider: "console" };
+    return { delivered: true, provider: "local" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {

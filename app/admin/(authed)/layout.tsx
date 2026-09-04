@@ -31,6 +31,8 @@ export default async function AdminLayout({
           { href: "/admin/operations", label: "Operations" },
           { href: "/admin/console", label: "Console" },
           { href: "/admin/diagnostics", label: "Diagnostics" },
+          { href: "/admin/diagnostics/whatsapp-inbox", label: "WA Inbox" },
+          { href: "/admin/diagnostics/email-inbox", label: "Email Inbox" },
         ]
       : []),
   ];

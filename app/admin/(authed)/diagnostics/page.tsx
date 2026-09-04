@@ -1,5 +1,7 @@
 import { requireSuperAdmin } from "@/lib/auth";
 import { pingMidtrans, isMidtransLive, NOTIFICATION_PATH } from "@/lib/midtrans";
+import { whatsappProvider } from "@/lib/whatsapp";
+import { isEmailConfigured } from "@/lib/email";
 import {
   pingPaypal,
   isPaypalLive,
@@ -142,6 +144,27 @@ export default async function DiagnosticsPage() {
     },
   ];
 
+  const waProvider = whatsappProvider();
+  const notificationRows: Row[] = [
+    {
+      label: "Email (Resend)",
+      ok: isEmailConfigured(),
+      detail: isEmailConfigured()
+        ? "live — emails are delivered by Resend"
+        : "off — emails go to the local inbox at /admin/diagnostics/email-inbox",
+    },
+    {
+      label: "WhatsApp",
+      ok: Boolean(waProvider),
+      detail:
+        waProvider === "meta"
+          ? "live — Meta WhatsApp Cloud API"
+          : waProvider === "wati"
+            ? "live — WATI"
+            : "off — messages go to the local inbox at /admin/diagnostics/whatsapp-inbox",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -151,6 +174,22 @@ export default async function DiagnosticsPage() {
           secrets are displayed.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer notifications</CardTitle>
+          <CardDescription>
+            When a transport has no API keys it falls back to a local sandbox
+            inbox instead of sending — add the keys and the same code paths
+            deliver for real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {notificationRows.map((r) => (
+            <StatusRow key={r.label} row={r} />
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

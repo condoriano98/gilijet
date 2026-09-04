@@ -258,3 +258,18 @@ export function parsePhone(raw: string): { countryCode: string; number: string }
   }
   return { countryCode: "ID", number: trimmed };
 }
+
+/**
+ * Build an E.164 number from a dial-code picker and the bare local number the
+ * user typed into the field. Guards against the user already having included
+ * the country code, the `00` international prefix, or a leading national `0` —
+ * any of which would otherwise produce a doubled country code.
+ */
+export function composePhone(dialCode: string, number: string): string {
+  const dialDigits = dialCode.replace(/\D/g, "");
+  let digits = number.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith(dialDigits)) digits = digits.slice(dialDigits.length);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return `${dialCode}${digits}`;
+}

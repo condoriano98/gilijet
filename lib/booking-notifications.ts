@@ -16,6 +16,10 @@ import {
   generateBoardingPassPdf,
 } from "./boarding-pass";
 import { alertAdminBookingPaid } from "./admin-alerts";
+import {
+  alertOperatorBookingPaid,
+  alertOperatorBookingConfirmed,
+} from "./operator-alerts";
 import type { IssuedTicket } from "./ticket-issuer";
 
 /**
@@ -89,8 +93,10 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
   ]).then(logFailures("payment-received"));
 
   // Staff alert: this is the moment the admin has something to do — ring the
-  // operator and confirm the boat. Swallows its own errors.
+  // operator and confirm the boat. The operator gets their own WhatsApp alert
+  // so the incoming call has context. Both swallow their own errors.
   void alertAdminBookingPaid(bookingId);
+  void alertOperatorBookingPaid(bookingId);
 }
 
 /** The admin reached the operator and the seat is real. Boarding pass goes out. */
@@ -152,6 +158,10 @@ export async function notifyBoardingPassIssued(
           lookupUrl: url,
         }),
   ]).then(logFailures("boarding-pass"));
+
+  // The operator learns the seat is real so their manifest matches ours.
+  // Swallows its own errors.
+  void alertOperatorBookingConfirmed(bookingId);
 }
 
 /** The operator cannot take the booking; a full refund is already queued. */
