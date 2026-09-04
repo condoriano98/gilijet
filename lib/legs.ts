@@ -51,19 +51,16 @@ export function planCapacityChange(
 }
 
 /**
- * Demo season: all dummy departures are constrained to July–August of the
- * seeding year (WITA). Derived from the reference date so re-seeding in a later
- * year targets that year's season.
+ * Demo season: all dummy departures are constrained to the next 90 days
+ * from the reference date. Ensures staging/QA always has future-dated legs.
  */
 export function demoSeasonWindow(ref: Date = new Date()): {
   start: Date;
   end: Date;
 } {
-  const year = Number(ymdInZone(ref).slice(0, 4));
-  return {
-    start: localDateTimeToUtc(`${year}-07-01`, "00:00"),
-    end: localDateTimeToUtc(`${year}-08-31`, "23:59"),
-  };
+  const start = ref;
+  const end = new Date(ref.getTime() + 90 * 24 * 60 * 60 * 1000);
+  return { start, end };
 }
 
 /**
