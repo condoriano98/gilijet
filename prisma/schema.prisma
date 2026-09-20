@@ -207,6 +207,10 @@ model Schedule {
   originPortRel Port? @relation("OriginPort", fields: [originPortId], references: [id])
   destinationPortRel Port? @relation("DestinationPort", fields: [destinationPortId], references: [id])
 
+  // Natural key. The catalogue importer used to run with nothing stopping it
+  // from inserting the same schedule again, so four repeat runs turned 19 real
+  // schedules into 138 rows and 6954 departures into 22790.
+  @@unique([boatId, originPort, destinationPort, departureTime])
   @@index([boatId, status])
   @@index([originPort, destinationPort])
 }
