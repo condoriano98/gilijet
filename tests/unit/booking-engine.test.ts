@@ -23,7 +23,6 @@ describe("reserveSeatsAndCreateBooking tenant invariant", () => {
       id: "leg-1",
       operatorId: "op-A",
       status: "OPEN",
-      availableSeats: 10,
       departureDate: new Date(Date.now() + 86_400_000),
       basePrice: 250_000,
       schedule: { boat: { operatorId: "op-B" } },

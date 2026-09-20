@@ -181,7 +181,6 @@ export default async function ReschedulePage({
   const candidateLegs = await prisma.leg.findMany({
     where: {
       status: "OPEN",
-      availableSeats: { gte: seatCount },
       departureDate: { gte: startUtc, lte: endUtc },
       schedule: {
         originPort: booking.leg.schedule.originPort,
@@ -256,8 +255,7 @@ export default async function ReschedulePage({
         {candidateLegs.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No departures with enough availability on this date. Try another
-              date.
+              No departures on this date. Try another date.
             </CardContent>
           </Card>
         ) : (

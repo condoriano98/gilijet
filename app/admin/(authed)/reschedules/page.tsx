@@ -40,54 +40,11 @@ async function approveAction(formData: FormData) {
     redirect("/admin/reschedules?error=not_pending");
   }
 
-  // Count non-infant passengers from booking notes
-  let seatCount = 1;
-  if (request.booking.notes) {
-    try {
-      const parsed = JSON.parse(request.booking.notes) as {
-        passengers?: Array<{ type?: string }>;
-      };
-      if (Array.isArray(parsed.passengers)) {
-        seatCount = parsed.passengers.filter((p) => p.type !== "INFANT").length;
-      }
-    } catch {
-      // free-text notes; assume 1 seat
-    }
-  }
-
   try {
     await prisma.$transaction(async (tx) => {
-      // Reserve seats on the requested leg atomically
-      const reservation = await tx.leg.updateMany({
-        where: {
-          id: request.requestedLegId,
-          status: "OPEN",
-          availableSeats: { gte: seatCount },
-        },
-        data: { availableSeats: { decrement: seatCount } },
-      });
-      if (reservation.count === 0) {
+      if (request.requestedLeg.status !== "OPEN") {
         throw new Error("REQUESTED_LEG_UNAVAILABLE");
       }
-
-      // Release seats on the original leg
-      await tx.leg.update({
-        where: { id: request.originalLegId },
-        data: {
-          availableSeats: { increment: seatCount },
-          status: "OPEN",
-        },
-      });
-
-      // Flip the requested leg to FULL if it just hit zero
-      await tx.leg.updateMany({
-        where: {
-          id: request.requestedLegId,
-          availableSeats: 0,
-          status: "OPEN",
-        },
-        data: { status: "FULL" },
-      });
 
       // Move the booking to the new leg
       await tx.booking.update({
@@ -119,7 +76,6 @@ async function approveAction(formData: FormData) {
     newState: {
       originalLegId: request.originalLegId,
       requestedLegId: request.requestedLegId,
-      seatCount,
     },
   });
 

@@ -198,7 +198,6 @@ export default async function BookingLookupPage({
     id: string;
     departureDate: Date;
     basePrice: unknown;
-    availableSeats: number;
     schedule: { originPort: string; destinationPort: string; durationMinutes: number; boat: { name: string } };
   }> = [];
   if (booking.status === "CONFIRMED" && booking.leg.departureDate.getTime() > Date.now()) {
@@ -207,7 +206,6 @@ export default async function BookingLookupPage({
         where: {
           status: "OPEN",
           departureDate: { gt: booking.leg.departureDate },
-          availableSeats: { gte: Math.max(1, booking.tickets.length) },
           schedule: {
             originPort: booking.leg.schedule.destinationPort,
             destinationPort: booking.leg.schedule.originPort,

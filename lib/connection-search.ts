@@ -25,13 +25,11 @@ export async function findConnections(
   destination: string,
   startUtc: Date,
   endUtc: Date,
-  passengers: number,
 ): Promise<ConnectionPair[]> {
   const leg1Candidates = await prisma.leg.findMany({
     where: {
       departureDate: { gte: startUtc, lte: endUtc },
       status: "OPEN",
-      availableSeats: { gte: passengers },
       schedule: {
         is: {
           originPort: { equals: origin, mode: "insensitive" },
@@ -66,7 +64,6 @@ export async function findConnections(
       where: {
         departureDate: { gte: earliestDeparture, lte: leg2EndUtc },
         status: "OPEN",
-        availableSeats: { gte: passengers },
         schedule: {
           is: {
             originPort: { equals: transferPort, mode: "insensitive" },

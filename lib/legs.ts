@@ -21,34 +21,12 @@ const DEFAULT_DAYS_AHEAD = 14;
 export const BOOKING_HORIZON_DAYS = 60;
 
 /**
- * Capacity shown nowhere in the UI. Seats stay enforced internally so the
- * anti-oversell guard in the booking engine keeps working, but operators are
- * not asked about vessel capacity anymore — new boats default to a large
- * placeholder that is never surfaced to customers.
+ * Boat capacity is not asked about anymore and has no effect on booking —
+ * every departure is bookable regardless of headcount; real availability is
+ * confirmed with the operator by phone before tickets are issued (see
+ * lib/ticket-issuer.ts). Kept only as a placeholder value on new boats.
  */
 export const DEFAULT_BOAT_CAPACITY = 999;
-
-export type CapacityChange =
-  | { ok: true; totalCapacity: number; availableSeats: number }
-  | { ok: false; booked: number };
-
-/**
- * Work out the new seat counts when someone resizes a departure.
- *
- * `availableSeats` is not derivable from capacity alone — the difference from
- * `totalCapacity` is what has already been sold — so a resize has to move both
- * together or seats are silently created or destroyed. Shrinking below the
- * number already booked is refused rather than clamped: clamping would look
- * like it worked while overselling the boat.
- */
-export function planCapacityChange(
-  leg: { totalCapacity: number; availableSeats: number },
-  newTotal: number,
-): CapacityChange {
-  const booked = leg.totalCapacity - leg.availableSeats;
-  if (newTotal < booked) return { ok: false, booked };
-  return { ok: true, totalCapacity: newTotal, availableSeats: newTotal - booked };
-}
 
 /**
  * Demo season: all dummy departures are constrained to July–August of the
@@ -133,8 +111,6 @@ export async function generateLegsForSchedule(
       scheduleId: schedule.id,
       operatorId: schedule.boat.operatorId,
       departureDate: departureUtc,
-      totalCapacity: schedule.boat.capacity,
-      availableSeats: schedule.boat.capacity,
       basePrice: schedule.basePrice,
       status: "OPEN",
     });

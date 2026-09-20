@@ -21,7 +21,6 @@ export class BookingError extends Error {
       | "LEG_NOT_FOUND"
       | "LEG_CLOSED"
       | "LEG_PAST"
-      | "SOLD_OUT"
       | "INVALID_INPUT"
       | "PROMO_INVALID",
     message: string,
@@ -58,10 +57,10 @@ export type CreateBookingArgs = {
 };
 
 /**
- * Atomic booking creation:
- *  - locks the leg's `availableSeats` via a conditional updateMany
- *  - bumps the leg to FULL when seats hit zero
- *  - mints a Booking + Payment row (status=PENDING_PAYMENT)
+ * Booking creation: mints a Booking + Payment row (status=PENDING_PAYMENT).
+ * There is no capacity check — a departure is bookable by anyone as long as
+ * its Leg exists and is OPEN; the operator confirms real availability by
+ * phone before tickets are issued (see lib/ticket-issuer.ts).
  *
  * Does NOT issue tickets — those land when DOKU confirms payment via the
  * notification (or the mock-pay endpoint in dev). Returns the booking row so
@@ -122,24 +121,6 @@ export async function reserveSeatsAndCreateBooking(
     }
     if (leg.departureDate.getTime() <= Date.now()) {
       throw new BookingError("LEG_PAST", "Departure has already left");
-    }
-    if (leg.availableSeats < seatCount) {
-      throw new BookingError("SOLD_OUT", "Not enough seats available");
-    }
-
-    // Atomic decrement guarded by row-level availableSeats >= seatCount.
-    const reservation = await tx.leg.updateMany({
-      where: {
-        id: leg.id,
-        status: "OPEN",
-        availableSeats: { gte: seatCount },
-      },
-      data: {
-        availableSeats: { decrement: seatCount },
-      },
-    });
-    if (reservation.count === 0) {
-      throw new BookingError("SOLD_OUT", "Just sold out — try another time");
     }
 
     const pricing = await resolvePlatformPricing(leg.operatorId, tx);
@@ -297,15 +278,6 @@ export async function reserveSeatsAndCreateBooking(
       },
     });
 
-    // Flip leg to FULL atomically only when WE consumed the last seat. The
-    // updateMany guard ensures we never race another booking that just
-    // freed seats — if availableSeats moved away from 0 between the
-    // reservation and this check, no rows match and we don't downgrade.
-    await tx.leg.updateMany({
-      where: { id: leg.id, availableSeats: 0, status: "OPEN" },
-      data: { status: "FULL" },
-    });
-
     await tx.auditLog.create({
       data: {
         entityType: "BOOKING",
@@ -361,7 +333,11 @@ export async function startPaymentForBooking(
   return { invoiceUrl: null, mock: isDokuMock() };
 }
 
-/** Release the seats held by a booking. Idempotent. */
+/**
+ * Records that a booking's hold on its departure is void (expired, cancelled,
+ * or payment failed) — there is no capacity to release back to the leg, this
+ * only exists for the audit trail callers rely on. Idempotent.
+ */
 export async function releaseBookingSeats(
   bookingId: string,
   reason:
@@ -395,15 +371,6 @@ export async function releaseBookingSeats(
       }
     }
     if (quantity <= 0) return;
-
-    await tx.leg.update({
-      where: { id: booking.legId },
-      data: {
-        availableSeats: { increment: quantity },
-        // If the leg was marked FULL, reopen it.
-        status: "OPEN",
-      },
-    });
 
     await tx.auditLog.create({
       data: {

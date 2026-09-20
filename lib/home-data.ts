@@ -54,7 +54,6 @@ export async function getDepartingSoon(
   const legs = await prisma.leg.findMany({
     where: {
       status: "OPEN",
-      availableSeats: { gte: 1 },
       departureDate: { gte: now, lte: end },
       schedule: { deletedAt: null, boat: { deletedAt: null } },
     },

@@ -643,11 +643,6 @@ export async function seedSmallBoats(opts: {
   }
 
   // 3. Upsert schedules
-  const pricingTiers = [
-    { minOccupancyPct: 50, multiplier: 1.1 },
-    { minOccupancyPct: 80, multiplier: 1.25 },
-  ];
-
   const scheduleIds: string[] = [];
   for (const s of SCHEDULES) {
     const boatId = boatIds[s.boatReg];
@@ -671,7 +666,6 @@ export async function seedSmallBoats(opts: {
             basePrice: s.price,
             daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
             status: "ACTIVE",
-            pricingTiers,
           },
         })
       : await prisma.schedule.create({
@@ -684,7 +678,6 @@ export async function seedSmallBoats(opts: {
             basePrice: s.price,
             daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
             status: "ACTIVE",
-            pricingTiers,
           },
         });
     scheduleIds.push(row.id);

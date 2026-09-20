@@ -129,7 +129,6 @@ async function main() {
           basePrice: 250000,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
           status: "ACTIVE",
-          pricingTiers: [],
         },
       }));
     scheduleIds.push(sch.id);
@@ -195,11 +194,6 @@ async function main() {
         },
       });
       bookingId = booking.id;
-
-      await prisma.leg.update({
-        where: { id: firstLeg.id },
-        data: { availableSeats: { decrement: 1 } },
-      });
 
       const ticketCode = newTicketCode(ref, 1);
       await prisma.ticket.create({
@@ -306,7 +300,6 @@ async function main() {
           basePrice: 275000,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
           status: "ACTIVE",
-          pricingTiers: [],
         },
       }));
     schedule2Ids.push(sch.id);
@@ -426,10 +419,6 @@ async function main() {
           },
         },
       },
-    });
-    await prisma.leg.update({
-      where: { id: leg.id },
-      data: { availableSeats: { decrement: 1 } },
     });
     const ticketCode = newTicketCode(ref, 1);
     await prisma.ticket.create({

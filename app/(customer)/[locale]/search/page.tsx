@@ -23,7 +23,6 @@ import { SearchFilters } from "@/components/customer/search-filters";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { formatIDR } from "@/lib/utils";
 import { findConnections } from "@/lib/connection-search";
-import { parsePricingTiers, computeYieldAdjustedPrice } from "@/lib/pricing";
 import { getSeaCondition } from "@/lib/sea-conditions";
 import { getCustomerSession } from "@/lib/auth";
 import { getLatestRates, formatWithDisplay } from "@/lib/fx";
@@ -133,7 +132,6 @@ export default async function SearchPage({
       where: {
         departureDate: { gte: startUtc, lte: endUtc },
         status: { in: ["OPEN"] },
-        availableSeats: { gte: passengers },
         schedule: {
           is: {
             ...(origin
@@ -162,22 +160,11 @@ export default async function SearchPage({
     legsErrorDetail = e?.code ? `${e.code}: ${e.message ?? "unknown"}` : (e?.message ?? null);
   }
 
-  // Apply yield-adjusted pricing to each leg
-  let legsWithAdjustedPricing = legs.map((leg) => {
-    const tiers = parsePricingTiers((leg.schedule as { pricingTiers?: unknown }).pricingTiers);
-    const adjustedPrice = computeYieldAdjustedPrice({
-      basePrice: leg.basePrice,
-      totalCapacity: leg.totalCapacity,
-      availableSeats: leg.availableSeats,
-      tiers,
-    });
-    const isPriceSurged = adjustedPrice.greaterThan(leg.basePrice);
-    return { ...leg, adjustedPrice, isPriceSurged };
-  });
+  let visibleLegs = legs;
 
   // Apply time-slot filter
   if (timeSlot !== "any") {
-    legsWithAdjustedPricing = legsWithAdjustedPricing.filter((leg) => {
+    visibleLegs = visibleLegs.filter((leg) => {
       const hour = Number(formatLocalTime(leg.departureDate).split(":")[0]);
       if (timeSlot === "morning") return hour >= 6 && hour < 12;
       if (timeSlot === "afternoon") return hour >= 12 && hour < 17;
@@ -187,15 +174,15 @@ export default async function SearchPage({
 
   // Apply max-price filter
   if (maxPrice && maxPrice > 0) {
-    legsWithAdjustedPricing = legsWithAdjustedPricing.filter(
-      (leg) => Number(leg.adjustedPrice) <= maxPrice,
+    visibleLegs = visibleLegs.filter(
+      (leg) => Number(leg.basePrice) <= maxPrice,
     );
   }
 
   // Apply sort
-  legsWithAdjustedPricing.sort((a, b) => {
+  visibleLegs.sort((a, b) => {
     if (sortBy === "price") {
-      return Number(a.adjustedPrice) - Number(b.adjustedPrice);
+      return Number(a.basePrice) - Number(b.basePrice);
     }
     if (sortBy === "duration") {
       return a.schedule.durationMinutes - b.schedule.durationMinutes;
@@ -205,7 +192,7 @@ export default async function SearchPage({
 
   // Batch-fetch review aggregates for displayed schedules
   const scheduleIds = Array.from(
-    new Set(legsWithAdjustedPricing.map((l) => l.scheduleId)),
+    new Set(visibleLegs.map((l) => l.scheduleId)),
   );
   let ratingsByScheduleId: Map<
     string,
@@ -236,7 +223,7 @@ export default async function SearchPage({
   let connections: Awaited<ReturnType<typeof findConnections>> = [];
   if (!legsError && origin) {
     try {
-      connections = await findConnections(origin, destination, startUtc, endUtc, passengers);
+      connections = await findConnections(origin, destination, startUtc, endUtc);
     } catch (err) {
       console.error("[search] connection search failed:", err);
     }
@@ -360,7 +347,7 @@ export default async function SearchPage({
         </Card>
       ) : (
         <div className="space-y-3">
-          {legsWithAdjustedPricing.length === 0 ? (
+          {visibleLegs.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-sm text-muted-foreground">
                 No departures match your filters. Try widening the time or price
@@ -368,11 +355,11 @@ export default async function SearchPage({
               </CardContent>
             </Card>
           ) : null}
-          {legsWithAdjustedPricing.map((leg) => {
+          {visibleLegs.map((leg) => {
             const rating = ratingsByScheduleId.get(leg.scheduleId);
             const travelAgainKey = `${leg.schedule.originPort}|${leg.schedule.destinationPort}|${leg.operatorId}`;
             const showTravelAgain = travelAgainRoutes.has(travelAgainKey);
-            const priceIdr = Number(leg.adjustedPrice);
+            const priceIdr = Number(leg.basePrice);
             const fxDisplay = formatWithDisplay(priceIdr, "USD", fxRates);
             return (
               <Card key={leg.id}>
@@ -424,9 +411,6 @@ export default async function SearchPage({
                       {fxDisplay.secondary ? (
                         <div className="text-xs text-slate-500">{fxDisplay.secondary}</div>
                       ) : null}
-                      {leg.isPriceSurged ? (
-                        <div className="text-xs text-amber-600">High demand</div>
-                      ) : null}
                       <div className="text-xs text-muted-foreground">
                         per passenger
                       </div>
@@ -458,13 +442,10 @@ export default async function SearchPage({
                     >
                       Best Price ✓
                     </Link>
-                    <Button asChild disabled={leg.availableSeats < passengers}>
-                      <Link
-                        href={`/book/${leg.id}?passengers=${passengers}`}
-                        aria-disabled={leg.availableSeats < passengers}
-                      >
+                    <Button asChild>
+                      <Link href={`/book/${leg.id}?passengers=${passengers}`}>
                         Book {passengers} ·{" "}
-                        {formatIDR(Number(leg.adjustedPrice) * passengers)}
+                        {formatIDR(Number(leg.basePrice) * passengers)}
                       </Link>
                     </Button>
                   </div>

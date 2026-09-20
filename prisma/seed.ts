@@ -240,11 +240,6 @@ async function main() {
         ...activeSchedule,
       },
     });
-    // Yield pricing: prices increase when >50% full (+10%) or >80% full (+25%)
-    const pricingTiers = [
-      { minOccupancyPct: 50, multiplier: 1.1 },
-      { minOccupancyPct: 80, multiplier: 1.25 },
-    ];
     const schedule =
       existing ??
       (await prisma.schedule.create({
@@ -257,7 +252,6 @@ async function main() {
           basePrice: s.basePrice,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
           status: "ACTIVE",
-          pricingTiers,
         },
       }));
     allSchedules.push({
@@ -368,11 +362,6 @@ async function seedDemoBooking(
         },
       },
     },
-  });
-
-  await prisma.leg.update({
-    where: { id: legId },
-    data: { availableSeats: { decrement: args.passengers.length } },
   });
 
   const departureYmd = ymdInZone(departureDate);

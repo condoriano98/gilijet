@@ -171,7 +171,6 @@ async function main() {
         basePrice: dep.basePrice,
         daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
         status: "ACTIVE",
-        pricingTiers: [],
       },
     });
     created++;

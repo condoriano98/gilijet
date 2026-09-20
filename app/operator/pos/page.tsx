@@ -17,7 +17,6 @@ export default async function PosPage() {
       where: {
         operatorId,
         status: "OPEN",
-        availableSeats: { gt: 0 },
         departureDate: { gte: now, lte: eightHoursLater },
         schedule: { status: "ACTIVE", deletedAt: null, boat: { deletedAt: null } },
       },

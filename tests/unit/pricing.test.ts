@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   computeBookingPrice,
   computeBookingPriceWithTypes,
-  parsePricingTiers,
-  computeYieldAdjustedPrice,
 } from "@/lib/pricing";
 import { Prisma } from "@prisma/client";
 
@@ -152,91 +150,6 @@ describe("computeBookingPriceWithTypes", () => {
     });
     // adult falls back to unitPrice * 1.0 = 100k; child overridden to 100k
     expect(result.totalAmount.toString()).toBe("200000");
-  });
-});
-
-describe("parsePricingTiers", () => {
-  it("returns null for non-array input", () => {
-    expect(parsePricingTiers(null)).toBeNull();
-    expect(parsePricingTiers("string")).toBeNull();
-    expect(parsePricingTiers(42)).toBeNull();
-  });
-
-  it("returns null for empty array", () => {
-    expect(parsePricingTiers([])).toBeNull();
-  });
-
-  it("parses valid tiers", () => {
-    const tiers = parsePricingTiers([
-      { minOccupancyPct: 50, multiplier: 1.2 },
-      { minOccupancyPct: 80, multiplier: 1.5 },
-    ]);
-    expect(tiers).toEqual([
-      { minOccupancyPct: 50, multiplier: 1.2 },
-      { minOccupancyPct: 80, multiplier: 1.5 },
-    ]);
-  });
-
-  it("ignores malformed entries", () => {
-    const tiers = parsePricingTiers([
-      { minOccupancyPct: 50, multiplier: 1.2 },
-      { invalid: true },
-      { minOccupancyPct: "80", multiplier: 1.5 },
-      null,
-    ]);
-    expect(tiers).toEqual([{ minOccupancyPct: 50, multiplier: 1.2 }]);
-  });
-});
-
-describe("computeYieldAdjustedPrice", () => {
-  it("returns base price when no tiers", () => {
-    const price = computeYieldAdjustedPrice({
-      basePrice: 300_000,
-      totalCapacity: 100,
-      availableSeats: 50,
-    });
-    expect(price.toString()).toBe("300000");
-  });
-
-  it("applies highest applicable tier", () => {
-    const tiers = [
-      { minOccupancyPct: 50, multiplier: 1.2 },
-      { minOccupancyPct: 80, multiplier: 1.5 },
-    ];
-    // 50 booked / 100 capacity = 50% occupancy
-    const price = computeYieldAdjustedPrice({
-      basePrice: 300_000,
-      totalCapacity: 100,
-      availableSeats: 50,
-      tiers,
-    });
-    expect(price.toString()).toBe("360000"); // 300k * 1.2
-  });
-
-  it("applies highest tier when multiple thresholds exceeded", () => {
-    const tiers = [
-      { minOccupancyPct: 50, multiplier: 1.2 },
-      { minOccupancyPct: 80, multiplier: 1.5 },
-    ];
-    // 90 booked / 100 capacity = 90% occupancy
-    const price = computeYieldAdjustedPrice({
-      basePrice: 300_000,
-      totalCapacity: 100,
-      availableSeats: 10,
-      tiers,
-    });
-    expect(price.toString()).toBe("450000"); // 300k * 1.5
-  });
-
-  it("returns base price when no threshold exceeded", () => {
-    const tiers = [{ minOccupancyPct: 60, multiplier: 1.2 }];
-    const price = computeYieldAdjustedPrice({
-      basePrice: 300_000,
-      totalCapacity: 100,
-      availableSeats: 50,
-      tiers,
-    });
-    expect(price.toString()).toBe("300000");
   });
 });
 

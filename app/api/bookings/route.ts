@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof BookingError) {
       return NextResponse.json(
         { ok: false, code: err.code, error: err.message },
-        { status: err.code === "SOLD_OUT" ? 409 : 400 },
+        { status: 400 },
       );
     }
     console.error("[POST /api/bookings] reserve failed:", err);
