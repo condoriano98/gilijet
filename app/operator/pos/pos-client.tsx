@@ -17,6 +17,8 @@ type LegOption = {
   boatName: string;
   departureTime: string;
   basePrice: number;
+  childPrice: number;
+  infantPrice: number;
 };
 
 type PosScreen = "select" | "sell" | "success";
@@ -36,7 +38,9 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
 
   const totalPassengers = adults + children + infants;
   const totalPrice = selectedLeg
-    ? selectedLeg.basePrice * adults + selectedLeg.basePrice * 0.5 * children
+    ? selectedLeg.basePrice * adults +
+      selectedLeg.childPrice * children +
+      selectedLeg.infantPrice * infants
     : 0;
   const change = paymentMethod === "CASH" ? Math.max(0, amountReceived - totalPrice) : 0;
 
@@ -184,14 +188,16 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
             </div>
             {children > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-mekari-neutral-500">{children} Anak × {formatIDR(selectedLeg.basePrice * 0.5)}</span>
-                <span className="tabular-nums">{formatIDR(selectedLeg.basePrice * 0.5 * children)}</span>
+                <span className="text-mekari-neutral-500">{children} Anak × {formatIDR(selectedLeg.childPrice)}</span>
+                <span className="tabular-nums">{formatIDR(selectedLeg.childPrice * children)}</span>
               </div>
             )}
             {infants > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-mekari-neutral-500">{infants} Bayi (gratis)</span>
-                <span className="tabular-nums">Rp 0</span>
+                <span className="text-mekari-neutral-500">
+                  {infants} Bayi{selectedLeg.infantPrice === 0 ? " (gratis)" : ` × ${formatIDR(selectedLeg.infantPrice)}`}
+                </span>
+                <span className="tabular-nums">{formatIDR(selectedLeg.infantPrice * infants)}</span>
               </div>
             )}
             <div className="border-t border-mekari-neutral-200 pt-3">

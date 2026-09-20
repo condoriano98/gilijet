@@ -10,7 +10,6 @@ import {
 } from "@/lib/booking-engine";
 import { expireStalePendingBookings } from "@/lib/booking-expiry";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -28,8 +27,12 @@ import { ContactFields } from "./contact-fields";
 import { PromoCodeInput } from "@/components/customer/promo-code-input";
 import { BookingProgress } from "@/components/customer/booking-progress";
 import { SubmitBookingButton } from "@/components/customer/submit-booking-button";
+import { BookingPriceProvider } from "@/components/customer/booking-price-provider";
+import { BookingPriceSummary } from "@/components/customer/booking-price-summary";
 import { getCustomerSession } from "@/lib/auth";
 import type { PassengerType } from "@/lib/pricing";
+import { parseFareMatrix, categoryFaresFor } from "@/lib/fares";
+import { resolvePlatformPricing } from "@/lib/platform-config";
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -43,7 +46,11 @@ const bookingFormSchema = z.object({
   customerName: z.string().min(NAMES_MIN).max(120),
   customerEmail: z.string().email(),
   customerPhone: z.string().min(PHONE_MIN).max(40),
-  customerNationality: z.string().max(80).optional().or(z.literal("")),
+  customerNationality: z
+    .string()
+    .trim()
+    .min(1, "Nationality is required")
+    .max(80),
   notes: z.string().max(500).optional().or(z.literal("")),
   agreedToTerms: z.string().optional(),
 });
@@ -99,7 +106,7 @@ async function submitBookingAction(formData: FormData) {
         name: fields.data.customerName.trim(),
         email: fields.data.customerEmail.trim(),
         phone: fields.data.customerPhone.trim(),
-        nationality: fields.data.customerNationality || null,
+        nationality: fields.data.customerNationality,
       },
       passengers: passengerNames.map((name, idx) => ({
         name,
@@ -193,6 +200,15 @@ export default async function BookPage({
 
   const unitPrice = Number(leg.basePrice);
 
+  // Same fareMatrix-first, multiplier-fallback resolution the booking engine
+  // charges with (lib/booking-engine.ts) — ADULT stays leg.basePrice, since
+  // that's what the admin/operator price-override UIs write to.
+  const pricing = await resolvePlatformPricing(leg.operatorId);
+  const fareMatrix = parseFareMatrix(leg.schedule.fareMatrix);
+  const fares = fareMatrix ? categoryFaresFor(fareMatrix) : null;
+  const childPrice = fares ? fares.child : unitPrice * (pricing.multipliers?.CHILD ?? 0.5);
+  const infantPrice = fares ? fares.infant : unitPrice * (pricing.multipliers?.INFANT ?? 0);
+
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-3xl">
@@ -204,164 +220,167 @@ export default async function BookPage({
           ← Back to search
         </Link>
 
-        <Card className="mt-3">
-          <CardHeader>
-            <CardTitle className="text-2xl">
-              {leg.schedule.originPort} → {leg.schedule.destinationPort}
-            </CardTitle>
-            <CardDescription>
-              {formatLocalDate(leg.departureDate, "EEEE, dd MMM yyyy")} ·{" "}
-              <span className="font-mono">
-                {formatLocalTime(leg.departureDate)}
-              </span>{" "}
-              WITA · {leg.schedule.boat.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground">Per passenger:</span>{" "}
-              <span className="font-semibold">{formatIDR(unitPrice)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <form action={submitBookingAction} className="mt-6 space-y-6">
-          <input type="hidden" name="legId" value={leg.id} />
-
-          {error ? (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-
-          {customer ? (
-            <p className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900">
-              Booking as <strong>{customer.fullName}</strong> ({customer.email}).
-              This trip will appear in your{" "}
-              <Link href="/account" className="underline">account</Link>.
-            </p>
-          ) : (
-            <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              Booking as a guest.{" "}
-              <Link
-                href={`/account/login?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
-                className="font-medium text-sky-700 hover:underline"
-              >
-                Sign in
-              </Link>{" "}
-              or{" "}
-              <Link
-                href={`/account/register?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
-                className="font-medium text-sky-700 hover:underline"
-              >
-                create an account
-              </Link>{" "}
-              to save this trip and skip the form next time.
-            </p>
-          )}
-
-          <Card>
+        <BookingPriceProvider
+          adultPrice={unitPrice}
+          childPrice={childPrice}
+          infantPrice={infantPrice}
+          initialCount={initialPassengers}
+          max={10}
+        >
+          <Card className="mt-3">
             <CardHeader>
-              <CardTitle>Passengers</CardTitle>
+              <CardTitle className="text-2xl">
+                {leg.schedule.originPort} → {leg.schedule.destinationPort}
+              </CardTitle>
               <CardDescription>
-                Up to 10 per booking. Names should match a government ID where
-                possible.
+                {formatLocalDate(leg.departureDate, "EEEE, dd MMM yyyy")} ·{" "}
+                <span className="font-mono">
+                  {formatLocalTime(leg.departureDate)}
+                </span>{" "}
+                WITA · {leg.schedule.boat.name}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <PassengerFields initialCount={initialPassengers} max={10} />
-            </CardContent>
+            <BookingPriceSummary />
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact details</CardTitle>
-              <CardDescription>
-                We send your tickets and any updates here.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="customerName">Your name</Label>
-                <Input
-                  id="customerName"
-                  name="customerName"
-                  required
-                  minLength={NAMES_MIN}
-                  autoComplete="name"
-                  defaultValue={customer?.fullName ?? ""}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerEmail">Email</Label>
-                <Input
-                  id="customerEmail"
-                  name="customerEmail"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  defaultValue={customer?.email ?? ""}
-                />
-              </div>
-              <ContactFields
-                defaultPhone={customer?.phoneNumber ?? ""}
-                defaultNationality={customer?.nationality ?? ""}
-              />
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  rows={2}
-                  placeholder="Anything the operator should know"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <form action={submitBookingAction} className="mt-6 space-y-6">
+            <input type="hidden" name="legId" value={leg.id} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Promo code</CardTitle>
-              <CardDescription>
-                Have a discount code? Apply it here.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PromoCodeInput baseAmount={unitPrice * initialPassengers} />
-            </CardContent>
-          </Card>
+            {error ? (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </p>
+            ) : null}
 
-          <Card>
-            <CardContent className="space-y-3 pt-6">
-              <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  name="agreedToTerms"
-                  value="1"
-                  required
-                  className="mt-0.5 h-4 w-4 flex-shrink-0"
+            {customer ? (
+              <p className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                Booking as <strong>{customer.fullName}</strong> ({customer.email}).
+                This trip will appear in your{" "}
+                <Link href="/account" className="underline">account</Link>.
+              </p>
+            ) : (
+              <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                Booking as a guest.{" "}
+                <Link
+                  href={`/account/login?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
+                  className="font-medium text-sky-700 hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                or{" "}
+                <Link
+                  href={`/account/register?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
+                  className="font-medium text-sky-700 hover:underline"
+                >
+                  create an account
+                </Link>{" "}
+                to save this trip and skip the form next time.
+              </p>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Passengers</CardTitle>
+                <CardDescription>
+                  Up to 10 per booking. Names should match a government ID
+                  where possible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PassengerFields />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact details</CardTitle>
+                <CardDescription>
+                  We send your tickets and any updates here.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">Your name</Label>
+                  <Input
+                    id="customerName"
+                    name="customerName"
+                    required
+                    minLength={NAMES_MIN}
+                    autoComplete="name"
+                    defaultValue={customer?.fullName ?? ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerEmail">Email</Label>
+                  <Input
+                    id="customerEmail"
+                    name="customerEmail"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    defaultValue={customer?.email ?? ""}
+                  />
+                </div>
+                <ContactFields
+                  defaultPhone={customer?.phoneNumber ?? ""}
+                  defaultNationality={customer?.nationality ?? ""}
                 />
-                <span>
-                  I have read and agree to the{" "}
-                  <Link
-                    href="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-sky-700 underline"
-                  >
-                    Terms &amp; Conditions and Refund Policy
-                  </Link>
-                  . I confirm my booking details are correct and accept the
-                  cancellation schedule (100% refund &gt;7 days · 50% refund
-                  48h–7 days · no refund &lt;48h before departure).
-                </span>
-              </label>
-            </CardContent>
-            <CardFooter>
-              <SubmitBookingButton amount={unitPrice * initialPassengers} />
-            </CardFooter>
-          </Card>
-        </form>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    rows={2}
+                    placeholder="Anything the operator should know"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Promo code</CardTitle>
+                <CardDescription>
+                  Have a discount code? Apply it here.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PromoCodeInput />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    name="agreedToTerms"
+                    value="1"
+                    required
+                    className="mt-0.5 h-4 w-4 flex-shrink-0"
+                  />
+                  <span>
+                    I have read and agree to the{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-sky-700 underline"
+                    >
+                      Terms &amp; Conditions and Refund Policy
+                    </Link>
+                    . I confirm my booking details are correct and accept the
+                    cancellation schedule (100% refund &gt;7 days · 50%
+                    refund 48h–7 days · no refund &lt;48h before departure).
+                  </span>
+                </label>
+              </CardContent>
+              <CardFooter>
+                <SubmitBookingButton />
+              </CardFooter>
+            </Card>
+          </form>
+        </BookingPriceProvider>
       </div>
     </div>
   );

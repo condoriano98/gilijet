@@ -24,7 +24,7 @@ const bodySchema = z.object({
     name: z.string().min(2).max(120),
     email: z.string().email(),
     phone: z.string().min(6).max(40),
-    nationality: z.string().max(80).optional().nullable(),
+    nationality: z.string().trim().min(1, "Nationality is required").max(80),
   }),
   passengers: z.array(passengerSchema).min(1).max(10),
   notes: z.string().max(500).optional().nullable(),

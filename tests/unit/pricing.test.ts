@@ -130,6 +130,29 @@ describe("computeBookingPriceWithTypes", () => {
     expect(result.seatCount).toBe(4);
     expect(result.commissionAmount.toString()).toBe("60000");
   });
+
+  it("categoryUnitPrices overrides multipliers with absolute fareMatrix fares", () => {
+    // WGO 5, Sanur -> Banjar Nyuh, one-way/low: adult 150k, child 110k, infant free.
+    // Real operator data — child is NOT the 50% global default.
+    const result = computeBookingPriceWithTypes({
+      unitPrice: 150_000,
+      passengerTypes: ["ADULT", "CHILD", "INFANT"],
+      commissionRate: 0.08,
+      categoryUnitPrices: { ADULT: 150_000, CHILD: 110_000, INFANT: 0 },
+    });
+    expect(result.totalAmount.toString()).toBe("260000");
+  });
+
+  it("categoryUnitPrices only overrides the types it names; others still use multipliers", () => {
+    const result = computeBookingPriceWithTypes({
+      unitPrice: 100_000,
+      passengerTypes: ["ADULT", "CHILD"],
+      commissionRate: 0.08,
+      categoryUnitPrices: { CHILD: 100_000 }, // child = full price on this boat
+    });
+    // adult falls back to unitPrice * 1.0 = 100k; child overridden to 100k
+    expect(result.totalAmount.toString()).toBe("200000");
+  });
 });
 
 describe("parsePricingTiers", () => {

@@ -64,3 +64,13 @@ export function parseFareMatrix(raw: unknown): FareMatrix | null {
 export function baseFareOf(matrix: FareMatrix): number {
   return matrix.oneWay.low.adult;
 }
+
+/**
+ * Per-category fares for checkout. Booking is one-way only and there is no
+ * season resolver (no date ranges are configured anywhere), so this always
+ * reads the one-way/low cell — the same cell `baseFareOf` mirrors into
+ * `Schedule.basePrice`, so ADULT here always matches the existing basePrice.
+ */
+export function categoryFaresFor(matrix: FareMatrix): CategoryFares {
+  return matrix.oneWay.low;
+}

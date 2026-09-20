@@ -9,6 +9,7 @@ import {
 } from "./pricing";
 import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
 import { resolvePlatformPricing } from "./platform-config";
+import { parseFareMatrix, categoryFaresFor } from "./fares";
 import { newBookingReference } from "./references";
 import { alertAdminNewBooking } from "./admin-alerts";
 import { validatePromoCode, applyPromoCode } from "./promotions";
@@ -143,12 +144,26 @@ export async function reserveSeatsAndCreateBooking(
 
     const pricing = await resolvePlatformPricing(leg.operatorId, tx);
 
+    // A Schedule's fareMatrix (the operator's uploaded price sheet) is the
+    // source of truth for CHILD/INFANT fares when present — that pricing
+    // varies by boat and does not follow a fixed platform-wide ratio.
+    // ADULT deliberately keeps coming from `leg.basePrice` (below), not the
+    // matrix: basePrice is the per-leg price snapshot that the admin
+    // (`adjustDeparturePrice`) and operator (schedule edit) price-override
+    // UIs write to, and the matrix is never repriced in place — only
+    // overriding CHILD/INFANT here keeps those overrides working.
+    const fareMatrix = parseFareMatrix(leg.schedule.fareMatrix);
+    const categoryUnitPrices = fareMatrix
+      ? { CHILD: categoryFaresFor(fareMatrix).child, INFANT: categoryFaresFor(fareMatrix).infant }
+      : undefined;
+
     // Compute base fare (pre-promo) to validate promo min-spend against. The
     // service fee is excluded here — the promo applies to the fare only.
     const preDiscount = computeBookingPriceWithTypes({
       unitPrice: leg.basePrice,
       passengerTypes,
       multipliers: pricing.multipliers,
+      categoryUnitPrices,
     });
 
     // Validate promo if provided. The redemption is recorded AFTER the
@@ -181,6 +196,7 @@ export async function reserveSeatsAndCreateBooking(
       commissionRate: pricing.commissionRate,
       costBearer,
       multipliers: pricing.multipliers,
+      categoryUnitPrices,
       serviceFee: pricing.serviceFee,
     });
 

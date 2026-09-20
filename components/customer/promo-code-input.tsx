@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatIDR } from "@/lib/utils";
+import { useBookingPrice } from "./booking-price-provider";
 
 type ValidationResult =
   | { valid: true; discountAmount: number; description: string | null }
@@ -15,7 +16,8 @@ type ValidationResult =
  * to show discount preview before form submit. The actual application
  * happens server-side in the booking engine.
  */
-export function PromoCodeInput({ baseAmount }: { baseAmount: number }) {
+export function PromoCodeInput() {
+  const { total: baseAmount } = useBookingPrice();
   const [code, setCode] = React.useState("");
   const [status, setStatus] = React.useState<
     "idle" | "checking" | "valid" | "invalid"

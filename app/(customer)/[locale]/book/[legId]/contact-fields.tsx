@@ -78,7 +78,9 @@ export function ContactFields({
       </div>
 
       <div className="space-y-2">
-        <Label>Nationality (optional)</Label>
+        <Label>
+          Nationality <span className="text-destructive">*</span>
+        </Label>
         <Select value={nationalityCode} onValueChange={setNationalityCode}>
           <SelectTrigger>
             <SelectValue placeholder="Select nationality" />

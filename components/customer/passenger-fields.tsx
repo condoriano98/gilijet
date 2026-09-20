@@ -4,27 +4,26 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { formatIDR } from "@/lib/utils";
+import { useBookingPrice } from "./booking-price-provider";
+import type { PassengerType } from "@/lib/pricing";
 
 /**
  * One row per passenger. Each emits three inputs:
  *   passengerName[]     — required
  *   passengerIdNumber[] — optional in MVP (KTP / passport)
- *   passengerType[]     — ADULT (full) | CHILD (50%) | INFANT (free, no seat)
+ *   passengerType[]     — ADULT | CHILD | INFANT (no seat). Fare per type
+ *                         follows the boat's price list — see lib/pricing.ts.
+ * Count and type live in BookingPriceProvider so the price summary, promo
+ * preview and submit button stay in sync with what's selected here.
  */
-export function PassengerFields({
-  initialCount = 1,
-  max = 10,
-}: {
-  initialCount?: number;
-  max?: number;
-}) {
-  const [count, setCount] = React.useState(
-    Math.max(1, Math.min(max, initialCount)),
-  );
+export function PassengerFields() {
+  const { types, setType, addPassenger, removePassenger, unitPriceFor, max } =
+    useBookingPrice();
 
   return (
     <div className="space-y-3">
-      {Array.from({ length: count }, (_, i) => (
+      {types.map((type, i) => (
         <div
           key={i}
           className="grid gap-2 rounded-md border bg-card p-3 sm:grid-cols-[1fr_160px_180px]"
@@ -45,13 +44,17 @@ export function PassengerFields({
             <select
               id={`passengerType-${i}`}
               name="passengerType"
-              defaultValue="ADULT"
+              value={type}
+              onChange={(e) => setType(i, e.target.value as PassengerType)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <option value="ADULT">Adult (full price)</option>
-              <option value="CHILD">Child 3-12 (50% off)</option>
-              <option value="INFANT">Infant &lt;3 (free)</option>
+              <option value="ADULT">ADULT</option>
+              <option value="CHILD">CHILD</option>
+              <option value="INFANT">INFANT</option>
             </select>
+            <p className="text-xs text-muted-foreground">
+              {formatIDR(unitPriceFor(type))}
+            </p>
           </div>
           <div className="space-y-1">
             <Label htmlFor={`passengerId-${i}`}>
@@ -71,17 +74,17 @@ export function PassengerFields({
           type="button"
           variant="outline"
           size="sm"
-          disabled={count >= max}
-          onClick={() => setCount((c) => Math.min(max, c + 1))}
+          disabled={types.length >= max}
+          onClick={addPassenger}
         >
           + Add passenger
         </Button>
-        {count > 1 ? (
+        {types.length > 1 ? (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setCount((c) => Math.max(1, c - 1))}
+            onClick={removePassenger}
           >
             Remove last
           </Button>
@@ -89,8 +92,8 @@ export function PassengerFields({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Children get a 50% discount. Infants under 3 travel free and share a
-        seat with an accompanying adult.
+        Child: ages 3–12. Infant: under 3, shares a seat with an accompanying
+        adult.
       </p>
     </div>
   );

@@ -121,6 +121,14 @@ export function computeBookingPriceWithTypes(args: {
   discountAmount?: Prisma.Decimal | string | number;
   costBearer?: CostBearer;
   multipliers?: Partial<Record<PassengerType, number>>;
+  /**
+   * Absolute per-passenger fare for a type (e.g. from a Schedule's
+   * fareMatrix), taking precedence over `multipliers` for that type. Used
+   * directly rather than folded into a multiplier so operator price-sheet
+   * numbers survive Decimal math exactly, with no division-then-multiply
+   * rounding drift.
+   */
+  categoryUnitPrices?: Partial<Record<PassengerType, Prisma.Decimal | string | number>>;
   serviceFee?: ServiceFee;
 }): PriceBreakdownWithTypes {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
@@ -131,6 +139,10 @@ export function computeBookingPriceWithTypes(args: {
 
   const mult = (t: PassengerType) =>
     args.multipliers?.[t] ?? TRAVELER_MULTIPLIERS[t];
+  const fareFor = (t: PassengerType) => {
+    const override = args.categoryUnitPrices?.[t];
+    return override != null ? new Prisma.Decimal(override) : unitPrice.mul(mult(t));
+  };
 
   let adultCount = 0;
   let childCount = 0;
@@ -141,7 +153,7 @@ export function computeBookingPriceWithTypes(args: {
     if (type === "ADULT") adultCount++;
     else if (type === "CHILD") childCount++;
     else infantCount++;
-    gross = gross.add(unitPrice.mul(mult(type)));
+    gross = gross.add(fareFor(type));
   }
 
   const zero = new Prisma.Decimal(0);

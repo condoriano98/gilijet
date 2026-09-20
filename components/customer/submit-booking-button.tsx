@@ -3,9 +3,11 @@
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/utils";
+import { useBookingPrice } from "./booking-price-provider";
 
-export function SubmitBookingButton({ amount }: { amount: number }) {
+export function SubmitBookingButton() {
   const { pending } = useFormStatus();
+  const { total: amount } = useBookingPrice();
 
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
