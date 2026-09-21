@@ -35,10 +35,10 @@ const LOGO_METHODS: { key: string; label: string; file: string; square?: boolean
   { key: "indodana", label: "Indodana PayLater", file: "indodana.webp" },
 ];
 
-function Badge({ label, children }: { label: string; children: React.ReactNode }) {
+function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
-      className="flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 shadow-sm"
+      className="flex h-8 items-center justify-center rounded-md bg-white px-1.5 shadow-sm"
       title={label}
     >
       {children}
@@ -47,24 +47,28 @@ function Badge({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function PaymentMethodsStrip() {
+/** Footer "Payment Partners" grid — dark-background counterpart to the tiles above. */
+export function PaymentPartners() {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-      {LOGO_METHODS.map(({ key, label, file, square }) => (
-        <Badge key={key} label={label}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- fixed-size
-              brand mark, not content imagery; next/image's required
-              width/height fights the varied aspect ratios here */}
-          <img
-            src={`/brand/payment-logos/${file}`}
-            alt=""
-            className={`w-auto max-w-[64px] object-contain ${square ? "h-7" : "h-5"}`}
-          />
-        </Badge>
-      ))}
-      <Badge label="PayPal">
-        <PaypalMark className="h-5 w-5" />
-      </Badge>
+    <div>
+      <div className="mb-3 text-base font-semibold">Payment Partners</div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {LOGO_METHODS.map(({ key, label, file, square }) => (
+          <Tile key={key} label={label}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- fixed-size
+                brand mark, not content imagery; next/image's required
+                width/height fights the varied aspect ratios here */}
+            <img
+              src={`/brand/payment-logos/${file}`}
+              alt=""
+              className={`w-auto max-w-[44px] object-contain ${square ? "h-6" : "h-4"}`}
+            />
+          </Tile>
+        ))}
+        <Tile label="PayPal">
+          <PaypalMark className="h-4 w-4" />
+        </Tile>
+      </div>
     </div>
   );
 }

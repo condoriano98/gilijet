@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { SearchForm } from "@/components/customer/search-form";
-import { PaymentMethodsStrip } from "@/components/customer/payment-methods-strip";
 import { DepartingToday } from "@/components/customer/departing-today";
 import { ReviewsCarousel } from "@/components/customer/reviews-carousel";
 import { NearestPortCard } from "@/components/customer/nearest-port-card";
@@ -172,14 +171,6 @@ export default async function HomePage() {
           <p className="mt-3 text-center text-xs text-slate-500">
             {t("home.searchAcross")}
           </p>
-
-          {/* ─── PAYMENT METHODS TRUST STRIP ─── */}
-          <div className="mt-6">
-            <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-slate-400">
-              Secure payments accepted
-            </p>
-            <PaymentMethodsStrip />
-          </div>
         </div>
       </div>
 

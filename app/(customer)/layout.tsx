@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AuthNav } from "@/components/customer/auth-nav";
 import { MobileNav } from "@/components/customer/mobile-nav";
 import { Logo } from "@/components/customer/logo";
+import { PaymentPartners } from "@/components/customer/payment-partners";
 
 // Sync layout. The auth-aware buttons live in <AuthNav>, a client
 // component that fetches /api/auth/me on mount. This keeps the
@@ -73,6 +74,9 @@ function SiteFooter() {
             Let Journey Begin with Gilifast! Book fast boats across Indonesia —
             verified operators, transparent prices, fair refunds.
           </p>
+          <div className="mt-5 max-w-xs">
+            <PaymentPartners />
+          </div>
         </div>
         <div>
           <div className="mb-3 text-base font-semibold">Company</div>
