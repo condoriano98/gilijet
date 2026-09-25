@@ -64,9 +64,18 @@ it denies any `anon` / `authenticated` role, i.e. blocks the table entirely
 if it were ever exposed through Supabase's own Data API with a client-side
 key.
 
-## Known data gap
+## Seed data
 
-The source CSV (`trigger_tiket.csv`) has one corrupted value: WAHANA's
-first `nohp_notifikasi` came through as `8.12346E+12` — a spreadsheet
-scientific-notation artifact that lost the real digits. Seeding is on hold
-until a correct number is supplied; do not guess the missing digits.
+`scripts/seed-pic-contacts.ts` reads `trigger_tiket.csv` (repo root) and
+inserts one row per CSV line, resolving `operatorId` by matching the CSV's
+`companyname` column against `Operator.companyName`. It refuses to run if
+the table already has rows (no dedupe key to make it safely re-runnable) —
+clear the table first if a genuine reseed is needed:
+
+```bash
+pnpm tsx scripts/seed-pic-contacts.ts
+```
+
+An earlier version of the CSV had one corrupted value (a spreadsheet
+scientific-notation artifact that ate a phone number's digits); the
+current CSV has been corrected and fully seeded to staging.
