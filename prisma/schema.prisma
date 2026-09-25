@@ -123,6 +123,7 @@ model Operator {
   travelAgents TravelAgent[]
   cashDrawerSessions CashDrawerSession[]
   notifications OperatorNotification[]
+  picContacts OperatorPicContact[]
   agent    Agent? @relation(fields: [agentId], references: [id])
 
   @@index([status])
@@ -1097,6 +1098,33 @@ model TravelAgent {
   bookings                 Booking[]
 
   @@index([operatorId, isActive, deletedAt])
+}
+
+// ============== OPERATOR PIC CONTACTS ==============
+
+// Contact channels for a boat operator's PIC (Person In Charge), used by the
+// booking-confirmation automation to notify or request confirmation from the
+// operator side. One operator can have several rows (e.g. multiple people
+// who can be pinged); when more than one contact is asked to confirm a
+// departure, whichever one responds first is the one that counts — that
+// race is application logic, not enforced by this table.
+//
+// operatorId is nullable to allow platform-level rows (e.g. Gilifast's own
+// contact) that aren't tied to any row in Operator.
+model OperatorPicContact {
+  id                     String    @id @default(cuid())
+  operatorId             String?
+  nohpNotifikasi         String?
+  emailNotifikasi        String?
+  nohpKonfirmasiTrigger  String?
+  emailKonfirmasiTrigger String?
+  deletedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  operator Operator? @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+
+  @@index([operatorId])
 }
 
 // ============== ERP — CASH DRAWER ==============
