@@ -12,16 +12,13 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalDateTime } from "@/lib/datetime";
+import { BookingRow } from "./booking-row";
 
 const STATUS_FILTERS: BookingStatus[] = [
   "PENDING_PAYMENT",
@@ -64,6 +61,7 @@ export default async function AdminBookingsPage({
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
       promotion: true,
+      tickets: true,
     },
   });
 
@@ -144,11 +142,13 @@ export default async function AdminBookingsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
-                  <TableHead>Route</TableHead>
+                  <TableHead>Departure</TableHead>
+                  <TableHead>Arrival</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Passengers</TableHead>
                   <TableHead>Nationality</TableHead>
                   <TableHead className="w-[320px]">Notes</TableHead>
                   <TableHead>Promo Code</TableHead>
@@ -157,74 +157,7 @@ export default async function AdminBookingsPage({
               </TableHeader>
               <TableBody>
                 {bookings.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      <Link
-                        href={`/b/${b.bookingReference}`}
-                        className="hover:underline"
-                        target="_blank"
-                      >
-                        {b.bookingReference}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <div className="text-sm">
-                        {b.leg.schedule.originPort} → {b.leg.schedule.destinationPort}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {b.leg.schedule.boat.name} ·{" "}
-                        {formatLocalDateTime(b.leg.departureDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[160px]">
-                      <div
-                        className="truncate text-sm"
-                        title={b.customerName}
-                      >
-                        {b.customerName}
-                      </div>
-                      <div
-                        className="truncate text-xs text-muted-foreground"
-                        title={b.customerEmail}
-                      >
-                        {b.customerEmail}
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">
-                      {waNumber(b.customerPhone) ? (
-                        <a
-                          href={`https://wa.me/${waNumber(b.customerPhone)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sky-700 hover:underline"
-                        >
-                          {b.customerPhone}
-                        </a>
-                      ) : (
-                        b.customerPhone
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatIDR(Number(b.totalAmount))}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <Badge variant="outline" className="px-3 py-1">
-                        {b.status.replace(/_/g, " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">
-                      {b.customerNationality}
-                    </TableCell>
-                    <TableCell className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                      {customerNotes(b.notes)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {b.promotion?.code}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {formatLocalDateTime(b.createdAt)}
-                    </TableCell>
-                  </TableRow>
+                  <BookingRow key={b.id} booking={b} />
                 ))}
               </TableBody>
             </Table>
@@ -233,22 +166,6 @@ export default async function AdminBookingsPage({
       </Card>
     </div>
   );
-}
-
-function waNumber(phone: string): string | null {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 8) return null;
-  return digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
-}
-
-function customerNotes(notes: string | null): string | null {
-  if (!notes) return null;
-  try {
-    const parsed = JSON.parse(notes) as { customerNotes?: string };
-    return parsed.customerNotes || null;
-  } catch {
-    return notes;
-  }
 }
 
 function FilterChip({
