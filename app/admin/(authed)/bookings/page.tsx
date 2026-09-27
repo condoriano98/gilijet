@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Prisma, BookingStatus } from '@prisma/client';
+import { Prisma, BookingStatus, PaymentMethod } from '@prisma/client';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import {
@@ -29,10 +29,15 @@ const STATUS_FILTERS: BookingStatus[] = [
   'EXPIRED',
 ];
 
-function buildWhere(q?: string, status?: string): Prisma.BookingWhereInput {
+function buildWhere(q?: string, status?: string, paymentMethod?: string): Prisma.BookingWhereInput {
   const where: Prisma.BookingWhereInput = {};
   if (status && STATUS_FILTERS.includes(status as BookingStatus)) {
     where.status = status as BookingStatus;
+  }
+  if (paymentMethod) {
+    where.payment = {
+      method: paymentMethod as PaymentMethod,
+    };
   }
   if (q && q.trim()) {
     const term = q.trim();
@@ -48,12 +53,12 @@ function buildWhere(q?: string, status?: string): Prisma.BookingWhereInput {
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; paymentMethod?: string }>;
 }) {
   await requireAdmin();
-  const { q, status } = await searchParams;
+  const { q, status, paymentMethod } = await searchParams;
 
-  const where = buildWhere(q, status);
+  const where = buildWhere(q, status, paymentMethod);
   const bookings = await prisma.booking.findMany({
     where,
     orderBy: { createdAt: 'desc' },
@@ -62,12 +67,14 @@ export default async function AdminBookingsPage({
       leg: { include: { schedule: { include: { boat: true } } } },
       promotion: true,
       tickets: true,
+      payment: true,
     },
   });
 
   const csvParams = new URLSearchParams();
   if (q) csvParams.set('q', q);
   if (status) csvParams.set('status', status);
+  if (paymentMethod) csvParams.set('paymentMethod', paymentMethod);
   const csvHref = `/api/admin/bookings/csv${csvParams.toString() ? `?${csvParams}` : ''}`;
 
   return (
@@ -96,8 +103,9 @@ export default async function AdminBookingsPage({
               className="max-w-xs"
             />
             {status ? <input type="hidden" name="status" value={status} /> : null}
+            {paymentMethod ? <input type="hidden" name="paymentMethod" value={paymentMethod} /> : null}
             <Button type="submit">Search</Button>
-            {(q || status) && (
+            {(q || status || paymentMethod) && (
               <Button asChild variant="ghost">
                 <Link href="/admin/bookings">Clear</Link>
               </Button>
@@ -105,20 +113,50 @@ export default async function AdminBookingsPage({
           </form>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <FilterChip label="All" active={!status} href={q ? `/admin/bookings?q=${encodeURIComponent(q)}` : '/admin/bookings'} />
-            {STATUS_FILTERS.map((s) => {
-              const params = new URLSearchParams();
-              if (q) params.set('q', q);
-              params.set('status', s);
-              return (
+            <div>
+              <p className="mb-2 text-sm font-medium text-muted-foreground">Booking Status:</p>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip label="All" active={!status} href={q ? `/admin/bookings?q=${encodeURIComponent(q)}` : '/admin/bookings'} />
+                {STATUS_FILTERS.map((s) => {
+                  const params = new URLSearchParams();
+                  if (q) params.set('q', q);
+                  if (paymentMethod) params.set('paymentMethod', paymentMethod);
+                  params.set('status', s);
+                  return (
+                    <FilterChip
+                      key={s}
+                      label={s.replace(/_/g, ' ')}
+                      active={status === s}
+                      href={`/admin/bookings?${params}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-3 w-full">
+              <p className="mb-2 text-sm font-medium text-muted-foreground">Payment Method:</p>
+              <div className="flex flex-wrap gap-2">
                 <FilterChip
-                  key={s}
-                  label={s.replace(/_/g, ' ')}
-                  active={status === s}
-                  href={`/admin/bookings?${params}`}
+                  label="All"
+                  active={!paymentMethod}
+                  href={q ? `/admin/bookings?q=${encodeURIComponent(q)}${status ? `&status=${status}` : ''}` : `/admin/bookings${status ? `?status=${status}` : ''}`}
                 />
-              );
-            })}
+                {(['DOKU', 'PAYPAL', 'QRIS', 'CREDIT_CARD', 'BANK_TRANSFER'] as const).map((method) => {
+                  const params = new URLSearchParams();
+                  if (q) params.set('q', q);
+                  if (status) params.set('status', status);
+                  params.set('paymentMethod', method);
+                  return (
+                    <FilterChip
+                      key={method}
+                      label={method === 'DOKU' ? 'DOKU' : method === 'PAYPAL' ? 'PayPal' : method}
+                      active={paymentMethod === method}
+                      href={`/admin/bookings?${params}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -147,6 +185,8 @@ export default async function AdminBookingsPage({
                   <TableHead>Customer</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Payment Value</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Passengers</TableHead>
                   <TableHead>Nationality</TableHead>

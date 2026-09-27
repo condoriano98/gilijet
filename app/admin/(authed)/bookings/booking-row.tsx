@@ -19,6 +19,7 @@ type BookingWithDetails = Prisma.BookingGetPayload<{
     leg: { include: { schedule: { include: { boat: true } } } };
     promotion: true;
     tickets: true;
+    payment: true;
   };
 }>;
 
@@ -77,6 +78,12 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
         </TableCell>
         <TableCell className="whitespace-nowrap">
           {formatIDR(Number(booking.totalAmount))}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-sm">
+          {booking.payment?.status === 'SUCCESSFUL' ? booking.payment.method : '-'}
+        </TableCell>
+        <TableCell className="whitespace-nowrap">
+          {booking.payment?.status === 'SUCCESSFUL' ? formatIDR(Number(booking.payment.amount)) : '-'}
         </TableCell>
         <TableCell className="whitespace-nowrap">
           <Badge variant="outline" className="px-3 py-1">
