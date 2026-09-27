@@ -1,32 +1,32 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { getOperatorSession } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { getOperatorSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Step1BasicInfo } from "./step-1-basic-info";
-import { Step2Siup } from "./step-2-siup";
-import { Step3Npwp } from "./step-3-npwp";
-import { Step4VesselLicense } from "./step-4-vessel-license";
-import { Step5Insurance } from "./step-5-insurance";
-import { Step6CaptainLicense } from "./step-6-captain-license";
-import { Step7BankAccount } from "./step-7-bank-account";
+} from '@/components/ui/card';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Step1BasicInfo } from './step-1-basic-info';
+import { Step2Siup } from './step-2-siup';
+import { Step3Npwp } from './step-3-npwp';
+import { Step4VesselLicense } from './step-4-vessel-license';
+import { Step5Insurance } from './step-5-insurance';
+import { Step6CaptainLicense } from './step-6-captain-license';
+import { Step7BankAccount } from './step-7-bank-account';
 
 const STEPS = [
-  { number: 1, title: "Basic Information", description: "Company details" },
-  { number: 2, title: "SIUP", description: "Business permit" },
-  { number: 3, title: "NPWP", description: "Tax ID" },
-  { number: 4, title: "Vessel License", description: "Boat license" },
-  { number: 5, title: "Insurance", description: "Insurance certificate" },
-  { number: 6, title: "Captain License", description: "Captain certification" },
-  { number: 7, title: "Bank Account", description: "Payment details" },
+  { number: 1, title: 'Basic Information', description: 'Company details' },
+  { number: 2, title: 'SIUP', description: 'Business permit' },
+  { number: 3, title: 'NPWP', description: 'Tax ID' },
+  { number: 4, title: 'Vessel License', description: 'Boat license' },
+  { number: 5, title: 'Insurance', description: 'Insurance certificate' },
+  { number: 6, title: 'Captain License', description: 'Captain certification' },
+  { number: 7, title: 'Bank Account', description: 'Payment details' },
 ];
 
 // Uses getOperatorSession() directly instead of requireOperator(): step 1
@@ -43,11 +43,11 @@ export default async function SignupPage({
   const currentStep = Math.max(1, Math.min(7, Number(stepParam) || 1));
 
   if (!session && currentStep > 1) {
-    redirect("/operator/daftar?step=1");
+    redirect('/operator/daftar?step=1');
   }
 
   if (session && currentStep === 1) {
-    redirect("/operator/daftar?step=2");
+    redirect('/operator/daftar?step=2');
   }
 
   const operator = session
@@ -60,7 +60,7 @@ export default async function SignupPage({
     : null;
 
   if (!operator && session) {
-    redirect("/operator/login");
+    redirect('/operator/login');
   }
 
   function renderStep() {
@@ -102,8 +102,8 @@ export default async function SignupPage({
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
                     s.number <= currentStep
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-600"
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-200 text-slate-600'
                   }`}
                 >
                   {s.number}
@@ -111,7 +111,7 @@ export default async function SignupPage({
                 {idx < STEPS.length - 1 && (
                   <div
                     className={`flex-1 h-1 mx-2 ${
-                      s.number < currentStep ? "bg-emerald-600" : "bg-slate-200"
+                      s.number < currentStep ? 'bg-emerald-600' : 'bg-slate-200'
                     }`}
                   />
                 )}
@@ -144,7 +144,7 @@ export default async function SignupPage({
           {currentStep > 1 ? (
             <Link
               href={`/operator/daftar?step=${currentStep - 1}`}
-              className={cn(buttonVariants({ variant: "outline" }))}
+              className={cn(buttonVariants({ variant: 'outline' }))}
             >
               Previous
             </Link>

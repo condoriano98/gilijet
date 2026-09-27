@@ -1,37 +1,37 @@
-import Link from "next/link";
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { cn } from "@/lib/utils";
-import { formatLocalDate } from "@/lib/datetime";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
+import Link from 'next/link';
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { cn } from '@/lib/utils';
+import { formatLocalDate } from '@/lib/datetime';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { ProfileForm } from "./profile-form";
+} from '@/components/ui/card';
+import { ProfileForm } from './profile-form';
 
 const TABS = [
-  { key: "profil", label: "Profil" },
-  { key: "staf", label: "Staf" },
-  { key: "bank", label: "Bank" },
+  { key: 'profil', label: 'Profil' },
+  { key: 'staf', label: 'Staf' },
+  { key: 'bank', label: 'Bank' },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = (typeof TABS)[number]['key'];
 
 function roleLabel(r: string): string {
   const map: Record<string, string> = {
-    MANAGER: "Manajer",
-    GATE: "Gerbang",
-    BOOTH_AGENT: "Booth",
-    ACCOUNTANT: "Akuntan",
-    CAPTAIN: "Kapten",
-    CREW: "Awak",
-    ENGINEER: "Teknisi",
+    MANAGER: 'Manajer',
+    GATE: 'Gerbang',
+    BOOTH_AGENT: 'Booth',
+    ACCOUNTANT: 'Akuntan',
+    CAPTAIN: 'Kapten',
+    CREW: 'Awak',
+    ENGINEER: 'Teknisi',
   };
   return map[r] ?? r;
 }
@@ -50,7 +50,7 @@ export default async function PengaturanPage({
   const session = await requireOperator();
   const operatorId = session.sub;
   const sp = await searchParams;
-  const tab = (TABS.find((t) => t.key === sp.tab)?.key ?? "profil") as TabKey;
+  const tab = (TABS.find((t) => t.key === sp.tab)?.key ?? 'profil') as TabKey;
 
   const operator = await prisma.operator.findUnique({
     where: { id: operatorId },
@@ -71,10 +71,10 @@ export default async function PengaturanPage({
             key={t.key}
             href={`/operator/pengaturan?tab=${t.key}`}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
               t.key === tab
-                ? "bg-mekari-primary text-white"
-                : "bg-mekari-surface text-mekari-neutral-600 hover:bg-mekari-neutral-100",
+                ? 'bg-mekari-primary text-white'
+                : 'bg-mekari-surface text-mekari-neutral-600 hover:bg-mekari-neutral-100',
             )}
           >
             {t.label}
@@ -82,13 +82,13 @@ export default async function PengaturanPage({
         ))}
       </div>
 
-      {sp.ok === "saved" && tab === "profil" && (
+      {sp.ok === 'saved' && tab === 'profil' && (
         <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           Profil berhasil disimpan.
         </p>
       )}
 
-      {tab === "profil" && operator && (
+      {tab === 'profil' && operator && (
         <ProfileForm
           initial={{
             companyName: operator.companyName,
@@ -99,9 +99,9 @@ export default async function PengaturanPage({
         />
       )}
 
-      {tab === "staf" && <StaffTab operatorId={operatorId} />}
+      {tab === 'staf' && <StaffTab operatorId={operatorId} />}
 
-      {tab === "bank" && operator && (
+      {tab === 'bank' && operator && (
         <BankTab info={operator.bankAccountInfo as unknown as BankInfo} />
       )}
     </ListPageTemplate>
@@ -111,7 +111,7 @@ export default async function PengaturanPage({
 async function StaffTab({ operatorId }: { operatorId: string }) {
   const staff = await prisma.operatorStaff.findMany({
     where: { operatorId, deletedAt: null },
-    orderBy: { fullName: "asc" },
+    orderBy: { fullName: 'asc' },
     select: {
       id: true,
       fullName: true,
@@ -124,22 +124,22 @@ async function StaffTab({ operatorId }: { operatorId: string }) {
 
   type StaffRow = (typeof staff)[number];
   const columns = [
-    { key: "fullName", header: "Nama", render: (r: StaffRow) => r.fullName },
-    { key: "email", header: "Email", render: (r: StaffRow) => r.email },
-    { key: "role", header: "Peran", render: (r: StaffRow) => roleLabel(r.role) },
+    { key: 'fullName', header: 'Nama', render: (r: StaffRow) => r.fullName },
+    { key: 'email', header: 'Email', render: (r: StaffRow) => r.email },
+    { key: 'role', header: 'Peran', render: (r: StaffRow) => roleLabel(r.role) },
     {
-      key: "status",
-      header: "Status",
+      key: 'status',
+      header: 'Status',
       render: (r: StaffRow) => (
-        <StatusBadge variant={r.status === "ACTIVE" ? "success" : "warning"}>
-          {r.status === "ACTIVE" ? "Aktif" : "Ditangguhkan"}
+        <StatusBadge variant={r.status === 'ACTIVE' ? 'success' : 'warning'}>
+          {r.status === 'ACTIVE' ? 'Aktif' : 'Ditangguhkan'}
         </StatusBadge>
       ),
     },
     {
-      key: "lastLoginAt",
-      header: "Login Terakhir",
-      render: (r: StaffRow) => (r.lastLoginAt ? formatLocalDate(r.lastLoginAt) : "-"),
+      key: 'lastLoginAt',
+      header: 'Login Terakhir',
+      render: (r: StaffRow) => (r.lastLoginAt ? formatLocalDate(r.lastLoginAt) : '-'),
     },
   ];
 
@@ -185,7 +185,7 @@ function BankField({ label, value }: { label: string; value?: string }) {
   return (
     <div className="space-y-1">
       <p className="text-xs text-mekari-neutral-500">{label}</p>
-      <p className="text-sm font-medium text-mekari-neutral-900">{value || "-"}</p>
+      <p className="text-sm font-medium text-mekari-neutral-900">{value || '-'}</p>
     </div>
   );
 }

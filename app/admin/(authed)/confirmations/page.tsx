@@ -1,22 +1,22 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   issueTicketsForBooking,
   rejectBookingAvailability,
-} from "@/lib/ticket-issuer";
+} from '@/lib/ticket-issuer';
 import {
   notifyBoardingPassIssued,
   notifyOperatorUnavailable,
-} from "@/lib/booking-notifications";
+} from '@/lib/booking-notifications';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -24,13 +24,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { formatDateTimeID, formatIDR } from "@/lib/utils";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { normalizeWhatsappNumber } from "@/lib/whatsapp";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { formatDateTimeID, formatIDR } from '@/lib/utils';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { normalizeWhatsappNumber } from '@/lib/whatsapp';
 
 /**
  * The manual availability gate.
@@ -42,11 +42,11 @@ import { normalizeWhatsappNumber } from "@/lib/whatsapp";
  */
 
 async function approveAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const bookingId = String(formData.get("bookingId") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-  if (!bookingId) redirect("/admin/confirmations");
+  const bookingId = String(formData.get('bookingId') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!bookingId) redirect('/admin/confirmations');
 
   const result = await issueTicketsForBooking({
     bookingId,
@@ -59,16 +59,16 @@ async function approveAction(formData: FormData) {
   }
 
   redirect(
-    `/admin/confirmations?ok=${result.alreadyIssued ? "already" : "issued"}&ref=${result.bookingReference}`,
+    `/admin/confirmations?ok=${result.alreadyIssued ? 'already' : 'issued'}&ref=${result.bookingReference}`,
   );
 }
 
 async function rejectAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const bookingId = String(formData.get("bookingId") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-  if (!bookingId) redirect("/admin/confirmations");
+  const bookingId = String(formData.get('bookingId') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!bookingId) redirect('/admin/confirmations');
 
   const result = await rejectBookingAvailability({
     bookingId,
@@ -94,8 +94,8 @@ export default async function AdminConfirmationsPage({
   const { ok, ref } = await searchParams;
 
   const bookings = await prisma.booking.findMany({
-    where: { status: "AWAITING_CONFIRMATION" },
-    orderBy: [{ leg: { departureDate: "asc" } }, { createdAt: "asc" }],
+    where: { status: 'AWAITING_CONFIRMATION' },
+    orderBy: [{ leg: { departureDate: 'asc' } }, { createdAt: 'asc' }],
     select: {
       id: true,
       bookingReference: true,
@@ -135,16 +135,16 @@ export default async function AdminConfirmationsPage({
         </p>
       </div>
 
-      {(ok === "issued" || ok === "already") && ref && (
+      {(ok === 'issued' || ok === 'already') && ref && (
         <Card
           className={
-            ok === "issued"
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-amber-200 bg-amber-50"
+            ok === 'issued'
+              ? 'border-emerald-200 bg-emerald-50'
+              : 'border-amber-200 bg-amber-50'
           }
         >
           <CardContent className="py-3 text-sm">
-            {ok === "issued" ? (
+            {ok === 'issued' ? (
               <>
                 Boarding pass issued for <strong>{ref}</strong> and sent by
                 email and WhatsApp.
@@ -154,7 +154,7 @@ export default async function AdminConfirmationsPage({
                 <strong>{ref}</strong> was already issued — nothing was sent
                 twice.
               </>
-            )}{" "}
+            )}{' '}
             <a
               href={`/api/bookings/${ref}/boarding-pass`}
               target="_blank"
@@ -167,10 +167,10 @@ export default async function AdminConfirmationsPage({
           </CardContent>
         </Card>
       )}
-      {ok === "rejected" && (
+      {ok === 'rejected' && (
         <Card className="border-rose-200 bg-rose-50">
           <CardContent className="py-3 text-sm text-rose-900">
-            <strong>{ref}</strong> cancelled. A full refund is now pending in{" "}
+            <strong>{ref}</strong> cancelled. A full refund is now pending in{' '}
             <Link href="/admin/refunds" className="underline">
               Refunds
             </Link>
@@ -184,7 +184,7 @@ export default async function AdminConfirmationsPage({
           <CardTitle>Awaiting confirmation</CardTitle>
           <CardDescription>
             {bookings.length === 0
-              ? "Nothing waiting — every paid booking has been confirmed."
+              ? 'Nothing waiting — every paid booking has been confirmed.'
               : `${bookings.length} paid booking(s) waiting on an operator call. Soonest departure first.`}
           </CardDescription>
         </CardHeader>
@@ -224,7 +224,7 @@ export default async function AdminConfirmationsPage({
                       <TableCell className="align-top text-sm">
                         <div>{formatLocalDateTime(b.leg.departureDate)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {b.leg.schedule.originPort} →{" "}
+                          {b.leg.schedule.originPort} →{' '}
                           {b.leg.schedule.destinationPort}
                         </div>
                         <div className="text-xs text-muted-foreground">

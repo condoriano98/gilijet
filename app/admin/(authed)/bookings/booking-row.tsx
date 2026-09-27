@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalDateTime } from "@/lib/datetime";
+import { useState } from 'react';
+import Link from 'next/link';
+import { TableCell, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { formatIDR } from '@/lib/utils';
+import { formatLocalDateTime } from '@/lib/datetime';
 import {
   parsePassengersFromNotes,
   calculateArrivalTime,
   type PassengerDetail,
-} from "@/lib/booking-display";
-import { PassengerDetailsModal } from "./passenger-details-modal";
-import type { Prisma, BookingStatus } from "@prisma/client";
+} from '@/lib/booking-display';
+import { PassengerDetailsModal } from './passenger-details-modal';
+import type { Prisma, BookingStatus } from '@prisma/client';
 
 type BookingWithDetails = Prisma.BookingGetPayload<{
   include: {
@@ -80,7 +80,7 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
         </TableCell>
         <TableCell className="whitespace-nowrap">
           <Badge variant="outline" className="px-3 py-1">
-            {booking.status.replace(/_/g, " ")}
+            {booking.status.replace(/_/g, ' ')}
           </Badge>
         </TableCell>
         <TableCell className="whitespace-nowrap">
@@ -117,9 +117,9 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
 }
 
 function waNumber(phone: string): string | null {
-  const digits = phone.replace(/\D/g, "");
+  const digits = phone.replace(/\D/g, '');
   if (digits.length < 8) return null;
-  return digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+  return digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
 }
 
 function customerNotes(notes: string | null): string | null {

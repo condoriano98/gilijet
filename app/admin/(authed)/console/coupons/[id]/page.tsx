@@ -1,14 +1,14 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -16,14 +16,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { updateCoupon } from "../../actions";
-import { CouponFields } from "../coupon-fields";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { updateCoupon } from '../../actions';
+import { CouponFields } from '../coupon-fields';
 
-export const metadata = { title: "Edit coupon · Owner Console" };
+export const metadata = { title: 'Edit coupon · Owner Console' };
 
 export default async function EditCouponPage({
   params,
@@ -39,7 +39,7 @@ export default async function EditCouponPage({
   const promo = await prisma.promotion.findUnique({
     where: { id },
     include: {
-      redemptions: { orderBy: { createdAt: "desc" }, take: 50 },
+      redemptions: { orderBy: { createdAt: 'desc' }, take: 50 },
       _count: { select: { redemptions: true } },
     },
   });
@@ -64,10 +64,10 @@ export default async function EditCouponPage({
         <CardHeader>
           <CardTitle>Settings</CardTitle>
           <CardDescription>
-            Used {promo.usedCount} time{promo.usedCount === 1 ? "" : "s"}
+            Used {promo.usedCount} time{promo.usedCount === 1 ? '' : 's'}
             {promo.budgetCap != null
               ? ` · ${formatIDR(Number(promo.budgetSpent))} of ${formatIDR(Number(promo.budgetCap))} budget spent`
-              : ""}
+              : ''}
             .
           </CardDescription>
         </CardHeader>

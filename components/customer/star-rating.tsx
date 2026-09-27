@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Star } from "lucide-react";
+import * as React from 'react';
+import { Star } from 'lucide-react';
 
 /**
  * 5-star rating input. Sets a hidden input value (1-5). Hover and active
  * states track which stars highlight.
  */
 export function StarRating({
-  name = "rating",
+  name = 'rating',
   defaultValue = 0,
 }: {
   name?: string;
@@ -25,7 +25,7 @@ export function StarRating({
         <button
           key={n}
           type="button"
-          aria-label={`Rate ${n} star${n === 1 ? "" : "s"}`}
+          aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
           onMouseEnter={() => setHover(n)}
           onMouseLeave={() => setHover(0)}
           onClick={() => setValue(n)}
@@ -34,8 +34,8 @@ export function StarRating({
           <Star
             className={
               display >= n
-                ? "h-8 w-8 fill-amber-400 stroke-amber-500"
-                : "h-8 w-8 fill-transparent stroke-slate-300"
+                ? 'h-8 w-8 fill-amber-400 stroke-amber-500'
+                : 'h-8 w-8 fill-transparent stroke-slate-300'
             }
           />
         </button>

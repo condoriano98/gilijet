@@ -1,22 +1,22 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { redirect } from "next/navigation";
-import { EFakturStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
+import { z } from 'zod';
+import { redirect } from 'next/navigation';
+import { EFakturStatus } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
 
 const transitionSchema = z.object({
   bookingId: z.string(),
-  newStatus: z.enum(["DRAFT", "SUBMITTED", "ACCEPTED", "REJECTED"]),
+  newStatus: z.enum(['DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED']),
   note: z.string().optional(),
 });
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  NOT_REQUIRED: ["DRAFT"],
-  DRAFT: ["SUBMITTED"],
-  SUBMITTED: ["ACCEPTED", "REJECTED"],
+  NOT_REQUIRED: ['DRAFT'],
+  DRAFT: ['SUBMITTED'],
+  SUBMITTED: ['ACCEPTED', 'REJECTED'],
 };
 
 export async function transitionEFaktur(input: z.infer<typeof transitionSchema>) {
@@ -30,7 +30,7 @@ export async function transitionEFaktur(input: z.infer<typeof transitionSchema>)
     where: { id: bookingId, operatorId: session.sub },
     select: { id: true, eFakturStatus: true },
   });
-  if (!booking) throw new Error("Booking tidak ditemukan");
+  if (!booking) throw new Error('Booking tidak ditemukan');
 
   const allowed = ALLOWED_TRANSITIONS[booking.eFakturStatus] ?? [];
   if (!allowed.includes(newStatus)) {
@@ -47,14 +47,14 @@ export async function transitionEFaktur(input: z.infer<typeof transitionSchema>)
   });
 
   await audit({
-    entityType: "BOOKING",
+    entityType: 'BOOKING',
     entityId: bookingId,
-    action: "efaktur_status_transitioned",
+    action: 'efaktur_status_transitioned',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     previousState: { eFakturStatus: previousStatus },
     newState: { eFakturStatus: newStatus, note: note ?? null },
   });
 
-  redirect("/operator/akuntansi");
+  redirect('/operator/akuntansi');
 }

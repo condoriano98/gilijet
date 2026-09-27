@@ -1,12 +1,12 @@
-import type { Schedule } from "@prisma/client";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DaysOfWeekPicker } from "@/components/operator/days-picker";
+import type { Schedule } from '@prisma/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { DaysOfWeekPicker } from '@/components/operator/days-picker';
 import {
   OperatorBoatPicker,
   type PickerBoat,
   type PickerOperator,
-} from "./operator-boat-picker";
+} from './operator-boat-picker';
 
 /**
  * Shared fields for the schedule create and edit forms. Each page owns its own
@@ -66,7 +66,7 @@ export function ScheduleFields({
             id="departureTime"
             name="departureTime"
             type="time"
-            defaultValue={schedule?.departureTime ?? "08:00"}
+            defaultValue={schedule?.departureTime ?? '08:00'}
             required
           />
         </div>

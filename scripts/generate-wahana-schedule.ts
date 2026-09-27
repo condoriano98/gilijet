@@ -5,8 +5,8 @@
  *   pnpm gen:wahana
  */
 
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
 type PriceRow = {
   PRICE_CODE: string;
@@ -51,7 +51,7 @@ type Departure = {
 };
 
 function parsePortName(portWithRegion: string): string {
-  return portWithRegion.split(" - ")[0]!.trim();
+  return portWithRegion.split(' - ')[0]!.trim();
 }
 
 function parseDaysOfWeek(daysStr: string): number[] {
@@ -61,11 +61,11 @@ function parseDaysOfWeek(daysStr: string): number[] {
 }
 
 function parseTransitStops(transitStr: string): { portName: string; time: string }[] {
-  if (!transitStr || transitStr === "Direct") return [];
+  if (!transitStr || transitStr === 'Direct') return [];
   return transitStr
-    .split(",")
+    .split(',')
     .map((s) => {
-      const [port, time] = s.trim().split("@");
+      const [port, time] = s.trim().split('@');
       if (!port || !time) return null;
       return { portName: port.trim(), time: time.trim() };
     })
@@ -73,8 +73,8 @@ function parseTransitStops(transitStr: string): { portName: string; time: string
 }
 
 function parseCSV(content: string): PriceRow[] {
-  const lines = content.split("\n");
-  const headers = lines[0]!.split(",").map((h) => h.trim().replace(/^"(.*)"$/, "$1"));
+  const lines = content.split('\n');
+  const headers = lines[0]!.split(',').map((h) => h.trim().replace(/^"(.*)"$/, '$1'));
   const rows: PriceRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -83,7 +83,7 @@ function parseCSV(content: string): PriceRow[] {
 
     // Simple CSV parser that handles quoted fields
     const fields: string[] = [];
-    let current = "";
+    let current = '';
     let inQuotes = false;
 
     for (let j = 0; j < line.length; j++) {
@@ -95,18 +95,18 @@ function parseCSV(content: string): PriceRow[] {
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === "," && !inQuotes) {
-        fields.push(current.trim().replace(/^"(.*)"$/, "$1"));
-        current = "";
+      } else if (char === ',' && !inQuotes) {
+        fields.push(current.trim().replace(/^"(.*)"$/, '$1'));
+        current = '';
       } else {
         current += char;
       }
     }
-    fields.push(current.trim().replace(/^"(.*)"$/, "$1"));
+    fields.push(current.trim().replace(/^"(.*)"$/, '$1'));
 
     const row: Record<string, string> = {};
     for (let j = 0; j < headers.length && j < fields.length; j++) {
-      row[headers[j]!] = fields[j] || "";
+      row[headers[j]!] = fields[j] || '';
     }
 
     rows.push(row as PriceRow);
@@ -116,14 +116,14 @@ function parseCSV(content: string): PriceRow[] {
 }
 
 async function main() {
-  const csvPath = path.join(process.cwd(), "price_schedule_pt wahana virendra group.csv");
-  const outputPath = path.join(process.cwd(), "lib", "wahana-schedule.ts");
+  const csvPath = path.join(process.cwd(), 'price_schedule_pt wahana virendra group.csv');
+  const outputPath = path.join(process.cwd(), 'lib', 'wahana-schedule.ts');
 
   if (!fs.existsSync(csvPath)) {
     throw new Error(`CSV not found at ${csvPath}`);
   }
 
-  const content = fs.readFileSync(csvPath, "utf-8");
+  const content = fs.readFileSync(csvPath, 'utf-8');
   const rows = parseCSV(content);
 
   // Group by unique departure (boat, origin, destination, departure time)
@@ -156,16 +156,16 @@ async function main() {
     // Build fares matrix from the rows - only use Adult/Child/Infant rows
     for (const row of rows) {
       // Skip non-standard category rows
-      if (!["Adult", "Child", "Infant"].includes(row.CATEGORY)) {
+      if (!['Adult', 'Child', 'Infant'].includes(row.CATEGORY)) {
         continue;
       }
 
-      const tripType = row.TRIP === "One Way" ? "oneWay" : "return";
-      const season = row.SEASON.toLowerCase() as "low" | "high" | "peak";
-      const category = row.CATEGORY.toLowerCase() as "adult" | "child" | "infant";
+      const tripType = row.TRIP === 'One Way' ? 'oneWay' : 'return';
+      const season = row.SEASON.toLowerCase() as 'low' | 'high' | 'peak';
+      const category = row.CATEGORY.toLowerCase() as 'adult' | 'child' | 'infant';
       const key = `${tripType}|${season}|${category}`;
 
-      const price = parseInt(row.basePrice.replace(/,/g, ""), 10);
+      const price = parseInt(row.basePrice.replace(/,/g, ''), 10);
       if (!faresByKey.has(key)) {
         faresByKey.set(key, price);
       }
@@ -175,45 +175,45 @@ async function main() {
     const fares = {
       oneWay: {
         low: {
-          adult: faresByKey.get("oneWay|low|adult") || 0,
-          child: faresByKey.get("oneWay|low|child") || 0,
-          infant: faresByKey.get("oneWay|low|infant") || 0,
+          adult: faresByKey.get('oneWay|low|adult') || 0,
+          child: faresByKey.get('oneWay|low|child') || 0,
+          infant: faresByKey.get('oneWay|low|infant') || 0,
         },
         high: {
-          adult: faresByKey.get("oneWay|high|adult") || 0,
-          child: faresByKey.get("oneWay|high|child") || 0,
-          infant: faresByKey.get("oneWay|high|infant") || 0,
+          adult: faresByKey.get('oneWay|high|adult') || 0,
+          child: faresByKey.get('oneWay|high|child') || 0,
+          infant: faresByKey.get('oneWay|high|infant') || 0,
         },
         peak: {
-          adult: faresByKey.get("oneWay|peak|adult") || 0,
-          child: faresByKey.get("oneWay|peak|child") || 0,
-          infant: faresByKey.get("oneWay|peak|infant") || 0,
+          adult: faresByKey.get('oneWay|peak|adult') || 0,
+          child: faresByKey.get('oneWay|peak|child') || 0,
+          infant: faresByKey.get('oneWay|peak|infant') || 0,
         },
       },
       return: {
         low: {
-          adult: faresByKey.get("return|low|adult") || 0,
-          child: faresByKey.get("return|low|child") || 0,
-          infant: faresByKey.get("return|low|infant") || 0,
+          adult: faresByKey.get('return|low|adult') || 0,
+          child: faresByKey.get('return|low|child') || 0,
+          infant: faresByKey.get('return|low|infant') || 0,
         },
         high: {
-          adult: faresByKey.get("return|high|adult") || 0,
-          child: faresByKey.get("return|high|child") || 0,
-          infant: faresByKey.get("return|high|infant") || 0,
+          adult: faresByKey.get('return|high|adult') || 0,
+          child: faresByKey.get('return|high|child') || 0,
+          infant: faresByKey.get('return|high|infant') || 0,
         },
         peak: {
-          adult: faresByKey.get("return|peak|adult") || 0,
-          child: faresByKey.get("return|peak|child") || 0,
-          infant: faresByKey.get("return|peak|infant") || 0,
+          adult: faresByKey.get('return|peak|adult') || 0,
+          child: faresByKey.get('return|peak|child') || 0,
+          infant: faresByKey.get('return|peak|infant') || 0,
         },
       },
     };
 
     // Pad departure and arrival times to HH:MM format
-    const [depHours, depMins] = first.departureTime.split(":");
-    const paddedDepartureTime = `${depHours?.padStart(2, "0")}:${depMins}`;
-    const [arrHours, arrMins] = first.arrivalTime.split(":");
-    const paddedArrivalTime = `${arrHours?.padStart(2, "0")}:${arrMins}`;
+    const [depHours, depMins] = first.departureTime.split(':');
+    const paddedDepartureTime = `${depHours?.padStart(2, '0')}:${depMins}`;
+    const [arrHours, arrMins] = first.arrivalTime.split(':');
+    const paddedArrivalTime = `${arrHours?.padStart(2, '0')}:${arrMins}`;
 
     const departure: Departure = {
       priceCodes,
@@ -225,7 +225,7 @@ async function main() {
       durationMinutes: parseInt(first.durationMinutes, 10),
       daysOfWeek: parseDaysOfWeek(first.daysOfWeeks),
       transitStops: parseTransitStops(first.TRANSIT),
-      basePrice: parseInt(first.basePrice.replace(/,/g, ""), 10),
+      basePrice: parseInt(first.basePrice.replace(/,/g, ''), 10),
       fares,
     };
 

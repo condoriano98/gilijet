@@ -1,9 +1,9 @@
-import { add } from "date-fns";
+import { add } from 'date-fns';
 
 export type PassengerDetail = {
   name: string;
   idNumber: string | null;
-  type: "ADULT" | "CHILD" | "INFANT";
+  type: 'ADULT' | 'CHILD' | 'INFANT';
 };
 
 export type PassengersData = {
@@ -25,7 +25,7 @@ export function parsePassengersFromNotes(
       return parsed.passengers.map((p) => ({
         name: p.name,
         idNumber: p.idNumber || null,
-        type: (p.type || "ADULT") as "ADULT" | "CHILD" | "INFANT",
+        type: (p.type || 'ADULT') as 'ADULT' | 'CHILD' | 'INFANT',
       }));
     }
   } catch {

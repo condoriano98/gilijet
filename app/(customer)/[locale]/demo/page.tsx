@@ -1,56 +1,56 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, Check, QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Check, QrCode } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const DUMMY_BOATS = [
   {
-    id: "1",
-    company: "Gili Getaway Express",
-    logo: "GG",
-    departure: "08:00",
-    arrival: "10:30",
-    duration: "2h 30m",
+    id: '1',
+    company: 'Gili Getaway Express',
+    logo: 'GG',
+    departure: '08:00',
+    arrival: '10:30',
+    duration: '2h 30m',
     price: 375000,
-    vessel: "Fast Boat",
+    vessel: 'Fast Boat',
   },
   {
-    id: "2",
-    company: "Blue Water Fast Boat",
-    logo: "BW",
-    departure: "09:30",
-    arrival: "12:00",
-    duration: "2h 30m",
+    id: '2',
+    company: 'Blue Water Fast Boat',
+    logo: 'BW',
+    departure: '09:30',
+    arrival: '12:00',
+    duration: '2h 30m',
     price: 295000,
-    vessel: "Fast Boat",
+    vessel: 'Fast Boat',
   },
   {
-    id: "3",
-    company: "Lombok Shuttle Ferry",
-    logo: "LS",
-    departure: "11:00",
-    arrival: "14:15",
-    duration: "3h 15m",
+    id: '3',
+    company: 'Lombok Shuttle Ferry',
+    logo: 'LS',
+    departure: '11:00',
+    arrival: '14:15',
+    duration: '3h 15m',
     price: 195000,
-    vessel: "Ferry",
+    vessel: 'Ferry',
   },
 ];
 
 const PAYMENT_METHODS = [
-  { id: "qris", label: "QRIS", icon: "📱", desc: "Instant transfer" },
-  { id: "gopay", label: "GoPay", icon: "🏪", desc: "Tap & pay" },
-  { id: "ovo", label: "OVO", icon: "⭐", desc: "Digital wallet" },
-  { id: "bca", label: "BCA Virtual", icon: "🏦", desc: "Bank transfer" },
-  { id: "card", label: "Visa/MC", icon: "💳", desc: "Credit card" },
+  { id: 'qris', label: 'QRIS', icon: '📱', desc: 'Instant transfer' },
+  { id: 'gopay', label: 'GoPay', icon: '🏪', desc: 'Tap & pay' },
+  { id: 'ovo', label: 'OVO', icon: '⭐', desc: 'Digital wallet' },
+  { id: 'bca', label: 'BCA Virtual', icon: '🏦', desc: 'Bank transfer' },
+  { id: 'card', label: 'Visa/MC', icon: '💳', desc: 'Credit card' },
 ];
 
 function StepIndicator({ current }: { current: number }) {
-  const steps = ["Boat", "Passengers", "Contact", "Review", "Payment", "Done"];
+  const steps = ['Boat', 'Passengers', 'Contact', 'Review', 'Payment', 'Done'];
   return (
     <div className="mb-6">
       <ol className="flex items-center gap-1 sm:gap-2">
@@ -63,27 +63,27 @@ function StepIndicator({ current }: { current: number }) {
               <div className="flex flex-col items-center">
                 <div
                   className={[
-                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors sm:h-9 sm:w-9 sm:text-sm",
+                    'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors sm:h-9 sm:w-9 sm:text-sm',
                     done
-                      ? "bg-sky-600 text-white"
+                      ? 'bg-sky-600 text-white'
                       : active
-                        ? "bg-sky-600 text-white ring-4 ring-sky-100"
-                        : "border-2 border-slate-300 text-slate-400",
-                  ].join(" ")}
+                        ? 'bg-sky-600 text-white ring-4 ring-sky-100'
+                        : 'border-2 border-slate-300 text-slate-400',
+                  ].join(' ')}
                 >
                   {done ? <Check className="h-4 w-4" strokeWidth={3} /> : num}
                 </div>
                 <span
                   className={[
-                    "mt-1 hidden text-xs sm:block",
-                    active ? "font-semibold text-sky-700" : done ? "text-slate-500" : "text-slate-400",
-                  ].join(" ")}
+                    'mt-1 hidden text-xs sm:block',
+                    active ? 'font-semibold text-sky-700' : done ? 'text-slate-500' : 'text-slate-400',
+                  ].join(' ')}
                 >
                   {label}
                 </span>
               </div>
               {idx < steps.length - 1 && (
-                <div className={["mx-1 h-0.5 flex-1", num < current ? "bg-sky-600" : "bg-slate-200"].join(" ")} />
+                <div className={['mx-1 h-0.5 flex-1', num < current ? 'bg-sky-600' : 'bg-slate-200'].join(' ')} />
               )}
             </li>
           );
@@ -108,9 +108,9 @@ function BoatSelectionStep({
         <Card
           key={boat.id}
           className={[
-            "cursor-pointer transition-all",
-            selectedId === boat.id ? "border-sky-500 bg-sky-50" : "hover:shadow-md",
-          ].join(" ")}
+            'cursor-pointer transition-all',
+            selectedId === boat.id ? 'border-sky-500 bg-sky-50' : 'hover:shadow-md',
+          ].join(' ')}
           onClick={() => onSelect(boat.id)}
         >
           <CardContent className="pt-6">
@@ -130,7 +130,7 @@ function BoatSelectionStep({
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-slate-900">IDR {boat.price.toLocaleString("id-ID")}</div>
+                <div className="text-lg font-bold text-slate-900">IDR {boat.price.toLocaleString('id-ID')}</div>
               </div>
             </div>
           </CardContent>
@@ -153,7 +153,7 @@ function PassengerStep({
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">How many passengers?</h2>
-        <p className="text-sm text-slate-600 mt-1">You selected {count} passenger{count !== 1 ? "s" : ""}</p>
+        <p className="text-sm text-slate-600 mt-1">You selected {count} passenger{count !== 1 ? 's' : ''}</p>
       </div>
       <div className="flex gap-2">
         <Button
@@ -173,7 +173,7 @@ function PassengerStep({
           onClick={() => {
             const newPassengers = [...passengers];
             if (newPassengers.length < 10) {
-              newPassengers.push({ name: "", nationality: "Indonesia" });
+              newPassengers.push({ name: '', nationality: 'Indonesia' });
             }
             onChange(newPassengers);
           }}
@@ -356,15 +356,15 @@ function ReviewStep({
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Base price × {passengers.length} passengers</span>
-            <span className="font-medium">IDR {totalPrice.toLocaleString("id-ID")}</span>
+            <span className="font-medium">IDR {totalPrice.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
             <span>Platform fee (8%)</span>
-            <span className="font-medium">IDR {platformFee.toLocaleString("id-ID")}</span>
+            <span className="font-medium">IDR {platformFee.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex justify-between border-t pt-2 text-base font-bold">
             <span>Total</span>
-            <span>IDR {grandTotal.toLocaleString("id-ID")}</span>
+            <span>IDR {grandTotal.toLocaleString('id-ID')}</span>
           </div>
         </CardContent>
       </Card>
@@ -396,16 +396,16 @@ function PaymentStep({
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Choose payment method</h2>
-      <p className="text-sm text-slate-600">Amount due: IDR {total.toLocaleString("id-ID")}</p>
+      <p className="text-sm text-slate-600">Amount due: IDR {total.toLocaleString('id-ID')}</p>
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
         {PAYMENT_METHODS.map((method) => (
           <Card
             key={method.id}
             className={[
-              "cursor-pointer transition-all",
-              selectedMethod === method.id ? "border-sky-500 bg-sky-50" : "hover:shadow-md",
-            ].join(" ")}
+              'cursor-pointer transition-all',
+              selectedMethod === method.id ? 'border-sky-500 bg-sky-50' : 'hover:shadow-md',
+            ].join(' ')}
             onClick={() => onSelect(method.id)}
           >
             <CardContent className="pt-4 text-center">
@@ -467,12 +467,12 @@ export default function BookingDemoPage() {
   const [step, setStep] = useState(1);
   const [selectedBoat, setSelectedBoat] = useState<string | null>(null);
   const [passengerCount, setPassengerCount] = useState(1);
-  const [passengers, setPassengers] = useState([{ name: "", nationality: "Indonesia" }]);
-  const [contact, setContact] = useState({ name: "", email: "", phone: "" });
+  const [passengers, setPassengers] = useState([{ name: '', nationality: 'Indonesia' }]);
+  const [contact, setContact] = useState({ name: '', email: '', phone: '' });
   const [agreed, setAgreed] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [bookingRef, setBookingRef] = useState("");
+  const [bookingRef, setBookingRef] = useState('');
 
   const boat = DUMMY_BOATS.find((b) => b.id === selectedBoat) || null;
   const totalPrice = (boat?.price ?? 0) * passengers.length;
@@ -486,7 +486,7 @@ export default function BookingDemoPage() {
       case 2:
         return passengers.length > 0 && passengers.every((p) => p.name.trim().length > 0);
       case 3:
-        return contact.name.trim().length > 0 && contact.email.includes("@") && contact.phone.length >= 6;
+        return contact.name.trim().length > 0 && contact.email.includes('@') && contact.phone.length >= 6;
       case 4:
         return agreed;
       case 5:
@@ -500,7 +500,7 @@ export default function BookingDemoPage() {
     if (step === 5) {
       setIsProcessing(true);
       await new Promise((r) => setTimeout(r, 1500));
-      const ref = `BK-DEMO-2026-05-${Math.random().toString().slice(2, 8).padStart(6, "0")}`;
+      const ref = `BK-DEMO-2026-05-${Math.random().toString().slice(2, 8).padStart(6, '0')}`;
       setBookingRef(ref);
       setIsProcessing(false);
       setStep(6);
@@ -558,7 +558,7 @@ export default function BookingDemoPage() {
                 </>
               ) : (
                 <>
-                  {step === 5 ? "Confirm payment" : "Continue"} <ChevronRight className="h-4 w-4 ml-1" />
+                  {step === 5 ? 'Confirm payment' : 'Continue'} <ChevronRight className="h-4 w-4 ml-1" />
                 </>
               )}
             </Button>

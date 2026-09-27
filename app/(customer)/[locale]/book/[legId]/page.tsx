@@ -1,15 +1,15 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
 import {
   reserveSeatsAndCreateBooking,
   startPaymentForBooking,
   releaseBookingSeats,
   BookingError,
-} from "@/lib/booking-engine";
-import { expireStalePendingBookings } from "@/lib/booking-expiry";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
+} from '@/lib/booking-engine';
+import { expireStalePendingBookings } from '@/lib/booking-expiry';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import {
   Card,
   CardContent,
@@ -17,22 +17,22 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { PassengerFields } from "@/components/customer/passenger-fields";
-import { ContactFields } from "./contact-fields";
-import { PromoCodeInput } from "@/components/customer/promo-code-input";
-import { BookingProgress } from "@/components/customer/booking-progress";
-import { SubmitBookingButton } from "@/components/customer/submit-booking-button";
-import { BookingPriceProvider } from "@/components/customer/booking-price-provider";
-import { BookingPriceSummary } from "@/components/customer/booking-price-summary";
-import { getCustomerSession } from "@/lib/auth";
-import type { PassengerType } from "@/lib/pricing";
-import { parseFareMatrix, categoryFaresFor } from "@/lib/fares";
-import { resolvePlatformPricing } from "@/lib/platform-config";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { PassengerFields } from '@/components/customer/passenger-fields';
+import { ContactFields } from './contact-fields';
+import { PromoCodeInput } from '@/components/customer/promo-code-input';
+import { BookingProgress } from '@/components/customer/booking-progress';
+import { SubmitBookingButton } from '@/components/customer/submit-booking-button';
+import { BookingPriceProvider } from '@/components/customer/booking-price-provider';
+import { BookingPriceSummary } from '@/components/customer/booking-price-summary';
+import { getCustomerSession } from '@/lib/auth';
+import type { PassengerType } from '@/lib/pricing';
+import { parseFareMatrix, categoryFaresFor } from '@/lib/fares';
+import { resolvePlatformPricing } from '@/lib/platform-config';
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -49,40 +49,40 @@ const bookingFormSchema = z.object({
   customerNationality: z
     .string()
     .trim()
-    .min(1, "Nationality is required")
+    .min(1, 'Nationality is required')
     .max(80),
-  notes: z.string().max(500).optional().or(z.literal("")),
+  notes: z.string().max(500).optional().or(z.literal('')),
   agreedToTerms: z.string().optional(),
 });
 
 async function submitBookingAction(formData: FormData) {
-  "use server";
+  'use server';
 
-  const legId = String(formData.get("legId") ?? "");
-  if (!legId) redirect("/");
+  const legId = String(formData.get('legId') ?? '');
+  if (!legId) redirect('/');
 
-  const passengerNames = clampPassengerCount(formData.getAll("passengerName"));
-  const passengerIds = formData.getAll("passengerIdNumber").map((v) => String(v).trim());
-  const passengerTypesRaw = formData.getAll("passengerType").map((v) => String(v).trim());
+  const passengerNames = clampPassengerCount(formData.getAll('passengerName'));
+  const passengerIds = formData.getAll('passengerIdNumber').map((v) => String(v).trim());
+  const passengerTypesRaw = formData.getAll('passengerType').map((v) => String(v).trim());
   const passengerTypes: PassengerType[] = passengerNames.map((_, idx) => {
     const t = passengerTypesRaw[idx];
-    return t === "CHILD" || t === "INFANT" ? t : "ADULT";
+    return t === 'CHILD' || t === 'INFANT' ? t : 'ADULT';
   });
-  const promoCode = String(formData.get("promoCode") ?? "").trim() || null;
+  const promoCode = String(formData.get('promoCode') ?? '').trim() || null;
 
   if (passengerNames.length === 0 || passengerNames.some((n) => n.length < NAMES_MIN)) {
     redirect(
-      `/book/${legId}?error=${encodeURIComponent("Each passenger needs a name")}`,
+      `/book/${legId}?error=${encodeURIComponent('Each passenger needs a name')}`,
     );
   }
 
   const fields = bookingFormSchema.safeParse({
-    customerName: formData.get("customerName"),
-    customerEmail: formData.get("customerEmail"),
-    customerPhone: formData.get("customerPhone"),
-    customerNationality: formData.get("customerNationality"),
-    notes: formData.get("notes"),
-    agreedToTerms: formData.get("agreedToTerms"),
+    customerName: formData.get('customerName'),
+    customerEmail: formData.get('customerEmail'),
+    customerPhone: formData.get('customerPhone'),
+    customerNationality: formData.get('customerNationality'),
+    notes: formData.get('notes'),
+    agreedToTerms: formData.get('agreedToTerms'),
   });
   if (!fields.success) {
     redirect(
@@ -91,7 +91,7 @@ async function submitBookingAction(formData: FormData) {
   }
   if (!fields.data.agreedToTerms) {
     redirect(
-      `/book/${legId}?error=${encodeURIComponent("Please accept the terms")}`,
+      `/book/${legId}?error=${encodeURIComponent('Please accept the terms')}`,
     );
   }
 
@@ -129,16 +129,16 @@ async function submitBookingAction(formData: FormData) {
     payment = await startPaymentForBooking(created.bookingId);
   } catch (err) {
     // Roll back the reservation so seats aren't held forever.
-    await releaseBookingSeats(created.bookingId, "payment_failed").catch(
+    await releaseBookingSeats(created.bookingId, 'payment_failed').catch(
       () => {},
     );
     await prisma.booking
       .update({
         where: { id: created.bookingId },
-        data: { status: "EXPIRED" },
+        data: { status: 'EXPIRED' },
       })
       .catch(() => {});
-    const message = err instanceof Error ? err.message : "Payment setup failed";
+    const message = err instanceof Error ? err.message : 'Payment setup failed';
     redirect(`/book/${legId}?error=${encodeURIComponent(message)}`);
   }
 
@@ -181,7 +181,7 @@ export default async function BookPage({
     ? await prisma.customer.findUnique({ where: { id: session.sub } })
     : null;
 
-  if (leg.status !== "OPEN" || leg.departureDate.getTime() <= Date.now()) {
+  if (leg.status !== 'OPEN' || leg.departureDate.getTime() <= Date.now()) {
     return (
       <div className="container py-12">
         <Card>
@@ -233,10 +233,10 @@ export default async function BookPage({
                 {leg.schedule.originPort} → {leg.schedule.destinationPort}
               </CardTitle>
               <CardDescription>
-                {formatLocalDate(leg.departureDate, "EEEE, dd MMM yyyy")} ·{" "}
+                {formatLocalDate(leg.departureDate, 'EEEE, dd MMM yyyy')} ·{' '}
                 <span className="font-mono">
                   {formatLocalTime(leg.departureDate)}
-                </span>{" "}
+                </span>{' '}
                 WITA · {leg.schedule.boat.name}
               </CardDescription>
             </CardHeader>
@@ -255,25 +255,25 @@ export default async function BookPage({
             {customer ? (
               <p className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900">
                 Booking as <strong>{customer.fullName}</strong> ({customer.email}).
-                This trip will appear in your{" "}
+                This trip will appear in your{' '}
                 <Link href="/account" className="underline">account</Link>.
               </p>
             ) : (
               <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                Booking as a guest.{" "}
+                Booking as a guest.{' '}
                 <Link
                   href={`/account/login?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
                   className="font-medium text-sky-700 hover:underline"
                 >
                   Sign in
-                </Link>{" "}
-                or{" "}
+                </Link>{' '}
+                or{' '}
                 <Link
                   href={`/account/register?next=${encodeURIComponent(`/book/${leg.id}?passengers=${initialPassengers}`)}`}
                   className="font-medium text-sky-700 hover:underline"
                 >
                   create an account
-                </Link>{" "}
+                </Link>{' '}
                 to save this trip and skip the form next time.
               </p>
             )}
@@ -307,7 +307,7 @@ export default async function BookPage({
                     required
                     minLength={NAMES_MIN}
                     autoComplete="name"
-                    defaultValue={customer?.fullName ?? ""}
+                    defaultValue={customer?.fullName ?? ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -318,12 +318,12 @@ export default async function BookPage({
                     type="email"
                     required
                     autoComplete="email"
-                    defaultValue={customer?.email ?? ""}
+                    defaultValue={customer?.email ?? ''}
                   />
                 </div>
                 <ContactFields
-                  defaultPhone={customer?.phoneNumber ?? ""}
-                  defaultNationality={customer?.nationality ?? ""}
+                  defaultPhone={customer?.phoneNumber ?? ''}
+                  defaultNationality={customer?.nationality ?? ''}
                 />
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (optional)</Label>
@@ -360,7 +360,7 @@ export default async function BookPage({
                     className="mt-0.5 h-4 w-4 flex-shrink-0"
                   />
                   <span>
-                    I have read and agree to the{" "}
+                    I have read and agree to the{' '}
                     <Link
                       href="/terms"
                       target="_blank"

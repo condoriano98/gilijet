@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
 
 type MethodGroup = {
   id: string;
@@ -13,51 +13,51 @@ type MethodGroup = {
 
 const GROUPS: MethodGroup[] = [
   {
-    id: "va",
-    label: "Virtual Account",
-    caption: "Transfer from any bank in Indonesia",
+    id: 'va',
+    label: 'Virtual Account',
+    caption: 'Transfer from any bank in Indonesia',
     options: [
-      { id: "bca", name: "BCA", logo: "BCA" },
-      { id: "bni", name: "BNI", logo: "BNI" },
-      { id: "bri", name: "BRI", logo: "BRI" },
-      { id: "mandiri", name: "Mandiri", logo: "MDR" },
-      { id: "permata", name: "Permata", logo: "PMT" },
+      { id: 'bca', name: 'BCA', logo: 'BCA' },
+      { id: 'bni', name: 'BNI', logo: 'BNI' },
+      { id: 'bri', name: 'BRI', logo: 'BRI' },
+      { id: 'mandiri', name: 'Mandiri', logo: 'MDR' },
+      { id: 'permata', name: 'Permata', logo: 'PMT' },
     ],
   },
   {
-    id: "ewallet",
-    label: "E-Wallet",
-    caption: "Tap & pay with your wallet app",
+    id: 'ewallet',
+    label: 'E-Wallet',
+    caption: 'Tap & pay with your wallet app',
     options: [
-      { id: "gopay", name: "GoPay", logo: "GP" },
-      { id: "ovo", name: "OVO", logo: "OVO" },
-      { id: "dana", name: "DANA", logo: "DN" },
-      { id: "shopeepay", name: "ShopeePay", logo: "SP" },
+      { id: 'gopay', name: 'GoPay', logo: 'GP' },
+      { id: 'ovo', name: 'OVO', logo: 'OVO' },
+      { id: 'dana', name: 'DANA', logo: 'DN' },
+      { id: 'shopeepay', name: 'ShopeePay', logo: 'SP' },
     ],
   },
   {
-    id: "qris",
-    label: "QRIS",
-    caption: "Scan with any Indonesian bank or e-wallet app",
-    options: [{ id: "qris", name: "QRIS", logo: "QR" }],
+    id: 'qris',
+    label: 'QRIS',
+    caption: 'Scan with any Indonesian bank or e-wallet app',
+    options: [{ id: 'qris', name: 'QRIS', logo: 'QR' }],
   },
   {
-    id: "card",
-    label: "Credit / Debit Card",
-    caption: "Visa, Mastercard, JCB",
+    id: 'card',
+    label: 'Credit / Debit Card',
+    caption: 'Visa, Mastercard, JCB',
     options: [
-      { id: "visa", name: "Visa", logo: "VS" },
-      { id: "mastercard", name: "Mastercard", logo: "MC" },
-      { id: "jcb", name: "JCB", logo: "JCB" },
+      { id: 'visa', name: 'Visa', logo: 'VS' },
+      { id: 'mastercard', name: 'Mastercard', logo: 'MC' },
+      { id: 'jcb', name: 'JCB', logo: 'JCB' },
     ],
   },
   {
-    id: "retail",
-    label: "Retail Outlet",
-    caption: "Pay at any Alfamart or Indomaret",
+    id: 'retail',
+    label: 'Retail Outlet',
+    caption: 'Pay at any Alfamart or Indomaret',
     options: [
-      { id: "alfamart", name: "Alfamart", logo: "AM" },
-      { id: "indomaret", name: "Indomaret", logo: "IM" },
+      { id: 'alfamart', name: 'Alfamart', logo: 'AM' },
+      { id: 'indomaret', name: 'Indomaret', logo: 'IM' },
     ],
   },
 ];
@@ -68,7 +68,7 @@ function vaNumber(amount: number) {
   const base = 8808_1000_0000_0000n + BigInt(amount % 9_999_999);
   return base
     .toString()
-    .replace(/(\d{4})(\d{4})(\d{4})(\d{4}).*/, "$1 $2 $3 $4");
+    .replace(/(\d{4})(\d{4})(\d{4})(\d{4}).*/, '$1 $2 $3 $4');
 }
 
 export function CheckoutMethods({
@@ -80,10 +80,10 @@ export function CheckoutMethods({
   amount: number;
   simulateAction: (fd: FormData) => Promise<void>;
 }) {
-  const [openGroup, setOpenGroup] = useState<string>("va");
+  const [openGroup, setOpenGroup] = useState<string>('va');
   const [selected, setSelected] = useState<{ group: string; option: string }>({
-    group: "va",
-    option: "bca",
+    group: 'va',
+    option: 'bca',
   });
 
   return (
@@ -97,7 +97,7 @@ export function CheckoutMethods({
           >
             <button
               type="button"
-              onClick={() => setOpenGroup(isOpen ? "" : g.id)}
+              onClick={() => setOpenGroup(isOpen ? '' : g.id)}
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
             >
               <div>
@@ -106,7 +106,7 @@ export function CheckoutMethods({
                 </div>
                 <div className="text-xs text-slate-500">{g.caption}</div>
               </div>
-              <div className="text-slate-400">{isOpen ? "−" : "+"}</div>
+              <div className="text-slate-400">{isOpen ? '−' : '+'}</div>
             </button>
             {isOpen && (
               <div className="border-t bg-slate-50 px-4 py-3">
@@ -122,11 +122,11 @@ export function CheckoutMethods({
                           setSelected({ group: g.id, option: o.id })
                         }
                         className={[
-                          "flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-left text-sm transition-colors",
+                          'flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-left text-sm transition-colors',
                           isSel
-                            ? "border-sky-500 ring-2 ring-sky-200"
-                            : "border-slate-200 hover:border-slate-300",
-                        ].join(" ")}
+                            ? 'border-sky-500 ring-2 ring-sky-200'
+                            : 'border-slate-200 hover:border-slate-300',
+                        ].join(' ')}
                       >
                         <span className="flex h-7 w-10 items-center justify-center rounded bg-slate-900 text-[10px] font-bold text-white">
                           {o.logo}
@@ -161,7 +161,7 @@ export function CheckoutMethods({
           value={`${selected.group}:${selected.option}`}
         />
         <div className="text-xs text-slate-500">
-          Selected:{" "}
+          Selected:{' '}
           <span className="font-semibold uppercase">
             {selected.group} · {selected.option}
           </span>
@@ -194,7 +194,7 @@ function Instructions({
   option: string;
   amount: number;
 }) {
-  if (group === "va") {
+  if (group === 'va') {
     return (
       <div className="mt-3 rounded-md bg-white p-4 text-sm">
         <div className="font-semibold text-slate-900">
@@ -220,7 +220,7 @@ function Instructions({
     );
   }
 
-  if (group === "qris") {
+  if (group === 'qris') {
     return (
       <div className="mt-3 flex flex-col items-center gap-3 rounded-md bg-white p-4">
         <div className="grid h-44 w-44 grid-cols-12 grid-rows-12 gap-0.5 rounded border bg-white p-1.5">
@@ -234,7 +234,7 @@ function Instructions({
               <div
                 key={i}
                 className={
-                  on || corner ? "bg-slate-900" : "bg-transparent"
+                  on || corner ? 'bg-slate-900' : 'bg-transparent'
                 }
               />
             );
@@ -247,7 +247,7 @@ function Instructions({
     );
   }
 
-  if (group === "ewallet") {
+  if (group === 'ewallet') {
     return (
       <div className="mt-3 rounded-md bg-white p-4 text-sm">
         <div className="font-semibold text-slate-900">
@@ -262,7 +262,7 @@ function Instructions({
     );
   }
 
-  if (group === "card") {
+  if (group === 'card') {
     return (
       <div className="mt-3 rounded-md bg-white p-4 text-sm">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -299,7 +299,7 @@ function Instructions({
     );
   }
 
-  if (group === "retail") {
+  if (group === 'retail') {
     return (
       <div className="mt-3 rounded-md bg-white p-4 text-sm">
         <div className="font-semibold text-slate-900">

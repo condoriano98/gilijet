@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
-import { formatLocalDateTime } from "@/lib/datetime";
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
+import { formatLocalDateTime } from '@/lib/datetime';
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -18,14 +18,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { adjustDeparturePrice, cancelDeparture } from "../../actions";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { adjustDeparturePrice, cancelDeparture } from '../../actions';
 
-export const metadata = { title: "Departure · Operations" };
+export const metadata = { title: 'Departure · Operations' };
 
 export default async function DepartureDetailPage({
   params,
@@ -54,8 +54,8 @@ export default async function DepartureDetailPage({
         },
       },
       bookings: {
-        where: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } },
-        orderBy: { createdAt: "asc" },
+        where: { status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] } },
+        orderBy: { createdAt: 'asc' },
         select: {
           id: true,
           bookingReference: true,
@@ -70,7 +70,7 @@ export default async function DepartureDetailPage({
   if (!leg) notFound();
 
   const passengers = leg.bookings.flatMap((b) => b.tickets);
-  const closed = leg.status === "CANCELLED" || leg.status === "SAILED";
+  const closed = leg.status === 'CANCELLED' || leg.status === 'SAILED';
 
   return (
     <div className="space-y-6">
@@ -86,17 +86,17 @@ export default async function DepartureDetailPage({
             {leg.schedule.originPort} → {leg.schedule.destinationPort}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {formatLocalDateTime(leg.departureDate)} WITA ·{" "}
+            {formatLocalDateTime(leg.departureDate)} WITA ·{' '}
             {leg.operator.companyName} · {leg.schedule.boat.name}
           </p>
         </div>
         <Badge
           variant={
-            leg.status === "OPEN"
-              ? "success"
-              : leg.status === "CANCELLED"
-                ? "destructive"
-                : "outline"
+            leg.status === 'OPEN'
+              ? 'success'
+              : leg.status === 'CANCELLED'
+                ? 'destructive'
+                : 'outline'
           }
         >
           {leg.status}
@@ -113,7 +113,7 @@ export default async function DepartureDetailPage({
           {error}
         </div>
       ) : null}
-      {leg.status === "CANCELLED" && leg.cancellationReason ? (
+      {leg.status === 'CANCELLED' && leg.cancellationReason ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           Cancelled: {leg.cancellationReason}
         </div>
@@ -124,7 +124,7 @@ export default async function DepartureDetailPage({
           <CardHeader>
             <CardTitle>Passengers</CardTitle>
             <CardDescription>
-              {passengers.length} passenger{passengers.length === 1 ? "" : "s"} on
+              {passengers.length} passenger{passengers.length === 1 ? '' : 's'} on
               confirmed and held bookings.
             </CardDescription>
           </CardHeader>
@@ -136,7 +136,7 @@ export default async function DepartureDetailPage({
             <CardDescription>
               Applies to this departure only. The schedule&apos;s base price is
               unchanged, and the {passengers.length} passenger
-              {passengers.length === 1 ? "" : "s"} already sold keep what they
+              {passengers.length === 1 ? '' : 's'} already sold keep what they
               were charged.
             </CardDescription>
           </CardHeader>
@@ -196,9 +196,9 @@ export default async function DepartureDetailPage({
             </CardContent>
             <CardFooter className="justify-end">
               <Button type="submit" variant="destructive" disabled={closed}>
-                {leg.status === "CANCELLED"
-                  ? "Already cancelled"
-                  : `Cancel and refund ${leg.bookings.filter((b) => b.status === "CONFIRMED").length} booking(s)`}
+                {leg.status === 'CANCELLED'
+                  ? 'Already cancelled'
+                  : `Cancel and refund ${leg.bookings.filter((b) => b.status === 'CONFIRMED').length} booking(s)`}
               </Button>
             </CardFooter>
           </form>
@@ -237,11 +237,11 @@ export default async function DepartureDetailPage({
                     <TableCell className="text-sm">{b.customerName}</TableCell>
                     <TableCell className="text-sm">{b.customerPhone}</TableCell>
                     <TableCell className="text-sm">
-                      {b.tickets.map((t) => t.passengerName).join(", ") || "—"}
+                      {b.tickets.map((t) => t.passengerName).join(', ') || '—'}
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={b.status === "CONFIRMED" ? "success" : "warning"}
+                        variant={b.status === 'CONFIRMED' ? 'success' : 'warning'}
                       >
                         {b.status}
                       </Badge>

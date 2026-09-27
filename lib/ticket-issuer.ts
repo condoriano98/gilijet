@@ -1,9 +1,9 @@
-import { Prisma, PaymentMethod } from "@prisma/client";
-import { prisma } from "./db";
-import { releaseBookingSeats } from "./booking-engine";
-import { ymdInZone } from "./datetime";
-import { buildQrPayload, signTicketCode } from "./qr";
-import { newTicketCode } from "./references";
+import { Prisma, PaymentMethod } from '@prisma/client';
+import { prisma } from './db';
+import { releaseBookingSeats } from './booking-engine';
+import { ymdInZone } from './datetime';
+import { buildQrPayload, signTicketCode } from './qr';
+import { newTicketCode } from './references';
 
 /**
  * Payment and ticketing are deliberately two separate steps.
@@ -52,7 +52,7 @@ export async function recordPaymentAwaitingConfirmation(args: {
     });
     if (!booking) throw new Error(`Booking ${args.bookingId} not found`);
 
-    if (booking.status !== "PENDING_PAYMENT") {
+    if (booking.status !== 'PENDING_PAYMENT') {
       return {
         bookingReference: booking.bookingReference,
         alreadyRecorded: true,
@@ -69,11 +69,11 @@ export async function recordPaymentAwaitingConfirmation(args: {
       await tx.payment.update({
         where: { bookingId: booking.id },
         data: {
-          status: "SUCCESSFUL",
+          status: 'SUCCESSFUL',
           paidAt: args.paidAt ?? new Date(),
           gatewayReference:
             args.gatewayReference ?? booking.payment.gatewayReference,
-          method: args.method ?? booking.payment.method ?? ("BANK_TRANSFER" as PaymentMethod),
+          method: args.method ?? booking.payment.method ?? ('BANK_TRANSFER' as PaymentMethod),
           gatewayFee:
             args.gatewayFee != null
               ? new Prisma.Decimal(args.gatewayFee)
@@ -84,16 +84,16 @@ export async function recordPaymentAwaitingConfirmation(args: {
 
     await tx.booking.update({
       where: { id: booking.id },
-      data: { status: "AWAITING_CONFIRMATION" },
+      data: { status: 'AWAITING_CONFIRMATION' },
     });
 
     await tx.auditLog.create({
       data: {
-        entityType: "BOOKING",
+        entityType: 'BOOKING',
         entityId: booking.id,
-        action: "paid_awaiting_operator_confirmation",
-        userRole: "SYSTEM",
-        newState: { method: args.method ?? "unknown" },
+        action: 'paid_awaiting_operator_confirmation',
+        userRole: 'SYSTEM',
+        newState: { method: args.method ?? 'unknown' },
       },
     });
 
@@ -127,7 +127,7 @@ export async function issueTicketsForBooking(args: {
     if (!booking) throw new Error(`Booking ${args.bookingId} not found`);
     const departureDate = booking.leg.departureDate;
 
-    if (booking.status === "CONFIRMED" && booking.tickets.length > 0) {
+    if (booking.status === 'CONFIRMED' && booking.tickets.length > 0) {
       return {
         bookingReference: booking.bookingReference,
         alreadyIssued: true,
@@ -139,7 +139,7 @@ export async function issueTicketsForBooking(args: {
       };
     }
 
-    if (booking.status !== "AWAITING_CONFIRMATION") {
+    if (booking.status !== 'AWAITING_CONFIRMATION') {
       throw new Error(
         `Cannot issue tickets for ${booking.bookingReference} (status=${booking.status})`,
       );
@@ -155,7 +155,7 @@ export async function issueTicketsForBooking(args: {
     await tx.booking.update({
       where: { id: booking.id },
       data: {
-        status: "CONFIRMED",
+        status: 'CONFIRMED',
         availabilityDecidedAt: new Date(),
         availabilityDecidedById: args.adminId,
         availabilityNote: args.note ?? null,
@@ -175,7 +175,7 @@ export async function issueTicketsForBooking(args: {
           passengerName: passenger.name,
           passengerIdNumber: passenger.idNumber ?? null,
           qrHash,
-          status: "ISSUED",
+          status: 'ISSUED',
         },
       });
       issued.push({
@@ -187,10 +187,10 @@ export async function issueTicketsForBooking(args: {
 
     await tx.auditLog.create({
       data: {
-        entityType: "BOOKING",
+        entityType: 'BOOKING',
         entityId: booking.id,
-        action: "operator_confirmed_and_ticketed",
-        userRole: "ADMIN",
+        action: 'operator_confirmed_and_ticketed',
+        userRole: 'ADMIN',
         userId: args.adminId,
         newState: {
           tickets: issued.map((t) => t.ticketCode),
@@ -236,7 +236,7 @@ export async function rejectBookingAvailability(args: {
     });
     if (!booking) throw new Error(`Booking ${args.bookingId} not found`);
 
-    if (booking.status === "CANCELLED_BY_OPERATOR") {
+    if (booking.status === 'CANCELLED_BY_OPERATOR') {
       return {
         bookingReference: booking.bookingReference,
         alreadyRejected: true,
@@ -245,7 +245,7 @@ export async function rejectBookingAvailability(args: {
       };
     }
 
-    if (booking.status !== "AWAITING_CONFIRMATION") {
+    if (booking.status !== 'AWAITING_CONFIRMATION') {
       throw new Error(
         `Cannot reject ${booking.bookingReference} (status=${booking.status})`,
       );
@@ -254,7 +254,7 @@ export async function rejectBookingAvailability(args: {
     await tx.booking.update({
       where: { id: booking.id },
       data: {
-        status: "CANCELLED_BY_OPERATOR",
+        status: 'CANCELLED_BY_OPERATOR',
         availabilityDecidedAt: new Date(),
         availabilityDecidedById: args.adminId,
         availabilityNote: args.note ?? null,
@@ -269,8 +269,8 @@ export async function rejectBookingAvailability(args: {
           bookingId: booking.id,
           originalAmount: booking.totalAmount,
           refundAmount: booking.totalAmount,
-          reason: "OPERATOR_CANCELLATION",
-          status: "PENDING",
+          reason: 'OPERATOR_CANCELLATION',
+          status: 'PENDING',
           adminNote: args.note ?? null,
         },
       });
@@ -278,10 +278,10 @@ export async function rejectBookingAvailability(args: {
 
     await tx.auditLog.create({
       data: {
-        entityType: "BOOKING",
+        entityType: 'BOOKING',
         entityId: booking.id,
-        action: "operator_unavailable_cancelled",
-        userRole: "ADMIN",
+        action: 'operator_unavailable_cancelled',
+        userRole: 'ADMIN',
         userId: args.adminId,
         newState: {
           refundAmount: booking.totalAmount.toString(),
@@ -299,7 +299,7 @@ export async function rejectBookingAvailability(args: {
   });
 
   if (result.released) {
-    await releaseBookingSeats(args.bookingId, "cancelled_by_operator");
+    await releaseBookingSeats(args.bookingId, 'cancelled_by_operator');
   }
 
   return {

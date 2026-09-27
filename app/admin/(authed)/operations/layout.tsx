@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { requireSuperAdmin } from '@/lib/auth';
 
 /**
  * Operations desk. The owner runs boat inventory on behalf of operators, who
@@ -17,9 +17,9 @@ export default async function OperationsLayout({
   await requireSuperAdmin();
 
   const tabs = [
-    { href: "/admin/operations", label: "Departures" },
-    { href: "/admin/operations/schedules", label: "Schedules" },
-    { href: "/admin/operations/boats", label: "Boats" },
+    { href: '/admin/operations', label: 'Departures' },
+    { href: '/admin/operations/schedules', label: 'Schedules' },
+    { href: '/admin/operations/boats', label: 'Boats' },
   ];
 
   return (

@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { MapPin } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from 'react';
+import { MapPin } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 type PortsByRegion = Array<{
   region: string;
@@ -30,7 +30,7 @@ export function GroupedPortSelect({
   ports,
   value,
   onValueChange,
-  placeholder = "Select a port",
+  placeholder = 'Select a port',
   disabled,
   disabledValue,
   className,
@@ -38,7 +38,7 @@ export function GroupedPortSelect({
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger
-        className={cn("h-14 rounded-[10px] border-2 border-slate-100 px-3", className)}
+        className={cn('h-14 rounded-[10px] border-2 border-slate-100 px-3', className)}
       >
         <div className="flex items-center gap-2 min-w-0">
           <MapPin size={20} className="shrink-0 text-brand" />

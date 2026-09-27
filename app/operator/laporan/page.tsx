@@ -1,38 +1,38 @@
-import Link from "next/link";
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { cn, formatIDR } from "@/lib/utils";
-import { formatLocalDate } from "@/lib/datetime";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
+import Link from 'next/link';
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { cn, formatIDR } from '@/lib/utils';
+import { formatLocalDate } from '@/lib/datetime';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { salesChannelLabel, SALES_CHANNELS } from "@/lib/sales-channel";
+} from '@/components/ui/card';
+import { salesChannelLabel, SALES_CHANNELS } from '@/lib/sales-channel';
 import {
   revenueByChannel,
   refundRatioByMonth,
-} from "@/lib/operator-erp-queries";
+} from '@/lib/operator-erp-queries';
 
 const TABS = [
-  { key: "revenue-by-channel", label: "Pendapatan per Saluran" },
-  { key: "refund-ratio", label: "Rasio Refund" },
-  { key: "agent-leaderboard", label: "Peringkat Agen" },
-  { key: "cancellation-weather", label: "Pembatalan & Cuaca" },
+  { key: 'revenue-by-channel', label: 'Pendapatan per Saluran' },
+  { key: 'refund-ratio', label: 'Rasio Refund' },
+  { key: 'agent-leaderboard', label: 'Peringkat Agen' },
+  { key: 'cancellation-weather', label: 'Pembatalan & Cuaca' },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = (typeof TABS)[number]['key'];
 
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
 ];
 
 function ymLabel(ym: string): string {
-  const [y, m] = ym.split("-");
+  const [y, m] = ym.split('-');
   return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
 }
 
@@ -48,7 +48,7 @@ export default async function LaporanPage({
   const session = await requireOperator();
   const operatorId = session.sub;
   const sp = await searchParams;
-  const tab = (TABS.find((t) => t.key === sp.tab)?.key ?? "revenue-by-channel") as TabKey;
+  const tab = (TABS.find((t) => t.key === sp.tab)?.key ?? 'revenue-by-channel') as TabKey;
 
   const now = new Date();
   const rangeFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1);
@@ -58,7 +58,7 @@ export default async function LaporanPage({
     <ListPageTemplate
       title="Laporan"
       subtitle="Analitik operasi dan keuangan"
-      secondaryActions={[{ label: "Ekspor CSV", href: `/api/operator/reports/${tab}/csv` }]}
+      secondaryActions={[{ label: 'Ekspor CSV', href: `/api/operator/reports/${tab}/csv` }]}
     >
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
@@ -66,10 +66,10 @@ export default async function LaporanPage({
             key={t.key}
             href={`/operator/laporan?tab=${t.key}`}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
               t.key === tab
-                ? "bg-mekari-primary text-white"
-                : "bg-mekari-surface text-mekari-neutral-600 hover:bg-mekari-neutral-100",
+                ? 'bg-mekari-primary text-white'
+                : 'bg-mekari-surface text-mekari-neutral-600 hover:bg-mekari-neutral-100',
             )}
           >
             {t.label}
@@ -77,14 +77,14 @@ export default async function LaporanPage({
         ))}
       </div>
 
-      {tab === "revenue-by-channel" && (
+      {tab === 'revenue-by-channel' && (
         <RevenueByChannel operatorId={operatorId} now={now} />
       )}
-      {tab === "refund-ratio" && (
+      {tab === 'refund-ratio' && (
         <RefundRatio operatorId={operatorId} from={rangeFrom} to={rangeTo} />
       )}
-      {tab === "agent-leaderboard" && <AgentLeaderboard operatorId={operatorId} now={now} />}
-      {tab === "cancellation-weather" && <CancellationWeather operatorId={operatorId} />}
+      {tab === 'agent-leaderboard' && <AgentLeaderboard operatorId={operatorId} now={now} />}
+      {tab === 'cancellation-weather' && <CancellationWeather operatorId={operatorId} />}
     </ListPageTemplate>
   );
 }
@@ -190,11 +190,11 @@ async function RefundRatio({
     ratio: d.ratio,
   }));
   const columns = [
-    { key: "month", header: "Bulan" },
+    { key: 'month', header: 'Bulan' },
     {
-      key: "ratio",
-      header: "Rasio Refund",
-      align: "right" as const,
+      key: 'ratio',
+      header: 'Rasio Refund',
+      align: 'right' as const,
       render: (r: Row) => `${(r.ratio * 100).toFixed(1)}%`,
     },
   ];
@@ -225,10 +225,10 @@ async function AgentLeaderboard({
   const agentIds = agents.map((a) => a.id);
   const commissions = agentIds.length
     ? await prisma.booking.groupBy({
-        by: ["salesAgentId"],
+        by: ['salesAgentId'],
         where: {
           operatorId,
-          status: "CONFIRMED",
+          status: 'CONFIRMED',
           salesAgentId: { in: agentIds },
           createdAt: { gte: yearStart },
         },
@@ -261,22 +261,22 @@ async function AgentLeaderboard({
 
   const columns = [
     {
-      key: "rank",
-      header: "#",
-      align: "center" as const,
+      key: 'rank',
+      header: '#',
+      align: 'center' as const,
       render: (r: Row) => String(r.rank),
     },
-    { key: "name", header: "Nama Agen" },
+    { key: 'name', header: 'Nama Agen' },
     {
-      key: "bookings",
-      header: "Booking",
-      align: "right" as const,
+      key: 'bookings',
+      header: 'Booking',
+      align: 'right' as const,
       render: (r: Row) => String(r.bookings),
     },
     {
-      key: "commission",
-      header: "Komisi YTD",
-      align: "right" as const,
+      key: 'commission',
+      header: 'Komisi YTD',
+      align: 'right' as const,
       render: (r: Row) => formatIDR(r.commission),
     },
   ];
@@ -295,7 +295,7 @@ async function AgentLeaderboard({
 async function CancellationWeather({ operatorId }: { operatorId: string }) {
   const [cancelledLegs, weather] = await Promise.all([
     prisma.leg.findMany({
-      where: { operatorId, status: "CANCELLED" },
+      where: { operatorId, status: 'CANCELLED' },
       select: { departureDate: true },
       take: 5000,
     }),
@@ -306,16 +306,16 @@ async function CancellationWeather({ operatorId }: { operatorId: string }) {
     }),
   ]);
 
-  const BAD = new Set(["ROUGH", "SEVERE", "CLOSED"]);
+  const BAD = new Set(['ROUGH', 'SEVERE', 'CLOSED']);
   const cancelByMonth = new Map<string, number>();
   for (const l of cancelledLegs) {
-    const m = formatLocalDate(l.departureDate, "yyyy-MM");
+    const m = formatLocalDate(l.departureDate, 'yyyy-MM');
     cancelByMonth.set(m, (cancelByMonth.get(m) ?? 0) + 1);
   }
   const badWeatherByMonth = new Map<string, number>();
   for (const w of weather) {
     if (!BAD.has(w.condition)) continue;
-    const m = formatLocalDate(w.recordedAt, "yyyy-MM");
+    const m = formatLocalDate(w.recordedAt, 'yyyy-MM');
     badWeatherByMonth.set(m, (badWeatherByMonth.get(m) ?? 0) + 1);
   }
 
@@ -329,17 +329,17 @@ async function CancellationWeather({ operatorId }: { operatorId: string }) {
   }));
 
   const columns = [
-    { key: "month", header: "Bulan" },
+    { key: 'month', header: 'Bulan' },
     {
-      key: "cancellations",
-      header: "Pembatalan",
-      align: "right" as const,
+      key: 'cancellations',
+      header: 'Pembatalan',
+      align: 'right' as const,
       render: (r: Row) => String(r.cancellations),
     },
     {
-      key: "badWeather",
-      header: "Snapshot Cuaca Buruk",
-      align: "right" as const,
+      key: 'badWeather',
+      header: 'Snapshot Cuaca Buruk',
+      align: 'right' as const,
       render: (r: Row) => String(r.badWeather),
     },
   ];

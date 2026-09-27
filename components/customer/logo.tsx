@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 /**
  * Gilifast wordmark lockup — a stylised speedboat mark above the
@@ -9,7 +9,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex select-none flex-col items-center leading-none",
+        'inline-flex select-none flex-col items-center leading-none',
         className,
       )}
       aria-label="Gilifast"

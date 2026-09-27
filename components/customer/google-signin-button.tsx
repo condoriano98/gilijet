@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { isGoogleOAuthEnabled } from "@/lib/google-oauth";
+import Link from 'next/link';
+import { isGoogleOAuthEnabled } from '@/lib/google-oauth';
 
 export function GoogleSignInButton({
   next,
-  label = "Continue with Google",
+  label = 'Continue with Google',
 }: {
   next?: string;
   label?: string;
@@ -12,7 +12,7 @@ export function GoogleSignInButton({
 
   const href = next
     ? `/api/auth/google/start?next=${encodeURIComponent(next)}`
-    : "/api/auth/google/start";
+    : '/api/auth/google/start';
 
   return (
     <>

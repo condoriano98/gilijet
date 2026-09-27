@@ -1,17 +1,17 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
 import {
   getOperatorSession,
   setOperatorSession,
   verifyPassword,
   type OperatorSession,
-} from "@/lib/auth";
-import { loginGate, recordLoginAttempt } from "@/lib/login-throttle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/lib/auth';
+import { loginGate, recordLoginAttempt } from '@/lib/login-throttle';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -27,58 +27,58 @@ const credentialsSchema = z.object({
 });
 
 async function loginAction(formData: FormData) {
-  "use server";
+  'use server';
 
   const parsed = credentialsSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
+    email: formData.get('email'),
+    password: formData.get('password'),
   });
-  if (!parsed.success) redirect("/operator/login?error=invalid");
+  if (!parsed.success) redirect('/operator/login?error=invalid');
 
   const email = parsed.data.email.toLowerCase();
-  const gate = await loginGate("OPERATOR", email);
-  if (!gate.allowed) redirect("/operator/login?error=locked");
+  const gate = await loginGate('OPERATOR', email);
+  if (!gate.allowed) redirect('/operator/login?error=locked');
 
   const operator = await prisma.operator.findFirst({
     where: { email, deletedAt: null },
   });
   if (!operator) {
-    await recordLoginAttempt("OPERATOR", email, false);
-    redirect("/operator/login?error=credentials");
+    await recordLoginAttempt('OPERATOR', email, false);
+    redirect('/operator/login?error=credentials');
   }
 
   const ok = await verifyPassword(parsed.data.password, operator.passwordHash);
   if (!ok) {
-    await recordLoginAttempt("OPERATOR", email, false);
-    redirect("/operator/login?error=credentials");
+    await recordLoginAttempt('OPERATOR', email, false);
+    redirect('/operator/login?error=credentials');
   }
 
-  if (operator.status !== "ACTIVE") {
+  if (operator.status !== 'ACTIVE') {
     redirect(`/operator/login?error=status_${operator.status.toLowerCase()}`);
   }
 
-  await recordLoginAttempt("OPERATOR", email, true);
+  await recordLoginAttempt('OPERATOR', email, true);
   const session: OperatorSession = {
     sub: operator.id,
-    role: "operator",
+    role: 'operator',
     email: operator.email,
   };
   await setOperatorSession(session);
-  redirect("/operator");
+  redirect('/operator');
 }
 
 function errorMessage(code?: string): string | null {
   if (!code) return null;
-  if (code === "credentials") return "Invalid email or password.";
-  if (code === "locked")
-    return "Too many failed attempts. Please wait 15 minutes before trying again.";
-  if (code === "status_pending")
+  if (code === 'credentials') return 'Invalid email or password.';
+  if (code === 'locked')
+    return 'Too many failed attempts. Please wait 15 minutes before trying again.';
+  if (code === 'status_pending')
     return "Your account is awaiting admin approval. We'll email you when it's ready.";
-  if (code === "status_suspended")
-    return "Your account is suspended. Contact Gilifast support.";
-  if (code === "status_rejected")
-    return "Your application was not approved.";
-  return "Please check your details.";
+  if (code === 'status_suspended')
+    return 'Your account is suspended. Contact Gilifast support.';
+  if (code === 'status_rejected')
+    return 'Your application was not approved.';
+  return 'Please check your details.';
 }
 
 export default async function OperatorLoginPage({
@@ -87,7 +87,7 @@ export default async function OperatorLoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const existing = await getOperatorSession();
-  if (existing) redirect("/operator");
+  if (existing) redirect('/operator');
   const { error } = await searchParams;
   const msg = errorMessage(error);
 
@@ -133,7 +133,7 @@ export default async function OperatorLoginPage({
               Sign in
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              New operator?{" "}
+              New operator?{' '}
               <Link href="/operator/daftar" className="text-emerald-600 underline">
                 Register here
               </Link>

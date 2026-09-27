@@ -1,8 +1,8 @@
-"use server";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { redirect } from "next/navigation";
+'use server';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(2),
@@ -22,5 +22,5 @@ export async function updateProfile(input: z.infer<typeof updateProfileSchema>) 
       npwp: input.npwp || null,
     },
   });
-  redirect("/operator/pengaturan?tab=profil&ok=saved");
+  redirect('/operator/pengaturan?tab=profil&ok=saved');
 }

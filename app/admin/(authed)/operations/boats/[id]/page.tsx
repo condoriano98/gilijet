@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
@@ -9,18 +9,18 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { updateBoat } from "../../actions";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { updateBoat } from '../../actions';
 
-export const metadata = { title: "Boat · Operations" };
+export const metadata = { title: 'Boat · Operations' };
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 export default async function OperationsBoatDetailPage({
   params,
@@ -66,7 +66,7 @@ export default async function OperationsBoatDetailPage({
             {boat.operator.companyName}
           </p>
         </div>
-        <Badge variant={boat.status === "ACTIVE" ? "success" : "outline"}>
+        <Badge variant={boat.status === 'ACTIVE' ? 'success' : 'outline'}>
           {boat.status}
         </Badge>
       </div>
@@ -128,7 +128,7 @@ export default async function OperationsBoatDetailPage({
                 id="description"
                 name="description"
                 rows={3}
-                defaultValue={boat.description ?? ""}
+                defaultValue={boat.description ?? ''}
               />
             </div>
           </CardContent>
@@ -145,7 +145,7 @@ export default async function OperationsBoatDetailPage({
         <CardContent>
           {boat.schedules.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              None yet.{" "}
+              None yet.{' '}
               <Link
                 href={`/admin/operations/schedules/new?operatorId=${boat.operator.id}`}
                 className="text-sky-700 hover:underline"
@@ -163,7 +163,7 @@ export default async function OperationsBoatDetailPage({
                     className="hover:underline"
                   >
                     {s.originPort} → {s.destinationPort} at {s.departureTime}
-                  </Link>{" "}
+                  </Link>{' '}
                   <span className="text-muted-foreground">({s.status})</span>
                 </li>
               ))}

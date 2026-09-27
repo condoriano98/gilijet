@@ -1,11 +1,11 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { redirect } from "next/navigation";
-import { PaymentMethod } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
+import { z } from 'zod';
+import { redirect } from 'next/navigation';
+import { PaymentMethod } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
 
 // Bank-transfer family treated as cash-equivalent for the drawer: physical
 // settlement confirmed at the counter. Adjust here if a real CASH method is
@@ -23,7 +23,7 @@ async function cashCollectedSince(operatorId: string, since: Date): Promise<numb
   const agg = await prisma.booking.aggregate({
     where: {
       operatorId,
-      salesChannel: "WALK_IN",
+      salesChannel: 'WALK_IN',
       createdAt: { gte: since },
       cashCollected: { not: null },
       payment: { method: { in: CASH_DRAWER_METHODS } },
@@ -34,8 +34,8 @@ async function cashCollectedSince(operatorId: string, since: Date): Promise<numb
 }
 
 const openShiftSchema = z.object({
-  staffId: z.string().min(1, "Pilih staf"),
-  openingBalance: z.number().nonnegative("Saldo awal tidak boleh negatif"),
+  staffId: z.string().min(1, 'Pilih staf'),
+  openingBalance: z.number().nonnegative('Saldo awal tidak boleh negatif'),
 });
 
 export async function openShift(input: z.infer<typeof openShiftSchema>) {
@@ -46,12 +46,12 @@ export async function openShift(input: z.infer<typeof openShiftSchema>) {
   const existing = await prisma.cashDrawerSession.findFirst({
     where: { operatorId: session.sub, closedAt: null },
   });
-  if (existing) throw new Error("Masih ada shift yang terbuka untuk operator ini");
+  if (existing) throw new Error('Masih ada shift yang terbuka untuk operator ini');
 
   const staff = await prisma.operatorStaff.findFirst({
     where: { id: parsed.data.staffId, operatorId: session.sub, deletedAt: null },
   });
-  if (!staff) throw new Error("Staf tidak ditemukan");
+  if (!staff) throw new Error('Staf tidak ditemukan');
 
   const drawer = await prisma.cashDrawerSession.create({
     data: {
@@ -63,20 +63,20 @@ export async function openShift(input: z.infer<typeof openShiftSchema>) {
   });
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: drawer.id,
-    action: "cash_shift_opened",
+    action: 'cash_shift_opened',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     newState: { staffId: staff.id, openingBalance: parsed.data.openingBalance },
   });
 
-  redirect("/operator/kas");
+  redirect('/operator/kas');
 }
 
 const closeShiftSchema = z.object({
-  sessionId: z.string().min(1, "ID sesi hilang"),
-  closingBalanceCounted: z.number().nonnegative("Saldo terhitung tidak boleh negatif"),
+  sessionId: z.string().min(1, 'ID sesi hilang'),
+  closingBalanceCounted: z.number().nonnegative('Saldo terhitung tidak boleh negatif'),
 });
 
 export async function closeShift(input: z.infer<typeof closeShiftSchema>) {
@@ -87,7 +87,7 @@ export async function closeShift(input: z.infer<typeof closeShiftSchema>) {
   const drawer = await prisma.cashDrawerSession.findFirst({
     where: { id: parsed.data.sessionId, operatorId: session.sub, closedAt: null },
   });
-  if (!drawer) throw new Error("Sesi kas tidak ditemukan atau sudah ditutup");
+  if (!drawer) throw new Error('Sesi kas tidak ditemukan atau sudah ditutup');
 
   const expectedCash =
     Number(drawer.openingBalance) +
@@ -105,11 +105,11 @@ export async function closeShift(input: z.infer<typeof closeShiftSchema>) {
   });
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: drawer.id,
-    action: "cash_shift_closed",
+    action: 'cash_shift_closed',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     newState: {
       expectedCash,
       closingBalanceCounted: parsed.data.closingBalanceCounted,
@@ -117,5 +117,5 @@ export async function closeShift(input: z.infer<typeof closeShiftSchema>) {
     },
   });
 
-  redirect("/operator/kas");
+  redirect('/operator/kas');
 }

@@ -1,5 +1,5 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
 // Flat config — Next.js 16 removed `next lint`, so this is the lint entry
 // point now (package.json "lint": "eslint ."). Mirrors the old `.eslintrc.json`
@@ -15,19 +15,24 @@ export default defineConfig([
   ...nextVitals,
   {
     rules: {
-      "react-hooks/purity": "off",
-      "react-hooks/static-components": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react/no-unescaped-entities": "off",
+      'react-hooks/purity': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react/no-unescaped-entities': 'off',
+      // Code style rules: single quotes, semicolons
+      'quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+      'semi': ['error', 'always'],
+      // Detect unused variables (complements typecheck)
+      'no-unused-vars': 'off', // disabled in favor of TypeScript
     },
   },
   globalIgnores([
-    ".next/**",
-    "out/**",
-    "build/**",
-    "dist/**",
-    "node_modules/**",
-    "test-results/**",
-    "next-env.d.ts",
+    '.next/**',
+    'out/**',
+    'build/**',
+    'dist/**',
+    'node_modules/**',
+    'test-results/**',
+    'next-env.d.ts',
   ]),
 ]);

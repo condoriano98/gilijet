@@ -11,27 +11,27 @@
  * computes money; this is storage and validation.
  */
 
-export type PassengerCategory = "adult" | "child" | "infant";
-export type FareSeason = "low" | "high" | "peak";
-export type TripKind = "oneWay" | "return";
+export type PassengerCategory = 'adult' | 'child' | 'infant';
+export type FareSeason = 'low' | 'high' | 'peak';
+export type TripKind = 'oneWay' | 'return';
 
 export type CategoryFares = Record<PassengerCategory, number>;
 export type SeasonFares = Record<FareSeason, CategoryFares>;
 export type FareMatrix = Record<TripKind, SeasonFares>;
 
-const CATEGORIES: PassengerCategory[] = ["adult", "child", "infant"];
-const SEASONS: FareSeason[] = ["low", "high", "peak"];
-const TRIPS: TripKind[] = ["oneWay", "return"];
+const CATEGORIES: PassengerCategory[] = ['adult', 'child', 'infant'];
+const SEASONS: FareSeason[] = ['low', 'high', 'peak'];
+const TRIPS: TripKind[] = ['oneWay', 'return'];
 
 function readCategoryFares(raw: unknown): CategoryFares | null {
-  if (typeof raw !== "object" || raw === null) return null;
+  if (typeof raw !== 'object' || raw === null) return null;
   const row = raw as Record<string, unknown>;
   const out = {} as CategoryFares;
   for (const category of CATEGORIES) {
     const value = row[category];
     // 0 is meaningful — infants travel free — so only reject non-finite and
     // negative values, never falsy ones.
-    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
     out[category] = value;
   }
   return out;
@@ -39,12 +39,12 @@ function readCategoryFares(raw: unknown): CategoryFares | null {
 
 /** Parse a stored fare matrix, returning null rather than a partial one. */
 export function parseFareMatrix(raw: unknown): FareMatrix | null {
-  if (typeof raw !== "object" || raw === null) return null;
+  if (typeof raw !== 'object' || raw === null) return null;
   const top = raw as Record<string, unknown>;
   const out = {} as FareMatrix;
   for (const trip of TRIPS) {
     const seasons = top[trip];
-    if (typeof seasons !== "object" || seasons === null) return null;
+    if (typeof seasons !== 'object' || seasons === null) return null;
     const seasonRow = seasons as Record<string, unknown>;
     const parsed = {} as SeasonFares;
     for (const season of SEASONS) {

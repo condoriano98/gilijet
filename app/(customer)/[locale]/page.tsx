@@ -1,14 +1,14 @@
-import Link from "next/link";
-import Image from "next/image";
-import { getTranslations } from "next-intl/server";
-import { SearchForm } from "@/components/customer/search-form";
-import { DepartingToday } from "@/components/customer/departing-today";
-import { ReviewsCarousel } from "@/components/customer/reviews-carousel";
-import { NearestPortCard } from "@/components/customer/nearest-port-card";
-import { WaveDivider } from "@/components/ui/wave-divider";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import Image from 'next/image';
+import { getTranslations } from 'next-intl/server';
+import { SearchForm } from '@/components/customer/search-form';
+import { DepartingToday } from '@/components/customer/departing-today';
+import { ReviewsCarousel } from '@/components/customer/reviews-carousel';
+import { NearestPortCard } from '@/components/customer/nearest-port-card';
+import { WaveDivider } from '@/components/ui/wave-divider';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   getDepartingSoon,
   getPopularRoutes,
@@ -17,50 +17,50 @@ import {
   getActivePromo,
   getAvailablePorts,
   TRUST_THRESHOLDS,
-} from "@/lib/home-data";
-import { photoForPort } from "@/lib/destination-photos";
-import { POSTS } from "@/content/blog";
-import { Ship } from "lucide-react";
+} from '@/lib/home-data';
+import { photoForPort } from '@/lib/destination-photos';
+import { POSTS } from '@/content/blog';
+import { Ship } from 'lucide-react';
 
 const ARTICLE_IMAGES = [
-  "/brand/articles/article-ubud.png",
-  "/brand/articles/article-resort.png",
-  "/brand/articles/article-temple.png",
-  "/brand/articles/article-kuta.png",
+  '/brand/articles/article-ubud.png',
+  '/brand/articles/article-resort.png',
+  '/brand/articles/article-temple.png',
+  '/brand/articles/article-kuta.png',
 ];
 
 export const revalidate = 600;
 
 const FEATURED_DESTINATIONS = [
   {
-    name: "Gili Islands",
-    slug: "gili-islands",
-    destinationPort: "Gili Trawangan",
-    description: "Crystal water, no cars, perfect snorkeling",
+    name: 'Gili Islands',
+    slug: 'gili-islands',
+    destinationPort: 'Gili Trawangan',
+    description: 'Crystal water, no cars, perfect snorkeling',
     routes: 12,
     from: 85_000,
   },
   {
-    name: "Nusa Penida",
-    slug: "nusa-penida",
-    destinationPort: "Nusa Penida",
-    description: "Dramatic cliffs and Kelingking beach",
+    name: 'Nusa Penida',
+    slug: 'nusa-penida',
+    destinationPort: 'Nusa Penida',
+    description: 'Dramatic cliffs and Kelingking beach',
     routes: 8,
     from: 200_000,
   },
   {
-    name: "Lombok",
-    slug: "lombok",
-    destinationPort: "Bangsal",
-    description: "Mount Rinjani and pink-sand beaches",
+    name: 'Lombok',
+    slug: 'lombok',
+    destinationPort: 'Bangsal',
+    description: 'Mount Rinjani and pink-sand beaches',
     routes: 6,
     from: 395_000,
   },
   {
-    name: "Komodo",
-    slug: "komodo",
-    destinationPort: "Labuan Bajo",
-    description: "Dragons, pink beach, and Padar viewpoint",
+    name: 'Komodo',
+    slug: 'komodo',
+    destinationPort: 'Labuan Bajo',
+    description: 'Dragons, pink beach, and Padar viewpoint',
     routes: 4,
     from: 750_000,
   },
@@ -132,7 +132,7 @@ export default async function HomePage() {
             {/* Solid white, not white/90: the value proposition was rendering
                 at lower contrast than the heading above it. */}
             <p className="mx-auto mt-4 max-w-2xl text-lg text-white drop-shadow-md sm:text-xl">
-              {t("home.heroSubtitle")}
+              {t('home.heroSubtitle')}
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default async function HomePage() {
             </div>
           </div>
           <p className="mt-3 text-center text-xs text-slate-500">
-            {t("home.searchAcross")}
+            {t('home.searchAcross')}
           </p>
         </div>
       </div>
@@ -201,23 +201,23 @@ export default async function HomePage() {
                     PROMO
                   </span>
                   <h3 className="text-lg font-display font-bold text-amber-900">
-                    {promo.discountType === "PERCENT"
+                    {promo.discountType === 'PERCENT'
                       ? `Save ${promo.discountValue}% on your next trip`
-                      : `Save IDR ${promo.discountValue.toLocaleString("id-ID")} on your next trip`}
+                      : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
                   </h3>
                 </div>
                 <p className="mt-1 text-sm text-amber-800">
                   {promo.description && <span>{promo.description} · </span>}
-                  Use code{" "}
+                  Use code{' '}
                   <span className="font-mono font-semibold">{promo.code}</span> at
                   checkout
                   {promo.expiresAt && (
                     <>
-                      {" "}· Valid until{" "}
-                      {new Date(promo.expiresAt).toLocaleDateString("en-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
+                      {' '}· Valid until{' '}
+                      {new Date(promo.expiresAt).toLocaleDateString('en-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
                       })}
                     </>
                   )}
@@ -237,10 +237,10 @@ export default async function HomePage() {
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                {t("home.popularRoutes")}
+                {t('home.popularRoutes')}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                {t("home.popularSubtitle")}
+                {t('home.popularSubtitle')}
               </p>
             </div>
             <Link
@@ -283,14 +283,14 @@ export default async function HomePage() {
                           <span>{formatDuration(route.durationMinutes)}</span>
                           <span>·</span>
                           <span>
-                            {route.operatorCount}{" "}
-                            operator{route.operatorCount === 1 ? "" : "s"}
+                            {route.operatorCount}{' '}
+                            operator{route.operatorCount === 1 ? '' : 's'}
                           </span>
                         </div>
                         <div className="mt-1">
                           <span className="text-xs text-slate-500">from </span>
                           <span className="text-lg font-bold text-gilifast-deep">
-                            IDR {route.cheapestPriceIDR.toLocaleString("id-ID")}
+                            IDR {route.cheapestPriceIDR.toLocaleString('id-ID')}
                           </span>
                         </div>
                       </div>
@@ -340,10 +340,10 @@ export default async function HomePage() {
                         {post.meta.title}
                       </div>
                       <div className="mt-3 text-sm font-medium text-slate-500">
-                        {new Date(post.meta.publishedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
+                        {new Date(post.meta.publishedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
                         })}
                       </div>
                     </CardContent>
@@ -364,10 +364,10 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl">
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                {t("home.exploreTitle")}
+                {t('home.exploreTitle')}
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                {t("home.exploreSubtitle")}
+                {t('home.exploreSubtitle')}
               </p>
             </div>
 
@@ -408,7 +408,7 @@ export default async function HomePage() {
                           <div>
                             <span className="text-slate-500">from </span>
                             <span className="font-semibold text-gilifast-deep">
-                              IDR {dest.from.toLocaleString("id-ID")}
+                              IDR {dest.from.toLocaleString('id-ID')}
                             </span>
                           </div>
                         </div>
@@ -431,10 +431,10 @@ export default async function HomePage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                {t("home.reviewsTitle")}
+                {t('home.reviewsTitle')}
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                {t("home.reviewsSubtitle")}
+                {t('home.reviewsSubtitle')}
               </p>
             </div>
             <ReviewsCarousel reviews={reviews} />
@@ -447,19 +447,19 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-              {t("home.whyTitle")}
+              {t('home.whyTitle')}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {t("home.whySubtitle")}
+              {t('home.whySubtitle')}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: t("trust.bestPrice"), desc: t("trust.bestPriceDesc") },
-              { title: t("trust.support"), desc: t("trust.supportDesc") },
-              { title: t("trust.eTicket"), desc: t("trust.eTicketDesc") },
-              { title: t("trust.secure"), desc: t("trust.secureDesc") },
+              { title: t('trust.bestPrice'), desc: t('trust.bestPriceDesc') },
+              { title: t('trust.support'), desc: t('trust.supportDesc') },
+              { title: t('trust.eTicket'), desc: t('trust.eTicketDesc') },
+              { title: t('trust.secure'), desc: t('trust.secureDesc') },
             ].map((badge) => (
               <Card key={badge.title} className="text-center">
                 <CardContent className="pt-6">
@@ -481,19 +481,19 @@ export default async function HomePage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">
             <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-              {t("home.howTitle")}
+              {t('home.howTitle')}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {t("home.howSubtitle")}
+              {t('home.howSubtitle')}
             </p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { step: "1", title: t("howItWorks.step1Title"), desc: t("howItWorks.step1Desc") },
-                { step: "2", title: t("howItWorks.step2Title"), desc: t("howItWorks.step2Desc") },
-                { step: "3", title: t("howItWorks.step3Title"), desc: t("howItWorks.step3Desc") },
-                { step: "4", title: t("howItWorks.step4Title"), desc: t("howItWorks.step4Desc") },
+                { step: '1', title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
+                { step: '2', title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
+                { step: '3', title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
+                { step: '4', title: t('howItWorks.step4Title'), desc: t('howItWorks.step4Desc') },
               ].map((s) => (
                 <div key={s.step} className="relative text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilifast-deep text-lg font-bold text-white">
@@ -517,18 +517,18 @@ export default async function HomePage() {
           <div className="grid items-center gap-6 sm:grid-cols-2">
             <div>
               <h3 className="text-2xl font-display font-bold sm:text-3xl">
-                {t("operator.ctaTitle")}
+                {t('operator.ctaTitle')}
               </h3>
               <p className="mt-2 text-sm text-slate-300">
-                {t("operator.ctaDesc")}
+                {t('operator.ctaDesc')}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 sm:justify-end">
               <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
-                <Link href="/operator/login">{t("operator.portal")}</Link>
+                <Link href="/operator/login">{t('operator.portal')}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link href="/contact">{t("operator.getInTouch")}</Link>
+                <Link href="/contact">{t('operator.getInTouch')}</Link>
               </Button>
             </div>
           </div>
@@ -543,14 +543,14 @@ export default async function HomePage() {
               <div className="mb-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-semibold text-slate-900">
                 {showBookings && (
                   <span>
-                    {trust.bookingsLast30Days.toLocaleString("id-ID")} trips booked
+                    {trust.bookingsLast30Days.toLocaleString('id-ID')} trips booked
                     in the last 30 days
                   </span>
                 )}
                 {showReviews && (
                   <span>
-                    {trust.averageRating.toFixed(1)} ★ from{" "}
-                    {trust.totalReviews.toLocaleString("id-ID")} reviews
+                    {trust.averageRating.toFixed(1)} ★ from{' '}
+                    {trust.totalReviews.toLocaleString('id-ID')} reviews
                   </span>
                 )}
                 {showOperators && (
@@ -559,16 +559,16 @@ export default async function HomePage() {
               </div>
             )}
             <div className="font-semibold text-slate-900">
-              {t("trust.secureVerified")}
+              {t('trust.secureVerified')}
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-              <span>🔒 {t("trust.paymentsBy")}</span>
+              <span>🔒 {t('trust.paymentsBy')}</span>
               <span>·</span>
-              <span>✓ {t("trust.kycVerified")}</span>
+              <span>✓ {t('trust.kycVerified')}</span>
               <span>·</span>
-              <span>🛡️ {t("trust.pdpCompliant")}</span>
+              <span>🛡️ {t('trust.pdpCompliant')}</span>
               <span>·</span>
-              <span>📞 {t("trust.support24")}</span>
+              <span>📞 {t('trust.support24')}</span>
             </div>
           </div>
         </div>

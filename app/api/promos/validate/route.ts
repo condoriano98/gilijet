@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { validatePromoCode } from "@/lib/promotions";
+import { NextResponse } from 'next/server';
+import { validatePromoCode } from '@/lib/promotions';
 
 /**
  * GET /api/promos/validate?code=GILIFAST15&amount=500000
@@ -8,11 +8,11 @@ import { validatePromoCode } from "@/lib/promotions";
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const code = url.searchParams.get("code") ?? "";
-  const amount = Number(url.searchParams.get("amount") ?? "0");
+  const code = url.searchParams.get('code') ?? '';
+  const amount = Number(url.searchParams.get('amount') ?? '0');
   if (!code || amount <= 0) {
     return NextResponse.json(
-      { valid: false, error: "Missing code or amount" },
+      { valid: false, error: 'Missing code or amount' },
       { status: 400 },
     );
   }
@@ -27,12 +27,12 @@ export async function GET(req: Request) {
       description: result.promotion.description,
     });
   } catch (err) {
-    console.error("[api/promos/validate] failed:", err);
+    console.error('[api/promos/validate] failed:', err);
     return NextResponse.json(
-      { valid: false, error: "Could not validate code" },
+      { valid: false, error: 'Could not validate code' },
       { status: 500 },
     );
   }
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

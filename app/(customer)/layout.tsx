@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { AuthNav } from "@/components/customer/auth-nav";
-import { MobileNav } from "@/components/customer/mobile-nav";
-import { Logo } from "@/components/customer/logo";
-import { PaymentPartners } from "@/components/customer/payment-partners";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { AuthNav } from '@/components/customer/auth-nav';
+import { MobileNav } from '@/components/customer/mobile-nav';
+import { Logo } from '@/components/customer/logo';
+import { PaymentPartners } from '@/components/customer/payment-partners';
 
 // Sync layout. The auth-aware buttons live in <AuthNav>, a client
 // component that fetches /api/auth/me on mount. This keeps the

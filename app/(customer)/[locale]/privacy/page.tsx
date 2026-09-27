@@ -1,6 +1,6 @@
-import Link from "next/link";
+import Link from 'next/link';
 
-export const metadata = { title: "Privacy Policy · Gilifast" };
+export const metadata = { title: 'Privacy Policy · Gilifast' };
 
 export default function PrivacyPage() {
   return (

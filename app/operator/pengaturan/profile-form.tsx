@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { updateProfile } from "./actions";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { updateProfile } from './actions';
 
 function isRedirectError(e: unknown): boolean {
   return (
-    typeof e === "object" &&
+    typeof e === 'object' &&
     e !== null &&
-    "digest" in e &&
-    typeof (e as { digest: unknown }).digest === "string" &&
-    (e as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    'digest' in e &&
+    typeof (e as { digest: unknown }).digest === 'string' &&
+    (e as { digest: string }).digest.startsWith('NEXT_REDIRECT')
   );
 }
 
@@ -36,7 +36,7 @@ export function ProfileForm({
   const [companyName, setCompanyName] = React.useState(initial.companyName);
   const [contactPerson, setContactPerson] = React.useState(initial.contactPerson);
   const [phoneNumber, setPhoneNumber] = React.useState(initial.phoneNumber);
-  const [npwp, setNpwp] = React.useState(initial.npwp ?? "");
+  const [npwp, setNpwp] = React.useState(initial.npwp ?? '');
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
 
@@ -53,7 +53,7 @@ export function ProfileForm({
         });
       } catch (err) {
         if (isRedirectError(err)) throw err;
-        setError(err instanceof Error ? err.message : "Gagal menyimpan profil");
+        setError(err instanceof Error ? err.message : 'Gagal menyimpan profil');
       }
     });
   }
@@ -110,7 +110,7 @@ export function ProfileForm({
             disabled={pending}
             className="bg-mekari-primary hover:bg-mekari-primary-600"
           >
-            {pending ? "Menyimpan..." : "Simpan Perubahan"}
+            {pending ? 'Menyimpan...' : 'Simpan Perubahan'}
           </Button>
         </form>
       </CardContent>

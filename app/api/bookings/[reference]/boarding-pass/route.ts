@@ -1,8 +1,8 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 import {
   boardingPassFilename,
   generateBoardingPassPdf,
-} from "@/lib/boarding-pass";
+} from '@/lib/boarding-pass';
 
 /**
  * Download the boarding pass PDF for a confirmed booking.
@@ -23,18 +23,18 @@ export async function GET(
   const { reference } = await params;
 
   const pdf = await generateBoardingPassPdf(reference);
-  if (!pdf) return new Response("Not found", { status: 404 });
+  if (!pdf) return new Response('Not found', { status: 404 });
 
   return new Response(new Uint8Array(pdf), {
     headers: {
-      "Content-Type": "application/pdf",
+      'Content-Type': 'application/pdf',
       // `inline` so a phone opens it in the browser's viewer rather than
       // dropping it into Downloads unopened — it is shown at the dock, and the
       // filename still applies if the passenger chooses to save it.
-      "Content-Disposition": `inline; filename="${boardingPassFilename(reference)}"`,
-      "Cache-Control": "private, no-store",
+      'Content-Disposition': `inline; filename="${boardingPassFilename(reference)}"`,
+      'Cache-Control': 'private, no-store',
     },
   });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

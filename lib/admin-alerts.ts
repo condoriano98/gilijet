@@ -1,8 +1,8 @@
-import { prisma } from "./db";
-import { env } from "./env";
-import { formatLocalDateTime } from "./datetime";
-import { formatIDR } from "./utils";
-import { sendTemplateMessage } from "./whatsapp";
+import { prisma } from './db';
+import { env } from './env';
+import { formatLocalDateTime } from './datetime';
+import { formatIDR } from './utils';
+import { sendTemplateMessage } from './whatsapp';
 
 /**
  * WhatsApp alerts to whoever is on call for bookings.
@@ -21,7 +21,7 @@ import { sendTemplateMessage } from "./whatsapp";
  * triggered it.
  */
 
-export type AlertEvent = "new_booking" | "booking_paid";
+export type AlertEvent = 'new_booking' | 'booking_paid';
 
 type AlertConfig = {
   number: string;
@@ -33,11 +33,11 @@ type AlertConfig = {
 async function resolveConfig(): Promise<AlertConfig | null> {
   let row = null;
   try {
-    row = await prisma.platformConfig.findUnique({ where: { id: "default" } });
+    row = await prisma.platformConfig.findUnique({ where: { id: 'default' } });
   } catch (err) {
     // A missing config row is normal; an unreachable database is not, but it
     // must not take the booking down with it.
-    console.error("[admin-alert] could not read platform config:", err);
+    console.error('[admin-alert] could not read platform config:', err);
   }
 
   const number = row?.adminWhatsappNumber?.trim() || env.ADMIN_WHATSAPP_NUMBER;
@@ -91,8 +91,8 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
   try {
     const config = await resolveConfig();
     if (!config) return;
-    if (event === "new_booking" && !config.onNewBooking) return;
-    if (event === "booking_paid" && !config.onBookingPaid) return;
+    if (event === 'new_booking' && !config.onNewBooking) return;
+    if (event === 'booking_paid' && !config.onBookingPaid) return;
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -100,13 +100,13 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
     });
     if (!booking) return;
 
-    const paid = event === "booking_paid";
+    const paid = event === 'booking_paid';
     await sendTemplateMessage({
       to: config.number,
       templateName: config.template,
       broadcastName: `gilifast_${event}`,
       params: {
-        event: paid ? "PAID — confirm with operator" : "New booking (unpaid)",
+        event: paid ? 'PAID — confirm with operator' : 'New booking (unpaid)',
         reference: booking.bookingReference,
         route: `${booking.leg.schedule.originPort} → ${booking.leg.schedule.destinationPort}`,
         departure: `${formatLocalDateTime(booking.leg.departureDate)} WITA`,
@@ -116,7 +116,7 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
         amount: formatIDR(Number(booking.totalAmount)),
         action: paid
           ? `${env.APP_BASE_URL}/admin/confirmations`
-          : "No action yet — awaiting payment",
+          : 'No action yet — awaiting payment',
       },
     });
   } catch (err) {
@@ -126,10 +126,10 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
 
 /** A seat has been reserved. Not yet paid, and may expire unpaid. */
 export function alertAdminNewBooking(bookingId: string): Promise<void> {
-  return alert(bookingId, "new_booking");
+  return alert(bookingId, 'new_booking');
 }
 
 /** Money has settled. This is the one that needs an operator phone call. */
 export function alertAdminBookingPaid(bookingId: string): Promise<void> {
-  return alert(bookingId, "booking_paid");
+  return alert(bookingId, 'booking_paid');
 }

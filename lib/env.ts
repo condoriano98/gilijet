@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
@@ -7,7 +7,7 @@ const envSchema = z.object({
   // it's optional from the Next.js process's perspective.
   DIRECT_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(16),
-  APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  APP_BASE_URL: z.string().url().default('http://localhost:3000'),
 
   // DOKU Checkout — the payment gateway. Settles IDR, so no FX is involved.
   // Absent keys put the app in mock mode and it takes no real money.
@@ -16,8 +16,8 @@ const envSchema = z.object({
   DOKU_IS_PRODUCTION: z
     .string()
     .optional()
-    .transform((v) => v === "true")
-    .default("false"),
+    .transform((v) => v === 'true')
+    .default('false'),
 
   // PayPal — the backup gateway for cards DOKU declines. PayPal cannot settle
   // IDR, so a PayPal booking is charged in PAYPAL_PRESENTMENT_CURRENCY at the
@@ -28,9 +28,9 @@ const envSchema = z.object({
   PAYPAL_IS_PRODUCTION: z
     .string()
     .optional()
-    .transform((v) => v === "true")
-    .default("false"),
-  PAYPAL_PRESENTMENT_CURRENCY: z.string().length(3).optional().default("USD"),
+    .transform((v) => v === 'true')
+    .default('false'),
+  PAYPAL_PRESENTMENT_CURRENCY: z.string().length(3).optional().default('USD'),
 
   // Xendit (legacy — diagnostics/refunds only).
   XENDIT_SECRET_KEY: z.string().optional(),
@@ -53,8 +53,8 @@ const envSchema = z.object({
     .string()
     .email()
     .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
+    .or(z.literal(''))
+    .transform((v) => (v === '' ? undefined : v)),
 
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
@@ -72,11 +72,11 @@ const envSchema = z.object({
 
   PLATFORM_COMMISSION_RATE: z
     .string()
-    .default("0.08")
+    .default('0.08')
     .transform((v) => Number(v)),
   BOOKING_HOLD_MINUTES: z
     .string()
-    .default("30")
+    .default('30')
     .transform((v) => Number(v)),
 });
 
@@ -84,15 +84,15 @@ function loadEnv() {
   const parsed = envSchema.safeParse(process.env);
   if (parsed.success) return parsed.data;
 
-  const isBuild = process.env.NEXT_PHASE === "phase-production-build";
-  const isProd = process.env.NODE_ENV === "production";
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  const isProd = process.env.NODE_ENV === 'production';
   const fieldErrors = parsed.error.flatten().fieldErrors;
   const missing = Object.keys(fieldErrors);
 
   const logger = isBuild || !isProd ? console.warn : console.error;
   const label = isBuild
-    ? "[env] missing/invalid at build time (ok if set at runtime):"
-    : "[env] Invalid or missing variables (continuing in degraded mode):";
+    ? '[env] missing/invalid at build time (ok if set at runtime):'
+    : '[env] Invalid or missing variables (continuing in degraded mode):';
   logger(label, isBuild ? missing : fieldErrors);
 
   // Fall back to a partial parse. Using safeParse here is critical —
@@ -111,7 +111,7 @@ function loadEnv() {
   // must NEVER blank out the whole env — DATABASE_URL, auth secrets and the
   // payment gateway keys have to survive. (Returning {} here was catastrophic.)
   console.error(
-    "[env] Partial parse failed; salvaging valid fields individually:",
+    '[env] Partial parse failed; salvaging valid fields individually:',
     partial.error.flatten().fieldErrors,
   );
   const salvaged: Record<string, unknown> = {};
@@ -130,13 +130,13 @@ const _env = loadEnv();
 // these, and `Decimal(undefined)` throws. Coalesce to safe defaults here so
 // the app never crashes when an unrelated required env var is missing.
 function numOr(v: unknown, fallback: number): number {
-  const n = typeof v === "number" ? v : Number(v);
+  const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
 _env.PLATFORM_COMMISSION_RATE = numOr(_env.PLATFORM_COMMISSION_RATE, 0.08);
 _env.BOOKING_HOLD_MINUTES = numOr(_env.BOOKING_HOLD_MINUTES, 30);
-if (typeof _env.APP_BASE_URL !== "string" || !_env.APP_BASE_URL) {
-  _env.APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
+if (typeof _env.APP_BASE_URL !== 'string' || !_env.APP_BASE_URL) {
+  _env.APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000';
 }
 
 export const env = _env;

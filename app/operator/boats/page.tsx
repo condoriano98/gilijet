@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { requireOperator } from "@/lib/auth";
-import { getOperatorBoats } from "@/lib/operator-data";
+import Link from 'next/link';
+import { requireOperator } from '@/lib/auth';
+import { getOperatorBoats } from '@/lib/operator-data';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,9 +15,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export default async function OperatorBoatsPage() {
   const session = await requireOperator();
@@ -38,7 +38,7 @@ export default async function OperatorBoatsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {boats.length.toLocaleString()} boat{boats.length === 1 ? "" : "s"}
+            {boats.length.toLocaleString()} boat{boats.length === 1 ? '' : 's'}
           </CardTitle>
           <CardDescription>Active boats accept new departures.</CardDescription>
         </CardHeader>

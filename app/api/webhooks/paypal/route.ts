@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PaymentMethod } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
-import { notifyPaymentReceived } from "@/lib/booking-notifications";
-import { paypalFeeAsIdr } from "@/lib/psp";
+import { NextRequest, NextResponse } from 'next/server';
+import { PaymentMethod } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { recordPaymentAwaitingConfirmation } from '@/lib/ticket-issuer';
+import { notifyPaymentReceived } from '@/lib/booking-notifications';
+import { paypalFeeAsIdr } from '@/lib/psp';
 import {
   readCaptureFromWebhook,
   readWebhookHeaders,
   verifyPaypalWebhook,
-} from "@/lib/paypal";
+} from '@/lib/paypal';
 
 /**
  * PayPal webhook endpoint.
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   });
   if (!verified) {
     return NextResponse.json(
-      { ok: false, error: "Invalid signature" },
+      { ok: false, error: 'Invalid signature' },
       { status: 401 },
     );
   }
@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const eventType = String(payload.event_type ?? "");
+  const eventType = String(payload.event_type ?? '');
   const resource = (payload.resource ?? {}) as Record<string, unknown>;
   const capture = readCaptureFromWebhook(resource);
 
@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
 
   const existing = await prisma.webhookEvent.findFirst({
     where: {
-      provider: "paypal",
+      provider: 'paypal',
       eventType,
       externalRef,
-      status: { in: ["PROCESSED", "PROCESSING"] },
+      status: { in: ['PROCESSED', 'PROCESSING'] },
     },
   });
   if (existing) {
@@ -80,11 +80,11 @@ export async function POST(req: NextRequest) {
 
   const webhookEvent = await prisma.webhookEvent.create({
     data: {
-      provider: "paypal",
+      provider: 'paypal',
       eventType,
       externalRef,
       rawPayload: payload as never,
-      status: "PROCESSING",
+      status: 'PROCESSING',
       attempts: 1,
       lastAttemptAt: new Date(),
     },
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
       data: {
-        status: result.ok ? "PROCESSED" : "FAILED",
+        status: result.ok ? 'PROCESSED' : 'FAILED',
         processedAt: result.ok ? new Date() : undefined,
         errorMessage: result.ok ? null : result.error,
       },
@@ -108,17 +108,17 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ ok: true, status: result.status });
   } catch (err) {
-    console.error("[paypal-webhook] handler error:", err);
+    console.error('[paypal-webhook] handler error:', err);
     await prisma.webhookEvent
       .update({
         where: { id: webhookEvent.id },
         data: {
-          status: "FAILED",
+          status: 'FAILED',
           errorMessage: err instanceof Error ? err.message : String(err),
         },
       })
       .catch(() => {});
-    return NextResponse.json({ ok: false, error: "Handler error" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'Handler error' }, { status: 500 });
   }
 }
 
@@ -138,13 +138,13 @@ async function handleEvent(
   });
   if (!booking) {
     // Ack unknown bookings rather than making PayPal retry forever.
-    return { ok: true, status: "ignored" };
+    return { ok: true, status: 'ignored' };
   }
   const payment = booking.payment;
 
   switch (eventType) {
-    case "PAYMENT.CAPTURE.COMPLETED": {
-      if (!capture.completed) return { ok: true, status: "ignored" };
+    case 'PAYMENT.CAPTURE.COMPLETED': {
+      if (!capture.completed) return { ok: true, status: 'ignored' };
 
       // Amount integrity, mirroring the DOKU webhook: never confirm on a
       // capture that doesn't match what we quoted in the presentment currency.
@@ -155,7 +155,7 @@ async function handleEvent(
           console.error(
             `[paypal-webhook] amount mismatch for ${bookingReference}: captured=${captured} quoted=${quoted}`,
           );
-          return { ok: false, error: "Amount mismatch", httpStatus: 409 };
+          return { ok: false, error: 'Amount mismatch', httpStatus: 409 };
         }
       }
 
@@ -169,7 +169,7 @@ async function handleEvent(
 
       if (!result.alreadyRecorded) {
         notifyPaymentReceived(booking.id).catch((err) =>
-          console.error("[paypal-webhook] notify failed:", err),
+          console.error('[paypal-webhook] notify failed:', err),
         );
       }
 
@@ -184,11 +184,11 @@ async function handleEvent(
         },
       });
 
-      return { ok: true, status: "awaiting_confirmation" };
+      return { ok: true, status: 'awaiting_confirmation' };
     }
 
-    case "PAYMENT.CAPTURE.DENIED":
-    case "PAYMENT.CAPTURE.REVERSED": {
+    case 'PAYMENT.CAPTURE.DENIED':
+    case 'PAYMENT.CAPTURE.REVERSED': {
       // The customer's money never arrived. Leave the booking PENDING_PAYMENT
       // so the existing hold timer decides its fate — a failed attempt is not
       // terminal, exactly as a DOKU non-success notification is treated.
@@ -196,16 +196,16 @@ async function handleEvent(
         await prisma.payment.update({
           where: { bookingId: booking.id },
           data: {
-            status: "FAILED",
+            status: 'FAILED',
             failedReason: `PayPal ${eventType}`,
             rawWebhookData: payload as never,
           },
         });
       }
-      return { ok: true, status: "failed" };
+      return { ok: true, status: 'failed' };
     }
 
-    case "PAYMENT.CAPTURE.REFUNDED": {
+    case 'PAYMENT.CAPTURE.REFUNDED': {
       // Reconciliation only — the refund itself is driven from /admin/refunds.
       // Recording the payload keeps the audit trail complete when a refund is
       // issued from the PayPal dashboard instead.
@@ -215,10 +215,10 @@ async function handleEvent(
           data: { rawWebhookData: payload as never },
         });
       }
-      return { ok: true, status: "refund-recorded" };
+      return { ok: true, status: 'refund-recorded' };
     }
 
     default:
-      return { ok: true, status: "ignored" };
+      return { ok: true, status: 'ignored' };
   }
 }

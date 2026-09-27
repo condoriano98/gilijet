@@ -1,32 +1,32 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./db";
-import { env } from "./env";
-import { audit } from "./audit";
+import { Prisma } from '@prisma/client';
+import { prisma } from './db';
+import { env } from './env';
+import { audit } from './audit';
 import {
   computeBookingPriceWithTypes,
   type PassengerType,
   type CostBearer,
-} from "./pricing";
-import { computeRefundDeadline, snapshotCurrentPolicy } from "./refunds";
-import { resolvePlatformPricing } from "./platform-config";
-import { parseFareMatrix, categoryFaresFor } from "./fares";
-import { newBookingReference } from "./references";
-import { alertAdminNewBooking } from "./admin-alerts";
-import { validatePromoCode, applyPromoCode } from "./promotions";
-import { isDokuMock } from "./doku";
+} from './pricing';
+import { computeRefundDeadline, snapshotCurrentPolicy } from './refunds';
+import { resolvePlatformPricing } from './platform-config';
+import { parseFareMatrix, categoryFaresFor } from './fares';
+import { newBookingReference } from './references';
+import { alertAdminNewBooking } from './admin-alerts';
+import { validatePromoCode, applyPromoCode } from './promotions';
+import { isDokuMock } from './doku';
 
 export class BookingError extends Error {
   constructor(
     public code:
-      | "LEG_NOT_FOUND"
-      | "LEG_CLOSED"
-      | "LEG_PAST"
-      | "INVALID_INPUT"
-      | "PROMO_INVALID",
+      | 'LEG_NOT_FOUND'
+      | 'LEG_CLOSED'
+      | 'LEG_PAST'
+      | 'INVALID_INPUT'
+      | 'PROMO_INVALID',
     message: string,
   ) {
     super(message);
-    this.name = "BookingError";
+    this.name = 'BookingError';
   }
 }
 
@@ -51,7 +51,7 @@ export type CreateBookingArgs = {
   notes?: string | null;
   customerId?: string | null;
   promoCode?: string | null;
-  salesChannel?: "GILIFAST" | "WALK_IN" | "TRAVEL_AGENT" | "PHONE" | "EXTERNAL_AGGREGATOR";
+  salesChannel?: 'GILIFAST' | 'WALK_IN' | 'TRAVEL_AGENT' | 'PHONE' | 'EXTERNAL_AGGREGATOR';
   salesStaffId?: string | null;
   salesAgentId?: string | null;
 };
@@ -70,7 +70,7 @@ export async function reserveSeatsAndCreateBooking(
   args: CreateBookingArgs,
 ): Promise<{ bookingId: string; bookingReference: string }> {
   if (args.passengers.length < 1 || args.passengers.length > 10) {
-    throw new BookingError("INVALID_INPUT", "1-10 passengers per booking");
+    throw new BookingError('INVALID_INPUT', '1-10 passengers per booking');
   }
 
   // Idempotency replay: if a key has already been used, return that booking.
@@ -88,13 +88,13 @@ export async function reserveSeatsAndCreateBooking(
 
   // Default passengers without explicit type to ADULT.
   const passengerTypes: PassengerType[] = args.passengers.map(
-    (p) => p.type ?? "ADULT",
+    (p) => p.type ?? 'ADULT',
   );
-  const seatCount = passengerTypes.filter((t) => t !== "INFANT").length;
+  const seatCount = passengerTypes.filter((t) => t !== 'INFANT').length;
   if (seatCount < 1) {
     throw new BookingError(
-      "INVALID_INPUT",
-      "At least one non-infant passenger required",
+      'INVALID_INPUT',
+      'At least one non-infant passenger required',
     );
   }
 
@@ -105,22 +105,22 @@ export async function reserveSeatsAndCreateBooking(
         schedule: { include: { boat: { select: { operatorId: true } } } },
       },
     });
-    if (!leg) throw new BookingError("LEG_NOT_FOUND", "Departure not found");
+    if (!leg) throw new BookingError('LEG_NOT_FOUND', 'Departure not found');
     // Tenant invariant: the denormalised Leg.operatorId must equal the
     // authoritative Boat.operatorId. If they drift (manual mutation,
     // botched migration), refuse to create a booking rather than write
     // a row that straddles tenant boundaries.
     if (leg.operatorId !== leg.schedule.boat.operatorId) {
       throw new BookingError(
-        "INVALID_INPUT",
-        "Operator boundary mismatch on leg",
+        'INVALID_INPUT',
+        'Operator boundary mismatch on leg',
       );
     }
-    if (leg.status !== "OPEN") {
-      throw new BookingError("LEG_CLOSED", "Departure is closed for booking");
+    if (leg.status !== 'OPEN') {
+      throw new BookingError('LEG_CLOSED', 'Departure is closed for booking');
     }
     if (leg.departureDate.getTime() <= Date.now()) {
-      throw new BookingError("LEG_PAST", "Departure has already left");
+      throw new BookingError('LEG_PAST', 'Departure has already left');
     }
 
     const pricing = await resolvePlatformPricing(leg.operatorId, tx);
@@ -152,7 +152,7 @@ export async function reserveSeatsAndCreateBooking(
     // phantom redemption or inflated budget spend.
     let promotionId: string | null = null;
     let discountAmount = 0;
-    let costBearer: CostBearer = "SHARED";
+    let costBearer: CostBearer = 'SHARED';
     if (args.promoCode && args.promoCode.trim()) {
       const routeCode = `${leg.schedule.originPort}-${leg.schedule.destinationPort}`;
       const validation = await validatePromoCode(args.promoCode, {
@@ -163,7 +163,7 @@ export async function reserveSeatsAndCreateBooking(
         customerId: args.customerId ?? null,
       });
       if (!validation.valid) {
-        throw new BookingError("PROMO_INVALID", validation.error);
+        throw new BookingError('PROMO_INVALID', validation.error);
       }
       promotionId = validation.promotion.id;
       discountAmount = validation.discountAmount;
@@ -201,8 +201,8 @@ export async function reserveSeatsAndCreateBooking(
             operatorAmount: price.operatorAmount,
             promotionId,
             discountAmount: new Prisma.Decimal(discountAmount),
-            status: "PENDING_PAYMENT",
-            salesChannel: args.salesChannel ?? "GILIFAST",
+            status: 'PENDING_PAYMENT',
+            salesChannel: args.salesChannel ?? 'GILIFAST',
             salesStaffId: args.salesStaffId ?? null,
             salesAgentId: args.salesAgentId ?? null,
             refundDeadline: computeRefundDeadline(leg.departureDate),
@@ -215,8 +215,8 @@ export async function reserveSeatsAndCreateBooking(
             payment: {
               create: {
                 amount: price.totalAmount,
-                method: "BANK_TRANSFER",
-                status: "PENDING",
+                method: 'BANK_TRANSFER',
+                status: 'PENDING',
               },
             },
           },
@@ -225,7 +225,7 @@ export async function reserveSeatsAndCreateBooking(
       } catch (err) {
         if (
           err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === "P2002" &&
+          err.code === 'P2002' &&
           attempt < 4
         ) {
           // Rare reference collision — regenerate.
@@ -236,8 +236,8 @@ export async function reserveSeatsAndCreateBooking(
     }
     if (!booking) {
       throw new BookingError(
-        "INVALID_INPUT",
-        "Failed to mint booking reference",
+        'INVALID_INPUT',
+        'Failed to mint booking reference',
       );
     }
 
@@ -254,14 +254,14 @@ export async function reserveSeatsAndCreateBooking(
           amount: discountAmount,
         });
       } catch (err) {
-        const code = err instanceof Error ? err.message : "";
+        const code = err instanceof Error ? err.message : '';
         const message =
-          code === "PROMO_CUSTOMER_LIMIT"
-            ? "You have already used this promo code"
-            : code === "PROMO_BUDGET_EXHAUSTED"
-              ? "Promo code budget is exhausted"
-              : "This promo code is no longer available";
-        throw new BookingError("PROMO_INVALID", message);
+          code === 'PROMO_CUSTOMER_LIMIT'
+            ? 'You have already used this promo code'
+            : code === 'PROMO_BUDGET_EXHAUSTED'
+              ? 'Promo code budget is exhausted'
+              : 'This promo code is no longer available';
+        throw new BookingError('PROMO_INVALID', message);
       }
     }
 
@@ -280,10 +280,10 @@ export async function reserveSeatsAndCreateBooking(
 
     await tx.auditLog.create({
       data: {
-        entityType: "BOOKING",
+        entityType: 'BOOKING',
         entityId: booking.id,
-        action: "created",
-        userRole: "CUSTOMER",
+        action: 'created',
+        userRole: 'CUSTOMER',
         newState: {
           bookingReference: booking.bookingReference,
           legId: booking.legId,
@@ -326,8 +326,8 @@ export async function startPaymentForBooking(
     where: { id: bookingId },
     select: { status: true },
   });
-  if (!booking) throw new BookingError("LEG_NOT_FOUND", "Booking not found");
-  if (booking.status !== "PENDING_PAYMENT") {
+  if (!booking) throw new BookingError('LEG_NOT_FOUND', 'Booking not found');
+  if (booking.status !== 'PENDING_PAYMENT') {
     return { invoiceUrl: null, mock: false };
   }
   return { invoiceUrl: null, mock: isDokuMock() };
@@ -341,10 +341,10 @@ export async function startPaymentForBooking(
 export async function releaseBookingSeats(
   bookingId: string,
   reason:
-    | "expired"
-    | "cancelled_by_customer"
-    | "cancelled_by_operator"
-    | "payment_failed",
+    | 'expired'
+    | 'cancelled_by_customer'
+    | 'cancelled_by_operator'
+    | 'payment_failed',
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
@@ -363,7 +363,7 @@ export async function releaseBookingSeats(
         };
         if (Array.isArray(parsed.passengers)) {
           quantity = parsed.passengers.filter(
-            (p) => p.type !== "INFANT",
+            (p) => p.type !== 'INFANT',
           ).length;
         }
       } catch {
@@ -374,10 +374,10 @@ export async function releaseBookingSeats(
 
     await tx.auditLog.create({
       data: {
-        entityType: "BOOKING",
+        entityType: 'BOOKING',
         entityId: booking.id,
         action: `seats_released_${reason}`,
-        userRole: "SYSTEM",
+        userRole: 'SYSTEM',
         newState: { quantity },
       },
     });

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { formatIDR } from "@/lib/utils";
-import { useBookingPrice } from "./booking-price-provider";
+import * as React from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { formatIDR } from '@/lib/utils';
+import { useBookingPrice } from './booking-price-provider';
 
 type ValidationResult =
   | { valid: true; discountAmount: number; description: string | null }
@@ -18,31 +18,31 @@ type ValidationResult =
  */
 export function PromoCodeInput() {
   const { total: baseAmount } = useBookingPrice();
-  const [code, setCode] = React.useState("");
+  const [code, setCode] = React.useState('');
   const [status, setStatus] = React.useState<
-    "idle" | "checking" | "valid" | "invalid"
-  >("idle");
+    'idle' | 'checking' | 'valid' | 'invalid'
+  >('idle');
   const [result, setResult] = React.useState<ValidationResult | null>(null);
 
   async function applyCode() {
     if (!code.trim()) return;
-    setStatus("checking");
+    setStatus('checking');
     try {
       const res = await fetch(
         `/api/promos/validate?code=${encodeURIComponent(code.trim())}&amount=${baseAmount}`,
       );
       const data = (await res.json()) as ValidationResult;
       setResult(data);
-      setStatus(data.valid ? "valid" : "invalid");
+      setStatus(data.valid ? 'valid' : 'invalid');
     } catch {
-      setResult({ valid: false, error: "Could not check promo code" });
-      setStatus("invalid");
+      setResult({ valid: false, error: 'Could not check promo code' });
+      setStatus('invalid');
     }
   }
 
   function clearCode() {
-    setCode("");
-    setStatus("idle");
+    setCode('');
+    setStatus('idle');
     setResult(null);
   }
 
@@ -57,14 +57,14 @@ export function PromoCodeInput() {
           value={code}
           onChange={(e) => {
             setCode(e.target.value.toUpperCase());
-            if (status !== "idle") {
-              setStatus("idle");
+            if (status !== 'idle') {
+              setStatus('idle');
               setResult(null);
             }
           }}
           autoComplete="off"
         />
-        {status === "valid" ? (
+        {status === 'valid' ? (
           <Button type="button" variant="outline" onClick={clearCode}>
             Clear
           </Button>
@@ -73,15 +73,15 @@ export function PromoCodeInput() {
             type="button"
             variant="outline"
             onClick={applyCode}
-            disabled={status === "checking" || !code.trim()}
+            disabled={status === 'checking' || !code.trim()}
           >
-            {status === "checking" ? "Checking..." : "Apply"}
+            {status === 'checking' ? 'Checking...' : 'Apply'}
           </Button>
         )}
       </div>
       {result && result.valid ? (
         <p className="text-xs text-emerald-700">
-          ✓ {result.description ?? "Promo applied"} — saves{" "}
+          ✓ {result.description ?? 'Promo applied'} — saves{' '}
           <strong>{formatIDR(result.discountAmount)}</strong>
         </p>
       ) : null}

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PaymentMethod } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { recordPaymentAwaitingConfirmation } from "@/lib/ticket-issuer";
-import { notifyPaymentReceived } from "@/lib/booking-notifications";
-import { normalizePaymentMethod } from "@/lib/psp";
+import { NextRequest, NextResponse } from 'next/server';
+import { PaymentMethod } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { recordPaymentAwaitingConfirmation } from '@/lib/ticket-issuer';
+import { notifyPaymentReceived } from '@/lib/booking-notifications';
+import { normalizePaymentMethod } from '@/lib/psp';
 import {
   readNotification,
   readNotificationHeaders,
   verifyDokuNotification,
-} from "@/lib/doku";
+} from '@/lib/doku';
 
 /**
  * DOKU HTTP notification endpoint.
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     })
   ) {
     return NextResponse.json(
-      { ok: false, error: "Invalid signature" },
+      { ok: false, error: 'Invalid signature' },
       { status: 401 },
     );
   }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 });
   }
 
   const notification = readNotification(payload);
@@ -68,15 +68,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, recorded: notification.status });
   }
 
-  const eventType = "payment.success";
+  const eventType = 'payment.success';
 
   // Idempotency: skip if already processed or in-flight.
   const existing = await prisma.webhookEvent.findFirst({
     where: {
-      provider: "doku",
+      provider: 'doku',
       eventType,
       externalRef: reference,
-      status: { in: ["PROCESSED", "PROCESSING"] },
+      status: { in: ['PROCESSED', 'PROCESSING'] },
     },
   });
   if (existing) {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
         `[doku-webhook] amount mismatch for ${reference}: paid=${paid} owed=${owed}`,
       );
       return NextResponse.json(
-        { ok: false, error: "Amount mismatch" },
+        { ok: false, error: 'Amount mismatch' },
         { status: 409 },
       );
     }
@@ -113,11 +113,11 @@ export async function POST(req: NextRequest) {
 
   const webhookEvent = await prisma.webhookEvent.create({
     data: {
-      provider: "doku",
+      provider: 'doku',
       eventType,
       externalRef: reference,
       rawPayload: payload as never,
-      status: "PROCESSING",
+      status: 'PROCESSING',
       attempts: 1,
       lastAttemptAt: new Date(),
     },
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     // customer who has already paid.
     let method: PaymentMethod = PaymentMethod.BANK_TRANSFER;
     try {
-      method = normalizePaymentMethod(notification.channelCode ?? "BANK_TRANSFER");
+      method = normalizePaymentMethod(notification.channelCode ?? 'BANK_TRANSFER');
     } catch {
       console.warn(
         `[doku-webhook] unknown channel ${notification.channelCode} for ${reference}`,
@@ -155,27 +155,27 @@ export async function POST(req: NextRequest) {
 
     if (!result.alreadyRecorded) {
       notifyPaymentReceived(booking.id).catch((err) =>
-        console.error("[doku-webhook] notify failed:", err),
+        console.error('[doku-webhook] notify failed:', err),
       );
     }
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
-      data: { status: "PROCESSED", processedAt: new Date(), errorMessage: null },
+      data: { status: 'PROCESSED', processedAt: new Date(), errorMessage: null },
     });
-    return NextResponse.json({ ok: true, status: "awaiting_confirmation" });
+    return NextResponse.json({ ok: true, status: 'awaiting_confirmation' });
   } catch (err) {
-    console.error("[doku-webhook] handler error:", err);
+    console.error('[doku-webhook] handler error:', err);
     await prisma.webhookEvent
       .update({
         where: { id: webhookEvent.id },
         data: {
-          status: "FAILED",
+          status: 'FAILED',
           errorMessage: err instanceof Error ? err.message : String(err),
         },
       })
       .catch(() => {});
-    return NextResponse.json({ ok: false, error: "Handler error" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'Handler error' }, { status: 500 });
   }
 }
 
@@ -202,19 +202,19 @@ async function recordFailedAttempt(
 
   try {
     const already = await prisma.webhookEvent.findFirst({
-      where: { provider: "doku", eventType: "payment.failed", externalRef },
+      where: { provider: 'doku', eventType: 'payment.failed', externalRef },
       select: { id: true },
     });
     if (!already) {
       await prisma.webhookEvent.create({
         data: {
-          provider: "doku",
-          eventType: "payment.failed",
+          provider: 'doku',
+          eventType: 'payment.failed',
           externalRef,
           rawPayload: payload as never,
           // PROCESSED, not PENDING: this is a record, not work to retry.
           // Leaving it PENDING would have retry-webhooks reprocess declines.
-          status: "PROCESSED",
+          status: 'PROCESSED',
           attempts: 1,
           lastAttemptAt: new Date(),
           processedAt: new Date(),

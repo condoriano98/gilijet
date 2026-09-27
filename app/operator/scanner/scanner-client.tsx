@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { QrScanner } from "@/components/operator/qr-scanner";
+import * as React from 'react';
+import { QrScanner } from '@/components/operator/qr-scanner';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { cn, formatDateTimeID } from "@/lib/utils";
-import type { CheckinResult } from "../../api/operator/checkin/route";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { cn, formatDateTimeID } from '@/lib/utils';
+import type { CheckinResult } from '../../api/operator/checkin/route';
 
 type LegOption = {
   id: string;
@@ -38,7 +38,7 @@ export function ScannerClient({
   const [legId, setLegId] = React.useState<string>(
     initialLegId && options.some((o) => o.id === initialLegId)
       ? initialLegId
-      : options[0]?.id ?? "",
+      : options[0]?.id ?? '',
   );
   const [active, setActive] = React.useState(false);
   const [outcome, setOutcome] = React.useState<Outcome | null>(null);
@@ -54,9 +54,9 @@ export function ScannerClient({
       inFlightRef.current = qrPayload;
       setSubmitting(true);
       try {
-        const res = await fetch("/api/operator/checkin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/operator/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ qrPayload, legId }),
         });
         const result = (await res.json()) as CheckinResult;
@@ -66,11 +66,11 @@ export function ScannerClient({
           at: Date.now(),
           result: {
             ok: false,
-            reason: "INVALID_INPUT",
+            reason: 'INVALID_INPUT',
             message:
               err instanceof Error
                 ? err.message
-                : "Network error — try again.",
+                : 'Network error — try again.',
           },
         });
       } finally {
@@ -132,11 +132,11 @@ export function ScannerClient({
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <Badge
                     variant={
-                      selectedLeg.status === "CANCELLED"
-                        ? "destructive"
-                        : selectedLeg.status === "SAILED"
-                          ? "secondary"
-                          : "success"
+                      selectedLeg.status === 'CANCELLED'
+                        ? 'destructive'
+                        : selectedLeg.status === 'SAILED'
+                          ? 'secondary'
+                          : 'success'
                     }
                   >
                     {selectedLeg.status}
@@ -204,8 +204,8 @@ function OutcomeBanner({ outcome }: { outcome: Outcome }) {
     return (
       <div
         className={cn(
-          "rounded-md border bg-emerald-50 p-4 text-sm",
-          "border-emerald-200 text-emerald-900",
+          'rounded-md border bg-emerald-50 p-4 text-sm',
+          'border-emerald-200 text-emerald-900',
         )}
       >
         <div className="text-base font-semibold">✓ Boarded</div>
@@ -217,29 +217,29 @@ function OutcomeBanner({ outcome }: { outcome: Outcome }) {
     );
   }
   const tone =
-    result.reason === "ALREADY_CHECKED_IN"
-      ? "border-amber-200 bg-amber-50 text-amber-900"
-      : result.reason === "WRONG_LEG"
-        ? "border-amber-200 bg-amber-50 text-amber-900"
-        : "border-red-200 bg-red-50 text-red-900";
+    result.reason === 'ALREADY_CHECKED_IN'
+      ? 'border-amber-200 bg-amber-50 text-amber-900'
+      : result.reason === 'WRONG_LEG'
+        ? 'border-amber-200 bg-amber-50 text-amber-900'
+        : 'border-red-200 bg-red-50 text-red-900';
   const heading =
-    result.reason === "ALREADY_CHECKED_IN"
-      ? "Already checked in"
-      : result.reason === "WRONG_LEG"
-        ? "Wrong departure"
-        : result.reason === "INVALID_QR"
-          ? "Invalid QR"
-          : result.reason === "REFUNDED"
-            ? "Ticket refunded"
-            : result.reason === "TICKET_NOT_FOUND"
-              ? "Ticket not found"
-              : result.reason === "WRONG_OPERATOR"
-                ? "Wrong operator"
-                : result.reason === "LEG_NOT_ACTIVE"
-                  ? "Departure not active"
-                  : "Error";
+    result.reason === 'ALREADY_CHECKED_IN'
+      ? 'Already checked in'
+      : result.reason === 'WRONG_LEG'
+        ? 'Wrong departure'
+        : result.reason === 'INVALID_QR'
+          ? 'Invalid QR'
+          : result.reason === 'REFUNDED'
+            ? 'Ticket refunded'
+            : result.reason === 'TICKET_NOT_FOUND'
+              ? 'Ticket not found'
+              : result.reason === 'WRONG_OPERATOR'
+                ? 'Wrong operator'
+                : result.reason === 'LEG_NOT_ACTIVE'
+                  ? 'Departure not active'
+                  : 'Error';
   return (
-    <div className={cn("rounded-md border p-4 text-sm", tone)}>
+    <div className={cn('rounded-md border p-4 text-sm', tone)}>
       <div className="text-base font-semibold">✗ {heading}</div>
       <div className="mt-1">{result.message}</div>
     </div>

@@ -1,5 +1,5 @@
-import { prisma } from "./db";
-import type { AuditEntityType, AuditUserRole } from "@prisma/client";
+import { prisma } from './db';
+import type { AuditEntityType, AuditUserRole } from '@prisma/client';
 
 /**
  * Append an audit log entry. Never throws — auditing must not break the
@@ -21,7 +21,7 @@ export async function audit(args: {
   newState?: unknown;
   ipAddress?: string | null;
   userAgent?: string | null;
-  tx?: Pick<typeof prisma, "auditLog">;
+  tx?: Pick<typeof prisma, 'auditLog'>;
 }): Promise<void> {
   const client = args.tx ?? prisma;
   try {
@@ -39,6 +39,6 @@ export async function audit(args: {
       },
     });
   } catch (err) {
-    console.error("[audit] failed to write log:", err);
+    console.error('[audit] failed to write log:', err);
   }
 }

@@ -1,16 +1,16 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { audit } from "@/lib/audit";
-import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
+import { refundViaGateway, isAnyRefundGatewayConfigured } from '@/lib/refund-gateway';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -18,13 +18,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatDateTimeID, formatIDR } from "@/lib/utils";
-import { refundTierForCustomer } from "@/lib/refunds";
-import { sendCancellationEmail, sendRefundProcessedEmail } from "@/lib/email";
-import { env } from "@/lib/env";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatDateTimeID, formatIDR } from '@/lib/utils';
+import { refundTierForCustomer } from '@/lib/refunds';
+import { sendCancellationEmail, sendRefundProcessedEmail } from '@/lib/email';
+import { env } from '@/lib/env';
 
 /**
  * Automatically approves all PENDING refunds where the customer is still in
@@ -32,11 +32,11 @@ import { env } from "@/lib/env";
  * a background action.
  */
 async function autoApproveEligibleRefunds() {
-  "use server";
+  'use server';
   await requireAdmin();
 
   const pending = await prisma.refund.findMany({
-    where: { status: "PENDING" },
+    where: { status: 'PENDING' },
     include: {
       booking: {
         include: {
@@ -51,14 +51,14 @@ async function autoApproveEligibleRefunds() {
   let approved = 0;
   for (const refund of pending) {
     const tier = refundTierForCustomer(new Date(), refund.booking.leg.departureDate);
-    if (tier !== "FULL") continue;
+    if (tier !== 'FULL') continue;
 
     let gatewayReference = refund.gatewayReference ?? null;
-    let newStatus: "APPROVED" | "PROCESSING" = "APPROVED";
+    let newStatus: 'APPROVED' | 'PROCESSING' = 'APPROVED';
 
     if (
       isAnyRefundGatewayConfigured() &&
-      refund.booking.payment?.status === "SUCCESSFUL" &&
+      refund.booking.payment?.status === 'SUCCESSFUL' &&
       refund.booking.payment.gatewayReference
     ) {
       try {
@@ -66,14 +66,14 @@ async function autoApproveEligibleRefunds() {
           gatewayProvider: refund.booking.payment.gatewayProvider,
           gatewayReference: refund.booking.payment.gatewayReference,
           amount: Math.round(Number(refund.refundAmount)),
-          reason: "CUSTOMER_REQUEST",
+          reason: 'CUSTOMER_REQUEST',
         });
         if (r) {
           gatewayReference = r.id;
-          newStatus = "PROCESSING";
+          newStatus = 'PROCESSING';
         }
       } catch (err) {
-        console.error("[auto-approve] gateway refund failed:", err);
+        console.error('[auto-approve] gateway refund failed:', err);
         continue;
       }
     }
@@ -83,7 +83,7 @@ async function autoApproveEligibleRefunds() {
       data: {
         status: newStatus,
         gatewayReference,
-        approvedBy: "system-auto",
+        approvedBy: 'system-auto',
         approvedAt: new Date(),
       },
     });
@@ -103,27 +103,27 @@ async function autoApproveEligibleRefunds() {
 }
 
 async function approveRefundAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const refundId = String(formData.get("refundId") ?? "");
-  if (!refundId) redirect("/admin/refunds");
+  const refundId = String(formData.get('refundId') ?? '');
+  if (!refundId) redirect('/admin/refunds');
 
   const refund = await prisma.refund.findUnique({
     where: { id: refundId },
     include: { booking: { include: { payment: true } } },
   });
-  if (!refund) redirect("/admin/refunds?error=missing");
-  if (refund.status !== "PENDING") {
+  if (!refund) redirect('/admin/refunds?error=missing');
+  if (refund.status !== 'PENDING') {
     redirect(`/admin/refunds?error=already_${refund.status.toLowerCase()}`);
   }
 
   // Try to process via the original gateway if the invoice was actually paid through it.
   let gatewayReference: string | null = refund.gatewayReference ?? null;
-  let newStatus: "APPROVED" | "PROCESSING" | "COMPLETED" = "APPROVED";
+  let newStatus: 'APPROVED' | 'PROCESSING' | 'COMPLETED' = 'APPROVED';
 
   if (
     isAnyRefundGatewayConfigured() &&
-    refund.booking.payment?.status === "SUCCESSFUL" &&
+    refund.booking.payment?.status === 'SUCCESSFUL' &&
     refund.booking.payment.gatewayReference &&
     !gatewayReference
   ) {
@@ -132,14 +132,14 @@ async function approveRefundAction(formData: FormData) {
         gatewayProvider: refund.booking.payment.gatewayProvider,
         gatewayReference: refund.booking.payment.gatewayReference,
         amount: Math.round(Number(refund.refundAmount)),
-        reason: refund.reason || "ADMIN_OVERRIDE",
+        reason: refund.reason || 'ADMIN_OVERRIDE',
       });
       if (r) {
         gatewayReference = r.id;
-        newStatus = "PROCESSING";
+        newStatus = 'PROCESSING';
       }
     } catch (err) {
-      console.error("[admin-refunds] gateway refund failed:", err);
+      console.error('[admin-refunds] gateway refund failed:', err);
       redirect(`/admin/refunds?error=gateway_failed`);
     }
   }
@@ -151,15 +151,15 @@ async function approveRefundAction(formData: FormData) {
       gatewayReference,
       approvedBy: session.sub,
       approvedAt: new Date(),
-      processedAt: newStatus !== "APPROVED" ? new Date() : null,
+      processedAt: newStatus !== 'APPROVED' ? new Date() : null,
     },
   });
 
   await audit({
-    entityType: "REFUND",
+    entityType: 'REFUND',
     entityId: refund.id,
-    action: "approved",
-    userRole: "ADMIN",
+    action: 'approved',
+    userRole: 'ADMIN',
     userId: session.sub,
     newState: { status: newStatus, gatewayReference },
   });
@@ -168,22 +168,22 @@ async function approveRefundAction(formData: FormData) {
 }
 
 async function rejectRefundAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const refundId = String(formData.get("refundId") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-  if (!refundId) redirect("/admin/refunds");
+  const refundId = String(formData.get('refundId') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!refundId) redirect('/admin/refunds');
 
   const refund = await prisma.refund.findUnique({ where: { id: refundId } });
-  if (!refund) redirect("/admin/refunds?error=missing");
-  if (refund.status !== "PENDING") {
+  if (!refund) redirect('/admin/refunds?error=missing');
+  if (refund.status !== 'PENDING') {
     redirect(`/admin/refunds?error=already_${refund.status.toLowerCase()}`);
   }
 
   await prisma.refund.update({
     where: { id: refund.id },
     data: {
-      status: "REJECTED",
+      status: 'REJECTED',
       approvedBy: session.sub,
       approvedAt: new Date(),
       adminNote: note || null,
@@ -191,12 +191,12 @@ async function rejectRefundAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "REFUND",
+    entityType: 'REFUND',
     entityId: refund.id,
-    action: "rejected",
-    userRole: "ADMIN",
+    action: 'rejected',
+    userRole: 'ADMIN',
     userId: session.sub,
-    newState: { status: "REJECTED", note },
+    newState: { status: 'REJECTED', note },
   });
 
   redirect(`/admin/refunds?ok=rejected`);
@@ -204,18 +204,18 @@ async function rejectRefundAction(formData: FormData) {
 
 function statusVariant(status: string) {
   switch (status) {
-    case "COMPLETED":
-      return "success" as const;
-    case "PROCESSING":
-    case "APPROVED":
-      return "default" as const;
-    case "PENDING":
-      return "warning" as const;
-    case "REJECTED":
-    case "FAILED":
-      return "destructive" as const;
+    case 'COMPLETED':
+      return 'success' as const;
+    case 'PROCESSING':
+    case 'APPROVED':
+      return 'default' as const;
+    case 'PENDING':
+      return 'warning' as const;
+    case 'REJECTED':
+    case 'FAILED':
+      return 'destructive' as const;
     default:
-      return "outline" as const;
+      return 'outline' as const;
   }
 }
 
@@ -228,23 +228,23 @@ export default async function AdminRefundsPage({
   const { ok, error, filter } = await searchParams;
 
   const pendingCount = await prisma.refund.count({
-    where: { status: "PENDING" },
+    where: { status: 'PENDING' },
   });
   const totalPaid = await prisma.refund.aggregate({
-    where: { status: { in: ["COMPLETED", "PROCESSING"] } },
+    where: { status: { in: ['COMPLETED', 'PROCESSING'] } },
     _sum: { refundAmount: true },
   });
 
   const where =
-    filter === "pending"
-      ? { status: "PENDING" as const }
-      : filter === "completed"
-        ? { status: "COMPLETED" as const }
+    filter === 'pending'
+      ? { status: 'PENDING' as const }
+      : filter === 'completed'
+        ? { status: 'COMPLETED' as const }
         : {};
 
   const refunds = await prisma.refund.findMany({
     where,
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     take: 100,
     include: {
       booking: {
@@ -272,7 +272,7 @@ export default async function AdminRefundsPage({
       ) : null}
       {error ? (
         <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          Error: {error.replace(/_/g, " ")}
+          Error: {error.replace(/_/g, ' ')}
         </div>
       ) : null}
 
@@ -303,13 +303,13 @@ export default async function AdminRefundsPage({
             <CardDescription>Filter</CardDescription>
             <CardContent className="px-0 pt-2 pb-0">
               <div className="flex gap-2">
-                <Button asChild size="sm" variant={!filter ? "default" : "outline"}>
+                <Button asChild size="sm" variant={!filter ? 'default' : 'outline'}>
                   <Link href="/admin/refunds">All</Link>
                 </Button>
-                <Button asChild size="sm" variant={filter === "pending" ? "default" : "outline"}>
+                <Button asChild size="sm" variant={filter === 'pending' ? 'default' : 'outline'}>
                   <Link href="/admin/refunds?filter=pending">Pending</Link>
                 </Button>
-                <Button asChild size="sm" variant={filter === "completed" ? "default" : "outline"}>
+                <Button asChild size="sm" variant={filter === 'completed' ? 'default' : 'outline'}>
                   <Link href="/admin/refunds?filter=completed">Done</Link>
                 </Button>
               </div>
@@ -322,7 +322,7 @@ export default async function AdminRefundsPage({
         <CardHeader>
           <CardTitle>Refund requests</CardTitle>
           <CardDescription>
-            {refunds.length === 0 ? "No refunds match." : `${refunds.length} shown`}
+            {refunds.length === 0 ? 'No refunds match.' : `${refunds.length} shown`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -350,7 +350,7 @@ export default async function AdminRefundsPage({
                       {r.booking.bookingReference}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {r.booking.leg.schedule.originPort} →{" "}
+                      {r.booking.leg.schedule.originPort} →{' '}
                       {r.booking.leg.schedule.destinationPort}
                     </TableCell>
                     <TableCell className="text-sm">{r.reason}</TableCell>
@@ -364,7 +364,7 @@ export default async function AdminRefundsPage({
                       {formatDateTimeID(r.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {r.status === "PENDING" ? (
+                      {r.status === 'PENDING' ? (
                         <div className="flex justify-end gap-2">
                           <form action={approveRefundAction}>
                             <input type="hidden" name="refundId" value={r.id} />

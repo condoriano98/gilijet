@@ -1,15 +1,15 @@
-import Link from "next/link";
-import { OperatorStatus, Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { OperatorStatus, Prisma } from '@prisma/client';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -17,25 +17,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatDateTimeID } from "@/lib/utils";
+} from '@/components/ui/table';
+import { formatDateTimeID } from '@/lib/utils';
 
 const STATUS_FILTERS: OperatorStatus[] = [
-  "PENDING",
-  "ACTIVE",
-  "SUSPENDED",
-  "REJECTED",
+  'PENDING',
+  'ACTIVE',
+  'SUSPENDED',
+  'REJECTED',
 ];
 
 function statusVariant(s: OperatorStatus) {
   switch (s) {
-    case "ACTIVE":
-      return "success" as const;
-    case "PENDING":
-      return "warning" as const;
-    case "SUSPENDED":
-    case "REJECTED":
-      return "destructive" as const;
+    case 'ACTIVE':
+      return 'success' as const;
+    case 'PENDING':
+      return 'warning' as const;
+    case 'SUSPENDED':
+    case 'REJECTED':
+      return 'destructive' as const;
   }
 }
 
@@ -54,7 +54,7 @@ export default async function OperatorsListPage({
 
   const operators = await prisma.operator.findMany({
     where,
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     include: { _count: { select: { boats: { where: { deletedAt: null } } } } },
   });
 
@@ -80,11 +80,11 @@ export default async function OperatorsListPage({
 
       <div className="flex flex-wrap gap-2">
         <Link href="/admin/operators">
-          <Badge variant={!status ? "default" : "outline"}>All</Badge>
+          <Badge variant={!status ? 'default' : 'outline'}>All</Badge>
         </Link>
         {STATUS_FILTERS.map((s) => (
           <Link key={s} href={`/admin/operators?status=${s}`}>
-            <Badge variant={status === s ? "default" : "outline"}>{s}</Badge>
+            <Badge variant={status === s ? 'default' : 'outline'}>{s}</Badge>
           </Link>
         ))}
       </div>
@@ -93,7 +93,7 @@ export default async function OperatorsListPage({
         <CardHeader>
           <CardTitle>
             {operators.length.toLocaleString()} operator
-            {operators.length === 1 ? "" : "s"}
+            {operators.length === 1 ? '' : 's'}
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   COUNTRIES,
   findCountryByCode,
   findCountryByName,
   parsePhone,
-} from "@/lib/countries";
+} from '@/lib/countries';
 
 interface Props {
   defaultPhone?: string;
@@ -23,21 +23,21 @@ interface Props {
 }
 
 export function ContactFields({
-  defaultPhone = "",
-  defaultNationality = "",
+  defaultPhone = '',
+  defaultNationality = '',
 }: Props) {
   const parsed = parsePhone(defaultPhone);
   const [phoneCountryCode, setPhoneCountryCode] = useState(parsed.countryCode);
   const [number, setNumber] = useState(parsed.number);
 
   const initialNationality =
-    findCountryByName(defaultNationality)?.code ?? "ID";
+    findCountryByName(defaultNationality)?.code ?? 'ID';
   const [nationalityCode, setNationalityCode] = useState(initialNationality);
 
   const phoneCountry = findCountryByCode(phoneCountryCode);
-  const phoneDialCode = phoneCountry?.dialCode ?? "+62";
-  const phoneFlag = phoneCountry?.flag ?? "🇮🇩";
-  const nationalityName = findCountryByCode(nationalityCode)?.name ?? "";
+  const phoneDialCode = phoneCountry?.dialCode ?? '+62';
+  const phoneFlag = phoneCountry?.flag ?? '🇮🇩';
+  const nationalityName = findCountryByCode(nationalityCode)?.name ?? '';
 
   return (
     <>
@@ -55,7 +55,7 @@ export function ContactFields({
             <SelectContent>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
-                  <span>{c.flag}</span> {c.name}{" "}
+                  <span>{c.flag}</span> {c.name}{' '}
                   <span className="text-muted-foreground">{c.dialCode}</span>
                 </SelectItem>
               ))}

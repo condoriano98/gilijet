@@ -1,25 +1,25 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDate } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { DetailPageTemplate } from "@/components/operator-shell/templates/detail-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { markAgentPayoutPaid } from "./actions";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDate } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { DetailPageTemplate } from '@/components/operator-shell/templates/detail-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { markAgentPayoutPaid } from './actions';
 
-function bookingStatusVariant(s: string): "success" | "warning" | "danger" | "neutral" | "info" {
-  const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-    CONFIRMED: "success",
-    PENDING_PAYMENT: "warning",
-    EXPIRED: "neutral",
-    CANCELLED_BY_CUSTOMER: "danger",
-    CANCELLED_BY_OPERATOR: "danger",
+function bookingStatusVariant(s: string): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
+  const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+    CONFIRMED: 'success',
+    PENDING_PAYMENT: 'warning',
+    EXPIRED: 'neutral',
+    CANCELLED_BY_CUSTOMER: 'danger',
+    CANCELLED_BY_OPERATOR: 'danger',
   };
-  return map[s] ?? "neutral";
+  return map[s] ?? 'neutral';
 }
 
 export default async function TravelAgentDetailPage({
@@ -41,18 +41,18 @@ export default async function TravelAgentDetailPage({
     include: {
       leg: { include: { schedule: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 
   const ytdCommission = bookings
-    .filter((b) => b.status === "CONFIRMED")
+    .filter((b) => b.status === 'CONFIRMED')
     .reduce((sum, b) => sum + Number(b.agentCommissionAmount ?? 0), 0);
 
   type BookingRow = (typeof bookings)[number];
   const columns = [
     {
-      key: "bookingReference",
-      header: "Ref.",
+      key: 'bookingReference',
+      header: 'Ref.',
       render: (row: BookingRow) => (
         <Link href={`/operator/penjualan/${row.id}`} className="font-mono text-sm text-mekari-primary hover:underline">
           {row.bookingReference}
@@ -60,34 +60,34 @@ export default async function TravelAgentDetailPage({
       ),
     },
     {
-      key: "createdAt",
-      header: "Tanggal",
-      render: (row: BookingRow) => formatLocalDate(row.createdAt, "dd MMM yyyy"),
+      key: 'createdAt',
+      header: 'Tanggal',
+      render: (row: BookingRow) => formatLocalDate(row.createdAt, 'dd MMM yyyy'),
     },
     {
-      key: "route",
-      header: "Rute",
+      key: 'route',
+      header: 'Rute',
       render: (row: BookingRow) =>
         `${row.leg.schedule.originPort} → ${row.leg.schedule.destinationPort}`,
     },
     {
-      key: "totalAmount",
-      header: "Total",
-      align: "right" as const,
+      key: 'totalAmount',
+      header: 'Total',
+      align: 'right' as const,
       render: (row: BookingRow) => formatIDR(Number(row.totalAmount)),
     },
     {
-      key: "agentCommissionAmount",
-      header: "Komisi",
-      align: "right" as const,
+      key: 'agentCommissionAmount',
+      header: 'Komisi',
+      align: 'right' as const,
       render: (row: BookingRow) => formatIDR(Number(row.agentCommissionAmount ?? 0)),
     },
     {
-      key: "status",
-      header: "Status",
+      key: 'status',
+      header: 'Status',
       render: (row: BookingRow) => (
         <StatusBadge variant={bookingStatusVariant(row.status)}>
-          {row.status.replace(/_/g, " ")}
+          {row.status.replace(/_/g, ' ')}
         </StatusBadge>
       ),
     },
@@ -97,8 +97,8 @@ export default async function TravelAgentDetailPage({
     <DetailPageTemplate
       title={agent.name}
       status={{
-        label: agent.isActive ? "Aktif" : "Nonaktif",
-        variant: agent.isActive ? "success" : "neutral",
+        label: agent.isActive ? 'Aktif' : 'Nonaktif',
+        variant: agent.isActive ? 'success' : 'neutral',
       }}
       actions={
         <>
@@ -150,7 +150,7 @@ export default async function TravelAgentDetailPage({
             <div>
               <dt className="text-mekari-neutral-500">Komisi Default</dt>
               <dd className="text-mekari-neutral-900">
-                {(Number(agent.defaultCommissionPercent) * 100).toLocaleString("id-ID", {
+                {(Number(agent.defaultCommissionPercent) * 100).toLocaleString('id-ID', {
                   maximumFractionDigits: 2,
                 })}
                 %

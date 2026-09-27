@@ -1,6 +1,6 @@
-import Link from "next/link";
+import Link from 'next/link';
 
-export const metadata = { title: "About · Gilifast" };
+export const metadata = { title: 'About · Gilifast' };
 
 export default function AboutPage() {
   return (

@@ -1,17 +1,17 @@
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db';
 
 function icsEscape(s: string): string {
   return s
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
 }
 
 function toIcsUtc(d: Date): string {
   // YYYYMMDDTHHMMSSZ
-  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
 export async function GET(
@@ -27,8 +27,8 @@ export async function GET(
     },
   });
 
-  if (!booking || booking.status !== "CONFIRMED") {
-    return new Response("Not found", { status: 404 });
+  if (!booking || booking.status !== 'CONFIRMED') {
+    return new Response('Not found', { status: 404 });
   }
 
   const { schedule, departureDate } = booking.leg;
@@ -42,15 +42,15 @@ export async function GET(
     `Operator: ${schedule.boat.operator.companyName}`,
     `Boat: ${schedule.boat.name}`,
     `Arrive at the dock at least 30 minutes early with a government ID.`,
-  ].join("\n");
+  ].join('\n');
 
   const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Gilifast//Booking//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Gilifast//Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
     `UID:${booking.bookingReference}@gilifast`,
     `DTSTAMP:${toIcsUtc(new Date())}`,
     `DTSTART:${toIcsUtc(departureDate)}`,
@@ -58,18 +58,18 @@ export async function GET(
     `SUMMARY:${icsEscape(summary)}`,
     `DESCRIPTION:${icsEscape(description)}`,
     `LOCATION:${icsEscape(schedule.originPort)}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
+    'END:VEVENT',
+    'END:VCALENDAR',
   ];
 
-  const ics = lines.join("\r\n");
+  const ics = lines.join('\r\n');
 
   return new Response(ics, {
     headers: {
-      "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="gilifast-${booking.bookingReference}.ics"`,
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': `attachment; filename="gilifast-${booking.bookingReference}.ics"`,
     },
   });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

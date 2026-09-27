@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan | Wahana Virendra Fast Boat",
+  title: 'Syarat & Ketentuan | Wahana Virendra Fast Boat',
   description:
-    "Syarat dan Ketentuan pemesanan tiket fast boat Wahana Virendra — rute Bali, Gili Trawangan, Nusa Penida, Lembongan, Sanur, Padang Bai, Serangan.",
-  alternates: { canonical: "/legal/wahana-virendra" },
+    'Syarat dan Ketentuan pemesanan tiket fast boat Wahana Virendra — rute Bali, Gili Trawangan, Nusa Penida, Lembongan, Sanur, Padang Bai, Serangan.',
+  alternates: { canonical: '/legal/wahana-virendra' },
 };
 
 // Standalone, self-branded merchant-verification page for Wahana Virendra

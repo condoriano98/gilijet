@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./db";
+import { Prisma } from '@prisma/client';
+import { prisma } from './db';
 
 /**
  * Operator-scoped data helpers. Every query enforces operatorId so a
@@ -13,7 +13,7 @@ export const activeSchedule = { deletedAt: null };
 export async function getOperatorBoats(operatorId: string) {
   return prisma.boat.findMany({
     where: { operatorId, deletedAt: null },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 }
 
@@ -34,7 +34,7 @@ export async function getOperatorSchedules(
       deletedAt: null,
     },
     include: { boat: true, _count: { select: { legs: true } } },
-    orderBy: [{ originPort: "asc" }, { departureTime: "asc" }],
+    orderBy: [{ originPort: 'asc' }, { departureTime: 'asc' }],
   });
 }
 
@@ -55,9 +55,9 @@ export async function getOperatorLeg(operatorId: string, legId: string) {
     include: {
       schedule: { include: { boat: true } },
       bookings: {
-        where: { status: "CONFIRMED" },
+        where: { status: 'CONFIRMED' },
         include: { tickets: true },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: 'asc' },
       },
     },
   });
@@ -68,7 +68,7 @@ export async function getOperatorLegs(
   args: {
     fromUtc?: Date;
     toUtc?: Date;
-    status?: "OPEN" | "FULL" | "SAILED" | "CANCELLED";
+    status?: 'OPEN' | 'FULL' | 'SAILED' | 'CANCELLED';
     take?: number;
   } = {},
 ) {
@@ -87,7 +87,7 @@ export async function getOperatorLegs(
       ...(args.status ? { status: args.status } : {}),
     },
     include: { schedule: { include: { boat: true } } },
-    orderBy: { departureDate: "asc" },
+    orderBy: { departureDate: 'asc' },
     take: args.take ?? 200,
   });
 }

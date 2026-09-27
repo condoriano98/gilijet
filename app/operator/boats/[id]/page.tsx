@@ -1,11 +1,11 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { BoatStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
-import { getOperatorBoat } from "@/lib/operator-data";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { BoatStatus } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { getOperatorBoat } from '@/lib/operator-data';
 import {
   Card,
   CardContent,
@@ -13,16 +13,16 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const updateBoatSchema = z.object({
   id: z.string(),
   name: z.string().min(2).max(120),
-  description: z.string().max(1000).optional().or(z.literal("")),
+  description: z.string().max(1000).optional().or(z.literal('')),
   status: z.nativeEnum(BoatStatus),
 });
 
@@ -35,25 +35,25 @@ function parsePhotoUrls(raw: string): string[] {
 }
 
 async function updateBoatAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
   const parsed = updateBoatSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    status: formData.get("status"),
+    id: formData.get('id'),
+    name: formData.get('name'),
+    description: formData.get('description'),
+    status: formData.get('status'),
   });
   if (!parsed.success) {
     redirect(
-      `/operator/boats/${formData.get("id")}?error=` +
+      `/operator/boats/${formData.get('id')}?error=` +
         encodeURIComponent(parsed.error.issues[0].message),
     );
   }
 
   const existing = await getOperatorBoat(session.sub, parsed.data.id);
-  if (!existing) redirect("/operator/boats");
+  if (!existing) redirect('/operator/boats');
 
-  const photos = parsePhotoUrls(String(formData.get("photos") ?? ""));
+  const photos = parsePhotoUrls(String(formData.get('photos') ?? ''));
 
   const updated = await prisma.boat.update({
     where: { id: parsed.data.id },
@@ -66,11 +66,11 @@ async function updateBoatAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "BOAT",
+    entityType: 'BOAT',
     entityId: updated.id,
-    action: "updated",
+    action: 'updated',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     previousState: {
       name: existing.name,
       status: existing.status,
@@ -81,7 +81,7 @@ async function updateBoatAction(formData: FormData) {
     },
   });
 
-  redirect("/operator/boats");
+  redirect('/operator/boats');
 }
 
 export default async function EditBoatPage({
@@ -150,7 +150,7 @@ export default async function EditBoatPage({
                 id="description"
                 name="description"
                 rows={3}
-                defaultValue={boat.description ?? ""}
+                defaultValue={boat.description ?? ''}
               />
             </div>
             <div className="space-y-2">
@@ -159,8 +159,8 @@ export default async function EditBoatPage({
                 id="photos"
                 name="photos"
                 rows={3}
-                defaultValue={boat.photos.join("\n")}
-                placeholder={"One URL per line, e.g.\nhttps://example.com/boat-1.jpg"}
+                defaultValue={boat.photos.join('\n')}
+                placeholder={'One URL per line, e.g.\nhttps://example.com/boat-1.jpg'}
               />
               <p className="text-xs text-muted-foreground">
                 Up to 8 image links, one per line.

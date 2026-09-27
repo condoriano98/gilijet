@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import type { Operator, OperatorDocument } from "@prisma/client";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { Operator, OperatorDocument } from '@prisma/client';
 
 export function DocumentUploadStep({
   operator,
@@ -16,7 +16,7 @@ export function DocumentUploadStep({
   onStepChange,
 }: {
   operator: Operator & { documents: OperatorDocument[] };
-  docType: "SIUP" | "NPWP" | "VESSEL_LICENSE" | "INSURANCE_CERTIFICATE" | "CAPTAIN_LICENSE";
+  docType: 'SIUP' | 'NPWP' | 'VESSEL_LICENSE' | 'INSURANCE_CERTIFICATE' | 'CAPTAIN_LICENSE';
   title: string;
   description: string;
   instructions: string[];
@@ -36,23 +36,23 @@ export function DocumentUploadStep({
     setError(null);
 
     try {
-      const response = await fetch("/api/operator/document-upload", {
-        method: "POST",
+      const response = await fetch('/api/operator/document-upload', {
+        method: 'POST',
         headers: {
-          "X-Doc-Type": docType,
-          "Content-Type": file.type,
+          'X-Doc-Type': docType,
+          'Content-Type': file.type,
         },
         body: file,
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || 'Upload failed');
       }
 
       onStepChange(nextStep);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }

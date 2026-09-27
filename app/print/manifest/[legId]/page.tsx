@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
-import { requireOperator } from "@/lib/auth";
-import { getOperatorLeg } from "@/lib/operator-data";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { PrintButton } from "../../b/[reference]/print-button";
+import { notFound } from 'next/navigation';
+import { requireOperator } from '@/lib/auth';
+import { getOperatorLeg } from '@/lib/operator-data';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { PrintButton } from '../../b/[reference]/print-button';
 
 /**
  * Print-optimised passenger manifest for operators. Operator opens this and
@@ -20,20 +20,20 @@ export default async function PrintManifestPage({
   const leg = await getOperatorLeg(session.sub, legId);
   if (!leg) notFound();
 
-  const confirmedBookings = leg.bookings.filter((b) => b.status === "CONFIRMED");
+  const confirmedBookings = leg.bookings.filter((b) => b.status === 'CONFIRMED');
   const rows = confirmedBookings.flatMap((b) =>
     b.tickets.map((t) => ({
       ticketCode: t.ticketCode,
       passengerName: t.passengerName,
-      passengerIdNumber: t.passengerIdNumber ?? "—",
+      passengerIdNumber: t.passengerIdNumber ?? '—',
       status: t.status,
       bookingReference: b.bookingReference,
     })),
   );
-  const checkedIn = rows.filter((r) => r.status === "CHECKED_IN").length;
+  const checkedIn = rows.filter((r) => r.status === 'CHECKED_IN').length;
 
   return (
-    <div style={{ background: "white", padding: 24, fontFamily: "system-ui, -apple-system, sans-serif", color: "#0f172a" }}>
+    <div style={{ background: 'white', padding: 24, fontFamily: 'system-ui, -apple-system, sans-serif', color: '#0f172a' }}>
       <style>{`
         @page { margin: 12mm; size: A4; }
         .m-header { border-bottom: 2px solid #0369a1; padding-bottom: 12px; margin-bottom: 16px; }
@@ -68,7 +68,7 @@ export default async function PrintManifestPage({
         <div>
           <div className="m-label">Departure</div>
           <div className="m-value">
-            {formatLocalDate(leg.departureDate, "EEE, dd MMM yyyy")} ·{" "}
+            {formatLocalDate(leg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
             {formatLocalTime(leg.departureDate)} WITA
           </div>
         </div>
@@ -85,7 +85,7 @@ export default async function PrintManifestPage({
       </div>
 
       {rows.length === 0 ? (
-        <p style={{ textAlign: "center", color: "#64748b", padding: "40px 0" }}>
+        <p style={{ textAlign: 'center', color: '#64748b', padding: '40px 0' }}>
           No confirmed passengers for this departure.
         </p>
       ) : (
@@ -109,7 +109,7 @@ export default async function PrintManifestPage({
                 <td>{r.passengerIdNumber}</td>
                 <td className="m-code">{r.ticketCode}</td>
                 <td className="m-code">{r.bookingReference}</td>
-                <td>{r.status === "CHECKED_IN" ? "Checked in" : "Awaiting"}</td>
+                <td>{r.status === 'CHECKED_IN' ? 'Checked in' : 'Awaiting'}</td>
                 <td></td>
               </tr>
             ))}
@@ -118,7 +118,7 @@ export default async function PrintManifestPage({
       )}
 
       <div className="m-footer">
-        Generated {formatLocalDate(new Date(), "dd MMM yyyy")}{" "}
+        Generated {formatLocalDate(new Date(), 'dd MMM yyyy')}{' '}
         {formatLocalTime(new Date())} WITA · This manifest lists all confirmed
         passengers for the departure above. Verify each passenger against a
         government ID at boarding.

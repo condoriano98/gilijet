@@ -1,20 +1,20 @@
-import Link from "next/link";
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
+import Link from 'next/link';
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
 
-const crewRoleVariant: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-  CAPTAIN: "info",
-  CREW: "neutral",
-  ENGINEER: "warning",
+const crewRoleVariant: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+  CAPTAIN: 'info',
+  CREW: 'neutral',
+  ENGINEER: 'warning',
 };
 
-const staffStatusVariant: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-  ACTIVE: "success",
-  SUSPENDED: "danger",
+const staffStatusVariant: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+  ACTIVE: 'success',
+  SUSPENDED: 'danger',
 };
 
 export default async function AwakListPage() {
@@ -25,16 +25,16 @@ export default async function AwakListPage() {
     where: {
       operatorId,
       deletedAt: null,
-      role: { in: ["CAPTAIN", "CREW", "ENGINEER"] },
+      role: { in: ['CAPTAIN', 'CREW', 'ENGINEER'] },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 
   type StaffRow = (typeof staff)[number];
   const columns = [
     {
-      key: "fullName",
-      header: "Nama",
+      key: 'fullName',
+      header: 'Nama',
       render: (row: StaffRow) => (
         <Link
           href={`/operator/awak/${row.id}`}
@@ -45,36 +45,36 @@ export default async function AwakListPage() {
       ),
     },
     {
-      key: "email",
-      header: "Email",
+      key: 'email',
+      header: 'Email',
       render: (row: StaffRow) => (
         <span className="font-mono text-xs">{row.email}</span>
       ),
     },
     {
-      key: "role",
-      header: "Peran",
+      key: 'role',
+      header: 'Peran',
       render: (row: StaffRow) => (
-        <StatusBadge variant={crewRoleVariant[row.role] ?? "neutral"}>
+        <StatusBadge variant={crewRoleVariant[row.role] ?? 'neutral'}>
           {row.role}
         </StatusBadge>
       ),
     },
     {
-      key: "status",
-      header: "Status",
+      key: 'status',
+      header: 'Status',
       render: (row: StaffRow) => (
-        <StatusBadge variant={staffStatusVariant[row.status] ?? "neutral"}>
-          {row.status === "ACTIVE" ? "Aktif" : "Ditangguhkan"}
+        <StatusBadge variant={staffStatusVariant[row.status] ?? 'neutral'}>
+          {row.status === 'ACTIVE' ? 'Aktif' : 'Ditangguhkan'}
         </StatusBadge>
       ),
     },
     {
-      key: "createdAt",
-      header: "Dibuat",
+      key: 'createdAt',
+      header: 'Dibuat',
       render: (row: StaffRow) => (
         <span>
-          {formatLocalDate(row.createdAt, "dd MMM yyyy")}{" "}
+          {formatLocalDate(row.createdAt, 'dd MMM yyyy')}{' '}
           <span className="font-mono text-xs">{formatLocalTime(row.createdAt)}</span>
         </span>
       ),

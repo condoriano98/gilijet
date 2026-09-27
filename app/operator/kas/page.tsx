@@ -1,14 +1,14 @@
-import { PaymentMethod } from "@prisma/client";
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDateTime, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Wallet, Banknote, Calculator, Clock } from "lucide-react";
-import { OpenShiftForm, CloseShiftForm } from "./kas-forms";
+import { PaymentMethod } from '@prisma/client';
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDateTime, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Wallet, Banknote, Calculator, Clock } from 'lucide-react';
+import { OpenShiftForm, CloseShiftForm } from './kas-forms';
 
 const CASH_DRAWER_METHODS: PaymentMethod[] = [
   PaymentMethod.BANK_TRANSFER,
@@ -27,16 +27,16 @@ export default async function KasPage() {
     prisma.cashDrawerSession.findFirst({
       where: { operatorId, closedAt: null },
       include: { staff: true },
-      orderBy: { openedAt: "desc" },
+      orderBy: { openedAt: 'desc' },
     }),
     prisma.operatorStaff.findMany({
-      where: { operatorId, status: "ACTIVE", deletedAt: null },
-      orderBy: { fullName: "asc" },
+      where: { operatorId, status: 'ACTIVE', deletedAt: null },
+      orderBy: { fullName: 'asc' },
     }),
     prisma.cashDrawerSession.findMany({
       where: { operatorId, closedAt: { not: null } },
       include: { staff: true },
-      orderBy: { closedAt: "desc" },
+      orderBy: { closedAt: 'desc' },
       take: 20,
     }),
   ]);
@@ -46,7 +46,7 @@ export default async function KasPage() {
     const agg = await prisma.booking.aggregate({
       where: {
         operatorId,
-        salesChannel: "WALK_IN",
+        salesChannel: 'WALK_IN',
         createdAt: { gte: activeSession.openedAt },
         cashCollected: { not: null },
         payment: { method: { in: CASH_DRAWER_METHODS } },
@@ -64,54 +64,54 @@ export default async function KasPage() {
 
   const closedColumns = [
     {
-      key: "id",
-      header: "Sesi",
+      key: 'id',
+      header: 'Sesi',
       render: (r: ClosedRow) => (
         <span className="font-mono text-xs text-mekari-neutral-500">{r.id.slice(-8)}</span>
       ),
     },
     {
-      key: "staff",
-      header: "Staf",
+      key: 'staff',
+      header: 'Staf',
       render: (r: ClosedRow) => r.staff.fullName,
     },
     {
-      key: "openedAt",
-      header: "Dibuka",
+      key: 'openedAt',
+      header: 'Dibuka',
       render: (r: ClosedRow) => formatLocalDateTime(r.openedAt),
     },
     {
-      key: "closedAt",
-      header: "Ditutup",
-      render: (r: ClosedRow) => (r.closedAt ? formatLocalTime(r.closedAt) : "-"),
+      key: 'closedAt',
+      header: 'Ditutup',
+      render: (r: ClosedRow) => (r.closedAt ? formatLocalTime(r.closedAt) : '-'),
     },
     {
-      key: "openingBalance",
-      header: "Saldo Awal",
-      align: "right" as const,
+      key: 'openingBalance',
+      header: 'Saldo Awal',
+      align: 'right' as const,
       render: (r: ClosedRow) => formatIDR(Number(r.openingBalance)),
     },
     {
-      key: "expectedCash",
-      header: "Diharapkan",
-      align: "right" as const,
+      key: 'expectedCash',
+      header: 'Diharapkan',
+      align: 'right' as const,
       render: (r: ClosedRow) => formatIDR(Number(r.expectedCash)),
     },
     {
-      key: "closingBalanceCounted",
-      header: "Dihitung",
-      align: "right" as const,
+      key: 'closingBalanceCounted',
+      header: 'Dihitung',
+      align: 'right' as const,
       render: (r: ClosedRow) =>
-        r.closingBalanceCounted ? formatIDR(Number(r.closingBalanceCounted)) : "-",
+        r.closingBalanceCounted ? formatIDR(Number(r.closingBalanceCounted)) : '-',
     },
     {
-      key: "variance",
-      header: "Selisih",
-      align: "right" as const,
+      key: 'variance',
+      header: 'Selisih',
+      align: 'right' as const,
       render: (r: ClosedRow) => {
         const v = r.variance ? Number(r.variance) : null;
-        if (v === null) return "-";
-        const variant = v === 0 ? "neutral" : v > 0 ? "warning" : "danger";
+        if (v === null) return '-';
+        const variant = v === 0 ? 'neutral' : v > 0 ? 'warning' : 'danger';
         return <StatusBadge variant={variant}>{formatIDR(v)}</StatusBadge>;
       },
     },
@@ -122,8 +122,8 @@ export default async function KasPage() {
       title="Kas & Bank"
       subtitle="Sesi laci kas dan rekonsiliasi"
       secondaryActions={[
-        { label: "Rekonsiliasi", href: "/operator/kas/rekonsiliasi" },
-        { label: "Penyelesaian", href: "/operator/kas/penyelesaian" },
+        { label: 'Rekonsiliasi', href: '/operator/kas/rekonsiliasi' },
+        { label: 'Penyelesaian', href: '/operator/kas/penyelesaian' },
       ]}
       kpis={
         activeSession ? (

@@ -1,23 +1,23 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import {
   buildAuthorizeUrl,
   isGoogleOAuthEnabled,
   safeNext,
   signState,
-} from "@/lib/google-oauth";
+} from '@/lib/google-oauth';
 
-const STATE_COOKIE = "gilifast_google_state";
+const STATE_COOKIE = 'gilifast_google_state';
 
 export async function GET(req: Request) {
   if (!isGoogleOAuthEnabled()) {
     return NextResponse.redirect(
-      new URL("/account/login?error=google_unavailable", req.url),
+      new URL('/account/login?error=google_unavailable', req.url),
     );
   }
 
   const url = new URL(req.url);
-  const next = safeNext(url.searchParams.get("next"));
+  const next = safeNext(url.searchParams.get('next'));
 
   const nonce = crypto.randomUUID();
   const state = await signState({ nonce, next });
@@ -25,9 +25,9 @@ export async function GET(req: Request) {
   const jar = await cookies();
   jar.set(STATE_COOKIE, nonce, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
     maxAge: 60 * 10,
   });
 

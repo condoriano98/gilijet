@@ -1,4 +1,4 @@
-import { SalesChannel } from "@prisma/client";
+import { SalesChannel } from '@prisma/client';
 
 /**
  * Sales-channel display and grouping.
@@ -22,11 +22,11 @@ export function normalizeSalesChannel(channel: string): string {
 }
 
 const LABELS: Record<string, string> = {
-  [SalesChannel.GILIFAST]: "Gilifast",
-  [SalesChannel.WALK_IN]: "Walk-in",
-  [SalesChannel.TRAVEL_AGENT]: "Agen",
-  [SalesChannel.PHONE]: "Telepon",
-  [SalesChannel.EXTERNAL_AGGREGATOR]: "Aggregator",
+  [SalesChannel.GILIFAST]: 'Gilifast',
+  [SalesChannel.WALK_IN]: 'Walk-in',
+  [SalesChannel.TRAVEL_AGENT]: 'Agen',
+  [SalesChannel.PHONE]: 'Telepon',
+  [SalesChannel.EXTERNAL_AGGREGATOR]: 'Aggregator',
 };
 
 export function salesChannelLabel(channel: string): string {

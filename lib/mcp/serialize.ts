@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { formatLocalDateTime, OPERATOR_TIMEZONE } from "../datetime";
+import { Prisma } from '@prisma/client';
+import { formatLocalDateTime, OPERATOR_TIMEZONE } from '../datetime';
 
 /**
  * Output shaping for MCP tool results.
@@ -34,7 +34,7 @@ export function witaTime(d: Date | null | undefined): string | null {
 /** Calendar date in WITA, no time component. */
 export function witaDate(d: Date | null | undefined): string | null {
   if (!d) return null;
-  return formatLocalDateTime(d).split(" ").slice(0, 3).join(" ");
+  return formatLocalDateTime(d).split(' ').slice(0, 3).join(' ');
 }
 
 export const TIMEZONE_NOTE = `All times are ${OPERATOR_TIMEZONE} (WITA, UTC+8). All amounts are IDR.`;
@@ -49,15 +49,15 @@ export const TIMEZONE_NOTE = `All times are ${OPERATOR_TIMEZONE} (WITA, UTC+8). 
  * a wider audience than a dashboard session.
  */
 export function redactingPii(): boolean {
-  return process.env.MCP_REDACT_PII === "1";
+  return process.env.MCP_REDACT_PII === '1';
 }
 
 /** `bud***@example.com` */
 export function maskEmail(email: string | null | undefined): string | null {
   if (!email) return null;
   if (!redactingPii()) return email;
-  const [local, domain] = email.split("@");
-  if (!domain) return "***";
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
   return `${local.slice(0, 3)}***@${domain}`;
 }
 
@@ -65,7 +65,7 @@ export function maskEmail(email: string | null | undefined): string | null {
 export function maskPhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
   if (!redactingPii()) return phone;
-  if (phone.length <= 8) return "***";
+  if (phone.length <= 8) return '***';
   return `${phone.slice(0, 5)}****${phone.slice(-4)}`;
 }
 

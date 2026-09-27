@@ -1,14 +1,14 @@
-"use server";
+'use server';
 
-import { z } from "zod";
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
 
 const saveNoteSchema = z.object({
-  sessionId: z.string().min(1, "ID sesi hilang"),
-  notes: z.string().max(1000, "Catatan terlalu panjang"),
+  sessionId: z.string().min(1, 'ID sesi hilang'),
+  notes: z.string().max(1000, 'Catatan terlalu panjang'),
 });
 
 export async function saveReconciliationNote(
@@ -22,7 +22,7 @@ export async function saveReconciliationNote(
     where: { id: parsed.data.sessionId, operatorId: session.sub },
     select: { id: true },
   });
-  if (!drawer) throw new Error("Sesi kas tidak ditemukan");
+  if (!drawer) throw new Error('Sesi kas tidak ditemukan');
 
   const notes = parsed.data.notes.trim();
   await prisma.cashDrawerSession.update({
@@ -31,13 +31,13 @@ export async function saveReconciliationNote(
   });
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: drawer.id,
-    action: "cash_reconciliation_note",
+    action: 'cash_reconciliation_note',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     newState: { notes },
   });
 
-  revalidatePath("/operator/kas/rekonsiliasi");
+  revalidatePath('/operator/kas/rekonsiliasi');
 }

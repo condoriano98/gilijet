@@ -1,7 +1,7 @@
-import { isDokuConfigured } from "./doku";
-import { isPaypalLive, refundCapture } from "./paypal";
-import { prisma } from "./db";
-import { PaymentProvider } from "@prisma/client";
+import { isDokuConfigured } from './doku';
+import { isPaypalLive, refundCapture } from './paypal';
+import { prisma } from './db';
+import { PaymentProvider } from '@prisma/client';
 
 /**
  * Dispatch a refund to whichever gateway took the money.

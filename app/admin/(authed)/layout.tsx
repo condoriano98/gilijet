@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getAdminSession, clearAdminSession } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getAdminSession, clearAdminSession } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
 
 async function signOutAction() {
-  "use server";
+  'use server';
   await clearAdminSession();
-  redirect("/admin/login");
+  redirect('/admin/login');
 }
 
 export default async function AdminLayout({
@@ -15,22 +15,22 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getAdminSession();
-  if (!session) redirect("/admin/login");
+  if (!session) redirect('/admin/login');
 
   const nav = [
-    { href: "/admin", label: "Overview" },
-    { href: "/admin/operators", label: "Operators" },
-    { href: "/admin/bookings", label: "Bookings" },
-    { href: "/admin/confirmations", label: "Confirmations" },
-    { href: "/admin/refunds", label: "Refunds" },
-    { href: "/admin/reschedules", label: "Reschedules" },
+    { href: '/admin', label: 'Overview' },
+    { href: '/admin/operators', label: 'Operators' },
+    { href: '/admin/bookings', label: 'Bookings' },
+    { href: '/admin/confirmations', label: 'Confirmations' },
+    { href: '/admin/refunds', label: 'Refunds' },
+    { href: '/admin/reschedules', label: 'Reschedules' },
     // Operations (scheduling on behalf of operators) and the Owner Console
     // (coupons + pricing) are both super-admin only.
-    ...(session.adminRole === "SUPER_ADMIN"
+    ...(session.adminRole === 'SUPER_ADMIN'
       ? [
-          { href: "/admin/operations", label: "Operations" },
-          { href: "/admin/console", label: "Console" },
-          { href: "/admin/diagnostics", label: "Diagnostics" },
+          { href: '/admin/operations', label: 'Operations' },
+          { href: '/admin/console', label: 'Console' },
+          { href: '/admin/diagnostics', label: 'Diagnostics' },
         ]
       : []),
   ];

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
-import { useBookingPrice } from "./booking-price-provider";
-import type { PassengerType } from "@/lib/pricing";
+import * as React from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
+import { useBookingPrice } from './booking-price-provider';
+import type { PassengerType } from '@/lib/pricing';
 
 /**
  * One row per passenger. Each emits three inputs:

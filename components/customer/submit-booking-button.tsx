@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
-import { useBookingPrice } from "./booking-price-provider";
+import { useFormStatus } from 'react-dom';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
+import { useBookingPrice } from './booking-price-provider';
 
 export function SubmitBookingButton() {
   const { pending } = useFormStatus();

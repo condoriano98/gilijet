@@ -1,10 +1,10 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import Link from "next/link";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import Link from 'next/link';
 
 export default async function TravelAgentListPage() {
   const session = await requireOperator();
@@ -14,7 +14,7 @@ export default async function TravelAgentListPage() {
 
   const agents = await prisma.travelAgent.findMany({
     where: { operatorId, deletedAt: null },
-    orderBy: { name: "asc" },
+    orderBy: { name: 'asc' },
   });
 
   const agentStats = await Promise.all(
@@ -24,7 +24,7 @@ export default async function TravelAgentListPage() {
           where: {
             operatorId,
             salesAgentId: agent.id,
-            status: "CONFIRMED",
+            status: 'CONFIRMED',
             createdAt: { gte: startOfYear },
           },
         }),
@@ -32,7 +32,7 @@ export default async function TravelAgentListPage() {
           where: {
             operatorId,
             salesAgentId: agent.id,
-            status: "CONFIRMED",
+            status: 'CONFIRMED',
             createdAt: { gte: startOfYear },
           },
           _sum: { agentCommissionAmount: true },
@@ -65,8 +65,8 @@ export default async function TravelAgentListPage() {
 
   const columns = [
     {
-      key: "name",
-      header: "Nama",
+      key: 'name',
+      header: 'Nama',
       render: (row: AgentRow) => (
         <Link href={`/operator/penjualan/agen/${row.id}`} className="font-medium text-mekari-primary hover:underline">
           {row.name}
@@ -74,36 +74,36 @@ export default async function TravelAgentListPage() {
       ),
     },
     {
-      key: "npwp",
-      header: "NPWP",
-      render: (row: AgentRow) => (row.npwp ? <span className="font-mono text-xs">{row.npwp}</span> : "-"),
+      key: 'npwp',
+      header: 'NPWP',
+      render: (row: AgentRow) => (row.npwp ? <span className="font-mono text-xs">{row.npwp}</span> : '-'),
     },
     {
-      key: "defaultCommissionPercent",
-      header: "Komisi Default",
-      align: "right" as const,
+      key: 'defaultCommissionPercent',
+      header: 'Komisi Default',
+      align: 'right' as const,
       render: (row: AgentRow) =>
-        `${(row.defaultCommissionPercent * 100).toLocaleString("id-ID", { maximumFractionDigits: 2 })}%`,
+        `${(row.defaultCommissionPercent * 100).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`,
     },
     {
-      key: "ytdBookings",
-      header: "Booking YTD",
-      align: "center" as const,
+      key: 'ytdBookings',
+      header: 'Booking YTD',
+      align: 'center' as const,
       render: (row: AgentRow) => `${row.ytdBookings}`,
     },
     {
-      key: "ytdCommission",
-      header: "Komisi YTD",
-      align: "right" as const,
+      key: 'ytdCommission',
+      header: 'Komisi YTD',
+      align: 'right' as const,
       render: (row: AgentRow) => formatIDR(row.ytdCommission),
     },
     {
-      key: "isActive",
-      header: "Status",
-      align: "center" as const,
+      key: 'isActive',
+      header: 'Status',
+      align: 'center' as const,
       render: (row: AgentRow) => (
-        <StatusBadge variant={row.isActive ? "success" : "neutral"}>
-          {row.isActive ? "Aktif" : "Nonaktif"}
+        <StatusBadge variant={row.isActive ? 'success' : 'neutral'}>
+          {row.isActive ? 'Aktif' : 'Nonaktif'}
         </StatusBadge>
       ),
     },
@@ -113,7 +113,7 @@ export default async function TravelAgentListPage() {
     <ListPageTemplate
       title="Agen Perjalanan"
       subtitle="Daftar agen perjalanan dan ringkasan komisi tahun berjalan"
-      primaryAction={{ label: "+ Tambah Agen", href: "/operator/penjualan/agen/baru" }}
+      primaryAction={{ label: '+ Tambah Agen', href: '/operator/penjualan/agen/baru' }}
     >
       <DataTable columns={columns} data={rows} emptyMessage="Belum ada agen perjalanan" />
     </ListPageTemplate>

@@ -1,9 +1,9 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalTime } from "@/lib/datetime";
-import { parseFareMatrix, categoryFaresFor } from "@/lib/fares";
-import { resolvePlatformPricing } from "@/lib/platform-config";
-import { PosClient } from "./pos-client";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalTime } from '@/lib/datetime';
+import { parseFareMatrix, categoryFaresFor } from '@/lib/fares';
+import { resolvePlatformPricing } from '@/lib/platform-config';
+import { PosClient } from './pos-client';
 
 export default async function PosPage() {
   const session = await requireOperator();
@@ -16,12 +16,12 @@ export default async function PosPage() {
     prisma.leg.findMany({
       where: {
         operatorId,
-        status: "OPEN",
+        status: 'OPEN',
         departureDate: { gte: now, lte: eightHoursLater },
-        schedule: { status: "ACTIVE", deletedAt: null, boat: { deletedAt: null } },
+        schedule: { status: 'ACTIVE', deletedAt: null, boat: { deletedAt: null } },
       },
       include: { schedule: { include: { boat: true } } },
-      orderBy: { departureDate: "asc" },
+      orderBy: { departureDate: 'asc' },
       take: 30,
     }),
     resolvePlatformPricing(operatorId),

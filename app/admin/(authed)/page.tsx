@@ -1,14 +1,14 @@
-import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { formatIDR } from "@/lib/utils";
+} from '@/components/ui/card';
+import { formatIDR } from '@/lib/utils';
 
 export default async function AdminOverviewPage() {
   await requireAdmin();
@@ -20,46 +20,46 @@ export default async function AdminOverviewPage() {
     confirmedBookings,
     revenueAgg,
   ] = await Promise.all([
-    prisma.operator.count({ where: { status: "PENDING" } }),
-    prisma.operator.count({ where: { status: "ACTIVE" } }),
+    prisma.operator.count({ where: { status: 'PENDING' } }),
+    prisma.operator.count({ where: { status: 'ACTIVE' } }),
     prisma.boat.count(),
-    prisma.booking.count({ where: { status: "CONFIRMED" } }),
+    prisma.booking.count({ where: { status: 'CONFIRMED' } }),
     prisma.booking.aggregate({
-      where: { status: "CONFIRMED" },
+      where: { status: 'CONFIRMED' },
       _sum: { commissionAmount: true },
     }),
   ]);
 
   const tiles = [
     {
-      label: "Pending operators",
+      label: 'Pending operators',
       value: pendingOperators.toLocaleString(),
-      href: "/admin/operators?status=PENDING",
-      hint: "Awaiting verification",
+      href: '/admin/operators?status=PENDING',
+      hint: 'Awaiting verification',
     },
     {
-      label: "Active operators",
+      label: 'Active operators',
       value: activeOperators.toLocaleString(),
-      href: "/admin/operators?status=ACTIVE",
-      hint: "Onboarded",
+      href: '/admin/operators?status=ACTIVE',
+      hint: 'Onboarded',
     },
     {
-      label: "Boats on platform",
+      label: 'Boats on platform',
       value: totalBoats.toLocaleString(),
-      href: "/admin/operators",
-      hint: "Across all operators",
+      href: '/admin/operators',
+      hint: 'Across all operators',
     },
     {
-      label: "Confirmed bookings",
+      label: 'Confirmed bookings',
       value: confirmedBookings.toLocaleString(),
-      href: "/admin/bookings",
-      hint: "All-time",
+      href: '/admin/bookings',
+      hint: 'All-time',
     },
     {
-      label: "Commission earned",
+      label: 'Commission earned',
       value: formatIDR(Number(revenueAgg._sum.commissionAmount ?? 0)),
-      href: "/admin/bookings",
-      hint: "All-time, IDR",
+      href: '/admin/bookings',
+      hint: 'All-time, IDR',
     },
   ];
 

@@ -1,32 +1,32 @@
-import Link from "next/link";
-import { z } from "zod";
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import {
   formatLocalDate,
   formatLocalTime,
   localDateTimeToUtc,
   ymdInZone,
-} from "@/lib/datetime";
-import { expireStalePendingBookings } from "@/lib/booking-expiry";
+} from '@/lib/datetime';
+import { expireStalePendingBookings } from '@/lib/booking-expiry';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SearchForm } from "@/components/customer/search-form";
-import { SearchFilters } from "@/components/customer/search-filters";
-import { BookingProgress } from "@/components/customer/booking-progress";
-import { formatIDR } from "@/lib/utils";
-import { findConnections } from "@/lib/connection-search";
-import { getSeaCondition } from "@/lib/sea-conditions";
-import { getCustomerSession } from "@/lib/auth";
-import { getLatestRates, formatWithDisplay } from "@/lib/fx";
-import { getAvailablePorts } from "@/lib/home-data";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SearchForm } from '@/components/customer/search-form';
+import { SearchFilters } from '@/components/customer/search-filters';
+import { BookingProgress } from '@/components/customer/booking-progress';
+import { formatIDR } from '@/lib/utils';
+import { findConnections } from '@/lib/connection-search';
+import { getSeaCondition } from '@/lib/sea-conditions';
+import { getCustomerSession } from '@/lib/auth';
+import { getLatestRates, formatWithDisplay } from '@/lib/fx';
+import { getAvailablePorts } from '@/lib/home-data';
 
 const querySchema = z.object({
   origin: z.string().min(2).optional(),
@@ -36,8 +36,8 @@ const querySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   passengers: z.coerce.number().int().min(1).max(10).default(1),
-  sortBy: z.enum(["time", "price", "duration"]).default("time"),
-  timeSlot: z.enum(["any", "morning", "afternoon", "evening"]).default("any"),
+  sortBy: z.enum(['time', 'price', 'duration']).default('time'),
+  timeSlot: z.enum(['any', 'morning', 'afternoon', 'evening']).default('any'),
   maxPrice: z.coerce.number().int().positive().optional(),
 });
 
@@ -51,8 +51,8 @@ export default async function SearchPage({
 
   // Fallback ports so search renders even if the DB is unreachable.
   const SEED = [
-    "Sanur", "Padang Bai", "Bangsal", "Nusa Penida", "Nusa Lembongan",
-    "Gili Trawangan", "Gili Air", "Lombok", "Labuan Bajo",
+    'Sanur', 'Padang Bai', 'Bangsal', 'Nusa Penida', 'Nusa Lembongan',
+    'Gili Trawangan', 'Gili Air', 'Lombok', 'Labuan Bajo',
   ];
   let origins = SEED;
   let destinations = SEED;
@@ -66,7 +66,7 @@ export default async function SearchPage({
       destinations = Array.from(new Set([...SEED, ...ports])).sort();
     }
   } catch (err) {
-    console.error("[search] ports query failed:", err);
+    console.error('[search] ports query failed:', err);
   }
 
   if (!parsed.success) {
@@ -79,7 +79,7 @@ export default async function SearchPage({
       ? `Pick a departure port to see boats to ${raw.destination}.`
       : !hasDestination && hasOrigin
       ? `Pick a destination to see boats from ${raw.origin}.`
-      : "Pick a departure port and destination to see boats.";
+      : 'Pick a departure port and destination to see boats.';
 
     return (
       <div className="container py-8">
@@ -110,15 +110,15 @@ export default async function SearchPage({
   try {
     await expireStalePendingBookings();
   } catch (err) {
-    console.error("[search] expireStalePendingBookings failed:", err);
+    console.error('[search] expireStalePendingBookings failed:', err);
   }
 
   // When the user picks a date, search just that day (local 00:00 – 23:59 WITA).
   // When no date is given (e.g. landing from a "Popular routes" link), broaden
   // to the next 14 days so something always shows up instead of an empty page.
-  const startUtc = dateProvided ? localDateTimeToUtc(date, "00:00") : new Date();
+  const startUtc = dateProvided ? localDateTimeToUtc(date, '00:00') : new Date();
   const endUtc = dateProvided
-    ? localDateTimeToUtc(date, "23:59")
+    ? localDateTimeToUtc(date, '23:59')
     : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
   type LegWithSchedule = Prisma.LegGetPayload<{
@@ -131,14 +131,14 @@ export default async function SearchPage({
     legs = await prisma.leg.findMany({
       where: {
         departureDate: { gte: startUtc, lte: endUtc },
-        status: { in: ["OPEN"] },
+        status: { in: ['OPEN'] },
         schedule: {
           is: {
             ...(origin
-              ? { originPort: { equals: origin, mode: "insensitive" } }
+              ? { originPort: { equals: origin, mode: 'insensitive' } }
               : {}),
-            destinationPort: { equals: destination, mode: "insensitive" },
-            status: "ACTIVE",
+            destinationPort: { equals: destination, mode: 'insensitive' },
+            status: 'ACTIVE',
             deletedAt: null,
             boat: { deletedAt: null },
           },
@@ -147,27 +147,27 @@ export default async function SearchPage({
       include: {
         schedule: { include: { boat: { include: { operator: true } } } },
       },
-      orderBy: { departureDate: "asc" },
+      orderBy: { departureDate: 'asc' },
       take: 50,
     });
   } catch (err) {
-    console.error("[search] legs query failed:", err);
+    console.error('[search] legs query failed:', err);
     legsError = true;
     // Surface enough detail for ops to diagnose schema drift, pool exhaustion,
     // or unknown columns without leaking secrets. Prisma errors include `code`
     // (e.g. P2022 = unknown column) and a single-line `message`.
     const e = err as { code?: string; message?: string };
-    legsErrorDetail = e?.code ? `${e.code}: ${e.message ?? "unknown"}` : (e?.message ?? null);
+    legsErrorDetail = e?.code ? `${e.code}: ${e.message ?? 'unknown'}` : (e?.message ?? null);
   }
 
   let visibleLegs = legs;
 
   // Apply time-slot filter
-  if (timeSlot !== "any") {
+  if (timeSlot !== 'any') {
     visibleLegs = visibleLegs.filter((leg) => {
-      const hour = Number(formatLocalTime(leg.departureDate).split(":")[0]);
-      if (timeSlot === "morning") return hour >= 6 && hour < 12;
-      if (timeSlot === "afternoon") return hour >= 12 && hour < 17;
+      const hour = Number(formatLocalTime(leg.departureDate).split(':')[0]);
+      if (timeSlot === 'morning') return hour >= 6 && hour < 12;
+      if (timeSlot === 'afternoon') return hour >= 12 && hour < 17;
       return hour >= 17 || hour < 6; // evening (incl. very early morning)
     });
   }
@@ -181,10 +181,10 @@ export default async function SearchPage({
 
   // Apply sort
   visibleLegs.sort((a, b) => {
-    if (sortBy === "price") {
+    if (sortBy === 'price') {
       return Number(a.basePrice) - Number(b.basePrice);
     }
-    if (sortBy === "duration") {
+    if (sortBy === 'duration') {
       return a.schedule.durationMinutes - b.schedule.durationMinutes;
     }
     return a.departureDate.getTime() - b.departureDate.getTime();
@@ -201,7 +201,7 @@ export default async function SearchPage({
   if (scheduleIds.length > 0) {
     try {
       const ratings = await prisma.review.groupBy({
-        by: ["scheduleId"],
+        by: ['scheduleId'],
         where: { scheduleId: { in: scheduleIds } },
         _avg: { rating: true },
         _count: { rating: true },
@@ -213,7 +213,7 @@ export default async function SearchPage({
         ]),
       );
     } catch (err) {
-      console.error("[search] review aggregates failed:", err);
+      console.error('[search] review aggregates failed:', err);
     }
   }
 
@@ -225,7 +225,7 @@ export default async function SearchPage({
     try {
       connections = await findConnections(origin, destination, startUtc, endUtc);
     } catch (err) {
-      console.error("[search] connection search failed:", err);
+      console.error('[search] connection search failed:', err);
     }
   }
 
@@ -237,7 +237,7 @@ export default async function SearchPage({
       const pastBookings = await prisma.booking.findMany({
         where: {
           customerId: customerSession.sub,
-          status: "CONFIRMED",
+          status: 'CONFIRMED',
         },
         select: {
           leg: {
@@ -259,7 +259,7 @@ export default async function SearchPage({
         travelAgainRoutes.add(key);
       }
     } catch (err) {
-      console.error("[search] travel-again query failed:", err);
+      console.error('[search] travel-again query failed:', err);
     }
   }
 
@@ -289,7 +289,7 @@ export default async function SearchPage({
           defaultDate={date}
           defaultReturnDate={returnDate}
           defaultPassengers={passengers}
-          defaultTripType={returnDate ? "round_trip" : "one_way"}
+          defaultTripType={returnDate ? 'round_trip' : 'one_way'}
         />
       </div>
 
@@ -304,12 +304,12 @@ export default async function SearchPage({
         </div>
         <p className="text-sm text-muted-foreground">
           {dateProvided
-            ? formatLocalDate(startUtc, "EEEE, dd MMM yyyy")
-            : "Upcoming departures · next 14 days"}{" "}
-          · {passengers} passenger{passengers === 1 ? "" : "s"}
+            ? formatLocalDate(startUtc, 'EEEE, dd MMM yyyy')
+            : 'Upcoming departures · next 14 days'}{' '}
+          · {passengers} passenger{passengers === 1 ? '' : 's'}
           {returnDate ? (
             <>
-              {" "}· returning {formatLocalDate(localDateTimeToUtc(returnDate, "00:00"), "dd MMM")}
+              {' '}· returning {formatLocalDate(localDateTimeToUtc(returnDate, '00:00'), 'dd MMM')}
             </>
           ) : null}
         </p>
@@ -341,8 +341,8 @@ export default async function SearchPage({
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             {dateProvided
-              ? "No departures on this date. Try a different day."
-              : "No upcoming departures for this route in the next 14 days."}
+              ? 'No departures on this date. Try a different day.'
+              : 'No upcoming departures for this route in the next 14 days.'}
           </CardContent>
         </Card>
       ) : (
@@ -360,7 +360,7 @@ export default async function SearchPage({
             const travelAgainKey = `${leg.schedule.originPort}|${leg.schedule.destinationPort}|${leg.operatorId}`;
             const showTravelAgain = travelAgainRoutes.has(travelAgainKey);
             const priceIdr = Number(leg.basePrice);
-            const fxDisplay = formatWithDisplay(priceIdr, "USD", fxRates);
+            const fxDisplay = formatWithDisplay(priceIdr, 'USD', fxRates);
             return (
               <Card key={leg.id}>
                 <CardHeader className="pb-2">
@@ -379,7 +379,7 @@ export default async function SearchPage({
                         {formatLocalTime(leg.departureDate)}
                         {!dateProvided ? (
                           <span className="ml-2 text-xs font-normal text-muted-foreground">
-                            {formatLocalDate(leg.departureDate, "EEE dd MMM")}
+                            {formatLocalDate(leg.departureDate, 'EEE dd MMM')}
                           </span>
                         ) : null}
                       </CardTitle>
@@ -388,16 +388,16 @@ export default async function SearchPage({
                           <>
                             <span className="font-medium text-slate-900">
                               from {leg.schedule.originPort}
-                            </span>{" "}·{" "}
+                            </span>{' '}·{' '}
                           </>
                         ) : null}
-                        {leg.schedule.boat.name} ·{" "}
+                        {leg.schedule.boat.name} ·{' '}
                         {leg.schedule.durationMinutes} min
                         {rating && rating.count > 0 ? (
                           <>
-                            {" "}· <span className="text-amber-600">★ {rating.avg.toFixed(1)}</span>{" "}
+                            {' '}· <span className="text-amber-600">★ {rating.avg.toFixed(1)}</span>{' '}
                             <span className="text-muted-foreground">
-                              ({rating.count} review{rating.count === 1 ? "" : "s"})
+                              ({rating.count} review{rating.count === 1 ? '' : 's'})
                             </span>
                           </>
                         ) : null}
@@ -444,7 +444,7 @@ export default async function SearchPage({
                     </Link>
                     <Button asChild>
                       <Link href={`/book/${leg.id}?passengers=${passengers}`}>
-                        Book {passengers} ·{" "}
+                        Book {passengers} ·{' '}
                         {formatIDR(Number(leg.basePrice) * passengers)}
                       </Link>
                     </Button>
@@ -472,16 +472,16 @@ export default async function SearchPage({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <CardTitle className="text-lg">
-                        {formatLocalTime(conn.leg1.departureDate)}{" "}
+                        {formatLocalTime(conn.leg1.departureDate)}{' '}
                         <span className="text-sm font-normal text-muted-foreground">
                           → {conn.transferPort} →
-                        </span>{" "}
+                        </span>{' '}
                         {formatLocalTime(conn.leg2.departureDate)}
                       </CardTitle>
                       <CardDescription>
-                        Transfer at {conn.transferPort} ·{" "}
-                        {conn.transferWaitMinutes} min wait ·{" "}
-                        ~{Math.round(conn.totalDurationMinutes / 60)}h{" "}
+                        Transfer at {conn.transferPort} ·{' '}
+                        {conn.transferWaitMinutes} min wait ·{' '}
+                        ~{Math.round(conn.totalDurationMinutes / 60)}h{' '}
                         {conn.totalDurationMinutes % 60}m total
                       </CardDescription>
                     </div>

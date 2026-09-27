@@ -1,9 +1,9 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export const metadata = {
-  title: "Change my plans — refund, reschedule or dispute · Gilifast",
+  title: 'Change my plans — refund, reschedule or dispute · Gilifast',
   description:
-    "A guide to help you decide the best option when your plans change: cash refund, reschedule credit, or payment dispute.",
+    'A guide to help you decide the best option when your plans change: cash refund, reschedule credit, or payment dispute.',
 };
 
 function Th({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function ChangePlansPage() {
         <p className="rounded-md bg-sky-50 px-4 py-3 not-prose text-sm text-sky-900">
           Plans change — that&apos;s normal. This page helps you figure out the
           fastest, most financially sound path. Read each option and pick the
-          one that fits where you are right now. For the full terms, see our{" "}
+          one that fits where you are right now. For the full terms, see our{' '}
           <Link href="/refunds" className="underline">
             Refund &amp; Reschedule Policy
           </Link>
@@ -78,12 +78,12 @@ export default function ChangePlansPage() {
           </table>
         </div>
         <p>
-          <strong>How to request:</strong> email{" "}
+          <strong>How to request:</strong> email{' '}
           <a href="mailto:info@balinusafast.com">info@balinusafast.com</a> with
           subject <strong>REFUND REQUEST [your booking code]</strong> — include
           your full name, booking code, departure date, and reason. We reply
           within 1 business day with a refund form and your Refund Reference
-          Number (RRN). To check status later, email{" "}
+          Number (RRN). To check status later, email{' '}
           <strong>TRACKING REFUND [your RRN number]</strong>.
         </p>
         <p className="text-sm text-slate-600">
@@ -105,7 +105,7 @@ export default function ChangePlansPage() {
           most people in that window, the smarter choice.
         </p>
         <p>
-          <strong>How to request:</strong> email{" "}
+          <strong>How to request:</strong> email{' '}
           <a href="mailto:info@balinusafast.com">info@balinusafast.com</a> with
           subject <strong>RESCHEDULE [your booking code]</strong>. Once
           approved we send a cancellation confirmation, a Reschedule Credit Code
@@ -131,7 +131,7 @@ export default function ChangePlansPage() {
           Only relevant if you were charged for a booking you did not make, or
           we failed to deliver a paid service and have not resolved it after 14
           days of contact. Please contact us <strong>before</strong> involving
-          your bank — it is faster. Email{" "}
+          your bank — it is faster. Email{' '}
           <a href="mailto:info@balinusafast.com">info@balinusafast.com</a> with
           subject <strong>DISPUTE [booking code or description]</strong>; most
           concerns are resolved in 1–5 business days.

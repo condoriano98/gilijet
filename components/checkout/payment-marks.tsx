@@ -1,11 +1,11 @@
-import { Building2, CreditCard, QrCode, Store, Wallet } from "lucide-react";
+import { Building2, CreditCard, QrCode, Store, Wallet } from 'lucide-react';
 
 /**
  * PayPal's two-P monogram. Path data from simple-icons (CC0), split into its
  * two subpaths so each P carries its own brand colour rather than rendering as
  * a flat silhouette.
  */
-export function PaypalMark({ className = "h-5 w-5" }: { className?: string }) {
+export function PaypalMark({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
       <path
@@ -29,11 +29,11 @@ export function PaypalMark({ className = "h-5 w-5" }: { className?: string }) {
  * blue button rather than the PayPal one.
  */
 const DOKU_METHODS = [
-  { icon: Building2, label: "Bank transfer" },
-  { icon: QrCode, label: "QRIS" },
-  { icon: Wallet, label: "E-wallet" },
-  { icon: CreditCard, label: "Card" },
-  { icon: Store, label: "Minimarket" },
+  { icon: Building2, label: 'Bank transfer' },
+  { icon: QrCode, label: 'QRIS' },
+  { icon: Wallet, label: 'E-wallet' },
+  { icon: CreditCard, label: 'Card' },
+  { icon: Store, label: 'Minimarket' },
 ] as const;
 
 export function DokuMethodMarks() {

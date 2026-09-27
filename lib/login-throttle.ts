@@ -1,5 +1,5 @@
-import { LoginKind } from "@prisma/client";
-import { prisma } from "./db";
+import { LoginKind } from '@prisma/client';
+import { prisma } from './db';
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES = 5;
@@ -28,7 +28,7 @@ export async function loginGate(
   const since = new Date(Date.now() - WINDOW_MS);
   const failures = await prisma.loginAttempt.findMany({
     where: { kind, emailKey: emailKey(email), createdAt: { gte: since } },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: 'asc' },
     take: MAX_FAILURES,
   });
   if (failures.length >= MAX_FAILURES) {

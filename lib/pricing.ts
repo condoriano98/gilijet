@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { env } from "./env";
+import { Prisma } from '@prisma/client';
+import { env } from './env';
 
 /**
  * Pricing & commission calculations.
@@ -15,7 +15,7 @@ function resolveCommissionRate(
 ): Prisma.Decimal | number {
   if (override != null) return override;
   const fromEnv = env.PLATFORM_COMMISSION_RATE;
-  return typeof fromEnv === "number" && Number.isFinite(fromEnv)
+  return typeof fromEnv === 'number' && Number.isFinite(fromEnv)
     ? fromEnv
     : DEFAULT_COMMISSION_RATE;
 }
@@ -36,7 +36,7 @@ export function computeBookingPrice(args: {
 }): PriceBreakdown {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
   const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
-  if (args.quantity < 1) throw new Error("quantity must be >= 1");
+  if (args.quantity < 1) throw new Error('quantity must be >= 1');
 
   const totalAmount = unitPrice.mul(args.quantity);
   const commissionAmount = totalAmount.mul(commissionRate).toDecimalPlaces(0);
@@ -52,7 +52,7 @@ export function computeBookingPrice(args: {
   };
 }
 
-export type PassengerType = "ADULT" | "CHILD" | "INFANT";
+export type PassengerType = 'ADULT' | 'CHILD' | 'INFANT';
 
 export const TRAVELER_MULTIPLIERS: Record<PassengerType, number> = {
   ADULT: 1.0,
@@ -70,10 +70,10 @@ export type PriceBreakdownWithTypes = PriceBreakdown & {
 };
 
 /** Who absorbs a coupon's discount in the platform/operator split. */
-export type CostBearer = "PLATFORM" | "OPERATOR" | "SHARED";
+export type CostBearer = 'PLATFORM' | 'OPERATOR' | 'SHARED';
 
 /** Optional platform service fee added on top of the fare (platform keeps it). */
-export type ServiceFee = { type: "PERCENT" | "FLAT"; value: number } | null;
+export type ServiceFee = { type: 'PERCENT' | 'FLAT'; value: number } | null;
 
 /**
  * Per-passenger pricing using traveler-type multipliers.
@@ -113,7 +113,7 @@ export function computeBookingPriceWithTypes(args: {
   const unitPrice = new Prisma.Decimal(args.unitPrice);
   const commissionRate = new Prisma.Decimal(resolveCommissionRate(args.commissionRate));
   if (args.passengerTypes.length < 1) {
-    throw new Error("at least one passenger required");
+    throw new Error('at least one passenger required');
   }
 
   const mult = (t: PassengerType) =>
@@ -129,8 +129,8 @@ export function computeBookingPriceWithTypes(args: {
   let gross = new Prisma.Decimal(0);
 
   for (const type of args.passengerTypes) {
-    if (type === "ADULT") adultCount++;
-    else if (type === "CHILD") childCount++;
+    if (type === 'ADULT') adultCount++;
+    else if (type === 'CHILD') childCount++;
     else infantCount++;
     gross = gross.add(fareFor(type));
   }
@@ -138,15 +138,15 @@ export function computeBookingPriceWithTypes(args: {
   const zero = new Prisma.Decimal(0);
   const discount = new Prisma.Decimal(args.discountAmount ?? 0);
   const fareAmount = Prisma.Decimal.max(gross.sub(discount), zero);
-  const bearer: CostBearer = args.costBearer ?? "SHARED";
+  const bearer: CostBearer = args.costBearer ?? 'SHARED';
 
   let commissionOnFare: Prisma.Decimal;
   let operatorAmount: Prisma.Decimal;
-  if (bearer === "PLATFORM") {
+  if (bearer === 'PLATFORM') {
     // Operator paid as if full fare; platform eats the discount.
     operatorAmount = gross.sub(gross.mul(commissionRate)).toDecimalPlaces(0);
     commissionOnFare = fareAmount.sub(operatorAmount);
-  } else if (bearer === "OPERATOR") {
+  } else if (bearer === 'OPERATOR') {
     // Platform commission on gross; operator eats the discount.
     commissionOnFare = gross.mul(commissionRate).toDecimalPlaces(0);
     operatorAmount = fareAmount.sub(commissionOnFare);
@@ -167,7 +167,7 @@ export function computeBookingPriceWithTypes(args: {
   let serviceFeeAmount = zero;
   if (args.serviceFee && args.serviceFee.value > 0) {
     serviceFeeAmount =
-      args.serviceFee.type === "PERCENT"
+      args.serviceFee.type === 'PERCENT'
         ? fareAmount.mul(args.serviceFee.value).div(100).toDecimalPlaces(0)
         : new Prisma.Decimal(args.serviceFee.value).toDecimalPlaces(0);
   }

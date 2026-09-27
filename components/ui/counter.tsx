@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Minus, Plus } from "lucide-react";
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Minus, Plus } from 'lucide-react';
 
 export type CounterProps = {
   value: number;
@@ -24,7 +24,7 @@ const Counter = React.forwardRef<HTMLDivElement, CounterProps>(
         ref={ref}
         id={id}
         className={cn(
-          "flex h-10 w-full items-center rounded-md border border-input bg-background",
+          'flex h-10 w-full items-center rounded-md border border-input bg-background',
           className,
         )}
       >
@@ -57,6 +57,6 @@ const Counter = React.forwardRef<HTMLDivElement, CounterProps>(
     );
   },
 );
-Counter.displayName = "Counter";
+Counter.displayName = 'Counter';
 
 export { Counter };

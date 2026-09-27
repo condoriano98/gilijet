@@ -1,7 +1,7 @@
 export type Sailability = {
   sailable: boolean;
   warning?: string;
-  level: "SAFE" | "BORDERLINE" | "UNSAFE";
+  level: 'SAFE' | 'BORDERLINE' | 'UNSAFE';
 };
 
 const WAVE_HEIGHT_THRESHOLD_M = 2.5;
@@ -20,7 +20,7 @@ export function isSailable(args: {
     return {
       sailable: false,
       warning: `Unsafe conditions: ${wave.toFixed(1)}m waves, ${wind.toFixed(0)}kt winds`,
-      level: "UNSAFE",
+      level: 'UNSAFE',
     };
   }
 
@@ -28,9 +28,9 @@ export function isSailable(args: {
     return {
       sailable: true,
       warning: `Marginal conditions: ${wave.toFixed(1)}m waves, ${wind.toFixed(0)}kt winds`,
-      level: "BORDERLINE",
+      level: 'BORDERLINE',
     };
   }
 
-  return { sailable: true, level: "SAFE" };
+  return { sailable: true, level: 'SAFE' };
 }

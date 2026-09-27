@@ -1,8 +1,8 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export const metadata = {
-  title: "Terms & Conditions",
-  description: "Gilifast booking terms, cancellation policy, and refund schedule.",
+  title: 'Terms & Conditions',
+  description: 'Gilifast booking terms, cancellation policy, and refund schedule.',
 };
 
 function Section({

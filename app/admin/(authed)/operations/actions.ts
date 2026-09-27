@@ -1,18 +1,18 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import { Prisma } from "@prisma/client";
-import { requireSuperAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { audit } from "@/lib/audit";
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { requireSuperAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
 import {
   BOOKING_HORIZON_DAYS,
   cancelLeg,
   generateLegsForSchedule,
   DEFAULT_BOAT_CAPACITY,
-} from "@/lib/legs";
+} from '@/lib/legs';
 
 /**
  * Operations desk — the platform owner creating and running boat inventory on
@@ -33,7 +33,7 @@ import {
  * nothing downstream would flag it.
  */
 
-const OPS = "/admin/operations";
+const OPS = '/admin/operations';
 
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -62,19 +62,19 @@ async function scheduleWithOwner(scheduleId: string) {
 // ---------- boats ----------
 
 const boatSchema = z.object({
-  operatorId: z.string().min(1, "Pick an operator"),
-  name: z.string().min(2, "Name must be at least 2 characters").max(120),
-  registrationNumber: z.string().min(2, "Registration number is required").max(40),
-  description: z.string().max(1000).optional().or(z.literal("")),
+  operatorId: z.string().min(1, 'Pick an operator'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(120),
+  registrationNumber: z.string().min(2, 'Registration number is required').max(40),
+  description: z.string().max(1000).optional().or(z.literal('')),
 });
 
 export async function createBoat(formData: FormData) {
   const session = await requireSuperAdmin();
   const parsed = boatSchema.safeParse({
-    operatorId: formData.get("operatorId"),
-    name: formData.get("name"),
-    registrationNumber: formData.get("registrationNumber"),
-    description: formData.get("description"),
+    operatorId: formData.get('operatorId'),
+    name: formData.get('name'),
+    registrationNumber: formData.get('registrationNumber'),
+    description: formData.get('description'),
   });
   if (!parsed.success) fail(`${OPS}/boats/new`, parsed.error.issues[0].message);
   const d = parsed.data;
@@ -83,7 +83,7 @@ export async function createBoat(formData: FormData) {
     where: { id: d.operatorId, deletedAt: null },
     select: { id: true, companyName: true },
   });
-  if (!operator) fail(`${OPS}/boats/new`, "Operator not found");
+  if (!operator) fail(`${OPS}/boats/new`, 'Operator not found');
 
   let boatId: string;
   try {
@@ -95,23 +95,23 @@ export async function createBoat(formData: FormData) {
         capacity: DEFAULT_BOAT_CAPACITY,
         description: d.description || null,
         photos: [],
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
     });
     boatId = boat.id;
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      fail(`${OPS}/boats/new`, "Registration number already in use");
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      fail(`${OPS}/boats/new`, 'Registration number already in use');
     }
     throw err;
   }
 
   await audit({
-    entityType: "BOAT",
+    entityType: 'BOAT',
     entityId: boatId,
-    action: "created_by_admin",
+    action: 'created_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     newState: { operatorId: operator.id, operator: operator.companyName, name: d.name },
   });
 
@@ -121,19 +121,19 @@ export async function createBoat(formData: FormData) {
 
 export async function updateBoat(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   if (!id) redirect(`${OPS}/boats`);
 
   const parsed = boatSchema.omit({ operatorId: true }).safeParse({
-    name: formData.get("name"),
-    registrationNumber: formData.get("registrationNumber"),
-    description: formData.get("description"),
+    name: formData.get('name'),
+    registrationNumber: formData.get('registrationNumber'),
+    description: formData.get('description'),
   });
   if (!parsed.success) fail(`${OPS}/boats/${id}`, parsed.error.issues[0].message);
   const d = parsed.data;
 
   const prev = await prisma.boat.findFirst({ where: { id, deletedAt: null } });
-  if (!prev) fail(`${OPS}/boats`, "Boat not found");
+  if (!prev) fail(`${OPS}/boats`, 'Boat not found');
 
   // The owning operator is never editable here. Moving a boat between operators
   // would drag its schedules, departures and historical bookings with it.
@@ -144,22 +144,22 @@ export async function updateBoat(formData: FormData) {
         name: d.name,
         registrationNumber: d.registrationNumber.trim(),
         description: d.description || null,
-        status: formData.get("status") === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+        status: formData.get('status') === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
       },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      fail(`${OPS}/boats/${id}`, "Registration number already in use");
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      fail(`${OPS}/boats/${id}`, 'Registration number already in use');
     }
     throw err;
   }
 
   await audit({
-    entityType: "BOAT",
+    entityType: 'BOAT',
     entityId: id,
-    action: "updated_by_admin",
+    action: 'updated_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { name: prev.name, status: prev.status },
     newState: { name: d.name },
   });
@@ -172,17 +172,17 @@ export async function updateBoat(formData: FormData) {
 
 const daysCsv = z
   .string()
-  .min(1, "Pick at least one day")
-  .transform((v) => v.split(",").map((n) => Number(n)).filter(Number.isInteger))
-  .refine((v) => v.length > 0, "Pick at least one day")
-  .refine((v) => v.every((d) => d >= 1 && d <= 7), "Day values must be 1-7");
+  .min(1, 'Pick at least one day')
+  .transform((v) => v.split(',').map((n) => Number(n)).filter(Number.isInteger))
+  .refine((v) => v.length > 0, 'Pick at least one day')
+  .refine((v) => v.every((d) => d >= 1 && d <= 7), 'Day values must be 1-7');
 
 const scheduleSchema = z.object({
-  operatorId: z.string().min(1, "Pick an operator"),
-  boatId: z.string().min(1, "Pick a boat"),
+  operatorId: z.string().min(1, 'Pick an operator'),
+  boatId: z.string().min(1, 'Pick a boat'),
   originPort: z.string().min(2).max(80),
   destinationPort: z.string().min(2).max(80),
-  departureTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Departure time must be HH:MM"),
+  departureTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Departure time must be HH:MM'),
   durationMinutes: z.coerce.number().int().min(5).max(720),
   basePrice: z.coerce.number().int().min(1000).max(50_000_000),
   daysOfWeek: daysCsv,
@@ -190,14 +190,14 @@ const scheduleSchema = z.object({
 
 function readScheduleForm(formData: FormData) {
   return scheduleSchema.safeParse({
-    operatorId: formData.get("operatorId"),
-    boatId: formData.get("boatId"),
-    originPort: formData.get("originPort"),
-    destinationPort: formData.get("destinationPort"),
-    departureTime: formData.get("departureTime"),
-    durationMinutes: formData.get("durationMinutes"),
-    basePrice: formData.get("basePrice"),
-    daysOfWeek: formData.get("daysOfWeek"),
+    operatorId: formData.get('operatorId'),
+    boatId: formData.get('boatId'),
+    originPort: formData.get('originPort'),
+    destinationPort: formData.get('destinationPort'),
+    departureTime: formData.get('departureTime'),
+    durationMinutes: formData.get('durationMinutes'),
+    basePrice: formData.get('basePrice'),
+    daysOfWeek: formData.get('daysOfWeek'),
   });
 }
 
@@ -211,10 +211,10 @@ export async function createSchedule(formData: FormData) {
   // The check that makes this safe: the boat must belong to the operator the
   // form named, not merely exist.
   const boat = await assertBoatOwnedBy(d.boatId, d.operatorId);
-  if (!boat) fail(back, "That boat does not belong to the selected operator");
+  if (!boat) fail(back, 'That boat does not belong to the selected operator');
 
   if (d.originPort.trim() === d.destinationPort.trim()) {
-    fail(back, "Origin and destination must differ");
+    fail(back, 'Origin and destination must differ');
   }
 
   const schedule = await prisma.schedule.create({
@@ -226,16 +226,16 @@ export async function createSchedule(formData: FormData) {
       durationMinutes: d.durationMinutes,
       basePrice: d.basePrice,
       daysOfWeek: d.daysOfWeek,
-      status: "ACTIVE",
+      status: 'ACTIVE',
     },
   });
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: schedule.id,
-    action: "created_by_admin",
+    action: 'created_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     newState: {
       operatorId: d.operatorId,
       route: `${schedule.originPort} → ${schedule.destinationPort}`,
@@ -253,7 +253,7 @@ export async function createSchedule(formData: FormData) {
 
 export async function updateSchedule(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   if (!id) redirect(`${OPS}/schedules`);
   const back = `${OPS}/schedules/${id}`;
 
@@ -262,19 +262,19 @@ export async function updateSchedule(formData: FormData) {
   const d = parsed.data;
 
   const existing = await scheduleWithOwner(id);
-  if (!existing) fail(`${OPS}/schedules`, "Schedule not found");
+  if (!existing) fail(`${OPS}/schedules`, 'Schedule not found');
 
   // Re-check on every save, including when the boat is being changed — the
   // replacement must belong to the same operator that already owns this
   // schedule, so a schedule can never hop tenants through an edit.
   if (existing.boat.operatorId !== d.operatorId) {
-    fail(back, "A schedule cannot be moved to a different operator");
+    fail(back, 'A schedule cannot be moved to a different operator');
   }
   const boat = await assertBoatOwnedBy(d.boatId, d.operatorId);
-  if (!boat) fail(back, "That boat does not belong to the selected operator");
+  if (!boat) fail(back, 'That boat does not belong to the selected operator');
 
   if (d.originPort.trim() === d.destinationPort.trim()) {
-    fail(back, "Origin and destination must differ");
+    fail(back, 'Origin and destination must differ');
   }
 
   await prisma.schedule.update({
@@ -291,11 +291,11 @@ export async function updateSchedule(formData: FormData) {
   });
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: id,
-    action: "updated_by_admin",
+    action: 'updated_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: {
       route: `${existing.originPort} → ${existing.destinationPort}`,
       time: existing.departureTime,
@@ -313,21 +313,21 @@ export async function updateSchedule(formData: FormData) {
 
 export async function setScheduleStatus(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
-  const next = formData.get("next") === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+  const id = String(formData.get('id') ?? '');
+  const next = formData.get('next') === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
   if (!id) redirect(`${OPS}/schedules`);
 
   const existing = await scheduleWithOwner(id);
-  if (!existing) fail(`${OPS}/schedules`, "Schedule not found");
+  if (!existing) fail(`${OPS}/schedules`, 'Schedule not found');
 
   await prisma.schedule.update({ where: { id }, data: { status: next } });
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: id,
-    action: next === "ACTIVE" ? "activated_by_admin" : "deactivated_by_admin",
+    action: next === 'ACTIVE' ? 'activated_by_admin' : 'deactivated_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { status: existing.status },
     newState: { status: next, operatorId: existing.boat.operatorId },
   });
@@ -343,23 +343,23 @@ export async function setScheduleStatus(formData: FormData) {
  */
 export async function regenerateDepartures(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   if (!id) redirect(`${OPS}/schedules`);
 
   const existing = await scheduleWithOwner(id);
-  if (!existing) fail(`${OPS}/schedules`, "Schedule not found");
-  if (existing.status !== "ACTIVE") {
-    fail(`${OPS}/schedules/${id}`, "Activate the schedule before generating departures");
+  if (!existing) fail(`${OPS}/schedules`, 'Schedule not found');
+  if (existing.status !== 'ACTIVE') {
+    fail(`${OPS}/schedules/${id}`, 'Activate the schedule before generating departures');
   }
 
   const created = await generateLegsForSchedule(id, BOOKING_HORIZON_DAYS);
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: id,
-    action: "departures_generated_by_admin",
+    action: 'departures_generated_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     newState: { created, horizonDays: BOOKING_HORIZON_DAYS },
   });
 
@@ -371,17 +371,17 @@ export async function regenerateDepartures(formData: FormData) {
 
 export async function cancelDeparture(formData: FormData) {
   const session = await requireSuperAdmin();
-  const legId = String(formData.get("legId") ?? "");
-  const reason = String(formData.get("reason") ?? "").trim();
+  const legId = String(formData.get('legId') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim();
   if (!legId) redirect(OPS);
   const back = `${OPS}/departures/${legId}`;
-  if (reason.length < 3) fail(back, "Give a cancellation reason");
+  if (reason.length < 3) fail(back, 'Give a cancellation reason');
 
   const leg = await prisma.leg.findUnique({
     where: { id: legId },
     select: { id: true, operatorId: true, status: true },
   });
-  if (!leg) fail(OPS, "Departure not found");
+  if (!leg) fail(OPS, 'Departure not found');
 
   let result: { cancelledBookings: number; pendingRefunds: number };
   try {
@@ -390,18 +390,18 @@ export async function cancelDeparture(formData: FormData) {
     // bookings and raises refunds inside one transaction.
     result = await cancelLeg({ legId, reason, operatorId: leg.operatorId });
   } catch (err) {
-    fail(back, err instanceof Error ? err.message : "Could not cancel this departure");
+    fail(back, err instanceof Error ? err.message : 'Could not cancel this departure');
   }
 
   await audit({
-    entityType: "LEG",
+    entityType: 'LEG',
     entityId: legId,
-    action: "cancelled_by_admin",
+    action: 'cancelled_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { status: leg.status },
     newState: {
-      status: "CANCELLED",
+      status: 'CANCELLED',
       reason,
       operatorId: leg.operatorId,
       cancelledBookings: result.cancelledBookings,
@@ -416,7 +416,7 @@ export async function cancelDeparture(formData: FormData) {
 
 export async function adjustDeparturePrice(formData: FormData) {
   const session = await requireSuperAdmin();
-  const legId = String(formData.get("legId") ?? "");
+  const legId = String(formData.get('legId') ?? '');
   if (!legId) redirect(OPS);
   const back = `${OPS}/departures/${legId}`;
 
@@ -427,9 +427,9 @@ export async function adjustDeparturePrice(formData: FormData) {
     .int()
     .min(1000)
     .max(50_000_000)
-    .safeParse(formData.get("basePrice"));
+    .safeParse(formData.get('basePrice'));
   if (!parsed.success) {
-    fail(back, "Price must be a whole number between 1,000 and 50,000,000 IDR");
+    fail(back, 'Price must be a whole number between 1,000 and 50,000,000 IDR');
   }
   const newPrice = parsed.data;
 
@@ -437,8 +437,8 @@ export async function adjustDeparturePrice(formData: FormData) {
     where: { id: legId },
     select: { id: true, operatorId: true, status: true, basePrice: true },
   });
-  if (!leg) fail(OPS, "Departure not found");
-  if (leg.status === "CANCELLED" || leg.status === "SAILED") {
+  if (!leg) fail(OPS, 'Departure not found');
+  if (leg.status === 'CANCELLED' || leg.status === 'SAILED') {
     fail(back, `Cannot reprice a ${leg.status.toLowerCase()} departure`);
   }
 
@@ -451,11 +451,11 @@ export async function adjustDeparturePrice(formData: FormData) {
   });
 
   await audit({
-    entityType: "LEG",
+    entityType: 'LEG',
     entityId: legId,
-    action: "price_adjusted_by_admin",
+    action: 'price_adjusted_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { basePrice: previous },
     newState: { basePrice: newPrice, operatorId: leg.operatorId },
   });
@@ -466,12 +466,12 @@ export async function adjustDeparturePrice(formData: FormData) {
 
 export async function deleteSchedule(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   if (!id) redirect(`${OPS}/schedules`);
   const back = `${OPS}/schedules/${id}`;
 
   const existing = await scheduleWithOwner(id);
-  if (!existing) fail(`${OPS}/schedules`, "Schedule not found");
+  if (!existing) fail(`${OPS}/schedules`, 'Schedule not found');
 
   const now = new Date();
 
@@ -483,8 +483,8 @@ export async function deleteSchedule(formData: FormData) {
     where: {
       scheduleId: id,
       departureDate: { gte: now },
-      status: { not: "CANCELLED" },
-      bookings: { some: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } } },
+      status: { not: 'CANCELLED' },
+      bookings: { some: { status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] } } },
     },
   });
   if (bookedLegs > 0) {
@@ -505,27 +505,27 @@ export async function deleteSchedule(formData: FormData) {
   const [, closed] = await prisma.$transaction([
     prisma.schedule.update({
       where: { id },
-      data: { deletedAt: now, status: "INACTIVE" },
+      data: { deletedAt: now, status: 'INACTIVE' },
     }),
     prisma.leg.updateMany({
       where: {
         scheduleId: id,
         departureDate: { gte: now },
-        status: { in: ["OPEN", "FULL"] },
+        status: { in: ['OPEN', 'FULL'] },
       },
-      data: { status: "CANCELLED", cancellationReason: "Schedule deleted" },
+      data: { status: 'CANCELLED', cancellationReason: 'Schedule deleted' },
     }),
   ]);
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: id,
-    action: "deleted_by_admin",
+    action: 'deleted_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { status: existing.status, deletedAt: null },
     newState: {
-      status: "INACTIVE",
+      status: 'INACTIVE',
       deletedAt: now.toISOString(),
       operatorId: existing.boat.operatorId,
       closedDepartures: closed.count,

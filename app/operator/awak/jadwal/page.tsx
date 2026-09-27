@@ -1,13 +1,13 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
+} from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 
 export default async function JadwalAwakPage() {
   const session = await requireOperator();
@@ -17,31 +17,31 @@ export default async function JadwalAwakPage() {
     where: {
       operatorId,
       deletedAt: null,
-      role: { in: ["CAPTAIN", "CREW", "ENGINEER"] },
+      role: { in: ['CAPTAIN', 'CREW', 'ENGINEER'] },
     },
     include: {
       _count: { select: { checkIns: true } },
     },
-    orderBy: { fullName: "asc" },
+    orderBy: { fullName: 'asc' },
   });
 
   type CrewRow = (typeof crew)[number];
   const columns = [
     {
-      key: "fullName",
-      header: "Nama",
+      key: 'fullName',
+      header: 'Nama',
       render: (row: CrewRow) => row.fullName,
     },
     {
-      key: "role",
-      header: "Peran",
+      key: 'role',
+      header: 'Peran',
       render: (row: CrewRow) => row.role,
     },
     {
-      key: "checkInCount",
-      header: "Jumlah Check-in",
-      align: "right" as const,
-      render: (row: CrewRow) => row._count.checkIns.toLocaleString("id-ID"),
+      key: 'checkInCount',
+      header: 'Jumlah Check-in',
+      align: 'right' as const,
+      render: (row: CrewRow) => row._count.checkIns.toLocaleString('id-ID'),
     },
   ];
 

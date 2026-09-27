@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,16 +15,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-export const metadata = { title: "Schedules · Operations" };
+export const metadata = { title: 'Schedules · Operations' };
 
-const DAY_LABELS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_LABELS = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 export default async function OperationsSchedulesPage({
   searchParams,
@@ -37,7 +37,7 @@ export default async function OperationsSchedulesPage({
   const [operators, schedules] = await Promise.all([
     prisma.operator.findMany({
       where: { deletedAt: null },
-      orderBy: { companyName: "asc" },
+      orderBy: { companyName: 'asc' },
       select: { id: true, companyName: true },
     }),
     prisma.schedule.findMany({
@@ -48,7 +48,7 @@ export default async function OperationsSchedulesPage({
           ...(operatorId ? { operatorId } : {}),
         },
       },
-      orderBy: [{ originPort: "asc" }, { departureTime: "asc" }],
+      orderBy: [{ originPort: 'asc' }, { departureTime: 'asc' }],
       select: {
         id: true,
         originPort: true,
@@ -97,7 +97,7 @@ export default async function OperationsSchedulesPage({
               <select
                 id="operatorId"
                 name="operatorId"
-                defaultValue={operatorId ?? ""}
+                defaultValue={operatorId ?? ''}
                 className={selectClass}
               >
                 <option value="">All operators</option>
@@ -153,17 +153,17 @@ export default async function OperationsSchedulesPage({
                       {[...s.daysOfWeek]
                         .sort((a, b) => a - b)
                         .map((d) => DAY_LABELS[d])
-                        .join(" ")}
+                        .join(' ')}
                     </TableCell>
                     <TableCell className="text-right text-sm">
-                      {Number(s.basePrice).toLocaleString("id-ID")}
+                      {Number(s.basePrice).toLocaleString('id-ID')}
                     </TableCell>
                     <TableCell className="text-right text-sm">
                       {s._count.legs}
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={s.status === "ACTIVE" ? "success" : "outline"}
+                        variant={s.status === 'ACTIVE' ? 'success' : 'outline'}
                       >
                         {s.status}
                       </Badge>

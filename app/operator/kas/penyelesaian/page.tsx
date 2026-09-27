@@ -1,11 +1,11 @@
-import { addDays } from "date-fns";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { PaymentMethod } from "@prisma/client";
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { OPERATOR_TIMEZONE, formatLocalDate } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
+import { addDays } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { PaymentMethod } from '@prisma/client';
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { OPERATOR_TIMEZONE, formatLocalDate } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 
 const CASH_METHODS: PaymentMethod[] = [
   PaymentMethod.BANK_TRANSFER,
@@ -26,23 +26,23 @@ const CASH_METHODS: PaymentMethod[] = [
 
 // Monday 00:00 WITA (as a UTC instant) for the week containing `utc`.
 function weekStartMondayUtc(utc: Date): Date {
-  const isoDow = Number(formatInTimeZone(utc, OPERATOR_TIMEZONE, "i"));
+  const isoDow = Number(formatInTimeZone(utc, OPERATOR_TIMEZONE, 'i'));
   const daysSinceMonday = isoDow - 1;
   const ymd = formatInTimeZone(
     addDays(utc, -daysSinceMonday),
     OPERATOR_TIMEZONE,
-    "yyyy-MM-dd",
+    'yyyy-MM-dd',
   );
   return fromZonedTime(`${ymd}T00:00:00`, OPERATOR_TIMEZONE);
 }
 
 function methodGroup(
   m: PaymentMethod,
-): "cash" | "qris" | "card" | "other" {
-  if (m === PaymentMethod.QRIS) return "qris";
-  if (m === PaymentMethod.CREDIT_CARD) return "card";
-  if (CASH_METHODS.includes(m)) return "cash";
-  return "other";
+): 'cash' | 'qris' | 'card' | 'other' {
+  if (m === PaymentMethod.QRIS) return 'qris';
+  if (m === PaymentMethod.CREDIT_CARD) return 'card';
+  if (CASH_METHODS.includes(m)) return 'cash';
+  return 'other';
 }
 
 export default async function PenyelesaianPage() {
@@ -59,7 +59,7 @@ export default async function PenyelesaianPage() {
 
   const payments = await prisma.payment.findMany({
     where: {
-      status: "SUCCESSFUL",
+      status: 'SUCCESSFUL',
       paidAt: { gte: rangeStart, lt: rangeEnd },
       booking: { operatorId },
     },
@@ -75,7 +75,7 @@ export default async function PenyelesaianPage() {
     const b = buckets.get(key);
     if (!b) continue;
     const g = methodGroup(p.method);
-    if (g === "other") continue;
+    if (g === 'other') continue;
     b[g] += Number(p.amount);
   }
 
@@ -83,7 +83,7 @@ export default async function PenyelesaianPage() {
     const b = buckets.get(w.toISOString())!;
     return {
       id: w.toISOString(),
-      label: `${formatLocalDate(w, "dd MMM")} – ${formatLocalDate(addDays(w, 6), "dd MMM yyyy")}`,
+      label: `${formatLocalDate(w, 'dd MMM')} – ${formatLocalDate(addDays(w, 6), 'dd MMM yyyy')}`,
       cash: b.cash,
       qris: b.qris,
       card: b.card,
@@ -105,7 +105,7 @@ export default async function PenyelesaianPage() {
     <ListPageTemplate
       title="Penyelesaian"
       subtitle="Rekap penjualan per metode pembayaran (8 minggu terakhir, Senin–Minggu WITA)"
-      secondaryActions={[{ label: "Kembali", href: "/operator/kas" }]}
+      secondaryActions={[{ label: 'Kembali', href: '/operator/kas' }]}
     >
       <div className="overflow-x-auto rounded-lg border border-mekari-neutral-200 mekari-shadow">
         <Table>

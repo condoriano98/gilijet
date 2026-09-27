@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { env } from "./env";
+import { createClient } from '@supabase/supabase-js';
+import { env } from './env';
 
 /**
  * Signed URLs let admins view a private operator-documents object without
@@ -13,7 +13,7 @@ export async function getOperatorDocumentUrl(
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return null;
   const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
   const { data, error } = await supabase.storage
-    .from("operator-documents")
+    .from('operator-documents')
     .createSignedUrl(path, 60 * 10); // 10 minutes
   if (error || !data) return null;
   return data.signedUrl;

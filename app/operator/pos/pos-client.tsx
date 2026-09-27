@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
-import { Counter } from "@/components/ui/counter";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalTime } from "@/lib/datetime";
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
+import { Counter } from '@/components/ui/counter';
+import { formatIDR } from '@/lib/utils';
+import { formatLocalTime } from '@/lib/datetime';
 
 type LegOption = {
   id: string;
@@ -21,18 +21,18 @@ type LegOption = {
   infantPrice: number;
 };
 
-type PosScreen = "select" | "sell" | "success";
+type PosScreen = 'select' | 'sell' | 'success';
 
 export function PosClient({ legs }: { legs: LegOption[] }) {
   const router = useRouter();
-  const [screen, setScreen] = React.useState<PosScreen>("select");
+  const [screen, setScreen] = React.useState<PosScreen>('select');
   const [selectedLeg, setSelectedLeg] = React.useState<LegOption | null>(null);
   const [adults, setAdults] = React.useState(1);
   const [children, setChildren] = React.useState(0);
   const [infants, setInfants] = React.useState(0);
-  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "QRIS">("CASH");
+  const [paymentMethod, setPaymentMethod] = React.useState<'CASH' | 'QRIS'>('CASH');
   const [amountReceived, setAmountReceived] = React.useState(0);
-  const [customerName, setCustomerName] = React.useState("");
+  const [customerName, setCustomerName] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<{ ref: string } | null>(null);
 
@@ -42,43 +42,43 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
       selectedLeg.childPrice * children +
       selectedLeg.infantPrice * infants
     : 0;
-  const change = paymentMethod === "CASH" ? Math.max(0, amountReceived - totalPrice) : 0;
+  const change = paymentMethod === 'CASH' ? Math.max(0, amountReceived - totalPrice) : 0;
 
   function selectLeg(leg: LegOption) {
     setSelectedLeg(leg);
-    setScreen("sell");
+    setScreen('sell');
   }
 
   async function handlePay() {
     if (!selectedLeg || totalPassengers === 0) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/operator/pos/sale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/operator/pos/sale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           legId: selectedLeg.id,
           adults,
           children,
           infants,
           paymentMethod,
-          amountReceived: paymentMethod === "CASH" ? amountReceived : undefined,
+          amountReceived: paymentMethod === 'CASH' ? amountReceived : undefined,
           customerName,
         }),
       });
       const data = await res.json();
       if (data.ok) {
         setResult({ ref: data.bookingReference });
-        setScreen("success");
+        setScreen('success');
       }
     } catch (err) {
-      console.error("[pos] sale failed:", err);
+      console.error('[pos] sale failed:', err);
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (screen === "select") {
+  if (screen === 'select') {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-mekari-neutral-900">Pilih Jadwal</h2>
@@ -113,7 +113,7 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
     );
   }
 
-  if (screen === "sell" && selectedLeg) {
+  if (screen === 'sell' && selectedLeg) {
     return (
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -147,31 +147,31 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
               <div className="mt-1 flex gap-2">
                 <Button
                   type="button"
-                  variant={paymentMethod === "CASH" ? "default" : "outline"}
+                  variant={paymentMethod === 'CASH' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setPaymentMethod("CASH")}
-                  className={paymentMethod === "CASH" ? "bg-mekari-primary" : ""}
+                  onClick={() => setPaymentMethod('CASH')}
+                  className={paymentMethod === 'CASH' ? 'bg-mekari-primary' : ''}
                 >
                   Tunai
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === "QRIS" ? "default" : "outline"}
+                  variant={paymentMethod === 'QRIS' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setPaymentMethod("QRIS")}
-                  className={paymentMethod === "QRIS" ? "bg-mekari-primary" : ""}
+                  onClick={() => setPaymentMethod('QRIS')}
+                  className={paymentMethod === 'QRIS' ? 'bg-mekari-primary' : ''}
                 >
                   QRIS
                 </Button>
               </div>
             </div>
-            {paymentMethod === "CASH" && (
+            {paymentMethod === 'CASH' && (
               <div>
                 <Label>Jumlah Diterima</Label>
                 <MoneyInput value={amountReceived} onChange={setAmountReceived} />
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setScreen("select"); setSelectedLeg(null); }}>
+            <Button variant="outline" size="sm" onClick={() => { setScreen('select'); setSelectedLeg(null); }}>
               ← Kembali
             </Button>
           </CardContent>
@@ -195,7 +195,7 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
             {infants > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-mekari-neutral-500">
-                  {infants} Bayi{selectedLeg.infantPrice === 0 ? " (gratis)" : ` × ${formatIDR(selectedLeg.infantPrice)}`}
+                  {infants} Bayi{selectedLeg.infantPrice === 0 ? ' (gratis)' : ` × ${formatIDR(selectedLeg.infantPrice)}`}
                 </span>
                 <span className="tabular-nums">{formatIDR(selectedLeg.infantPrice * infants)}</span>
               </div>
@@ -206,7 +206,7 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
                 <span className="tabular-nums">{formatIDR(totalPrice)}</span>
               </div>
             </div>
-            {paymentMethod === "CASH" && amountReceived > 0 && (
+            {paymentMethod === 'CASH' && amountReceived > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-mekari-neutral-500">Kembalian</span>
                 <span className="font-semibold tabular-nums text-mekari-success">{formatIDR(change)}</span>
@@ -216,9 +216,9 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
               className="w-full bg-mekari-primary hover:bg-mekari-primary-600"
               size="lg"
               onClick={handlePay}
-              disabled={submitting || totalPassengers === 0 || (paymentMethod === "CASH" && amountReceived < totalPrice)}
+              disabled={submitting || totalPassengers === 0 || (paymentMethod === 'CASH' && amountReceived < totalPrice)}
             >
-              {submitting ? "Memproses…" : `Bayar ${formatIDR(totalPrice)}`}
+              {submitting ? 'Memproses…' : `Bayar ${formatIDR(totalPrice)}`}
             </Button>
           </CardContent>
         </Card>
@@ -226,7 +226,7 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
     );
   }
 
-  if (screen === "success" && result) {
+  if (screen === 'success' && result) {
     return (
       <div className="mx-auto max-w-md py-12 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
@@ -245,13 +245,13 @@ export function PosClient({ legs }: { legs: LegOption[] }) {
           <Button
             className="bg-mekari-primary hover:bg-mekari-primary-600"
             onClick={() => {
-              setScreen("select");
+              setScreen('select');
               setSelectedLeg(null);
               setAdults(1);
               setChildren(0);
               setInfants(0);
               setAmountReceived(0);
-              setCustomerName("");
+              setCustomerName('');
               setResult(null);
             }}
           >

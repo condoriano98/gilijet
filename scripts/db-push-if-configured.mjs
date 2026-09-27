@@ -33,10 +33,10 @@
  * Docker image builds against a placeholder DATABASE_URL and pushes for
  * real from docker/entrypoint.sh once the container can reach Postgres.
  */
-import { spawnSync } from "node:child_process";
+import { spawnSync } from 'node:child_process';
 
-if (process.env.SKIP_DB_PUSH === "1") {
-  console.log("[db-push] SKIP_DB_PUSH=1 — skipping (push happens at container start)");
+if (process.env.SKIP_DB_PUSH === '1') {
+  console.log('[db-push] SKIP_DB_PUSH=1 — skipping (push happens at container start)');
   process.exit(0);
 }
 
@@ -70,12 +70,12 @@ function pick(names) {
  * wrong, never enough to leak a password into a build log.
  */
 function describe(value) {
-  const sep = value.indexOf("://");
+  const sep = value.indexOf('://');
   const cut = sep === -1 ? 24 : Math.min(sep + 3, 24);
   return `${JSON.stringify(value.slice(0, cut))}… (${value.length} chars)`;
 }
 
-const VALID_SCHEMES = ["postgresql://", "postgres://"];
+const VALID_SCHEMES = ['postgresql://', 'postgres://'];
 
 /**
  * This project's Vercel deployment is Supabase-only — see the "Storage names
@@ -107,21 +107,21 @@ function checkScheme(picked, role) {
 
   console.error(`[db-push] ${picked.name} is not a usable Postgres URL.`);
   console.error(`[db-push] It is the ${role} connection, and it begins ${describe(picked.value)}`);
-  console.error("[db-push] Prisma needs it to start with postgresql:// or postgres://");
-  console.error("[db-push]");
-  console.error("[db-push] The usual causes, in the order they actually happen:");
+  console.error('[db-push] Prisma needs it to start with postgresql:// or postgres://');
+  console.error('[db-push]');
+  console.error('[db-push] The usual causes, in the order they actually happen:');
   console.error('[db-push]   - Quotes pasted into the value. A dashboard field stores');
   console.error('[db-push]     "postgresql://…" literally, quotes and all.');
-  console.error("[db-push]   - The whole psql command copied, not just the URL:");
+  console.error('[db-push]   - The whole psql command copied, not just the URL:');
   console.error("[db-push]     psql 'postgresql://…'  →  keep only the part inside quotes.");
-  console.error("[db-push]   - A Supabase API URL (https://<ref>.supabase.co) pasted in by");
-  console.error("[db-push]     mistake. That is SUPABASE_URL, not a database connection.");
-  console.error("[db-push]   - prisma+postgres:// from Prisma Accelerate. db push needs the");
-  console.error("[db-push]     underlying Postgres URL, not the Accelerate proxy.");
-  console.error("[db-push]");
-  console.error("[db-push] Supabase → Settings → Database → Connection string gives both:");
-  console.error("[db-push]   pooled  :6543 → DATABASE_URL");
-  console.error("[db-push]   direct  :5432 → DIRECT_URL   (db push needs this one)");
+  console.error('[db-push]   - A Supabase API URL (https://<ref>.supabase.co) pasted in by');
+  console.error('[db-push]     mistake. That is SUPABASE_URL, not a database connection.');
+  console.error('[db-push]   - prisma+postgres:// from Prisma Accelerate. db push needs the');
+  console.error('[db-push]     underlying Postgres URL, not the Accelerate proxy.');
+  console.error('[db-push]');
+  console.error('[db-push] Supabase → Settings → Database → Connection string gives both:');
+  console.error('[db-push]   pooled  :6543 → DATABASE_URL');
+  console.error('[db-push]   direct  :5432 → DIRECT_URL   (db push needs this one)');
   process.exit(1);
 }
 
@@ -135,34 +135,34 @@ function checkScheme(picked, role) {
  * one-off local build at a non-Supabase Postgres on purpose.
  */
 function checkSupabaseOnly(picked, role) {
-  if (!picked || process.env.ALLOW_NON_SUPABASE_DB === "1") return;
+  if (!picked || process.env.ALLOW_NON_SUPABASE_DB === '1') return;
   const host = hostOf(picked.value);
   if (host && SUPABASE_HOST.test(host)) return;
 
   console.error(`[db-push] ${picked.name} does not point at Supabase.`);
-  console.error(`[db-push] It is the ${role} connection, host: ${JSON.stringify(host ?? "(unparseable)")}`);
-  console.error("[db-push]");
+  console.error(`[db-push] It is the ${role} connection, host: ${JSON.stringify(host ?? '(unparseable)')}`);
+  console.error('[db-push]');
   console.error("[db-push] This project's Vercel deployment has exactly one legitimate");
-  console.error("[db-push] database — Supabase — so a different host here usually means a");
-  console.error("[db-push] var from another, no-longer-used integration (Vercel Postgres,");
-  console.error("[db-push] Neon, a personal test DB) is shadowing the real Supabase URL.");
-  console.error("[db-push]");
-  console.error("[db-push] Fix: in Vercel → Settings → Environment Variables, delete any");
+  console.error('[db-push] database — Supabase — so a different host here usually means a');
+  console.error('[db-push] var from another, no-longer-used integration (Vercel Postgres,');
+  console.error('[db-push] Neon, a personal test DB) is shadowing the real Supabase URL.');
+  console.error('[db-push]');
+  console.error('[db-push] Fix: in Vercel → Settings → Environment Variables, delete any');
   console.error(`[db-push] ${picked.name} that is not from Supabase, then copy the real one`);
-  console.error("[db-push] from Supabase → Settings → Database → Connection string:");
-  console.error("[db-push]   pooled  :6543, host *.pooler.supabase.com → DATABASE_URL");
-  console.error("[db-push]   direct  :5432, host db.*.supabase.co      → DIRECT_URL");
-  console.error("[db-push]");
-  console.error("[db-push] Intentionally using a non-Supabase Postgres? Set");
-  console.error("[db-push] ALLOW_NON_SUPABASE_DB=1 to skip this check.");
+  console.error('[db-push] from Supabase → Settings → Database → Connection string:');
+  console.error('[db-push]   pooled  :6543, host *.pooler.supabase.com → DATABASE_URL');
+  console.error('[db-push]   direct  :5432, host db.*.supabase.co      → DIRECT_URL');
+  console.error('[db-push]');
+  console.error('[db-push] Intentionally using a non-Supabase Postgres? Set');
+  console.error('[db-push] ALLOW_NON_SUPABASE_DB=1 to skip this check.');
   process.exit(1);
 }
 
 // Keep this list in step with resolveDatabaseUrl() in lib/db.ts.
 const pooledPick = pick([
-  "DATABASE_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL",
+  'DATABASE_URL',
+  'POSTGRES_PRISMA_URL',
+  'POSTGRES_URL',
 ]);
 
 // DDL needs a direct, non-pooled connection — pgBouncer (:6543) can't run
@@ -170,60 +170,60 @@ const pooledPick = pick([
 // that. Falling back to the pooled URL usually fails, but it fails loudly
 // with a real error rather than being skipped.
 const directPick =
-  pick(["DIRECT_URL", "POSTGRES_URL_NON_POOLING"]) ?? pooledPick;
+  pick(['DIRECT_URL', 'POSTGRES_URL_NON_POOLING']) ?? pooledPick;
 
-checkScheme(pooledPick, "pooled");
-if (directPick !== pooledPick) checkScheme(directPick, "direct");
+checkScheme(pooledPick, 'pooled');
+if (directPick !== pooledPick) checkScheme(directPick, 'direct');
 
-checkSupabaseOnly(pooledPick, "pooled");
-if (directPick !== pooledPick) checkSupabaseOnly(directPick, "direct");
+checkSupabaseOnly(pooledPick, 'pooled');
+if (directPick !== pooledPick) checkSupabaseOnly(directPick, 'direct');
 
 const pooled = pooledPick?.value;
 const direct = directPick?.value;
 
 if (!pooled && !direct) {
-  if (process.env.VERCEL_ENV === "production") {
-    console.error("[db-push] No database URL resolvable on a production build.");
-    console.error("[db-push] Looked for: DATABASE_URL, POSTGRES_PRISMA_URL,");
-    console.error("[db-push] POSTGRES_URL, DIRECT_URL, POSTGRES_URL_NON_POOLING.");
-    console.error("[db-push]");
-    console.error("[db-push] Skipping the push here is what let schema drift reach");
-    console.error("[db-push] production and take every login page down. Set the DB");
-    console.error("[db-push] env vars for this environment, or SKIP_DB_PUSH=1 if the");
-    console.error("[db-push] push genuinely belongs elsewhere.");
+  if (process.env.VERCEL_ENV === 'production') {
+    console.error('[db-push] No database URL resolvable on a production build.');
+    console.error('[db-push] Looked for: DATABASE_URL, POSTGRES_PRISMA_URL,');
+    console.error('[db-push] POSTGRES_URL, DIRECT_URL, POSTGRES_URL_NON_POOLING.');
+    console.error('[db-push]');
+    console.error('[db-push] Skipping the push here is what let schema drift reach');
+    console.error('[db-push] production and take every login page down. Set the DB');
+    console.error('[db-push] env vars for this environment, or SKIP_DB_PUSH=1 if the');
+    console.error('[db-push] push genuinely belongs elsewhere.');
     process.exit(1);
   }
-  console.log("[db-push] no database URL configured — skipping prisma db push");
+  console.log('[db-push] no database URL configured — skipping prisma db push');
   process.exit(0);
 }
 
 console.log(
   `[db-push] Running prisma db push (no --accept-data-loss) — ` +
-    `pooled from ${pooledPick?.name ?? "none"}, direct from ${directPick?.name ?? "none"}`,
+    `pooled from ${pooledPick?.name ?? 'none'}, direct from ${directPick?.name ?? 'none'}`,
 );
-const res = spawnSync("pnpm", ["prisma", "db", "push", "--skip-generate"], {
+const res = spawnSync('pnpm', ['prisma', 'db', 'push', '--skip-generate'], {
   // Capture rather than inherit so the failure below can name the actual
   // cause. Both streams are echoed verbatim first, so nothing is hidden.
-  stdio: ["inherit", "pipe", "pipe"],
-  encoding: "utf8",
+  stdio: ['inherit', 'pipe', 'pipe'],
+  encoding: 'utf8',
   // schema.prisma reads these two names and no others, so map whatever we
   // resolved onto them rather than relying on them being set already.
   env: { ...process.env, DATABASE_URL: pooled || direct, DIRECT_URL: direct },
 });
 
-const output = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+const output = `${res.stdout ?? ''}${res.stderr ?? ''}`;
 if (res.stdout) process.stdout.write(res.stdout);
 if (res.stderr) process.stderr.write(res.stderr);
 
 if (res.status !== 0) {
-  console.error("[db-push] FAILED — see error above. Failing the build.");
-  console.error("[db-push]");
-  console.error("[db-push] Deploying past this ships code whose queries reference");
-  console.error("[db-push] tables/columns the database does not have. Prisma then");
-  console.error("[db-push] throws P2021/P2022 at runtime on the first request that");
-  console.error("[db-push] touches them — a silent outage discovered by users, not");
-  console.error("[db-push] by CI. A blocked deploy is visible and fixable in minutes.");
-  console.error("[db-push]");
+  console.error('[db-push] FAILED — see error above. Failing the build.');
+  console.error('[db-push]');
+  console.error('[db-push] Deploying past this ships code whose queries reference');
+  console.error('[db-push] tables/columns the database does not have. Prisma then');
+  console.error('[db-push] throws P2021/P2022 at runtime on the first request that');
+  console.error('[db-push] touches them — a silent outage discovered by users, not');
+  console.error('[db-push] by CI. A blocked deploy is visible and fixable in minutes.');
+  console.error('[db-push]');
 
   // `db push` makes the database match schema.prisma *exactly*, so any table
   // created by hand — a CSV import, a scratch table in the Supabase editor —
@@ -236,25 +236,25 @@ if (res.status !== 0) {
     console.error(
       `[db-push] Cause: ${doomed.length} table(s) exist in the database but not in`,
     );
-    console.error("[db-push] prisma/schema.prisma, so the push wants to delete them:");
+    console.error('[db-push] prisma/schema.prisma, so the push wants to delete them:');
     for (const t of doomed) console.error(`[db-push]   - ${t}`);
-    console.error("[db-push]");
-    console.error("[db-push] Do NOT add --accept-data-loss: that deletes them for real,");
-    console.error("[db-push] on every future build. Pick one instead:");
-    console.error("[db-push]   1. Move them out of the `public` schema — Prisma only");
-    console.error("[db-push]      manages `public`, so it stops seeing them:");
-    console.error("[db-push]        CREATE SCHEMA IF NOT EXISTS staging;");
+    console.error('[db-push]');
+    console.error('[db-push] Do NOT add --accept-data-loss: that deletes them for real,');
+    console.error('[db-push] on every future build. Pick one instead:');
+    console.error('[db-push]   1. Move them out of the `public` schema — Prisma only');
+    console.error('[db-push]      manages `public`, so it stops seeing them:');
+    console.error('[db-push]        CREATE SCHEMA IF NOT EXISTS staging;');
     for (const t of doomed) {
       console.error(`[db-push]        ALTER TABLE public."${t}" SET SCHEMA staging;`);
     }
-    console.error("[db-push]   2. Adopt them: `prisma db pull` writes accurate models");
-    console.error("[db-push]      into schema.prisma, after which they are preserved.");
-    console.error("[db-push]   3. Drop them deliberately, once you are sure.");
+    console.error('[db-push]   2. Adopt them: `prisma db pull` writes accurate models');
+    console.error('[db-push]      into schema.prisma, after which they are preserved.');
+    console.error('[db-push]   3. Drop them deliberately, once you are sure.');
   } else {
-    console.error("[db-push] Common cause: the direct connection is unavailable, so DDL");
-    console.error("[db-push] is attempted through the pgBouncer pooler (:6543). It needs");
-    console.error("[db-push] the direct connection (:5432).");
+    console.error('[db-push] Common cause: the direct connection is unavailable, so DDL');
+    console.error('[db-push] is attempted through the pgBouncer pooler (:6543). It needs');
+    console.error('[db-push] the direct connection (:5432).');
   }
   process.exit(1);
 }
-console.log("[db-push] OK — schema in sync");
+console.log('[db-push] OK — schema in sync');

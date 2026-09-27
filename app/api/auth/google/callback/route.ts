@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/db";
-import { setCustomerSession } from "@/lib/auth";
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { prisma } from '@/lib/db';
+import { setCustomerSession } from '@/lib/auth';
 import {
   exchangeCodeForProfile,
   isGoogleOAuthEnabled,
   safeNext,
   verifyState,
-} from "@/lib/google-oauth";
+} from '@/lib/google-oauth';
 
-const STATE_COOKIE = "gilifast_google_state";
+const STATE_COOKIE = 'gilifast_google_state';
 
 function loginError(req: Request, code: string) {
   return NextResponse.redirect(
@@ -19,15 +19,15 @@ function loginError(req: Request, code: string) {
 
 export async function GET(req: Request) {
   if (!isGoogleOAuthEnabled()) {
-    return loginError(req, "google_unavailable");
+    return loginError(req, 'google_unavailable');
   }
 
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
 
-  if (url.searchParams.get("error") || !code || !state) {
-    return loginError(req, "google_cancelled");
+  if (url.searchParams.get('error') || !code || !state) {
+    return loginError(req, 'google_cancelled');
   }
 
   const jar = await cookies();
@@ -36,22 +36,22 @@ export async function GET(req: Request) {
 
   const parsedState = await verifyState(state);
   if (!parsedState || !storedNonce || parsedState.nonce !== storedNonce) {
-    return loginError(req, "google_state");
+    return loginError(req, 'google_state');
   }
 
   let profile;
   try {
     profile = await exchangeCodeForProfile(code);
   } catch (err) {
-    console.error("[google-oauth] exchange failed", err);
-    return loginError(req, "google_exchange");
+    console.error('[google-oauth] exchange failed', err);
+    return loginError(req, 'google_exchange');
   }
 
   // Require Google to have verified the email before we trust the linkage to
   // an existing customer. Without this, anyone could create a Google account
   // with someone else's email and take over their Gilifast account.
   if (!profile.emailVerified) {
-    return loginError(req, "google_unverified");
+    return loginError(req, 'google_unverified');
   }
 
   // Lookup-by-googleId first (fast path for returning users), then fall back
@@ -79,14 +79,14 @@ export async function GET(req: Request) {
       data: {
         email: profile.email,
         googleId: profile.sub,
-        fullName: profile.name?.trim() || profile.email.split("@")[0],
+        fullName: profile.name?.trim() || profile.email.split('@')[0],
       },
     });
   }
 
   await setCustomerSession({
     sub: customer.id,
-    role: "customer",
+    role: 'customer',
     email: customer.email,
     fullName: customer.fullName,
   });

@@ -1,48 +1,48 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
 import {
   requireCustomer,
   clearCustomerSession,
   hashPassword,
   verifyPassword,
-} from "@/lib/auth";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
+} from '@/lib/auth';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export const metadata = { title: "My account · Gilifast" };
+export const metadata = { title: 'My account · Gilifast' };
 
 async function logoutAction() {
-  "use server";
+  'use server';
   await clearCustomerSession();
-  redirect("/");
+  redirect('/');
 }
 
 const profileSchema = z.object({
   fullName: z.string().min(2).max(120),
-  phoneNumber: z.string().max(40).optional().or(z.literal("")),
-  nationality: z.string().max(80).optional().or(z.literal("")),
+  phoneNumber: z.string().max(40).optional().or(z.literal('')),
+  nationality: z.string().max(80).optional().or(z.literal('')),
 });
 
 async function updateProfileAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireCustomer();
   const parsed = profileSchema.safeParse({
-    fullName: formData.get("fullName"),
-    phoneNumber: formData.get("phoneNumber"),
-    nationality: formData.get("nationality"),
+    fullName: formData.get('fullName'),
+    phoneNumber: formData.get('phoneNumber'),
+    nationality: formData.get('nationality'),
   });
   if (!parsed.success) {
     redirect(`/account?error=${encodeURIComponent(parsed.error.issues[0].message)}`);
@@ -55,7 +55,7 @@ async function updateProfileAction(formData: FormData) {
       nationality: parsed.data.nationality?.trim() || null,
     },
   });
-  redirect("/account?ok=profile_updated");
+  redirect('/account?ok=profile_updated');
 }
 
 const passwordSchema = z.object({
@@ -64,44 +64,44 @@ const passwordSchema = z.object({
 });
 
 async function changePasswordAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireCustomer();
   const parsed = passwordSchema.safeParse({
-    currentPassword: formData.get("currentPassword"),
-    newPassword: formData.get("newPassword"),
+    currentPassword: formData.get('currentPassword'),
+    newPassword: formData.get('newPassword'),
   });
   if (!parsed.success) {
-    redirect("/account?error=password_invalid");
+    redirect('/account?error=password_invalid');
   }
   const customer = await prisma.customer.findUnique({
     where: { id: session.sub },
   });
-  if (!customer) redirect("/account/login");
+  if (!customer) redirect('/account/login');
   // Google-only accounts have no passwordHash yet. Send them to
   // forgot-password to mint one via the verified email flow.
-  if (!customer.passwordHash) redirect("/account?error=no_password_set");
+  if (!customer.passwordHash) redirect('/account?error=no_password_set');
   const ok = await verifyPassword(parsed.data.currentPassword, customer.passwordHash);
-  if (!ok) redirect("/account?error=wrong_password");
+  if (!ok) redirect('/account?error=wrong_password');
   const newHash = await hashPassword(parsed.data.newPassword);
   await prisma.customer.update({
     where: { id: session.sub },
     data: { passwordHash: newHash },
   });
-  redirect("/account?ok=password_changed");
+  redirect('/account?ok=password_changed');
 }
 
 function statusVariant(status: string) {
   switch (status) {
-    case "CONFIRMED":
-      return "success" as const;
-    case "PENDING_PAYMENT":
-      return "warning" as const;
-    case "EXPIRED":
-    case "CANCELLED_BY_CUSTOMER":
-    case "CANCELLED_BY_OPERATOR":
-      return "destructive" as const;
+    case 'CONFIRMED':
+      return 'success' as const;
+    case 'PENDING_PAYMENT':
+      return 'warning' as const;
+    case 'EXPIRED':
+    case 'CANCELLED_BY_CUSTOMER':
+    case 'CANCELLED_BY_OPERATOR':
+      return 'destructive' as const;
     default:
-      return "outline" as const;
+      return 'outline' as const;
   }
 }
 
@@ -118,7 +118,7 @@ export default async function AccountPage({
   });
   if (!customer) {
     await clearCustomerSession();
-    redirect("/account/login");
+    redirect('/account/login');
   }
 
   // Pull bookings linked by customerId OR matching the customer's email
@@ -134,14 +134,14 @@ export default async function AccountPage({
       leg: { include: { schedule: { include: { boat: true } } } },
       review: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: 50,
   });
 
   const now = Date.now();
   const REVIEW_WINDOW_MS = 2 * 60 * 60 * 1000;
   const upcoming = bookings.filter(
-    (b) => b.status === "CONFIRMED" && b.leg.departureDate.getTime() > now,
+    (b) => b.status === 'CONFIRMED' && b.leg.departureDate.getTime() > now,
   );
   const past = bookings.filter((b) => !upcoming.includes(b));
 
@@ -152,7 +152,7 @@ export default async function AccountPage({
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Hi, {customer.fullName.split(" ")[0]}
+              Hi, {customer.fullName.split(' ')[0]}
             </h1>
             <p className="text-sm text-slate-600">{customer.email}</p>
           </div>
@@ -165,12 +165,12 @@ export default async function AccountPage({
 
         {ok ? (
           <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {ok.replace(/_/g, " ")} ✓
+            {ok.replace(/_/g, ' ')} ✓
           </p>
         ) : null}
         {error ? (
           <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error.replace(/_/g, " ")}
+            {error.replace(/_/g, ' ')}
           </p>
         ) : null}
 
@@ -225,7 +225,7 @@ export default async function AccountPage({
             <div className="space-y-3">
               {past.map((b) => {
                 const canReview =
-                  b.status === "CONFIRMED" &&
+                  b.status === 'CONFIRMED' &&
                   !b.review &&
                   b.leg.departureDate.getTime() < now - REVIEW_WINDOW_MS;
                 return (
@@ -268,7 +268,7 @@ export default async function AccountPage({
                     id="phoneNumber"
                     name="phoneNumber"
                     type="tel"
-                    defaultValue={customer.phoneNumber ?? ""}
+                    defaultValue={customer.phoneNumber ?? ''}
                   />
                 </div>
                 <div className="space-y-1">
@@ -276,7 +276,7 @@ export default async function AccountPage({
                   <Input
                     id="nationality"
                     name="nationality"
-                    defaultValue={customer.nationality ?? ""}
+                    defaultValue={customer.nationality ?? ''}
                   />
                 </div>
                 <Button type="submit" size="sm">
@@ -324,7 +324,7 @@ export default async function AccountPage({
               </form>
             ) : (
               <CardContent className="text-sm text-slate-600">
-                Your account uses Google sign-in. To set a password,{" "}
+                Your account uses Google sign-in. To set a password,{' '}
                 <Link href="/account/forgot-password" className="text-sky-700 hover:underline">
                   use the forgot-password flow
                 </Link>
@@ -365,16 +365,16 @@ function BookingCard({
   hasReview?: boolean;
 }) {
   return (
-    <Card className={muted ? "opacity-90" : ""}>
+    <Card className={muted ? 'opacity-90' : ''}>
       <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">
-              {booking.leg.schedule.originPort} →{" "}
+              {booking.leg.schedule.originPort} →{' '}
               {booking.leg.schedule.destinationPort}
             </span>
             <Badge variant={statusVariant(booking.status)} className="text-xs">
-              {booking.status.replace(/_/g, " ")}
+              {booking.status.replace(/_/g, ' ')}
             </Badge>
             {hasReview ? (
               <Badge variant="outline" className="text-xs">
@@ -383,11 +383,11 @@ function BookingCard({
             ) : null}
           </div>
           <div className="mt-1 text-sm text-slate-600">
-            {formatLocalDate(booking.leg.departureDate, "EEE, dd MMM yyyy")}{" "}
-            ·{" "}
+            {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')}{' '}
+            ·{' '}
             <span className="font-mono">
               {formatLocalTime(booking.leg.departureDate)}
-            </span>{" "}
+            </span>{' '}
             WITA · {booking.leg.schedule.boat.name}
           </div>
           <div className="mt-1 font-mono text-xs text-slate-500">

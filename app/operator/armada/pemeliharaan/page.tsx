@@ -1,12 +1,12 @@
-import { requireOperator } from "@/lib/auth";
+import { requireOperator } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+} from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default async function PemeliharaanPage() {
   await requireOperator();

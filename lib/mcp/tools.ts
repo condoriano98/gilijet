@@ -1,12 +1,12 @@
-import { Prisma } from "@prisma/client";
-import { readonlyPrisma as db } from "./readonly-client";
+import { Prisma } from '@prisma/client';
+import { readonlyPrisma as db } from './readonly-client';
 import {
   FEATURES,
   featureById,
   statusCounts,
   type Feature,
   type FeatureArea,
-} from "../feature-catalog";
+} from '../feature-catalog';
 import {
   TIMEZONE_NOTE,
   maskEmail,
@@ -16,7 +16,7 @@ import {
   page,
   untrusted,
   witaTime,
-} from "./serialize";
+} from './serialize';
 
 /**
  * Tool implementations for the review MCP.
@@ -34,14 +34,14 @@ const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
 
 function clampLimit(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value ?? DEFAULT_LIMIT);
+  const n = typeof value === 'number' ? value : Number(value ?? DEFAULT_LIMIT);
   if (!Number.isFinite(n) || n < 1) return DEFAULT_LIMIT;
   return Math.min(Math.floor(n), MAX_LIMIT);
 }
 
 /** Parse a YYYY-MM-DD bound, or undefined when absent. */
 function parseDate(value: unknown): Date | undefined {
-  if (typeof value !== "string" || !value.trim()) return undefined;
+  if (typeof value !== 'string' || !value.trim()) return undefined;
   const d = new Date(`${value.trim()}T00:00:00+08:00`); // WITA
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
@@ -74,16 +74,16 @@ export async function listFeatures(args: { area?: string; status?: string }) {
   return {
     counts: statusCounts(rows),
     statusMeaning: {
-      shipped: "built and reachable in the UI",
-      partial: "works, with a gap named in notes",
-      broken: "built but unreachable — notes say why",
-      placeholder: "route exists, empty state only",
-      "schema-only": "data model exists, no UI",
-      alias: "redirect to a canonical route, not a feature",
+      shipped: 'built and reachable in the UI',
+      partial: 'works, with a gap named in notes',
+      broken: 'built but unreachable — notes say why',
+      placeholder: 'route exists, empty state only',
+      'schema-only': 'data model exists, no UI',
+      alias: 'redirect to a canonical route, not a feature',
     },
     features: rows.map(summarise),
     caveat:
-      "Status is hand-maintained in lib/feature-catalog.ts, because it cannot be derived from the filesystem — a route can exist while being an empty placeholder, a redirect, or unreachable. A drift test keeps the paths honest but not the status labels.",
+      'Status is hand-maintained in lib/feature-catalog.ts, because it cannot be derived from the filesystem — a route can exist while being an empty placeholder, a redirect, or unreachable. A drift test keeps the paths honest but not the status labels.',
   };
 }
 
@@ -91,7 +91,7 @@ export async function describeFeature(args: { id?: string }) {
   const f = args.id ? featureById(args.id) : undefined;
   if (!f) {
     return {
-      error: `Unknown feature id "${args.id ?? ""}".`,
+      error: `Unknown feature id "${args.id ?? ''}".`,
       availableIds: FEATURES.map((x) => x.id),
     };
   }
@@ -103,7 +103,7 @@ export async function describeFeature(args: { id?: string }) {
 export async function platformMetrics(args: { from?: string; to?: string }) {
   const createdAt = dateRange(args.from, args.to);
   const where: Prisma.BookingWhereInput = {
-    status: "CONFIRMED",
+    status: 'CONFIRMED',
     ...(createdAt ? { createdAt } : {}),
   };
 
@@ -113,7 +113,7 @@ export async function platformMetrics(args: { from?: string; to?: string }) {
       _sum: { totalAmount: true, commissionAmount: true, operatorAmount: true },
     }),
     db.booking.count({ where }),
-    db.operator.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+    db.operator.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
     db.promotionRedemption.aggregate({
       where: createdAt ? { createdAt } : {},
       _sum: { amount: true },
@@ -125,10 +125,10 @@ export async function platformMetrics(args: { from?: string; to?: string }) {
   const commission = totals._sum.commissionAmount ?? new Prisma.Decimal(0);
   const takeRate = gmv.isZero()
     ? null
-    : commission.div(gmv).mul(100).toFixed(2) + "%";
+    : commission.div(gmv).mul(100).toFixed(2) + '%';
 
   return {
-    window: { from: args.from ?? "all time", to: args.to ?? "now" },
+    window: { from: args.from ?? 'all time', to: args.to ?? 'now' },
     confirmedBookings: bookingCount,
     gmv: money(gmv),
     platformCommission: money(commission),
@@ -146,7 +146,7 @@ export async function listCoupons(args: { limit?: number }) {
   const [rows, total] = await Promise.all([
     db.promotion.findMany({
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         code: true,
@@ -172,13 +172,13 @@ export async function listCoupons(args: { limit?: number }) {
     rows.map((p) => ({
       code: p.code,
       discount:
-        p.discountType === "PERCENT"
+        p.discountType === 'PERCENT'
           ? `${Number(p.discountValue)}%`
           : `IDR ${money(p.discountValue)}`,
       whoAbsorbsIt: p.costBearer,
       active: p.isActive && !p.archivedAt,
       window: { from: witaTime(p.startsAt), to: witaTime(p.expiresAt) },
-      uses: `${p.usedCount}${p.maxUses ? ` / ${p.maxUses}` : " (uncapped)"}`,
+      uses: `${p.usedCount}${p.maxUses ? ` / ${p.maxUses}` : ' (uncapped)'}`,
       budget: p.budgetCap
         ? `${money(p.budgetSpent)} / ${money(p.budgetCap)}`
         : `${money(p.budgetSpent)} spent (uncapped)`,
@@ -209,7 +209,7 @@ export async function operators(args: { id?: string; limit?: number }) {
         createdAt: true,
         documents: {
           select: { type: true, status: true, fileName: true, createdAt: true },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: 'desc' },
         },
         _count: { select: { boats: true, bookings: true } },
       },
@@ -234,7 +234,7 @@ export async function operators(args: { id?: string; limit?: number }) {
         fileName: d.fileName,
         uploaded: witaTime(d.createdAt),
       })),
-      note: "Bank account details are deliberately not returned.",
+      note: 'Bank account details are deliberately not returned.',
     };
   }
 
@@ -243,7 +243,7 @@ export async function operators(args: { id?: string; limit?: number }) {
     db.operator.findMany({
       where: { deletedAt: null },
       take: limit,
-      orderBy: { companyName: "asc" },
+      orderBy: { companyName: 'asc' },
       select: {
         id: true,
         companyName: true,
@@ -274,11 +274,11 @@ export async function operators(args: { id?: string; limit?: number }) {
 // ---------- bookings ----------
 
 const BOOKING_STATUSES = [
-  "PENDING_PAYMENT",
-  "CONFIRMED",
-  "CANCELLED_BY_CUSTOMER",
-  "CANCELLED_BY_OPERATOR",
-  "EXPIRED",
+  'PENDING_PAYMENT',
+  'CONFIRMED',
+  'CANCELLED_BY_CUSTOMER',
+  'CANCELLED_BY_OPERATOR',
+  'EXPIRED',
 ] as const;
 
 export async function listBookings(args: {
@@ -304,7 +304,7 @@ export async function listBookings(args: {
     db.booking.findMany({
       where,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         bookingReference: true,
         status: true,
@@ -338,7 +338,7 @@ export async function listBookings(args: {
 }
 
 export async function getBooking(args: { reference?: string }) {
-  if (!args.reference) return { error: "reference is required." };
+  if (!args.reference) return { error: 'reference is required.' };
 
   const b = await db.booking.findUnique({
     where: { bookingReference: args.reference.trim().toUpperCase() },
@@ -433,7 +433,7 @@ export async function getBooking(args: { reference?: string }) {
 }
 
 export async function findCustomer(args: { email?: string; limit?: number }) {
-  if (!args.email) return { error: "email is required." };
+  if (!args.email) return { error: 'email is required.' };
   const email = args.email.trim().toLowerCase();
   const limit = clampLimit(args.limit);
 
@@ -445,7 +445,7 @@ export async function findCustomer(args: { email?: string; limit?: number }) {
     db.booking.findMany({
       where: { customerEmail: email },
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         bookingReference: true,
         status: true,
@@ -469,7 +469,7 @@ export async function findCustomer(args: { email?: string; limit?: number }) {
       : null,
     accountNote: customer
       ? undefined
-      : "No registered account with that email. Bookings below, if any, were made as a guest.",
+      : 'No registered account with that email. Bookings below, if any, were made as a guest.',
     bookings: page(
       bookings.map((b) => ({
         reference: b.bookingReference,
@@ -495,7 +495,7 @@ export async function listRefunds(args: {
   const where: Prisma.RefundWhereInput = {
     ...(createdAt ? { createdAt } : {}),
     ...(args.status
-      ? { status: args.status as Prisma.EnumRefundStatusFilter["equals"] }
+      ? { status: args.status as Prisma.EnumRefundStatusFilter['equals'] }
       : {}),
   };
 
@@ -503,7 +503,7 @@ export async function listRefunds(args: {
     db.refund.findMany({
       where,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         refundAmount: true,
         originalAmount: true,
@@ -552,7 +552,7 @@ export async function upcomingDepartures(args: { operatorId?: string; limit?: nu
     db.leg.findMany({
       where,
       take: limit,
-      orderBy: { departureDate: "asc" },
+      orderBy: { departureDate: 'asc' },
       select: {
         departureDate: true,
         status: true,

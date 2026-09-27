@@ -1,22 +1,22 @@
-import { prisma } from "./db";
-import { env } from "./env";
+import { prisma } from './db';
+import { env } from './env';
 import {
   sendBookingConfirmation,
   sendCancellationEmail,
   sendPaymentReceivedEmail,
-} from "./email";
+} from './email';
 import {
   sendBoardingPassDocument,
   sendBoardingPassWhatsapp,
   sendOperatorUnavailableWhatsapp,
   sendPaymentReceivedWhatsapp,
-} from "./whatsapp";
+} from './whatsapp';
 import {
   boardingPassFilename,
   generateBoardingPassPdf,
-} from "./boarding-pass";
-import { alertAdminBookingPaid } from "./admin-alerts";
-import type { IssuedTicket } from "./ticket-issuer";
+} from './boarding-pass';
+import { alertAdminBookingPaid } from './admin-alerts';
+import type { IssuedTicket } from './ticket-issuer';
 
 /**
  * Customer-facing notifications for the booking lifecycle, fanned out over
@@ -86,7 +86,7 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
       bookingReference: booking.bookingReference,
       lookupUrl: url,
     }),
-  ]).then(logFailures("payment-received"));
+  ]).then(logFailures('payment-received'));
 
   // Staff alert: this is the moment the admin has something to do — ring the
   // operator and confirm the boat. Swallows its own errors.
@@ -114,7 +114,7 @@ export async function notifyBoardingPassIssued(
   try {
     pdf = await generateBoardingPassPdf(booking.bookingReference);
   } catch (err) {
-    console.error("[notify:boarding-pass] PDF generation failed:", err);
+    console.error('[notify:boarding-pass] PDF generation failed:', err);
   }
   const filename = boardingPassFilename(booking.bookingReference);
 
@@ -151,7 +151,7 @@ export async function notifyBoardingPassIssued(
           ticketCodes: tickets.map((t) => t.ticketCode),
           lookupUrl: url,
         }),
-  ]).then(logFailures("boarding-pass"));
+  ]).then(logFailures('boarding-pass'));
 }
 
 /** The operator cannot take the booking; a full refund is already queued. */
@@ -175,7 +175,7 @@ export async function notifyOperatorUnavailable(
       departureDate: booking.leg.departureDate,
       refundAmount,
       // The customer did not cancel, so the time-tier table never applies.
-      refundTier: "FULL",
+      refundTier: 'FULL',
       lookupUrl: url,
     }),
     sendOperatorUnavailableWhatsapp({
@@ -184,13 +184,13 @@ export async function notifyOperatorUnavailable(
       bookingReference: booking.bookingReference,
       lookupUrl: url,
     }),
-  ]).then(logFailures("operator-unavailable"));
+  ]).then(logFailures('operator-unavailable'));
 }
 
 function logFailures(label: string) {
   return (results: PromiseSettledResult<unknown>[]) => {
     for (const r of results) {
-      if (r.status === "rejected") {
+      if (r.status === 'rejected') {
         console.error(`[notify:${label}] send failed:`, r.reason);
       }
     }

@@ -8,34 +8,34 @@
  *
  * Run: `pnpm seed:qa`
  */
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-import { generateLegsForSchedule, seasonSeedParams } from "../lib/legs";
-import { ymdInZone } from "../lib/datetime";
-import { signTicketCode } from "../lib/qr";
-import { newBookingReference, newTicketCode } from "../lib/references";
-import { computeBookingPrice } from "../lib/pricing";
-import { computeRefundDeadline, snapshotCurrentPolicy } from "../lib/refunds";
+import { generateLegsForSchedule, seasonSeedParams } from '../lib/legs';
+import { ymdInZone } from '../lib/datetime';
+import { signTicketCode } from '../lib/qr';
+import { newBookingReference, newTicketCode } from '../lib/references';
+import { computeBookingPrice } from '../lib/pricing';
+import { computeRefundDeadline, snapshotCurrentPolicy } from '../lib/refunds';
 
 const prisma = new PrismaClient();
 
 const QA = {
-  adminEmail: "qa-admin@gilifast.local",
-  operatorEmail: "qa-operator@gilifast.local",
-  customerEmail: "qa-customer@gilifast.local",
-  password: "qaqaqaqa",
-  boatReg: "QA-BOAT-001",
+  adminEmail: 'qa-admin@gilifast.local',
+  operatorEmail: 'qa-operator@gilifast.local',
+  customerEmail: 'qa-customer@gilifast.local',
+  password: 'qaqaqaqa',
+  boatReg: 'QA-BOAT-001',
   schedules: [
-    { originPort: "Sanur", destinationPort: "Nusa Penida", departureTime: "08:00" },
-    { originPort: "Sanur", destinationPort: "Nusa Lembongan", departureTime: "10:00" },
-    { originPort: "Nusa Penida", destinationPort: "Sanur", departureTime: "16:00" },
+    { originPort: 'Sanur', destinationPort: 'Nusa Penida', departureTime: '08:00' },
+    { originPort: 'Sanur', destinationPort: 'Nusa Lembongan', departureTime: '10:00' },
+    { originPort: 'Nusa Penida', destinationPort: 'Sanur', departureTime: '16:00' },
   ],
 };
 
 async function main() {
-  const host = (process.env.DATABASE_URL ?? "").match(/@([^/:]+)/)?.[1] ?? "?";
-  if (/prod|production/i.test(process.env.DATABASE_URL ?? "")) {
+  const host = (process.env.DATABASE_URL ?? '').match(/@([^/:]+)/)?.[1] ?? '?';
+  if (/prod|production/i.test(process.env.DATABASE_URL ?? '')) {
     throw new Error(
       `Refusing to QA-seed a production-looking DB (${host}). Set DATABASE_URL to a dev/test DB.`,
     );
@@ -49,8 +49,8 @@ async function main() {
     create: {
       email: QA.adminEmail,
       passwordHash: passHash,
-      fullName: "QA Admin",
-      role: "SUPER_ADMIN",
+      fullName: 'QA Admin',
+      role: 'SUPER_ADMIN',
     },
     update: { passwordHash: passHash },
   });
@@ -62,18 +62,18 @@ async function main() {
     create: {
       email: QA.operatorEmail,
       passwordHash: passHash,
-      companyName: "QA Boats",
-      contactPerson: "QA Operator",
-      phoneNumber: "+6280000000001",
-      status: "ACTIVE",
+      companyName: 'QA Boats',
+      contactPerson: 'QA Operator',
+      phoneNumber: '+6280000000001',
+      status: 'ACTIVE',
       documentsVerified: true,
       bankAccountInfo: {
-        bankName: "QA Bank",
-        accountNumber: "0000000000",
-        accountHolder: "QA Boats",
+        bankName: 'QA Bank',
+        accountNumber: '0000000000',
+        accountHolder: 'QA Boats',
       },
     },
-    update: { passwordHash: passHash, status: "ACTIVE" },
+    update: { passwordHash: passHash, status: 'ACTIVE' },
   });
   console.log(`✓ operator ${operator.email}`);
 
@@ -83,8 +83,8 @@ async function main() {
     create: {
       email: QA.customerEmail,
       passwordHash: passHash,
-      fullName: "QA Customer",
-      phoneNumber: "+6280000000002",
+      fullName: 'QA Customer',
+      phoneNumber: '+6280000000002',
     },
     update: { passwordHash: passHash },
   });
@@ -95,14 +95,14 @@ async function main() {
     where: { registrationNumber: QA.boatReg },
     create: {
       operatorId: operator.id,
-      name: "QA Boat",
+      name: 'QA Boat',
       registrationNumber: QA.boatReg,
       capacity: 30,
       photos: [],
-      description: "Deterministic QA boat — do not delete.",
-      status: "ACTIVE",
+      description: 'Deterministic QA boat — do not delete.',
+      status: 'ACTIVE',
     },
-    update: { operatorId: operator.id, status: "ACTIVE" },
+    update: { operatorId: operator.id, status: 'ACTIVE' },
   });
   console.log(`✓ boat     ${boat.name} (${boat.registrationNumber})`);
 
@@ -128,7 +128,7 @@ async function main() {
           durationMinutes: 45,
           basePrice: 250000,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
-          status: "ACTIVE",
+          status: 'ACTIVE',
         },
       }));
     scheduleIds.push(sch.id);
@@ -147,8 +147,8 @@ async function main() {
 
   // -------- A paid booking on the first upcoming leg of schedule #1 --------
   const firstLeg = await prisma.leg.findFirst({
-    where: { scheduleId: scheduleIds[0], status: "OPEN" },
-    orderBy: { departureDate: "asc" },
+    where: { scheduleId: scheduleIds[0], status: 'OPEN' },
+    orderBy: { departureDate: 'asc' },
   });
 
   if (firstLeg) {
@@ -171,11 +171,11 @@ async function main() {
           customerId: customer.id,
           customerName: customer.fullName,
           customerEmail: QA.customerEmail,
-          customerPhone: customer.phoneNumber ?? "+6280000000002",
+          customerPhone: customer.phoneNumber ?? '+6280000000002',
           totalAmount: price.totalAmount,
           commissionAmount: price.commissionAmount,
           operatorAmount: price.operatorAmount,
-          status: "CONFIRMED",
+          status: 'CONFIRMED',
           refundDeadline: computeRefundDeadline(firstLeg.departureDate),
           refundPolicySnapshot: snapshotCurrentPolicy({
             departure: firstLeg.departureDate,
@@ -184,10 +184,10 @@ async function main() {
           payment: {
             create: {
               amount: price.totalAmount,
-              method: "QRIS",
-              status: "SUCCESSFUL",
+              method: 'QRIS',
+              status: 'SUCCESSFUL',
               paidAt: new Date(),
-               gatewayProvider: "DOKU",
+               gatewayProvider: 'DOKU',
 
             },
           },
@@ -202,7 +202,7 @@ async function main() {
           ticketCode,
           passengerName: customer.fullName,
           qrHash: signTicketCode(ticketCode, ymdInZone(firstLeg.departureDate)),
-          status: "ISSUED",
+          status: 'ISSUED',
         },
       });
       console.log(`✓ booking  ${ref} (paid + 1 ticket)`);
@@ -224,8 +224,8 @@ async function main() {
             bookingId,
             originalAmount: booking.totalAmount,
             refundAmount: booking.totalAmount,
-            reason: "CUSTOMER_REQUEST",
-            status: "PENDING",
+            reason: 'CUSTOMER_REQUEST',
+            status: 'PENDING',
           },
         });
         console.log(`✓ refund   PENDING on booking ${booking.bookingReference}`);
@@ -235,48 +235,48 @@ async function main() {
     }
   } else {
     console.warn(
-      "⚠ no upcoming leg generated for the first QA schedule — skipping booking + refund seed",
+      '⚠ no upcoming leg generated for the first QA schedule — skipping booking + refund seed',
     );
   }
 
   // -------- A second operator + boat + schedules --------
   // Gives "popular routes" multi-operator counts and "active operators" ≥ 2.
   const operator2 = await prisma.operator.upsert({
-    where: { email: "qa-operator2@gilifast.local" },
+    where: { email: 'qa-operator2@gilifast.local' },
     create: {
-      email: "qa-operator2@gilifast.local",
+      email: 'qa-operator2@gilifast.local',
       passwordHash: passHash,
-      companyName: "Bali Fast Cruise",
-      contactPerson: "QA Operator 2",
-      phoneNumber: "+6280000000003",
-      status: "ACTIVE",
+      companyName: 'Bali Fast Cruise',
+      contactPerson: 'QA Operator 2',
+      phoneNumber: '+6280000000003',
+      status: 'ACTIVE',
       documentsVerified: true,
       bankAccountInfo: {
-        bankName: "QA Bank",
-        accountNumber: "0000000001",
-        accountHolder: "Bali Fast Cruise",
+        bankName: 'QA Bank',
+        accountNumber: '0000000001',
+        accountHolder: 'Bali Fast Cruise',
       },
     },
-    update: { passwordHash: passHash, status: "ACTIVE" },
+    update: { passwordHash: passHash, status: 'ACTIVE' },
   });
 
   const boat2 = await prisma.boat.upsert({
-    where: { registrationNumber: "QA-BOAT-002" },
+    where: { registrationNumber: 'QA-BOAT-002' },
     create: {
       operatorId: operator2.id,
-      name: "Bali Fast 2",
-      registrationNumber: "QA-BOAT-002",
+      name: 'Bali Fast 2',
+      registrationNumber: 'QA-BOAT-002',
       capacity: 40,
       photos: [],
-      description: "Second QA boat — for multi-operator route counts.",
-      status: "ACTIVE",
+      description: 'Second QA boat — for multi-operator route counts.',
+      status: 'ACTIVE',
     },
-    update: { operatorId: operator2.id, status: "ACTIVE" },
+    update: { operatorId: operator2.id, status: 'ACTIVE' },
   });
 
   const overlappingSchedules = [
-    { originPort: "Sanur", destinationPort: "Nusa Penida", departureTime: "09:00" },
-    { originPort: "Sanur", destinationPort: "Nusa Lembongan", departureTime: "11:00" },
+    { originPort: 'Sanur', destinationPort: 'Nusa Penida', departureTime: '09:00' },
+    { originPort: 'Sanur', destinationPort: 'Nusa Lembongan', departureTime: '11:00' },
   ];
   const schedule2Ids: string[] = [];
   for (const s of overlappingSchedules) {
@@ -299,7 +299,7 @@ async function main() {
           durationMinutes: 50,
           basePrice: 275000,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
-          status: "ACTIVE",
+          status: 'ACTIVE',
         },
       }));
     schedule2Ids.push(sch.id);
@@ -314,29 +314,29 @@ async function main() {
   // -------- Reviewers (drives the reviews carousel + raises trust counts) --------
   const REVIEWERS: Array<{ name: string; rating: number; text: string }> = [
     {
-      name: "Lina Pranata",
+      name: 'Lina Pranata',
       rating: 5,
       text: "Booking was effortless and the boat left exactly on time. QR e-ticket scanned in seconds at the dock — best fast-boat experience I've had to the Gilis.",
     },
     {
-      name: "Budi Santoso",
+      name: 'Budi Santoso',
       rating: 5,
       text: "Refund policy is the clearest I've seen in Indonesian transport. Crew was friendly and the crossing was smooth even in choppy water.",
     },
     {
-      name: "Sarah Whitfield",
+      name: 'Sarah Whitfield',
       rating: 4,
-      text: "Loved the price transparency — no hidden fees at the dock. Boarding could be a bit faster but the boat itself was clean and comfortable.",
+      text: 'Loved the price transparency — no hidden fees at the dock. Boarding could be a bit faster but the boat itself was clean and comfortable.',
     },
     {
-      name: "Made Suweca",
+      name: 'Made Suweca',
       rating: 5,
-      text: "I use Gilifast weekly for work. Reliable schedules, instant tickets, and customer support actually responds within minutes on WhatsApp.",
+      text: 'I use Gilifast weekly for work. Reliable schedules, instant tickets, and customer support actually responds within minutes on WhatsApp.',
     },
     {
-      name: "Anya Kusuma",
+      name: 'Anya Kusuma',
       rating: 5,
-      text: "Sanur to Nusa Penida in under an hour — perfect day trip. The e-ticket reminder the morning of the trip was a nice touch.",
+      text: 'Sanur to Nusa Penida in under an hour — perfect day trip. The e-ticket reminder the morning of the trip was a nice touch.',
     },
   ];
 
@@ -358,8 +358,8 @@ async function main() {
     // Pick a leg from whichever schedule rotates through; use scheduleIds[i % 3].
     const targetScheduleId = scheduleIds[i % scheduleIds.length]!;
     const leg = await prisma.leg.findFirst({
-      where: { scheduleId: targetScheduleId, status: "OPEN" },
-      orderBy: { departureDate: "asc" },
+      where: { scheduleId: targetScheduleId, status: 'OPEN' },
+      orderBy: { departureDate: 'asc' },
       skip: i,
     });
     if (!leg) continue;
@@ -399,11 +399,11 @@ async function main() {
         customerId: reviewer.id,
         customerName: reviewer.fullName,
         customerEmail: email,
-        customerPhone: reviewer.phoneNumber ?? "+6280000000000",
+        customerPhone: reviewer.phoneNumber ?? '+6280000000000',
         totalAmount: price.totalAmount,
         commissionAmount: price.commissionAmount,
         operatorAmount: price.operatorAmount,
-        status: "CONFIRMED",
+        status: 'CONFIRMED',
         refundDeadline: computeRefundDeadline(leg.departureDate),
         refundPolicySnapshot: snapshotCurrentPolicy({
           departure: leg.departureDate,
@@ -412,10 +412,10 @@ async function main() {
         payment: {
           create: {
             amount: price.totalAmount,
-            method: "QRIS",
-            status: "SUCCESSFUL",
+            method: 'QRIS',
+            status: 'SUCCESSFUL',
             paidAt: new Date(),
-            gatewayProvider: "DOKU",
+            gatewayProvider: 'DOKU',
           },
         },
       },
@@ -427,7 +427,7 @@ async function main() {
         ticketCode,
         passengerName: reviewer.fullName,
         qrHash: signTicketCode(ticketCode, ymdInZone(leg.departureDate)),
-        status: "ISSUED",
+        status: 'ISSUED',
       },
     });
 

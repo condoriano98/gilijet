@@ -1,10 +1,10 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalDate } from "@/lib/datetime";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { KpiCard } from "@/components/ui/kpi-card";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatIDR } from '@/lib/utils';
+import { formatLocalDate } from '@/lib/datetime';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { KpiCard } from '@/components/ui/kpi-card';
 import {
   Card,
   CardContent,
@@ -12,10 +12,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Wallet, Users, BadgePercent } from "lucide-react";
-import { lockPeriod } from "./actions";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Wallet, Users, BadgePercent } from 'lucide-react';
+import { lockPeriod } from './actions';
 
 type StaffRow = {
   id: string;
@@ -39,8 +39,8 @@ export default async function PenggajianPage({
   // Aggregate in the DB (no in-memory row cap) and read the stored commission
   // amount directly rather than re-deriving percent × total inline.
   const groups = await prisma.booking.groupBy({
-    by: ["salesStaffId"],
-    where: { operatorId, status: "CONFIRMED", salesStaffId: { not: null } },
+    by: ['salesStaffId'],
+    where: { operatorId, status: 'CONFIRMED', salesStaffId: { not: null } },
     _count: true,
     _sum: { totalAmount: true, agentCommissionAmount: true },
   });
@@ -62,9 +62,9 @@ export default async function PenggajianPage({
       const s = staffMap.get(sid);
       return {
         id: sid,
-        fullName: s?.fullName ?? "Staf tidak dikenal",
-        email: s?.email ?? "-",
-        role: s?.role ?? "-",
+        fullName: s?.fullName ?? 'Staf tidak dikenal',
+        email: s?.email ?? '-',
+        role: s?.role ?? '-',
         bookingCount: g._count,
         grossRevenue: Number(g._sum.totalAmount ?? 0),
         commission: Number(g._sum.agentCommissionAmount ?? 0),
@@ -76,25 +76,25 @@ export default async function PenggajianPage({
   const totalGross = rows.reduce((s, r) => s + r.grossRevenue, 0);
 
   const columns = [
-    { key: "fullName", header: "Staf", render: (r: StaffRow) => r.fullName },
-    { key: "email", header: "Email", render: (r: StaffRow) => r.email },
-    { key: "role", header: "Peran", render: (r: StaffRow) => r.role },
+    { key: 'fullName', header: 'Staf', render: (r: StaffRow) => r.fullName },
+    { key: 'email', header: 'Email', render: (r: StaffRow) => r.email },
+    { key: 'role', header: 'Peran', render: (r: StaffRow) => r.role },
     {
-      key: "bookingCount",
-      header: "Booking",
-      align: "right" as const,
+      key: 'bookingCount',
+      header: 'Booking',
+      align: 'right' as const,
       render: (r: StaffRow) => String(r.bookingCount),
     },
     {
-      key: "grossRevenue",
-      header: "Pendapatan Kotor",
-      align: "right" as const,
+      key: 'grossRevenue',
+      header: 'Pendapatan Kotor',
+      align: 'right' as const,
       render: (r: StaffRow) => formatIDR(r.grossRevenue),
     },
     {
-      key: "commission",
-      header: "Komisi",
-      align: "right" as const,
+      key: 'commission',
+      header: 'Komisi',
+      align: 'right' as const,
       render: (r: StaffRow) => formatIDR(r.commission),
     },
   ];
@@ -126,7 +126,7 @@ export default async function PenggajianPage({
         </>
       }
     >
-      {ok === "locked" && (
+      {ok === 'locked' && (
         <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           Periode payroll telah dikunci. Notifikasi dikirim ke operator.
         </p>

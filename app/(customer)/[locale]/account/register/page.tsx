@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { hashPassword, setCustomerSession, getCustomerSession } from "@/lib/auth";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { hashPassword, setCustomerSession, getCustomerSession } from '@/lib/auth';
 import {
   Card,
   CardContent,
@@ -10,30 +10,30 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GoogleSignInButton } from "@/components/customer/google-signin-button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { GoogleSignInButton } from '@/components/customer/google-signin-button';
 
-export const metadata = { title: "Create account · Gilifast" };
+export const metadata = { title: 'Create account · Gilifast' };
 
 const registerSchema = z.object({
   fullName: z.string().min(2).max(120),
   email: z.string().email(),
-  phoneNumber: z.string().min(6).max(40).optional().or(z.literal("")),
+  phoneNumber: z.string().min(6).max(40).optional().or(z.literal('')),
   password: z.string().min(8).max(100),
   agreedToTerms: z.string().optional(),
 });
 
 async function registerAction(formData: FormData) {
-  "use server";
+  'use server';
   const parsed = registerSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    phoneNumber: formData.get("phoneNumber"),
-    password: formData.get("password"),
-    agreedToTerms: formData.get("agreedToTerms"),
+    fullName: formData.get('fullName'),
+    email: formData.get('email'),
+    phoneNumber: formData.get('phoneNumber'),
+    password: formData.get('password'),
+    agreedToTerms: formData.get('agreedToTerms'),
   });
   if (!parsed.success) {
     redirect(`/account/register?error=invalid`);
@@ -60,12 +60,12 @@ async function registerAction(formData: FormData) {
 
   await setCustomerSession({
     sub: customer.id,
-    role: "customer",
+    role: 'customer',
     email: customer.email,
     fullName: customer.fullName,
   });
 
-  const next = (formData.get("next") as string) || "/account";
+  const next = (formData.get('next') as string) || '/account';
   redirect(next);
 }
 
@@ -75,7 +75,7 @@ export default async function CustomerRegisterPage({
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const session = await getCustomerSession();
-  if (session) redirect("/account");
+  if (session) redirect('/account');
   const { error, next } = await searchParams;
 
   return (
@@ -91,13 +91,13 @@ export default async function CustomerRegisterPage({
           </CardHeader>
           <form action={registerAction}>
             <CardContent className="space-y-4">
-              <input type="hidden" name="next" value={next ?? ""} />
+              <input type="hidden" name="next" value={next ?? ''} />
 
-              {error === "exists" && (
+              {error === 'exists' && (
                 <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  An account with that email already exists.{" "}
+                  An account with that email already exists.{' '}
                   <Link
-                    href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+                    href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
                     className="underline"
                   >
                     Sign in instead
@@ -105,12 +105,12 @@ export default async function CustomerRegisterPage({
                   .
                 </p>
               )}
-              {error === "terms" && (
+              {error === 'terms' && (
                 <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                   Please accept the Terms and Privacy Policy.
                 </p>
               )}
-              {error === "invalid" && (
+              {error === 'invalid' && (
                 <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                   Please fill in all required fields with valid values.
                 </p>
@@ -170,11 +170,11 @@ export default async function CustomerRegisterPage({
                   className="mt-0.5 h-4 w-4"
                 />
                 <span>
-                  I agree to the{" "}
+                  I agree to the{' '}
                   <Link href="/terms" className="text-sky-700 hover:underline">
                     Terms of Service
-                  </Link>{" "}
-                  and{" "}
+                  </Link>{' '}
+                  and{' '}
                   <Link href="/privacy" className="text-sky-700 hover:underline">
                     Privacy Policy
                   </Link>
@@ -187,9 +187,9 @@ export default async function CustomerRegisterPage({
                 Create account
               </Button>
               <div className="text-center text-sm text-slate-600">
-                Already have an account?{" "}
+                Already have an account?{' '}
                 <Link
-                  href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+                  href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
                   className="font-medium text-sky-700 hover:underline"
                 >
                   Sign in

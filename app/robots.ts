@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from 'next';
 
 /**
  * Only the canonical production host is crawlable.
@@ -13,7 +13,7 @@ import type { MetadataRoute } from "next";
  * staging out of Google and stops it competing with the real domain for its
  * own content.
  */
-const PRODUCTION_HOSTS = new Set(["gilifast.com", "www.gilifast.com"]);
+const PRODUCTION_HOSTS = new Set(['gilifast.com', 'www.gilifast.com']);
 
 function isProductionHost(base: string): boolean {
   try {
@@ -24,26 +24,26 @@ function isProductionHost(base: string): boolean {
 }
 
 export default function robots(): MetadataRoute.Robots {
-  const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 
   if (!isProductionHost(base)) {
-    return { rules: [{ userAgent: "*", disallow: "/" }] };
+    return { rules: [{ userAgent: '*', disallow: '/' }] };
   }
 
   return {
     rules: [
       {
-        userAgent: "*",
-        allow: "/",
+        userAgent: '*',
+        allow: '/',
         disallow: [
-          "/api/",
-          "/admin/",
-          "/operator/",
-          "/account/",
-          "/b/",
-          "/checkout/",
-          "/pay/",
-          "/_next/",
+          '/api/',
+          '/admin/',
+          '/operator/',
+          '/account/',
+          '/b/',
+          '/checkout/',
+          '/pay/',
+          '/_next/',
         ],
       },
     ],

@@ -1,18 +1,18 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { getOperatorLeg } from "@/lib/operator-data";
-import { cancelLeg } from "@/lib/legs";
-import { audit } from "@/lib/audit";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { getOperatorLeg } from '@/lib/operator-data';
+import { cancelLeg } from '@/lib/legs';
+import { audit } from '@/lib/audit';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -20,31 +20,31 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 
 const cancelSchema = z.object({
   id: z.string(),
   reason: z.string().min(3).max(280),
-  cancellationType: z.enum(["STANDARD", "WEATHER"]).default("STANDARD"),
+  cancellationType: z.enum(['STANDARD', 'WEATHER']).default('STANDARD'),
 });
 
 async function cancelLegAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
   const parsed = cancelSchema.safeParse({
-    id: formData.get("id"),
-    reason: formData.get("reason"),
-    cancellationType: formData.get("cancellationType") ?? "STANDARD",
+    id: formData.get('id'),
+    reason: formData.get('reason'),
+    cancellationType: formData.get('cancellationType') ?? 'STANDARD',
   });
   if (!parsed.success) {
     redirect(
-      `/operator/legs/${formData.get("id")}?error=` +
-        encodeURIComponent("Reason must be 3-280 characters"),
+      `/operator/legs/${formData.get('id')}?error=` +
+        encodeURIComponent('Reason must be 3-280 characters'),
     );
   }
   try {
@@ -54,22 +54,22 @@ async function cancelLegAction(formData: FormData) {
       operatorId: session.sub,
     });
 
-    if (parsed.data.cancellationType === "WEATHER") {
+    if (parsed.data.cancellationType === 'WEATHER') {
       const bookings = await prisma.booking.findMany({
-        where: { legId: parsed.data.id, status: "CONFIRMED" },
+        where: { legId: parsed.data.id, status: 'CONFIRMED' },
         include: { payment: true },
       });
       for (const booking of bookings) {
-        const { refundAmountForOperatorCancellation } = await import("@/lib/refunds");
+        const { refundAmountForOperatorCancellation } = await import('@/lib/refunds');
         const refundAmount = refundAmountForOperatorCancellation(booking.totalAmount);
         await prisma.$transaction(async (tx) => {
           await tx.booking.update({
             where: { id: booking.id },
-            data: { status: "CANCELLED_BY_OPERATOR" },
+            data: { status: 'CANCELLED_BY_OPERATOR' },
           });
           await tx.ticket.updateMany({
-            where: { bookingId: booking.id, status: { in: ["ISSUED"] } },
-            data: { status: "REFUNDED" },
+            where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
+            data: { status: 'REFUNDED' },
           });
           const existingRefund = await tx.refund.findUnique({ where: { bookingId: booking.id } });
           if (!existingRefund && refundAmount.gt(0)) {
@@ -78,25 +78,25 @@ async function cancelLegAction(formData: FormData) {
                 bookingId: booking.id,
                 originalAmount: booking.totalAmount,
                 refundAmount,
-                reason: "WEATHER",
-                status: "PENDING",
+                reason: 'WEATHER',
+                status: 'PENDING',
               },
             });
           }
         });
         await audit({
-          entityType: "BOOKING",
+          entityType: 'BOOKING',
           entityId: booking.id,
-          action: "weather_cancelled",
-          userRole: "SYSTEM",
-          newState: { reason: "WEATHER", refundAmount: refundAmount.toString() },
+          action: 'weather_cancelled',
+          userRole: 'SYSTEM',
+          newState: { reason: 'WEATHER', refundAmount: refundAmount.toString() },
         });
       }
     }
 
     redirect(`/operator/legs/${parsed.data.id}?ok=cancelled`);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = err instanceof Error ? err.message : 'Unknown error';
     redirect(
       `/operator/legs/${parsed.data.id}?error=` + encodeURIComponent(message),
     );
@@ -104,33 +104,33 @@ async function cancelLegAction(formData: FormData) {
 }
 
 async function manualCheckinAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
-  const ticketId = String(formData.get("ticketId") ?? "");
-  const legId = String(formData.get("legId") ?? "");
+  const ticketId = String(formData.get('ticketId') ?? '');
+  const legId = String(formData.get('legId') ?? '');
   if (!ticketId || !legId) redirect(`/operator/legs/${legId}`);
 
   const ticket = await prisma.ticket.findFirst({
     where: { id: ticketId, booking: { legId, operatorId: session.sub } },
   });
-  if (!ticket || ticket.status !== "ISSUED") {
+  if (!ticket || ticket.status !== 'ISSUED') {
     redirect(`/operator/legs/${legId}?error=ticket_not_checkinable`);
   }
   await prisma.ticket.update({
     where: { id: ticket.id },
     data: {
-      status: "CHECKED_IN",
+      status: 'CHECKED_IN',
       checkedInAt: new Date(),
       checkedInBy: session.sub,
     },
   });
   await audit({
-    entityType: "TICKET",
+    entityType: 'TICKET',
     entityId: ticket.id,
-    action: "checked_in_manual",
+    action: 'checked_in_manual',
     userId: session.sub,
-    userRole: "OPERATOR",
-    newState: { status: "CHECKED_IN" },
+    userRole: 'OPERATOR',
+    newState: { status: 'CHECKED_IN' },
   });
   redirect(`/operator/legs/${legId}?ok=checkedin`);
 }
@@ -149,12 +149,12 @@ export default async function LegManifestPage({
   if (!leg) notFound();
 
   const confirmedBookings = leg.bookings.filter(
-    (b) => b.status === "CONFIRMED",
+    (b) => b.status === 'CONFIRMED',
   );
   const allTickets = confirmedBookings.flatMap((b) => b.tickets);
-  const checkedIn = allTickets.filter((t) => t.status === "CHECKED_IN").length;
-  const issued = allTickets.filter((t) => t.status === "ISSUED").length;
-  const cancelled = leg.status === "CANCELLED";
+  const checkedIn = allTickets.filter((t) => t.status === 'CHECKED_IN').length;
+  const issued = allTickets.filter((t) => t.status === 'ISSUED').length;
+  const cancelled = leg.status === 'CANCELLED';
 
   return (
     <div className="space-y-6">
@@ -170,32 +170,32 @@ export default async function LegManifestPage({
             {leg.schedule.originPort} → {leg.schedule.destinationPort}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {formatLocalDate(leg.departureDate)} ·{" "}
+            {formatLocalDate(leg.departureDate)} ·{' '}
             <span className="font-mono">
               {formatLocalTime(leg.departureDate)}
-            </span>{" "}
+            </span>{' '}
             · {leg.schedule.boat.name}
           </p>
         </div>
-        <Badge variant={cancelled ? "destructive" : "outline"} className="text-sm">
+        <Badge variant={cancelled ? 'destructive' : 'outline'} className="text-sm">
           {leg.status}
         </Badge>
       </div>
 
-      {ok === "cancelled" ? (
+      {ok === 'cancelled' ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Departure cancelled. Refund records are queued for processing in
           Phase 4.
         </p>
       ) : null}
-      {ok === "checkedin" ? (
+      {ok === 'checkedin' ? (
         <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           Passenger checked in.
         </p>
       ) : null}
       {error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error.replace(/_/g, " ")}
+          {error.replace(/_/g, ' ')}
         </p>
       ) : null}
 
@@ -234,7 +234,7 @@ export default async function LegManifestPage({
             Print manifest
           </Link>
         </Button>
-        {!cancelled && leg.status !== "SAILED" ? (
+        {!cancelled && leg.status !== 'SAILED' ? (
           <details className="group rounded-md border bg-card">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-destructive">
               Cancel departure
@@ -277,9 +277,9 @@ export default async function LegManifestPage({
           <CardTitle>Manifest</CardTitle>
           <CardDescription>
             {confirmedBookings.length} confirmed booking
-            {confirmedBookings.length === 1 ? "" : "s"} ·{" "}
+            {confirmedBookings.length === 1 ? '' : 's'} ·{' '}
             {allTickets.length} passenger
-            {allTickets.length === 1 ? "" : "s"}
+            {allTickets.length === 1 ? '' : 's'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -314,20 +314,20 @@ export default async function LegManifestPage({
                       <TableCell>
                         <Badge
                           variant={
-                            t.status === "CHECKED_IN"
-                              ? "success"
-                              : t.status === "REFUNDED"
-                                ? "destructive"
-                                : t.status === "NO_SHOW"
-                                  ? "warning"
-                                  : "outline"
+                            t.status === 'CHECKED_IN'
+                              ? 'success'
+                              : t.status === 'REFUNDED'
+                                ? 'destructive'
+                                : t.status === 'NO_SHOW'
+                                  ? 'warning'
+                                  : 'outline'
                           }
                         >
                           {t.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {t.status === "ISSUED" && !cancelled ? (
+                        {t.status === 'ISSUED' && !cancelled ? (
                           <form action={manualCheckinAction}>
                             <input type="hidden" name="ticketId" value={t.id} />
                             <input type="hidden" name="legId" value={leg.id} />

@@ -1,35 +1,35 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { transitionEFaktur } from "./actions";
-import { TrendingUp, FileText } from "lucide-react";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { transitionEFaktur } from './actions';
+import { TrendingUp, FileText } from 'lucide-react';
 
 function efakturStatusVariant(
   s: string,
-): "success" | "warning" | "danger" | "neutral" | "info" {
-  const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-    ACCEPTED: "success",
-    DRAFT: "warning",
-    SUBMITTED: "info",
-    REJECTED: "danger",
-    NOT_REQUIRED: "neutral",
+): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
+  const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+    ACCEPTED: 'success',
+    DRAFT: 'warning',
+    SUBMITTED: 'info',
+    REJECTED: 'danger',
+    NOT_REQUIRED: 'neutral',
   };
-  return map[s] ?? "neutral";
+  return map[s] ?? 'neutral';
 }
 
 function allowedTransitions(current: string): string[] {
   const map: Record<string, string[]> = {
-    NOT_REQUIRED: ["DRAFT"],
-    DRAFT: ["SUBMITTED"],
-    SUBMITTED: ["ACCEPTED", "REJECTED"],
+    NOT_REQUIRED: ['DRAFT'],
+    DRAFT: ['SUBMITTED'],
+    SUBMITTED: ['ACCEPTED', 'REJECTED'],
   };
   return map[current] ?? [];
 }
@@ -40,21 +40,21 @@ function monthRange(monthsBack: number) {
   for (let i = monthsBack - 1; i >= 0; i--) {
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    months.push({ start, end, label: formatLocalDate(start, "MMM yyyy") });
+    months.push({ start, end, label: formatLocalDate(start, 'MMM yyyy') });
   }
   return months;
 }
 
 async function submitTransition(formData: FormData) {
-  "use server";
+  'use server';
   await transitionEFaktur({
-    bookingId: String(formData.get("bookingId")),
-    newStatus: String(formData.get("newStatus")) as
-      | "DRAFT"
-      | "SUBMITTED"
-      | "ACCEPTED"
-      | "REJECTED",
-    note: formData.get("note") ? String(formData.get("note")) : undefined,
+    bookingId: String(formData.get('bookingId')),
+    newStatus: String(formData.get('newStatus')) as
+      | 'DRAFT'
+      | 'SUBMITTED'
+      | 'ACCEPTED'
+      | 'REJECTED',
+    note: formData.get('note') ? String(formData.get('note')) : undefined,
   });
 }
 
@@ -67,7 +67,7 @@ export default async function AkuntansiPage() {
     months.map(async (m) => {
       const agg = await prisma.payment.aggregate({
         where: {
-          status: "SUCCESSFUL",
+          status: 'SUCCESSFUL',
           paidAt: { gte: m.start, lt: m.end },
           booking: { operatorId },
         },
@@ -85,15 +85,15 @@ export default async function AkuntansiPage() {
   const bookings = await prisma.booking.findMany({
     where: { operatorId },
     include: { payment: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: 50,
   });
 
   type BookingRow = (typeof bookings)[number];
   const columns = [
     {
-      key: "bookingReference",
-      header: "Ref. Booking",
+      key: 'bookingReference',
+      header: 'Ref. Booking',
       render: (row: BookingRow) => (
         <Link
           href={`/operator/penjualan/${row.id}`}
@@ -104,39 +104,39 @@ export default async function AkuntansiPage() {
       ),
     },
     {
-      key: "customerName",
-      header: "Pelanggan",
+      key: 'customerName',
+      header: 'Pelanggan',
       render: (row: BookingRow) => row.customerName,
     },
     {
-      key: "totalAmount",
-      header: "Nominal Kotor",
-      align: "right" as const,
+      key: 'totalAmount',
+      header: 'Nominal Kotor',
+      align: 'right' as const,
       render: (row: BookingRow) => formatIDR(Number(row.totalAmount)),
     },
     {
-      key: "eFakturStatus",
-      header: "Status e-Faktur",
+      key: 'eFakturStatus',
+      header: 'Status e-Faktur',
       render: (row: BookingRow) => (
         <StatusBadge variant={efakturStatusVariant(row.eFakturStatus)}>
-          {row.eFakturStatus.replace(/_/g, " ")}
+          {row.eFakturStatus.replace(/_/g, ' ')}
         </StatusBadge>
       ),
     },
     {
-      key: "eFakturNumber",
-      header: "No. e-Faktur",
+      key: 'eFakturNumber',
+      header: 'No. e-Faktur',
       render: (row: BookingRow) =>
         row.eFakturNumber ? (
           <span className="font-mono text-xs">{row.eFakturNumber}</span>
         ) : (
-          "-"
+          '-'
         ),
     },
     {
-      key: "daysSinceCreation",
-      header: "Usia (Hari)",
-      align: "center" as const,
+      key: 'daysSinceCreation',
+      header: 'Usia (Hari)',
+      align: 'center' as const,
       render: (row: BookingRow) => {
         const days = Math.floor(
           (Date.now() - new Date(row.createdAt).getTime()) / 86_400_000,
@@ -145,7 +145,7 @@ export default async function AkuntansiPage() {
           <span>
             {days}
             <span className="block text-xs text-mekari-neutral-500">
-              {formatLocalDate(row.createdAt, "dd MMM")}{" "}
+              {formatLocalDate(row.createdAt, 'dd MMM')}{' '}
               {formatLocalTime(row.createdAt)}
             </span>
           </span>
@@ -153,8 +153,8 @@ export default async function AkuntansiPage() {
       },
     },
     {
-      key: "action",
-      header: "Aksi",
+      key: 'action',
+      header: 'Aksi',
       render: (row: BookingRow) => {
         const next = allowedTransitions(row.eFakturStatus);
         if (next.length === 0)
@@ -168,7 +168,7 @@ export default async function AkuntansiPage() {
                 <Button
                   type="submit"
                   size="sm"
-                  variant={status === "REJECTED" ? "destructive" : "outline"}
+                  variant={status === 'REJECTED' ? 'destructive' : 'outline'}
                   className="h-7 px-2 text-xs"
                 >
                   → {status}

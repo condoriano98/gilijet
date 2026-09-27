@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { prisma } from './db';
 
 // =================== Available ports ===================
 
@@ -53,7 +53,7 @@ export async function getDepartingSoon(
 
   const legs = await prisma.leg.findMany({
     where: {
-      status: "OPEN",
+      status: 'OPEN',
       departureDate: { gte: now, lte: end },
       schedule: { deletedAt: null, boat: { deletedAt: null } },
     },
@@ -69,7 +69,7 @@ export async function getDepartingSoon(
         },
       },
     },
-    orderBy: { departureDate: "asc" },
+    orderBy: { departureDate: 'asc' },
     take: limit,
   });
 
@@ -97,12 +97,12 @@ export type PopularRoute = {
 
 /** Used when the DB query returns nothing — keeps the home page honest. */
 export const POPULAR_ROUTES_FALLBACK: PopularRoute[] = [
-  { origin: "Sanur", destination: "Nusa Penida", cheapestPriceIDR: 250_000, operatorCount: 5, durationMinutes: 45, legCount: 8 },
-  { origin: "Padang Bai", destination: "Gili Trawangan", cheapestPriceIDR: 425_000, operatorCount: 4, durationMinutes: 150, legCount: 6 },
-  { origin: "Sanur", destination: "Nusa Lembongan", cheapestPriceIDR: 200_000, operatorCount: 3, durationMinutes: 35, legCount: 5 },
-  { origin: "Padang Bai", destination: "Lombok", cheapestPriceIDR: 395_000, operatorCount: 3, durationMinutes: 180, legCount: 4 },
-  { origin: "Bangsal", destination: "Gili Trawangan", cheapestPriceIDR: 85_000, operatorCount: 6, durationMinutes: 25, legCount: 10 },
-  { origin: "Labuan Bajo", destination: "Komodo", cheapestPriceIDR: 750_000, operatorCount: 2, durationMinutes: 180, legCount: 3 },
+  { origin: 'Sanur', destination: 'Nusa Penida', cheapestPriceIDR: 250_000, operatorCount: 5, durationMinutes: 45, legCount: 8 },
+  { origin: 'Padang Bai', destination: 'Gili Trawangan', cheapestPriceIDR: 425_000, operatorCount: 4, durationMinutes: 150, legCount: 6 },
+  { origin: 'Sanur', destination: 'Nusa Lembongan', cheapestPriceIDR: 200_000, operatorCount: 3, durationMinutes: 35, legCount: 5 },
+  { origin: 'Padang Bai', destination: 'Lombok', cheapestPriceIDR: 395_000, operatorCount: 3, durationMinutes: 180, legCount: 4 },
+  { origin: 'Bangsal', destination: 'Gili Trawangan', cheapestPriceIDR: 85_000, operatorCount: 6, durationMinutes: 25, legCount: 10 },
+  { origin: 'Labuan Bajo', destination: 'Komodo', cheapestPriceIDR: 750_000, operatorCount: 2, durationMinutes: 180, legCount: 3 },
 ];
 
 export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
@@ -111,7 +111,7 @@ export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
 
   const legs = await prisma.leg.findMany({
     where: {
-      status: "OPEN",
+      status: 'OPEN',
       departureDate: { gte: now, lte: end },
       schedule: { deletedAt: null, boat: { deletedAt: null } },
     },
@@ -190,7 +190,7 @@ export type HomeReview = {
 
 function firstNameOf(full: string): string {
   const trimmed = full.trim();
-  if (!trimmed) return "Anonymous";
+  if (!trimmed) return 'Anonymous';
   return trimmed.split(/\s+/)[0]!;
 }
 
@@ -207,12 +207,12 @@ export async function getRecentReviews(limit = 8): Promise<HomeReview[]> {
       customer: { select: { fullName: true } },
       schedule: { select: { originPort: true, destinationPort: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: limit,
   });
 
   return rows
-    .filter((r) => (r.text ?? "").trim().length > 0)
+    .filter((r) => (r.text ?? '').trim().length > 0)
     .map((r) => ({
       id: r.id,
       customerFirstName: firstNameOf(r.customer.fullName),
@@ -242,7 +242,7 @@ export async function getActivePromo(): Promise<ActivePromo | null> {
       isActive: true,
       OR: [{ expiresAt: { gt: now } }, { expiresAt: null }],
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
   if (!promo) return null;
   return {
@@ -274,14 +274,14 @@ export async function getTrustNumbers(): Promise<TrustNumbers> {
 
   const [bookings30, reviewAgg, activeOps] = await Promise.all([
     prisma.booking.count({
-      where: { status: "CONFIRMED", createdAt: { gte: since30 } },
+      where: { status: 'CONFIRMED', createdAt: { gte: since30 } },
     }),
     prisma.review.aggregate({
       _avg: { rating: true },
       _count: { _all: true },
     }),
     prisma.operator.count({
-      where: { status: "ACTIVE", deletedAt: null },
+      where: { status: 'ACTIVE', deletedAt: null },
     }),
   ]);
 

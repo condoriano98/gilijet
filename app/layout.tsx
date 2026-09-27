@@ -1,96 +1,96 @@
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
 // Inter is the Figma brand face for Gilifast (display + UI).
 const displayFont = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-display",
-  display: "swap",
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
 });
 
-const SITE_URL = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
-const SITE_TITLE = "Gilifast — Boat tickets across Indonesia";
+const SITE_URL = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const SITE_TITLE = 'Gilifast — Boat tickets across Indonesia';
 const SITE_DESCRIPTION =
-  "Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.";
+  'Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s · Gilifast",
+    template: '%s · Gilifast',
   },
   description: SITE_DESCRIPTION,
-  applicationName: "Gilifast",
+  applicationName: 'Gilifast',
   keywords: [
-    "boat tickets Indonesia",
-    "Bali to Gili fast boat",
-    "Lombok ferry",
-    "Nusa Penida fast boat",
-    "Komodo ferry",
-    "fast boat booking",
-    "tiket kapal cepat",
+    'boat tickets Indonesia',
+    'Bali to Gili fast boat',
+    'Lombok ferry',
+    'Nusa Penida fast boat',
+    'Komodo ferry',
+    'fast boat booking',
+    'tiket kapal cepat',
   ],
-  authors: [{ name: "CV Hi Bali Nusa Tenggara" }],
-  category: "travel",
-  alternates: { canonical: "/" },
+  authors: [{ name: 'CV Hi Bali Nusa Tenggara' }],
+  category: 'travel',
+  alternates: { canonical: '/' },
   openGraph: {
-    type: "website",
-    siteName: "Gilifast",
+    type: 'website',
+    siteName: 'Gilifast',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    locale: "en_ID",
-    alternateLocale: ["id_ID"],
+    locale: 'en_ID',
+    alternateLocale: ['id_ID'],
     url: SITE_URL,
   },
   twitter: {
-    card: "summary_large_image",
+    card: 'summary_large_image',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
-  themeColor: "#103BE9",
+  themeColor: '#103BE9',
 };
 
 const ORGANIZATION_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Gilifast",
-  legalName: "CV Hi Bali Nusa Tenggara",
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Gilifast',
+  legalName: 'CV Hi Bali Nusa Tenggara',
   url: SITE_URL,
   description: SITE_DESCRIPTION,
   sameAs: [],
   contactPoint: {
-    "@type": "ContactPoint",
-    contactType: "customer support",
-    email: "info@balinusafast.com",
-    availableLanguage: ["English", "Indonesian"],
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'info@balinusafast.com',
+    availableLanguage: ['English', 'Indonesian'],
   },
 };
 
 const WEBSITE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "Gilifast",
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Gilifast',
   url: SITE_URL,
   potentialAction: {
-    "@type": "SearchAction",
+    '@type': 'SearchAction',
     target: {
-      "@type": "EntryPoint",
+      '@type': 'EntryPoint',
       urlTemplate: `${SITE_URL}/search?origin={search_term_string}`,
     },
-    "query-input": "required name=search_term_string",
+    'query-input': 'required name=search_term_string',
   },
 };
 

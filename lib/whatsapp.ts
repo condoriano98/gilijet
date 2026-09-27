@@ -1,5 +1,5 @@
-import { env } from "./env";
-import { formatLocalDateTime } from "./datetime";
+import { env } from './env';
+import { formatLocalDateTime } from './datetime';
 
 /**
  * WhatsApp delivery via WATI. Falls back to logging the rendered message when
@@ -12,7 +12,7 @@ import { formatLocalDateTime } from "./datetime";
 
 export type WhatsappResult = {
   delivered: boolean;
-  provider: "wati" | "console";
+  provider: 'wati' | 'console';
 };
 
 export function isWhatsappConfigured(): boolean {
@@ -25,10 +25,10 @@ export function isWhatsappConfigured(): boolean {
  * normalised to the country-code form rather than rejected.
  */
 export function normalizeWhatsappNumber(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "");
+  const digits = raw.replace(/\D/g, '');
   if (digits.length < 8) return null;
-  if (digits.startsWith("62")) return digits;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
   return digits;
 }
 
@@ -36,31 +36,31 @@ async function sendText(to: string, body: string): Promise<WhatsappResult> {
   const number = normalizeWhatsappNumber(to);
   if (!number) {
     console.error(`[whatsapp] unusable number ${to} — skipping send`);
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
   if (!isWhatsappConfigured()) {
     console.log(
       `\n[whatsapp] (no WATI_API_KEY) → would send to ${number}\n${body}\n`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, "");
+  const base = env.WATI_API_URL!.replace(/\/+$/, '');
   const url = `${base}/api/v1/sendSessionMessage/${number}?messageText=${encodeURIComponent(body)}`;
   const res = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.WATI_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[whatsapp] WATI failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "wati" };
+    return { delivered: false, provider: 'wati' };
   }
-  return { delivered: true, provider: "wati" };
+  return { delivered: true, provider: 'wati' };
 }
 
 /**
@@ -79,7 +79,7 @@ async function sendDocument(
   const number = normalizeWhatsappNumber(to);
   if (!number) {
     console.error(`[whatsapp] unusable number ${to} — skipping document`);
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
   if (!isWhatsappConfigured()) {
@@ -87,33 +87,33 @@ async function sendDocument(
       `\n[whatsapp] (no WATI_API_KEY) → would send ${filename} ` +
         `(${(file.length / 1024).toFixed(0)} KB) to ${number}\n${caption}\n`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
   const form = new FormData();
   form.append(
-    "file",
-    new Blob([new Uint8Array(file)], { type: "application/pdf" }),
+    'file',
+    new Blob([new Uint8Array(file)], { type: 'application/pdf' }),
     filename,
   );
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, "");
+  const base = env.WATI_API_URL!.replace(/\/+$/, '');
   const url =
     `${base}/api/v1/sendSessionFile/${number}` +
     `?caption=${encodeURIComponent(caption)}`;
   // No Content-Type header: fetch sets it with the multipart boundary, and
   // overriding it produces a body WATI cannot parse.
   const res = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: { Authorization: `Bearer ${env.WATI_API_KEY}` },
     body: form,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[whatsapp] WATI file send failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "wati" };
+    return { delivered: false, provider: 'wati' };
   }
-  return { delivered: true, provider: "wati" };
+  return { delivered: true, provider: 'wati' };
 }
 
 /** The boarding pass PDF itself, as a WhatsApp document. */
@@ -132,7 +132,7 @@ export async function sendBoardingPassDocument(args: {
     `${formatLocalDateTime(args.departureDate)} WITA`,
     `Kode booking: ${args.bookingReference}`,
     `Tunjukkan QR code di dermaga. Selamat jalan! — Gilifast`,
-  ].join("\n");
+  ].join('\n');
   return sendDocument(args.to, args.pdf, args.filename, caption);
 }
 
@@ -158,29 +158,29 @@ export async function sendTemplateMessage(args: {
   const number = normalizeWhatsappNumber(args.to);
   if (!number) {
     console.error(`[whatsapp] unusable number ${args.to} — skipping template`);
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
   const rendered = Object.entries(args.params)
     .map(([k, v]) => `  ${k}: ${v}`)
-    .join("\n");
+    .join('\n');
 
   if (!isWhatsappConfigured()) {
     console.log(
       `\n[whatsapp] (no WATI_API_KEY) → would send template ` +
         `"${args.templateName}" to ${number}\n${rendered}\n`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, "");
+  const base = env.WATI_API_URL!.replace(/\/+$/, '');
   const res = await fetch(
     `${base}/api/v1/sendTemplateMessage?whatsappNumber=${number}`,
     {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${env.WATI_API_KEY}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         template_name: args.templateName,
@@ -193,13 +193,13 @@ export async function sendTemplateMessage(args: {
     },
   );
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(
       `[whatsapp] WATI template "${args.templateName}" failed ${res.status}: ${text}`,
     );
-    return { delivered: false, provider: "wati" };
+    return { delivered: false, provider: 'wati' };
   }
-  return { delivered: true, provider: "wati" };
+  return { delivered: true, provider: 'wati' };
 }
 
 export async function sendBoardingPassWhatsapp(args: {
@@ -219,11 +219,11 @@ export async function sendBoardingPassWhatsapp(args: {
     `Rute: ${args.route.originPort} → ${args.route.destinationPort}`,
     `Kapal: ${args.boatName}`,
     `Berangkat: ${formatLocalDateTime(args.departureDate)} WITA`,
-    `Tiket: ${args.ticketCodes.join(", ")}`,
+    `Tiket: ${args.ticketCodes.join(', ')}`,
     ``,
     `Boarding pass dan QR code: ${args.lookupUrl}`,
     `Tunjukkan QR code tersebut di dermaga. Selamat jalan! — Gilifast`,
-  ].join("\n");
+  ].join('\n');
   return sendText(args.to, body);
 }
 
@@ -243,7 +243,7 @@ export async function sendPaymentReceivedWhatsapp(args: {
     `Mohon jangan berangkat ke dermaga sebelum menerima boarding pass.`,
     ``,
     `Cek status: ${args.lookupUrl}`,
-  ].join("\n");
+  ].join('\n');
   return sendText(args.to, body);
 }
 
@@ -262,6 +262,6 @@ export async function sendOperatorUnavailableWhatsapp(args: {
     `Proses refund memerlukan waktu beberapa hari kerja.`,
     ``,
     `Detail: ${args.lookupUrl}`,
-  ].join("\n");
+  ].join('\n');
   return sendText(args.to, body);
 }

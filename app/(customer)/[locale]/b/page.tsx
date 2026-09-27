@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -6,15 +6,15 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 async function lookupAction(formData: FormData) {
-  "use server";
-  const ref = String(formData.get("reference") ?? "").trim().toUpperCase();
-  if (!ref) redirect("/b?error=missing");
+  'use server';
+  const ref = String(formData.get('reference') ?? '').trim().toUpperCase();
+  if (!ref) redirect('/b?error=missing');
   redirect(`/b/${encodeURIComponent(ref)}`);
 }
 

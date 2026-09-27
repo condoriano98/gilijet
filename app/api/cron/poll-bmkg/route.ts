@@ -1,22 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { getAllPorts } from "@/lib/port-info";
-import { isSailable } from "@/lib/weather-policy";
-import type { WeatherCondition } from "@prisma/client";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { getAllPorts } from '@/lib/port-info';
+import { isSailable } from '@/lib/weather-policy';
+import type { WeatherCondition } from '@prisma/client';
 
 function classifyCondition(waveHeightM: number, windKnots: number): WeatherCondition {
   const result = isSailable({ waveHeightM, windKnots });
-  if (result.level === "UNSAFE") return "SEVERE";
-  if (result.level === "BORDERLINE") return "ROUGH";
-  if (waveHeightM > 0.5 || windKnots > 10) return "MODERATE";
-  return "CALM";
+  if (result.level === 'UNSAFE') return 'SEVERE';
+  if (result.level === 'BORDERLINE') return 'ROUGH';
+  if (waveHeightM > 0.5 || windKnots > 10) return 'MODERATE';
+  return 'CALM';
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
+  const authHeader = req.headers.get('authorization');
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const ports = getAllPorts();
@@ -69,4 +69,4 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, fetched, failed, total: ports.length });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

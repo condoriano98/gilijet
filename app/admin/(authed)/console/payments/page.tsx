@@ -1,32 +1,32 @@
-import { requireSuperAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { applyGatewayModeOverrides } from "@/lib/payment-mode";
-import { pingDoku } from "@/lib/doku";
-import { pingPaypal } from "@/lib/paypal";
-import { savePaymentModes } from "../actions";
+import { requireSuperAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { applyGatewayModeOverrides } from '@/lib/payment-mode';
+import { pingDoku } from '@/lib/doku';
+import { pingPaypal } from '@/lib/paypal';
+import { savePaymentModes } from '../actions';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const MODE_LABELS: Record<string, string> = {
-  ENV: "Follow env vars",
-  SANDBOX: "Sandbox (test)",
-  LIVE: "Live",
+  ENV: 'Follow env vars',
+  SANDBOX: 'Sandbox (test)',
+  LIVE: 'Live',
 };
 
 /**
@@ -45,13 +45,13 @@ export default async function PaymentsConsolePage({
   // Apply first so the status below reflects what checkout will actually do.
   await applyGatewayModeOverrides();
   const config = await prisma.platformConfig.findUnique({
-    where: { id: "default" },
+    where: { id: 'default' },
   });
   const doku = pingDoku();
   const paypal = pingPaypal();
 
-  const dokuMode = config?.dokuMode ?? "ENV";
-  const paypalMode = config?.paypalMode ?? "ENV";
+  const dokuMode = config?.dokuMode ?? 'ENV';
+  const paypalMode = config?.paypalMode ?? 'ENV';
 
   return (
     <div className="space-y-6">
@@ -96,15 +96,15 @@ export default async function PaymentsConsolePage({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Effective:{" "}
-                  {doku.mode === "mock"
-                    ? "mock (no DOKU keys set)"
+                  Effective:{' '}
+                  {doku.mode === 'mock'
+                    ? 'mock (no DOKU keys set)'
                     : `${doku.mode} host`}
-                  {doku.override !== "ENV"
-                    ? " — forced by this console"
-                    : doku.mode !== "mock"
-                      ? " — from DOKU_IS_PRODUCTION"
-                      : ""}
+                  {doku.override !== 'ENV'
+                    ? ' — forced by this console'
+                    : doku.mode !== 'mock'
+                      ? ' — from DOKU_IS_PRODUCTION'
+                      : ''}
                 </p>
               </div>
 
@@ -123,15 +123,15 @@ export default async function PaymentsConsolePage({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Effective:{" "}
-                  {paypal.mode === "mock"
-                    ? "mock (no PayPal keys set)"
-                    : `${paypal.mode} host${paypal.modeProven ? " (confirmed by PayPal)" : " (unconfirmed)"}`}
-                  {paypal.override !== "ENV"
-                    ? " — forced by this console"
-                    : paypal.mode !== "mock"
-                      ? " — from PAYPAL_IS_PRODUCTION"
-                      : ""}
+                  Effective:{' '}
+                  {paypal.mode === 'mock'
+                    ? 'mock (no PayPal keys set)'
+                    : `${paypal.mode} host${paypal.modeProven ? ' (confirmed by PayPal)' : ' (unconfirmed)'}`}
+                  {paypal.override !== 'ENV'
+                    ? ' — forced by this console'
+                    : paypal.mode !== 'mock'
+                      ? ' — from PAYPAL_IS_PRODUCTION'
+                      : ''}
                 </p>
               </div>
             </div>

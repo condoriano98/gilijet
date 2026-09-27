@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType } from 'react';
 
 export type PostMeta = {
   slug: string;
@@ -17,9 +17,9 @@ export type Post = {
   Body: ComponentType;
 };
 
-import * as choosingFastBoat from "./posts/choosing-fast-boat-bali-gili";
-import * as bestSeason from "./posts/best-season-cross-lombok";
-import * as seasicknessTips from "./posts/seasickness-on-the-crossing";
+import * as choosingFastBoat from './posts/choosing-fast-boat-bali-gili';
+import * as bestSeason from './posts/best-season-cross-lombok';
+import * as seasicknessTips from './posts/seasickness-on-the-crossing';
 
 const MODULES = [choosingFastBoat, bestSeason, seasicknessTips] as const;
 

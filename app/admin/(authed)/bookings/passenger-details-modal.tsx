@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -15,9 +15,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatIDR } from "@/lib/utils";
-import type { PassengerDetail } from "@/lib/booking-display";
+} from '@/components/ui/table';
+import { formatIDR } from '@/lib/utils';
+import type { PassengerDetail } from '@/lib/booking-display';
 
 export type PassengerDetailsModalProps = {
   open: boolean;
@@ -42,7 +42,7 @@ export function PassengerDetailsModal({
         <DialogHeader>
           <DialogTitle>Passenger Details</DialogTitle>
           <DialogDescription>
-            {passengers.length} passenger{passengers.length === 1 ? "" : "s"}
+            {passengers.length} passenger{passengers.length === 1 ? '' : 's'}
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-x-auto">
@@ -64,7 +64,7 @@ export function PassengerDetailsModal({
                       {p.type}
                     </span>
                   </TableCell>
-                  <TableCell>{nationality || "-"}</TableCell>
+                  <TableCell>{nationality || '-'}</TableCell>
                   <TableCell className="text-right">
                     {formatIDR(pricePerPassenger)}
                   </TableCell>

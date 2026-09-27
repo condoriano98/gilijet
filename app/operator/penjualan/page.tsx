@@ -1,30 +1,30 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { agentCommissionYtd, erpFeeYtd } from "@/lib/operator-erp-queries";
-import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
-import { salesChannelLabel, normalizeSalesChannel } from "@/lib/sales-channel";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { agentCommissionYtd, erpFeeYtd } from '@/lib/operator-erp-queries';
+import Link from 'next/link';
+import { ShoppingCart } from 'lucide-react';
+import { salesChannelLabel, normalizeSalesChannel } from '@/lib/sales-channel';
 
-function channelVariant(ch: string): "success" | "warning" | "danger" | "neutral" | "info" {
-  const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-    GILIFAST: "info", WALK_IN: "success", TRAVEL_AGENT: "warning",
-    PHONE: "neutral", EXTERNAL_AGGREGATOR: "neutral",
+function channelVariant(ch: string): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
+  const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+    GILIFAST: 'info', WALK_IN: 'success', TRAVEL_AGENT: 'warning',
+    PHONE: 'neutral', EXTERNAL_AGGREGATOR: 'neutral',
   };
-  return map[normalizeSalesChannel(ch)] ?? "neutral";
+  return map[normalizeSalesChannel(ch)] ?? 'neutral';
 }
 
-function bookingStatusVariant(s: string): "success" | "warning" | "danger" | "neutral" | "info" {
-  const map: Record<string, "success" | "warning" | "danger" | "neutral" | "info"> = {
-    CONFIRMED: "success", PENDING_PAYMENT: "warning", EXPIRED: "neutral",
-    CANCELLED_BY_CUSTOMER: "danger", CANCELLED_BY_OPERATOR: "danger",
+function bookingStatusVariant(s: string): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
+  const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
+    CONFIRMED: 'success', PENDING_PAYMENT: 'warning', EXPIRED: 'neutral',
+    CANCELLED_BY_CUSTOMER: 'danger', CANCELLED_BY_OPERATOR: 'danger',
   };
-  return map[s] ?? "neutral";
+  return map[s] ?? 'neutral';
 }
 
 export default async function PenjualanPage({
@@ -36,7 +36,7 @@ export default async function PenjualanPage({
   const operatorId = session.sub;
   const sp = await searchParams;
 
-  const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00+08:00");
+  const monthStart = new Date(new Date().toISOString().slice(0, 7) + '-01T00:00:00+08:00');
 
   const [bookings, monthStats, agentCommission, erpFee] = await Promise.all([
     prisma.booking.findMany({
@@ -50,11 +50,11 @@ export default async function PenjualanPage({
         salesAgent: true,
         tickets: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: 50,
     }),
     prisma.booking.aggregate({
-      where: { operatorId, status: "CONFIRMED", createdAt: { gte: monthStart } },
+      where: { operatorId, status: 'CONFIRMED', createdAt: { gte: monthStart } },
       _count: true,
       _sum: { totalAmount: true, operatorAmount: true },
     }),
@@ -68,8 +68,8 @@ export default async function PenjualanPage({
   type BookingRow = (typeof bookings)[number];
   const columns = [
     {
-      key: "bookingReference",
-      header: "Ref. Pemesanan",
+      key: 'bookingReference',
+      header: 'Ref. Pemesanan',
       render: (row: BookingRow) => (
         <Link href={`/operator/penjualan/${row.id}`} className="font-mono text-sm text-mekari-primary hover:underline">
           {row.bookingReference}
@@ -77,34 +77,34 @@ export default async function PenjualanPage({
       ),
     },
     {
-      key: "createdAt",
-      header: "Tgl Booking",
-      render: (row: BookingRow) => formatLocalDate(row.createdAt, "dd MMM yyyy"),
+      key: 'createdAt',
+      header: 'Tgl Booking',
+      render: (row: BookingRow) => formatLocalDate(row.createdAt, 'dd MMM yyyy'),
     },
     {
-      key: "departure",
-      header: "Keberangkatan",
+      key: 'departure',
+      header: 'Keberangkatan',
       render: (row: BookingRow) => (
         <span>
-          {formatLocalDate(row.leg.departureDate, "dd MMM")}{" "}
+          {formatLocalDate(row.leg.departureDate, 'dd MMM')}{' '}
           <span className="font-mono text-xs">{formatLocalTime(row.leg.departureDate)}</span>
         </span>
       ),
     },
     {
-      key: "route",
-      header: "Rute",
+      key: 'route',
+      header: 'Rute',
       render: (row: BookingRow) => `${row.leg.schedule.originPort} → ${row.leg.schedule.destinationPort}`,
     },
     {
-      key: "passengers",
-      header: "Penumpang",
-      align: "center" as const,
+      key: 'passengers',
+      header: 'Penumpang',
+      align: 'center' as const,
       render: (row: BookingRow) => `${row.tickets.length} pax`,
     },
     {
-      key: "salesChannel",
-      header: "Saluran",
+      key: 'salesChannel',
+      header: 'Saluran',
       render: (row: BookingRow) => (
         <StatusBadge variant={channelVariant(row.salesChannel)}>
           {salesChannelLabel(row.salesChannel)}
@@ -112,18 +112,18 @@ export default async function PenjualanPage({
       ),
     },
     {
-      key: "status",
-      header: "Status",
+      key: 'status',
+      header: 'Status',
       render: (row: BookingRow) => (
         <StatusBadge variant={bookingStatusVariant(row.status)}>
-          {row.status.replace(/_/g, " ")}
+          {row.status.replace(/_/g, ' ')}
         </StatusBadge>
       ),
     },
     {
-      key: "totalAmount",
-      header: "Total",
-      align: "right" as const,
+      key: 'totalAmount',
+      header: 'Total',
+      align: 'right' as const,
       render: (row: BookingRow) => formatIDR(Number(row.totalAmount)),
     },
   ];
@@ -132,10 +132,10 @@ export default async function PenjualanPage({
     <ListPageTemplate
       title="Penjualan"
       subtitle="Semua booking dari seluruh saluran penjualan"
-      primaryAction={{ label: "+ Tambah Booking", href: "/operator/penjualan/baru" }}
+      primaryAction={{ label: '+ Tambah Booking', href: '/operator/penjualan/baru' }}
       secondaryActions={[
-        { label: "Agen Perjalanan", href: "/operator/penjualan/agen" },
-        { label: "Ekspor", onClick: () => {} },
+        { label: 'Agen Perjalanan', href: '/operator/penjualan/agen' },
+        { label: 'Ekspor', onClick: () => {} },
       ]}
       kpis={
         <>

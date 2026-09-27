@@ -1,8 +1,8 @@
-import { env } from "./env";
-import { formatLocalDateTime } from "./datetime";
-import { formatIDR } from "./utils";
-import { renderQrSvgDataUrl } from "./qr-render";
-import type { IssuedTicket } from "./ticket-issuer";
+import { env } from './env';
+import { formatLocalDateTime } from './datetime';
+import { formatIDR } from './utils';
+import { renderQrSvgDataUrl } from './qr-render';
+import type { IssuedTicket } from './ticket-issuer';
 
 /**
  * Transactional email. Wired up to Resend when RESEND_API_KEY is set;
@@ -28,7 +28,7 @@ type BookingConfirmationArgs = {
 
 export async function sendBookingConfirmation(
   args: BookingConfirmationArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Your Gilifast booking ${args.bookingReference}`;
   const html = await renderBookingConfirmationHtml(args);
 
@@ -37,21 +37,21 @@ export async function sendBookingConfirmation(
       `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n` +
-        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(", ")}\n` +
+        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(', ')}\n` +
         (args.attachments?.length
           ? `        attach : ${args.attachments
               .map((a) => `${a.filename} (${(a.content.length / 1024).toFixed(0)} KB)`)
-              .join(", ")}\n`
-          : ""),
+              .join(', ')}\n`
+          : ''),
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -62,18 +62,18 @@ export async function sendBookingConfirmation(
         ? {
             attachments: args.attachments.map((a) => ({
               filename: a.filename,
-              content: a.content.toString("base64"),
+              content: a.content.toString('base64'),
             })),
           }
         : {}),
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }
 
 async function renderBookingConfirmationHtml(
@@ -105,7 +105,7 @@ async function renderBookingConfirmationHtml(
   </table>
 
   <h2 style="font-size:16px;margin:0 0 12px 0;">Boarding passes</h2>
-  ${ticketBlocks.join("")}
+  ${ticketBlocks.join('')}
 
   <p style="margin-top:24px;color:#475569;font-size:14px;">
     Show each QR code at the dock. You can also access them anytime at
@@ -138,7 +138,7 @@ type PaymentReceivedArgs = {
  */
 export async function sendPaymentReceivedEmail(
   args: PaymentReceivedArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Payment received for ${args.bookingReference} — confirming your seat`;
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
@@ -167,14 +167,14 @@ export async function sendPaymentReceivedEmail(
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -184,11 +184,11 @@ export async function sendPaymentReceivedEmail(
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }
 
 // ─── Password reset email ─────────────────────────────────────────────────────
@@ -200,8 +200,8 @@ type PasswordResetArgs = {
 
 export async function sendPasswordResetEmail(
   args: PasswordResetArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
-  const subject = "Reset your Gilifast password";
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+  const subject = 'Reset your Gilifast password';
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h1 style="margin:0 0 16px 0;font-size:22px;">Reset your password</h1>
@@ -219,14 +219,14 @@ export async function sendPasswordResetEmail(
       `[email] (no RESEND_API_KEY) password-reset → ${args.to}\n` +
         `        url: ${args.resetUrl}`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -236,11 +236,11 @@ export async function sendPasswordResetEmail(
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend password-reset failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }
 
 // ─── Departure reminder email ─────────────────────────────────────────────────
@@ -258,7 +258,7 @@ type DepartureReminderArgs = {
 
 export async function sendDepartureReminder(
   args: DepartureReminderArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Reminder: your boat departs tomorrow — ${args.bookingReference}`;
   const html = await renderDepartureReminderHtml(args);
 
@@ -266,16 +266,16 @@ export async function sendDepartureReminder(
     console.log(
       `[email] (no RESEND_API_KEY) departure-reminder → ${args.to}\n` +
         `        booking: ${args.bookingReference}\n` +
-        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(", ")}`,
+        `        tickets: ${args.tickets.map((t) => t.ticketCode).join(', ')}`,
     );
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -285,11 +285,11 @@ export async function sendDepartureReminder(
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend departure-reminder failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }
 
 async function renderDepartureReminderHtml(
@@ -320,7 +320,7 @@ async function renderDepartureReminderHtml(
   </table>
 
   <h2 style="font-size:16px;margin:0 0 12px 0;">Your boarding passes</h2>
-  ${ticketBlocks.join("")}
+  ${ticketBlocks.join('')}
 
   <p style="margin-top:16px;padding:12px;background:#f0f9ff;border-radius:8px;color:#0369a1;font-size:14px;">
     Arrive at least 30 minutes before departure. Bring a government ID.
@@ -334,11 +334,11 @@ async function renderDepartureReminderHtml(
 
 function escapeHtml(s: string): string {
   return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 // ─── Cancellation email ──────────────────────────────────────────────────────
@@ -350,18 +350,18 @@ type CancellationEmailArgs = {
   route: { originPort: string; destinationPort: string };
   departureDate: Date;
   refundAmount: number;
-  refundTier: "FULL" | "PARTIAL" | "NONE";
+  refundTier: 'FULL' | 'PARTIAL' | 'NONE';
   lookupUrl: string;
 };
 
 export async function sendCancellationEmail(
   args: CancellationEmailArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Booking ${args.bookingReference} cancelled`;
 
   const refundLine =
-    args.refundTier === "NONE"
-      ? "No refund is due based on the cancellation window."
+    args.refundTier === 'NONE'
+      ? 'No refund is due based on the cancellation window.'
       : `Refund of <strong>${formatIDR(args.refundAmount)}</strong> will be processed within 5–14 business days.`;
 
   const html = `<!doctype html>
@@ -381,14 +381,14 @@ export async function sendCancellationEmail(
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
     console.log(`[email] (no RESEND_API_KEY) cancellation → ${args.to}`);
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -398,11 +398,11 @@ export async function sendCancellationEmail(
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend cancellation failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }
 
 // ─── Refund processed email ───────────────────────────────────────────────────
@@ -417,7 +417,7 @@ type RefundEmailArgs = {
 
 export async function sendRefundProcessedEmail(
   args: RefundEmailArgs,
-): Promise<{ delivered: boolean; provider: "resend" | "console" }> {
+): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Refund processed for ${args.bookingReference}`;
 
   const html = `<!doctype html>
@@ -433,14 +433,14 @@ export async function sendRefundProcessedEmail(
 
   if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
     console.log(`[email] (no RESEND_API_KEY) refund-processed → ${args.to}`);
-    return { delivered: false, provider: "console" };
+    return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       from: env.RESEND_FROM_EMAIL,
@@ -450,9 +450,9 @@ export async function sendRefundProcessedEmail(
     }),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const text = await res.text().catch(() => '');
     console.error(`[email] Resend refund-processed failed ${res.status}: ${text}`);
-    return { delivered: false, provider: "resend" };
+    return { delivered: false, provider: 'resend' };
   }
-  return { delivered: true, provider: "resend" };
+  return { delivered: true, provider: 'resend' };
 }

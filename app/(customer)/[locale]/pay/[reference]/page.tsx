@@ -1,18 +1,18 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
 import {
   capturePaypalOrder,
   quotePaypalIfAvailable,
   startDokuCheckout,
   startPaypalOrder,
-} from "@/lib/psp";
-import { isDokuMock, pingDoku } from "@/lib/doku";
-import { isPaypalLive, paypalHost } from "@/lib/paypal";
-import { applyGatewayModeOverrides } from "@/lib/payment-mode";
-import { env } from "@/lib/env";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
+} from '@/lib/psp';
+import { isDokuMock, pingDoku } from '@/lib/doku';
+import { isPaypalLive, paypalHost } from '@/lib/paypal';
+import { applyGatewayModeOverrides } from '@/lib/payment-mode';
+import { env } from '@/lib/env';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
 import {
   Card,
   CardContent,
@@ -20,28 +20,28 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BookingProgress } from "@/components/customer/booking-progress";
-import { PaymentCountdown } from "@/components/customer/payment-countdown";
-import { DokuRedirect } from "@/components/checkout/doku-redirect";
-import { PaypalButton } from "@/components/checkout/paypal-button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { BookingProgress } from '@/components/customer/booking-progress';
+import { PaymentCountdown } from '@/components/customer/payment-countdown';
+import { DokuRedirect } from '@/components/checkout/doku-redirect';
+import { PaypalButton } from '@/components/checkout/paypal-button';
 
 /** Server action: open a DOKU checkout and send the customer to it. */
 async function startPaymentAction(formData: FormData) {
-  "use server";
-  const reference = String(formData.get("reference") ?? "");
+  'use server';
+  const reference = String(formData.get('reference') ?? '');
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     select: { status: true },
   });
-  if (!booking || booking.status !== "PENDING_PAYMENT") redirect(`/b/${reference}`);
+  if (!booking || booking.status !== 'PENDING_PAYMENT') redirect(`/b/${reference}`);
 
   let paymentUrl: string;
   try {
     paymentUrl = (await startDokuCheckout(reference)).paymentUrl;
   } catch (err) {
-    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+    if (err instanceof Error && err.message === 'NEXT_REDIRECT') throw err;
     console.error(`[pay] could not open DOKU checkout for ${reference}:`, err);
     redirect(`/pay/${reference}?error=gateway`);
   }
@@ -50,25 +50,25 @@ async function startPaymentAction(formData: FormData) {
 
 /** Server action: open a PayPal order and send the customer to approve it. */
 async function startPaypalAction(formData: FormData) {
-  "use server";
-  const reference = String(formData.get("reference") ?? "");
+  'use server';
+  const reference = String(formData.get('reference') ?? '');
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
     select: { status: true },
   });
-  if (!booking || booking.status !== "PENDING_PAYMENT") redirect(`/b/${reference}`);
+  if (!booking || booking.status !== 'PENDING_PAYMENT') redirect(`/b/${reference}`);
 
   let approveUrl: string | null;
   try {
     approveUrl = (await startPaypalOrder(reference)).approveUrl;
   } catch (err) {
-    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+    if (err instanceof Error && err.message === 'NEXT_REDIRECT') throw err;
     // The rate can go stale between rendering the button and clicking it.
     // Send them back to DOKU rather than charging a guessed rate.
     console.error(`[pay] could not open PayPal order for ${reference}:`, err);
     redirect(`/pay/${reference}?error=paypal`);
   }
-  if (!approveUrl) throw new Error("PayPal did not return an approve URL");
+  if (!approveUrl) throw new Error('PayPal did not return an approve URL');
   redirect(approveUrl);
 }
 
@@ -95,11 +95,11 @@ export default async function PayPage({
   });
   if (!booking) notFound();
 
-  if (booking.status === "CONFIRMED") redirect(`/b/${reference}`);
+  if (booking.status === 'CONFIRMED') redirect(`/b/${reference}`);
   if (
-    booking.status === "EXPIRED" ||
-    booking.status === "CANCELLED_BY_CUSTOMER" ||
-    booking.status === "CANCELLED_BY_OPERATOR"
+    booking.status === 'EXPIRED' ||
+    booking.status === 'CANCELLED_BY_CUSTOMER' ||
+    booking.status === 'CANCELLED_BY_OPERATOR'
   ) {
     redirect(`/b/${reference}`);
   }
@@ -109,12 +109,12 @@ export default async function PayPage({
   // delayed webhook would leave a paid booking counting down its hold timer.
   // The webhook later no-ops as a duplicate.
   let paypalError: string | null = null;
-  if (paypal === "return") {
+  if (paypal === 'return') {
     const outcome = await capturePaypalOrder(reference, token);
     if (outcome.ok) redirect(`/b/${reference}`);
     paypalError = outcome.reason;
-  } else if (paypal === "cancel") {
-    paypalError = "PayPal payment was cancelled. You can try again.";
+  } else if (paypal === 'cancel') {
+    paypalError = 'PayPal payment was cancelled. You can try again.';
   }
 
   // No real DOKU keys → the built-in dummy checkout.
@@ -129,12 +129,12 @@ export default async function PayPage({
   // The credentials decide which PayPal host we talk to, so a live-looking site
   // can end up on sandbox. A sandbox capture still issues a real ticket for a
   // real sailing while no money moves, so say so before anyone pays.
-  const paypalIsTestMode = Boolean(paypalQuote) && paypalHost() === "sandbox";
+  const paypalIsTestMode = Boolean(paypalQuote) && paypalHost() === 'sandbox';
 
   // Same warning for DOKU: real keys pointed at the sandbox host collect test
   // payments that would still confirm a booking.
   const doku = pingDoku();
-  const dokuIsTestMode = !isDokuMock() && doku.mode === "sandbox";
+  const dokuIsTestMode = !isDokuMock() && doku.mode === 'sandbox';
 
   // A recorded DOKU decline is exactly why someone would need the backup, so
   // lead with it rather than leaving them to retry the card that just failed.
@@ -148,7 +148,7 @@ export default async function PayPage({
           <CardHeader>
             <CardTitle>Complete payment</CardTitle>
             <CardDescription>
-              Reference{" "}
+              Reference{' '}
               <span className="font-mono">{booking.bookingReference}</span>
             </CardDescription>
           </CardHeader>
@@ -159,11 +159,11 @@ export default async function PayPage({
             />
             <div className="rounded-md bg-slate-50 p-3">
               <div className="font-medium">
-                {booking.leg.schedule.originPort} →{" "}
+                {booking.leg.schedule.originPort} →{' '}
                 {booking.leg.schedule.destinationPort}
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatLocalDateTime(booking.leg.departureDate)} WITA ·{" "}
+                {formatLocalDateTime(booking.leg.departureDate)} WITA ·{' '}
                 {booking.leg.schedule.boat.name}
               </div>
             </div>
@@ -173,12 +173,12 @@ export default async function PayPage({
             </div>
 
             <div className="space-y-4 border-t pt-4">
-              {error === "gateway" ? (
+              {error === 'gateway' ? (
                 <p className="rounded-md bg-rose-50 p-3 text-center text-xs text-rose-700">
                   The payment gateway did not respond. Please try again.
                 </p>
               ) : null}
-              {error === "paypal" ? (
+              {error === 'paypal' ? (
                 <p className="rounded-md bg-rose-50 p-3 text-center text-xs text-rose-700">
                   PayPal is temporarily unavailable. Please use the option below.
                 </p>

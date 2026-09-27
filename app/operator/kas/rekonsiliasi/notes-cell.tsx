@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { saveReconciliationNote } from "./actions";
+import { useState, useTransition } from 'react';
+import { Button } from '@/components/ui/button';
+import { saveReconciliationNote } from './actions';
 
 export function NotesCell({
   sessionId,
@@ -39,12 +39,12 @@ export function NotesCell({
               await saveReconciliationNote({ sessionId, notes: value });
               setSaved(value);
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Gagal menyimpan");
+              setError(e instanceof Error ? e.message : 'Gagal menyimpan');
             }
           })
         }
       >
-        {pending ? "…" : "Simpan"}
+        {pending ? '…' : 'Simpan'}
       </Button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>

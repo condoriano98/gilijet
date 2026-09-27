@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { BookingProgress } from "@/components/customer/booking-progress";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { BookingProgress } from '@/components/customer/booking-progress';
 
 export default function BookLoading() {
   return (

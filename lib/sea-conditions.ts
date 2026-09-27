@@ -6,60 +6,60 @@
  * Until then, this is keyed by canonical route name (order-agnostic).
  */
 
-export type SeaCondition = "CALM" | "MODERATE" | "ROUGH";
+export type SeaCondition = 'CALM' | 'MODERATE' | 'ROUGH';
 
 export type RouteCondition = {
   condition: SeaCondition;
   label: string;
   /** Used to style badge variant. */
-  tone: "success" | "warning" | "destructive";
+  tone: 'success' | 'warning' | 'destructive';
 };
 
 const ROUTE_CONDITIONS: Record<string, RouteCondition> = {
   // Bali ↔ Nusa Penida / Lembongan — short, sheltered crossings.
-  "Sanur|Nusa Penida": {
-    condition: "CALM",
-    label: "Calm seas",
-    tone: "success",
+  'Sanur|Nusa Penida': {
+    condition: 'CALM',
+    label: 'Calm seas',
+    tone: 'success',
   },
-  "Sanur|Nusa Lembongan": {
-    condition: "CALM",
-    label: "Calm seas",
-    tone: "success",
+  'Sanur|Nusa Lembongan': {
+    condition: 'CALM',
+    label: 'Calm seas',
+    tone: 'success',
   },
   // Padang Bai ↔ Gilis — Lombok Strait, often moderate swell.
-  "Padang Bai|Gili Trawangan": {
-    condition: "MODERATE",
-    label: "Moderate swell",
-    tone: "warning",
+  'Padang Bai|Gili Trawangan': {
+    condition: 'MODERATE',
+    label: 'Moderate swell',
+    tone: 'warning',
   },
-  "Padang Bai|Gili Air": {
-    condition: "MODERATE",
-    label: "Moderate swell",
-    tone: "warning",
+  'Padang Bai|Gili Air': {
+    condition: 'MODERATE',
+    label: 'Moderate swell',
+    tone: 'warning',
   },
   // Bangsal ↔ Gilis — short hops, almost always calm.
-  "Bangsal|Gili Trawangan": {
-    condition: "CALM",
-    label: "Calm seas",
-    tone: "success",
+  'Bangsal|Gili Trawangan': {
+    condition: 'CALM',
+    label: 'Calm seas',
+    tone: 'success',
   },
-  "Bangsal|Gili Air": {
-    condition: "CALM",
-    label: "Calm seas",
-    tone: "success",
+  'Bangsal|Gili Air': {
+    condition: 'CALM',
+    label: 'Calm seas',
+    tone: 'success',
   },
   // Padang Bai → Lombok — open water.
-  "Padang Bai|Lombok": {
-    condition: "MODERATE",
-    label: "Moderate seas",
-    tone: "warning",
+  'Padang Bai|Lombok': {
+    condition: 'MODERATE',
+    label: 'Moderate seas',
+    tone: 'warning',
   },
   // Labuan Bajo → Komodo — Flores Sea, can be rough in monsoon season.
-  "Labuan Bajo|Komodo": {
-    condition: "MODERATE",
-    label: "Moderate seas",
-    tone: "warning",
+  'Labuan Bajo|Komodo': {
+    condition: 'MODERATE',
+    label: 'Moderate seas',
+    tone: 'warning',
   },
 };
 

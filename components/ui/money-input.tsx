@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Input } from "@/components/ui/input";
+import * as React from 'react';
+import { Input } from '@/components/ui/input';
 
-type MoneyInputProps = Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "type"> & {
+type MoneyInputProps = Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'> & {
   value: number;
   onChange: (value: number) => void;
   prefix?: string;
 };
 
 function formatRupiah(n: number): string {
-  return n.toLocaleString("id-ID");
+  return n.toLocaleString('id-ID');
 }
 
 function parseRupiah(s: string): number {
-  return Number(s.replace(/\D/g, "")) || 0;
+  return Number(s.replace(/\D/g, '')) || 0;
 }
 
-export function MoneyInput({ value, onChange, prefix = "Rp", ...props }: MoneyInputProps) {
+export function MoneyInput({ value, onChange, prefix = 'Rp', ...props }: MoneyInputProps) {
   const [display, setDisplay] = React.useState(formatRupiah(value));
 
   React.useEffect(() => {

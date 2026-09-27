@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { requireOperator } from "@/lib/auth";
-import { getOperatorSchedules } from "@/lib/operator-data";
+import Link from 'next/link';
+import { requireOperator } from '@/lib/auth';
+import { getOperatorSchedules } from '@/lib/operator-data';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,19 +15,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
 
 const DAY_LABEL: Record<number, string> = {
-  1: "M",
-  2: "T",
-  3: "W",
-  4: "T",
-  5: "F",
-  6: "S",
-  7: "S",
+  1: 'M',
+  2: 'T',
+  3: 'W',
+  4: 'T',
+  5: 'F',
+  6: 'S',
+  7: 'S',
 };
 
 export default async function OperatorSchedulesPage() {
@@ -53,7 +53,7 @@ export default async function OperatorSchedulesPage() {
         <CardHeader>
           <CardTitle>
             {schedules.length.toLocaleString()} schedule
-            {schedules.length === 1 ? "" : "s"}
+            {schedules.length === 1 ? '' : 's'}
           </CardTitle>
           <CardDescription>
             Only active schedules generate new legs.
@@ -98,8 +98,8 @@ export default async function OperatorSchedulesPage() {
                             key={d}
                             className={
                               s.daysOfWeek.includes(d)
-                                ? "rounded bg-sky-100 px-1 text-sky-700"
-                                : "rounded bg-slate-100 px-1 text-slate-300"
+                                ? 'rounded bg-sky-100 px-1 text-sky-700'
+                                : 'rounded bg-slate-100 px-1 text-slate-300'
                             }
                           >
                             {DAY_LABEL[d]}
@@ -110,7 +110,7 @@ export default async function OperatorSchedulesPage() {
                     <TableCell>{formatIDR(Number(s.basePrice))}</TableCell>
                     <TableCell>{s._count.legs}</TableCell>
                     <TableCell>
-                      <Badge variant={s.status === "ACTIVE" ? "success" : "outline"}>
+                      <Badge variant={s.status === 'ACTIVE' ? 'success' : 'outline'}>
                         {s.status}
                       </Badge>
                     </TableCell>

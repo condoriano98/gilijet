@@ -1,14 +1,14 @@
-import type { PostMeta } from "../index";
+import type { PostMeta } from '../index';
 
 export const meta: PostMeta = {
-  slug: "seasickness-on-the-crossing",
+  slug: 'seasickness-on-the-crossing',
   title: "Seasickness on the Bali-Gili crossing: what works, what doesn't",
   description:
-    "Practical, no-nonsense advice for staying comfortable on a 90-minute fast-boat crossing — from where to sit to what to take before you board.",
-  publishedAt: "2026-06-05",
-  author: "Tim Gilifast",
+    'Practical, no-nonsense advice for staying comfortable on a 90-minute fast-boat crossing — from where to sit to what to take before you board.',
+  publishedAt: '2026-06-05',
+  author: 'Tim Gilifast',
   readingMinutes: 4,
-  tags: ["Seasickness", "Travel tips", "Comfort"],
+  tags: ['Seasickness', 'Travel tips', 'Comfort'],
 };
 
 export default function SeasicknessOnTheCrossing() {

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Global error boundary. Renders when something throws above any
 // other error boundary or layout — including in the root layout
@@ -15,21 +15,21 @@ export default function GlobalError({
     <html lang="en">
       <body
         style={{
-          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontFamily: 'system-ui, -apple-system, sans-serif',
           margin: 0,
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(to bottom, #f0f9ff, #ffffff)",
-          color: "#0f172a",
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(to bottom, #f0f9ff, #ffffff)',
+          color: '#0f172a',
         }}
       >
         <div
           style={{
             maxWidth: 480,
             padding: 32,
-            textAlign: "center",
+            textAlign: 'center',
           }}
         >
           <div style={{ fontSize: 48, marginBottom: 8 }}>⚠️</div>
@@ -37,15 +37,15 @@ export default function GlobalError({
             style={{
               fontSize: 24,
               fontWeight: 700,
-              margin: "0 0 8px",
+              margin: '0 0 8px',
             }}
           >
             Something went wrong
           </h1>
           <p
             style={{
-              color: "#64748b",
-              margin: "0 0 24px",
+              color: '#64748b',
+              margin: '0 0 24px',
               fontSize: 14,
             }}
           >
@@ -56,26 +56,26 @@ export default function GlobalError({
             <p
               style={{
                 fontSize: 12,
-                color: "#94a3b8",
-                fontFamily: "ui-monospace, monospace",
-                margin: "0 0 24px",
+                color: '#94a3b8',
+                fontFamily: 'ui-monospace, monospace',
+                margin: '0 0 24px',
               }}
             >
               Reference: {error.digest}
             </p>
           )}
-          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <button
               onClick={reset}
               style={{
-                padding: "10px 20px",
-                background: "#0ea5e9",
-                color: "white",
-                border: "none",
+                padding: '10px 20px',
+                background: '#0ea5e9',
+                color: 'white',
+                border: 'none',
                 borderRadius: 8,
                 fontSize: 14,
                 fontWeight: 500,
-                cursor: "pointer",
+                cursor: 'pointer',
               }}
             >
               Try again
@@ -85,14 +85,14 @@ export default function GlobalError({
             <a
               href="/"
               style={{
-                padding: "10px 20px",
-                background: "white",
-                color: "#0f172a",
-                border: "1px solid #e2e8f0",
+                padding: '10px 20px',
+                background: 'white',
+                color: '#0f172a',
+                border: '1px solid #e2e8f0',
                 borderRadius: 8,
                 fontSize: 14,
                 fontWeight: 500,
-                textDecoration: "none",
+                textDecoration: 'none',
               }}
             >
               Back to home

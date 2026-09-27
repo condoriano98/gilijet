@@ -13,15 +13,15 @@
  *
  * It never prints the secret.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from 'node:fs';
 
 // Next.js loads .env.local itself; a standalone script has to do it by hand.
 // Real environment variables win, so this also works on a server that is given
 // them directly.
-if (existsSync(".env.local")) {
-  for (const line of readFileSync(".env.local", "utf8").split("\n")) {
-    if (!line || line.trimStart().startsWith("#")) continue;
-    const i = line.indexOf("=");
+if (existsSync('.env.local')) {
+  for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
+    if (!line || line.trimStart().startsWith('#')) continue;
+    const i = line.indexOf('=');
     if (i < 0) continue;
     const key = line.slice(0, i).trim();
     if (!process.env[key]) process.env[key] = line.slice(i + 1).trim();
@@ -30,33 +30,33 @@ if (existsSync(".env.local")) {
 
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-const declaredProduction = process.env.PAYPAL_IS_PRODUCTION === "true";
+const declaredProduction = process.env.PAYPAL_IS_PRODUCTION === 'true';
 
 if (!clientId || !clientSecret) {
-  console.error("✗ PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not set.");
-  console.error("  PayPal will not be offered at checkout at all.");
+  console.error('✗ PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not set.');
+  console.error('  PayPal will not be offered at checkout at all.');
   process.exit(1);
 }
 
 const HOSTS = [
-  { name: "sandbox", url: "https://api-m.sandbox.paypal.com" },
-  { name: "live", url: "https://api-m.paypal.com" },
+  { name: 'sandbox', url: 'https://api-m.sandbox.paypal.com' },
+  { name: 'live', url: 'https://api-m.paypal.com' },
 ] as const;
 
 async function tryHost(url: string): Promise<{ ok: boolean; detail: string }> {
-  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   try {
     const res = await fetch(`${url}/v1/oauth2/token`, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Basic ${basic}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: "grant_type=client_credentials",
+      body: 'grant_type=client_credentials',
       signal: AbortSignal.timeout(15_000),
     });
     const text = await res.text();
-    if (res.ok) return { ok: true, detail: "token issued" };
+    if (res.ok) return { ok: true, detail: 'token issued' };
     const parsed = JSON.parse(text) as { error?: string };
     return { ok: false, detail: `HTTP ${res.status} ${parsed.error ?? text.slice(0, 80)}` };
   } catch (err) {
@@ -67,26 +67,26 @@ async function tryHost(url: string): Promise<{ ok: boolean; detail: string }> {
 async function main() {
   console.log(`client id  ${clientId!.slice(0, 12)}…`);
   console.log(`configured PAYPAL_IS_PRODUCTION=${declaredProduction}`);
-  console.log("");
+  console.log('');
 
   const results = await Promise.all(
     HOSTS.map(async (h) => ({ ...h, ...(await tryHost(h.url)) })),
   );
   for (const r of results) {
-    console.log(`  ${r.ok ? "✓" : "✗"} ${r.name.padEnd(8)} ${r.detail}`);
+    console.log(`  ${r.ok ? '✓' : '✗'} ${r.name.padEnd(8)} ${r.detail}`);
   }
-  console.log("");
+  console.log('');
 
   const accepted = results.filter((r) => r.ok);
   if (accepted.length === 0) {
-    console.error("✗ FAIL — neither host accepted these credentials.");
-    console.error("  The client id or secret is wrong, or has been revoked.");
-    console.error("  Check for a stray space or newline if they were pasted.");
+    console.error('✗ FAIL — neither host accepted these credentials.');
+    console.error('  The client id or secret is wrong, or has been revoked.');
+    console.error('  Check for a stray space or newline if they were pasted.');
     process.exit(1);
   }
 
   const belongsTo = accepted[0].name;
-  const shouldBeProduction = belongsTo === "live";
+  const shouldBeProduction = belongsTo === 'live';
   if (shouldBeProduction === declaredProduction) {
     console.log(`✓ PASS — credentials are ${belongsTo}, and the app is pointed there.`);
   } else {
@@ -94,7 +94,7 @@ async function main() {
     // invalid_client and remembers the answer, so checkout works regardless.
     console.log(`✓ PASS — credentials are ${belongsTo}.`);
     console.log(
-      `  PAYPAL_IS_PRODUCTION says ${declaredProduction ? "live" : "sandbox"}, so the app will`,
+      `  PAYPAL_IS_PRODUCTION says ${declaredProduction ? 'live' : 'sandbox'}, so the app will`,
     );
     console.log(`  discover ${belongsTo} on its first call and use it. Setting`);
     console.log(
@@ -102,12 +102,12 @@ async function main() {
     );
   }
 
-  if (belongsTo === "sandbox") {
-    console.log("");
-    console.log("  ! These are SANDBOX credentials — PayPal will take no real money.");
-    console.log("    The pay page shows customers a test-mode warning, but bookings");
-    console.log("    paid this way still issue real tickets. Use Live credentials");
-    console.log("    once you are done rehearsing the flow.");
+  if (belongsTo === 'sandbox') {
+    console.log('');
+    console.log('  ! These are SANDBOX credentials — PayPal will take no real money.');
+    console.log('    The pay page shows customers a test-mode warning, but bookings');
+    console.log('    paid this way still issue real tickets. Use Live credentials');
+    console.log('    once you are done rehearsing the flow.');
   }
   process.exit(0);
 }

@@ -1,15 +1,15 @@
-import { PrismaClient } from "@prisma/client";
-import * as fs from "fs";
-import * as path from "path";
-import * as readline from "readline";
+import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as readline from 'readline';
 
 const prisma = new PrismaClient();
 
 async function seedPorts() {
-  const csvPath = path.join(process.cwd(), "port_database.csv");
+  const csvPath = path.join(process.cwd(), 'port_database.csv');
 
   if (!fs.existsSync(csvPath)) {
-    console.error("❌ port_database.csv not found");
+    console.error('❌ port_database.csv not found');
     process.exit(1);
   }
 
@@ -30,7 +30,7 @@ async function seedPorts() {
     lineNumber++;
     if (lineNumber === 1) continue; // Skip header
 
-    const [name, region, alias, displayLabel] = line.split(",").map(s => s.trim());
+    const [name, region, alias, displayLabel] = line.split(',').map(s => s.trim());
 
     if (!name || !region) {
       console.warn(`⚠️  Skipping line ${lineNumber}: missing name or region`);
@@ -40,7 +40,7 @@ async function seedPorts() {
     ports.push({
       name,
       island: region,
-      shortCode: "", // Will generate unique codes below
+      shortCode: '', // Will generate unique codes below
     });
   }
 
@@ -80,7 +80,7 @@ async function seedPorts() {
         name: port.name,
         island: port.island,
         shortCode: port.shortCode,
-        slug: port.name.toLowerCase().replace(/\s+/g, "-"),
+        slug: port.name.toLowerCase().replace(/\s+/g, '-'),
         isActive: true,
       },
     });
@@ -89,16 +89,16 @@ async function seedPorts() {
   console.log(`✅ Seeded ${ports.length} ports`);
 
   const result = await prisma.port.groupBy({
-    by: ["island"],
+    by: ['island'],
     where: { isActive: true },
     _count: true,
   });
 
-  console.log("\nPorts by region:");
+  console.log('\nPorts by region:');
   result
-    .sort((a, b) => (a.island || "Other").localeCompare(b.island || "Other"))
+    .sort((a, b) => (a.island || 'Other').localeCompare(b.island || 'Other'))
     .forEach((g) => {
-      console.log(`  ${g.island || "Other"}: ${g._count}`);
+      console.log(`  ${g.island || 'Other'}: ${g._count}`);
     });
 
   await prisma.$disconnect();

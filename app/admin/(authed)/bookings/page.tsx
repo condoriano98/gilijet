@@ -1,32 +1,32 @@
-import Link from "next/link";
-import { Prisma, BookingStatus } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { Prisma, BookingStatus } from '@prisma/client';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { BookingRow } from "./booking-row";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { BookingRow } from './booking-row';
 
 const STATUS_FILTERS: BookingStatus[] = [
-  "PENDING_PAYMENT",
-  "AWAITING_CONFIRMATION",
-  "CONFIRMED",
-  "CANCELLED_BY_CUSTOMER",
-  "CANCELLED_BY_OPERATOR",
-  "EXPIRED",
+  'PENDING_PAYMENT',
+  'AWAITING_CONFIRMATION',
+  'CONFIRMED',
+  'CANCELLED_BY_CUSTOMER',
+  'CANCELLED_BY_OPERATOR',
+  'EXPIRED',
 ];
 
 function buildWhere(q?: string, status?: string): Prisma.BookingWhereInput {
@@ -37,9 +37,9 @@ function buildWhere(q?: string, status?: string): Prisma.BookingWhereInput {
   if (q && q.trim()) {
     const term = q.trim();
     where.OR = [
-      { bookingReference: { contains: term, mode: "insensitive" } },
-      { customerEmail: { contains: term, mode: "insensitive" } },
-      { customerName: { contains: term, mode: "insensitive" } },
+      { bookingReference: { contains: term, mode: 'insensitive' } },
+      { customerEmail: { contains: term, mode: 'insensitive' } },
+      { customerName: { contains: term, mode: 'insensitive' } },
     ];
   }
   return where;
@@ -56,7 +56,7 @@ export default async function AdminBookingsPage({
   const where = buildWhere(q, status);
   const bookings = await prisma.booking.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     take: 200,
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
@@ -66,9 +66,9 @@ export default async function AdminBookingsPage({
   });
 
   const csvParams = new URLSearchParams();
-  if (q) csvParams.set("q", q);
-  if (status) csvParams.set("status", status);
-  const csvHref = `/api/admin/bookings/csv${csvParams.toString() ? `?${csvParams}` : ""}`;
+  if (q) csvParams.set('q', q);
+  if (status) csvParams.set('status', status);
+  const csvHref = `/api/admin/bookings/csv${csvParams.toString() ? `?${csvParams}` : ''}`;
 
   return (
     <div className="space-y-6">
@@ -92,7 +92,7 @@ export default async function AdminBookingsPage({
             <Input
               name="q"
               placeholder="Reference, email, or name…"
-              defaultValue={q ?? ""}
+              defaultValue={q ?? ''}
               className="max-w-xs"
             />
             {status ? <input type="hidden" name="status" value={status} /> : null}
@@ -105,15 +105,15 @@ export default async function AdminBookingsPage({
           </form>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <FilterChip label="All" active={!status} href={q ? `/admin/bookings?q=${encodeURIComponent(q)}` : "/admin/bookings"} />
+            <FilterChip label="All" active={!status} href={q ? `/admin/bookings?q=${encodeURIComponent(q)}` : '/admin/bookings'} />
             {STATUS_FILTERS.map((s) => {
               const params = new URLSearchParams();
-              if (q) params.set("q", q);
-              params.set("status", s);
+              if (q) params.set('q', q);
+              params.set('status', s);
               return (
                 <FilterChip
                   key={s}
-                  label={s.replace(/_/g, " ")}
+                  label={s.replace(/_/g, ' ')}
                   active={status === s}
                   href={`/admin/bookings?${params}`}
                 />
@@ -128,8 +128,8 @@ export default async function AdminBookingsPage({
           <CardTitle>Results</CardTitle>
           <CardDescription>
             {bookings.length === 0
-              ? "No bookings match your filters."
-              : `${bookings.length} booking${bookings.length === 1 ? "" : "s"}`}
+              ? 'No bookings match your filters.'
+              : `${bookings.length} booking${bookings.length === 1 ? '' : 's'}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -181,11 +181,11 @@ function FilterChip({
     <Link
       href={href}
       className={[
-        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
         active
-          ? "border-sky-500 bg-sky-50 text-sky-700"
-          : "border-slate-200 text-slate-600 hover:border-slate-300",
-      ].join(" ")}
+          ? 'border-sky-500 bg-sky-50 text-sky-700'
+          : 'border-slate-200 text-slate-600 hover:border-slate-300',
+      ].join(' ')}
     >
       {label}
     </Link>

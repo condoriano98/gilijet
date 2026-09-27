@@ -1,6 +1,6 @@
-import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { env } from "./env";
-import type { GatewayModeOverride } from "./payment-mode";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { env } from './env';
+import type { GatewayModeOverride } from './payment-mode';
 
 /**
  * DOKU Checkout — the payment gateway for gilifast.
@@ -27,24 +27,24 @@ import type { GatewayModeOverride } from "./payment-mode";
 
 export class DokuNotConfiguredError extends Error {
   constructor() {
-    super("DOKU_CLIENT_ID / DOKU_SECRET_KEY are not configured");
-    this.name = "DokuNotConfiguredError";
+    super('DOKU_CLIENT_ID / DOKU_SECRET_KEY are not configured');
+    this.name = 'DokuNotConfiguredError';
   }
 }
 
-const CHECKOUT_PATH = "/checkout/v1/payment";
+const CHECKOUT_PATH = '/checkout/v1/payment';
 
 /** Path DOKU POSTs notifications to; also the Request-Target they sign with. */
-export const NOTIFICATION_PATH = "/api/webhooks/doku";
+export const NOTIFICATION_PATH = '/api/webhooks/doku';
 
-const LIVE_BASE = "https://api.doku.com";
-const SANDBOX_BASE = "https://api-sandbox.doku.com";
+const LIVE_BASE = 'https://api.doku.com';
+const SANDBOX_BASE = 'https://api-sandbox.doku.com';
 
 /**
  * Runtime host override, set by lib/payment-mode.ts from the PlatformConfig
  * row. ENV (the default) follows the DOKU_IS_PRODUCTION flag.
  */
-let modeOverride: GatewayModeOverride = "ENV";
+let modeOverride: GatewayModeOverride = 'ENV';
 
 export function setDokuModeOverride(mode: GatewayModeOverride): void {
   modeOverride = mode;
@@ -52,8 +52,8 @@ export function setDokuModeOverride(mode: GatewayModeOverride): void {
 
 /** Live host or not: a console override wins, then the env flag. */
 function effectiveProduction(): boolean {
-  if (modeOverride === "SANDBOX") return false;
-  if (modeOverride === "LIVE") return true;
+  if (modeOverride === 'SANDBOX') return false;
+  if (modeOverride === 'LIVE') return true;
   return env.DOKU_IS_PRODUCTION;
 }
 
@@ -67,7 +67,7 @@ export function isDokuConfigured(): boolean {
 
 export function isDokuMock(): boolean {
   const id = env.DOKU_CLIENT_ID;
-  return !isDokuConfigured() || Boolean(id?.startsWith("test_mock_"));
+  return !isDokuConfigured() || Boolean(id?.startsWith('test_mock_'));
 }
 
 /** True when a real (non-mock) DOKU gateway can take money. */
@@ -79,12 +79,12 @@ export function isDokuLive(): boolean {
 
 /** DOKU wants an ISO-8601 UTC timestamp with no fractional seconds. */
 export function dokuTimestamp(now: Date = new Date()): string {
-  return now.toISOString().replace(/\.\d{3}Z$/, "Z");
+  return now.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 /** Digest is the base64 SHA-256 of the raw JSON body, empty string when absent. */
 export function bodyDigest(rawBody: string): string {
-  return createHash("sha256").update(rawBody, "utf8").digest("base64");
+  return createHash('sha256').update(rawBody, 'utf8').digest('base64');
 }
 
 /**
@@ -106,12 +106,12 @@ export function signatureComponents(args: {
     `Request-Target:${args.target}`,
   ];
   if (args.digest !== undefined) lines.push(`Digest:${args.digest}`);
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /** HMAC-SHA256 the components with the secret; base64; prefix per DOKU. */
 export function signComponents(components: string, secretKey: string): string {
-  const mac = createHmac("sha256", secretKey).update(components, "utf8").digest("base64");
+  const mac = createHmac('sha256', secretKey).update(components, 'utf8').digest('base64');
   return `HMACSHA256=${mac}`;
 }
 
@@ -159,7 +159,7 @@ export async function createCheckout(
     order: {
       amount: Math.round(params.amount),
       invoice_number: params.orderId,
-      currency: "IDR",
+      currency: 'IDR',
       callback_url: params.callbackUrl,
     },
     payment: {
@@ -168,7 +168,7 @@ export async function createCheckout(
     customer: {
       name: params.payerName,
       email: params.payerEmail,
-      phone: params.payerPhone.replace(/[^\d]/g, ""),
+      phone: params.payerPhone.replace(/[^\d]/g, ''),
     },
   });
 
@@ -184,12 +184,12 @@ export async function createCheckout(
   );
 
   const res = await fetch(`${baseUrl()}${CHECKOUT_PATH}`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "Client-Id": clientId,
-      "Request-Id": requestId,
-      "Request-Timestamp": timestamp,
+      'Content-Type': 'application/json',
+      'Client-Id': clientId,
+      'Request-Id': requestId,
+      'Request-Timestamp': timestamp,
       Signature: signature,
     },
     body: rawBody,
@@ -201,7 +201,7 @@ export async function createCheckout(
         ? env.DOKU_IS_PRODUCTION
           ? ` — this Client-Id was rejected by the production host (${baseUrl()}). If these are sandbox credentials, set DOKU_IS_PRODUCTION=false.`
           : ` — this Client-Id is unknown to the sandbox host (${baseUrl()}). If these are live credentials, set DOKU_IS_PRODUCTION="true".`
-        : "";
+        : '';
     throw new Error(
       `DOKU ${baseUrl()}${CHECKOUT_PATH} ${res.status}: ${text.slice(0, 500)}${hint}`,
     );
@@ -215,7 +215,7 @@ export async function createCheckout(
   };
   const paymentUrl = json.response?.payment?.url;
   if (!paymentUrl) {
-    throw new Error("DOKU checkout: missing payment url in response");
+    throw new Error('DOKU checkout: missing payment url in response');
   }
 
   return {
@@ -236,10 +236,10 @@ export type DokuNotificationHeaders = {
 
 export function readNotificationHeaders(h: Headers): DokuNotificationHeaders {
   return {
-    clientId: h.get("client-id") ?? "",
-    requestId: h.get("request-id") ?? "",
-    timestamp: h.get("request-timestamp") ?? "",
-    signature: h.get("signature") ?? "",
+    clientId: h.get('client-id') ?? '',
+    requestId: h.get('request-id') ?? '',
+    timestamp: h.get('request-timestamp') ?? '',
+    signature: h.get('signature') ?? '',
   };
 }
 
@@ -282,8 +282,8 @@ export function verifyDokuNotification(args: {
     env.DOKU_SECRET_KEY as string,
   );
 
-  const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(headers.signature, "utf8");
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(headers.signature, 'utf8');
   if (a.length !== b.length) return false;
   try {
     return timingSafeEqual(a, b);
@@ -325,10 +325,10 @@ function readFailureReason(
     payload.error,
   ];
   for (const c of candidates) {
-    if (typeof c === "string" && c.trim()) return c.trim().slice(0, 300);
+    if (typeof c === 'string' && c.trim()) return c.trim().slice(0, 300);
   }
   // No reason field: the status itself is the only signal we have.
-  return status && status !== "SUCCESS" ? status : null;
+  return status && status !== 'SUCCESS' ? status : null;
 }
 
 export function readNotification(
@@ -339,14 +339,14 @@ export function readNotification(
   const channel = (payload.channel ?? {}) as Record<string, unknown>;
   const service = (payload.service ?? {}) as Record<string, unknown>;
 
-  const status = String(transaction.status ?? "").toUpperCase();
+  const status = String(transaction.status ?? '').toUpperCase();
   const rawAmount = order.amount;
   const amount = rawAmount === undefined ? null : Number(rawAmount);
 
   return {
     invoiceNumber: order.invoice_number ? String(order.invoice_number) : null,
     status,
-    success: status === "SUCCESS",
+    success: status === 'SUCCESS',
     amount: amount !== null && Number.isFinite(amount) ? amount : null,
     channelCode: channel.id ? String(channel.id) : null,
     identifier: service.id ? String(service.id) : null,
@@ -372,21 +372,21 @@ export async function refundPayment(_args: {
 /** Read-only diagnostic — no funds move. */
 export function pingDoku(): {
   ok: boolean;
-  mode: "live" | "sandbox" | "mock";
+  mode: 'live' | 'sandbox' | 'mock';
   clientIdPrefix: string;
   secretPresent: boolean;
   /** The console override applied, ENV when the env flag decides. */
   override: GatewayModeOverride;
 } {
   const mode = !isDokuConfigured()
-    ? "mock"
+    ? 'mock'
     : effectiveProduction()
-      ? "live"
-      : "sandbox";
+      ? 'live'
+      : 'sandbox';
   return {
     ok: isDokuConfigured(),
     mode,
-    clientIdPrefix: env.DOKU_CLIENT_ID ? env.DOKU_CLIENT_ID.slice(0, 8) + "…" : "",
+    clientIdPrefix: env.DOKU_CLIENT_ID ? env.DOKU_CLIENT_ID.slice(0, 8) + '…' : '',
     secretPresent: Boolean(env.DOKU_SECRET_KEY),
     override: modeOverride,
   };

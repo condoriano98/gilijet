@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import type { Metadata } from "next";
-import { findPost, POSTS } from "@/content/blog";
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { findPost, POSTS } from '@/content/blog';
 
 type Params = { slug: string; locale: string };
 
@@ -12,13 +12,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = findPost(slug);
-  if (!post) return { title: "Post not found" };
+  if (!post) return { title: 'Post not found' };
   return {
     title: post.meta.title,
     description: post.meta.description,
     alternates: { canonical: `/blog/${post.meta.slug}` },
     openGraph: {
-      type: "article",
+      type: 'article',
       title: post.meta.title,
       description: post.meta.description,
       publishedTime: post.meta.publishedAt,
@@ -26,7 +26,7 @@ export async function generateMetadata({
       tags: post.meta.tags,
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title: post.meta.title,
       description: post.meta.description,
     },
@@ -34,10 +34,10 @@ export async function generateMetadata({
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   });
 }
 
@@ -50,20 +50,20 @@ export default async function BlogPost({
   const post = findPost(slug);
   if (!post) notFound();
 
-  const base = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
+    '@context': 'https://schema.org',
+    '@type': 'Article',
     headline: post.meta.title,
     description: post.meta.description,
     datePublished: post.meta.publishedAt,
-    author: { "@type": "Organization", name: post.meta.author },
+    author: { '@type': 'Organization', name: post.meta.author },
     publisher: {
-      "@type": "Organization",
-      name: "Gilifast",
+      '@type': 'Organization',
+      name: 'Gilifast',
     },
     mainEntityOfPage: `${base}/blog/${post.meta.slug}`,
-    keywords: post.meta.tags.join(", "),
+    keywords: post.meta.tags.join(', '),
   };
 
   const Body = post.Body;

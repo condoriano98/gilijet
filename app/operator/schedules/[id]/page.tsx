@@ -1,12 +1,12 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { ScheduleStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
-import { getOperatorSchedule } from "@/lib/operator-data";
-import { generateLegsForSchedule } from "@/lib/legs";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { ScheduleStatus } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { getOperatorSchedule } from '@/lib/operator-data';
+import { generateLegsForSchedule } from '@/lib/legs';
 import {
   Card,
   CardContent,
@@ -14,19 +14,19 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { DaysOfWeekPicker } from "@/components/operator/days-picker";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { DaysOfWeekPicker } from '@/components/operator/days-picker';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
 
 const daysCsv = z
   .string()
   .min(1)
-  .transform((v) => v.split(",").map((n) => Number(n)).filter(Number.isInteger))
+  .transform((v) => v.split(',').map((n) => Number(n)).filter(Number.isInteger))
   .refine((v) => v.length > 0)
   .refine((v) => v.every((d) => d >= 1 && d <= 7));
 
@@ -42,27 +42,27 @@ const updateScheduleSchema = z.object({
 });
 
 async function updateScheduleAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
   const parsed = updateScheduleSchema.safeParse({
-    id: formData.get("id"),
-    originPort: formData.get("originPort"),
-    destinationPort: formData.get("destinationPort"),
-    departureTime: formData.get("departureTime"),
-    durationMinutes: formData.get("durationMinutes"),
-    basePrice: formData.get("basePrice"),
-    daysOfWeek: formData.get("daysOfWeek"),
-    status: formData.get("status"),
+    id: formData.get('id'),
+    originPort: formData.get('originPort'),
+    destinationPort: formData.get('destinationPort'),
+    departureTime: formData.get('departureTime'),
+    durationMinutes: formData.get('durationMinutes'),
+    basePrice: formData.get('basePrice'),
+    daysOfWeek: formData.get('daysOfWeek'),
+    status: formData.get('status'),
   });
   if (!parsed.success) {
     redirect(
-      `/operator/schedules/${formData.get("id")}?error=` +
+      `/operator/schedules/${formData.get('id')}?error=` +
         encodeURIComponent(parsed.error.issues[0].message),
     );
   }
 
   const existing = await getOperatorSchedule(session.sub, parsed.data.id);
-  if (!existing) redirect("/operator/schedules");
+  if (!existing) redirect('/operator/schedules');
 
   const updated = await prisma.schedule.update({
     where: { id: parsed.data.id },
@@ -78,11 +78,11 @@ async function updateScheduleAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: updated.id,
-    action: "updated",
+    action: 'updated',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     previousState: {
       route: `${existing.originPort} → ${existing.destinationPort}`,
       time: existing.departureTime,
@@ -101,21 +101,21 @@ async function updateScheduleAction(formData: FormData) {
 }
 
 async function regenerateLegsAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   const schedule = await getOperatorSchedule(session.sub, id);
-  if (!schedule) redirect("/operator/schedules");
+  if (!schedule) redirect('/operator/schedules');
   const created = await generateLegsForSchedule(schedule.id);
   redirect(`/operator/schedules/${id}?ok=generated_${created}`);
 }
 
 function flashMessage(ok?: string): string | null {
   if (!ok) return null;
-  if (ok === "saved") return "Saved.";
-  if (ok.startsWith("generated_")) {
-    const n = Number(ok.slice("generated_".length));
-    return `Generated ${n} new departure${n === 1 ? "" : "s"} for the next 14 days.`;
+  if (ok === 'saved') return 'Saved.';
+  if (ok.startsWith('generated_')) {
+    const n = Number(ok.slice('generated_'.length));
+    return `Generated ${n} new departure${n === 1 ? '' : 's'} for the next 14 days.`;
   }
   return null;
 }
@@ -136,7 +136,7 @@ export default async function EditSchedulePage({
   // Upcoming legs (next 30 days) to show on this page.
   const upcoming = await prisma.leg.findMany({
     where: { scheduleId: schedule.id, operatorId: session.sub, departureDate: { gte: new Date() } },
-    orderBy: { departureDate: "asc" },
+    orderBy: { departureDate: 'asc' },
     take: 14,
   });
 
@@ -297,7 +297,7 @@ export default async function EditSchedulePage({
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
-                      variant={leg.status === "CANCELLED" ? "destructive" : "outline"}
+                      variant={leg.status === 'CANCELLED' ? 'destructive' : 'outline'}
                     >
                       {leg.status}
                     </Badge>

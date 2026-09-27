@@ -1,8 +1,8 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
 
 export async function markAgentPayoutPaid(agentId: string) {
   const session = await requireOperator();
@@ -12,14 +12,14 @@ export async function markAgentPayoutPaid(agentId: string) {
     where: { id: agentId, operatorId, deletedAt: null },
     select: { name: true },
   });
-  if (!agent) throw new Error("Agen tidak ditemukan");
+  if (!agent) throw new Error('Agen tidak ditemukan');
 
   await prisma.operatorNotification.create({
     data: {
       operatorId,
-      kind: "AGENT_PAYOUT_DUE",
-      severity: "INFO",
-      title: "Pembayaran Komisi Agen",
+      kind: 'AGENT_PAYOUT_DUE',
+      severity: 'INFO',
+      title: 'Pembayaran Komisi Agen',
       body: `Komisi untuk ${agent.name} telah ditandai dibayar`,
       readAt: new Date(),
       actionUrl: `/operator/penjualan/agen/${agentId}`,

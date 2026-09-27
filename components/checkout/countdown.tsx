@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export function CheckoutCountdown({ expiresAtIso }: { expiresAtIso: string }) {
   const expires = new Date(expiresAtIso).getTime();
@@ -13,7 +13,7 @@ export function CheckoutCountdown({ expiresAtIso }: { expiresAtIso: string }) {
   const msLeft = Math.max(0, expires - now);
   const minutes = Math.floor(msLeft / 60_000);
   const seconds = Math.floor((msLeft % 60_000) / 1000);
-  const pad = (n: number) => n.toString().padStart(2, "0");
+  const pad = (n: number) => n.toString().padStart(2, '0');
 
   if (msLeft <= 0) {
     return <span>This invoice has expired. Return to your booking to retry.</span>;
@@ -21,7 +21,7 @@ export function CheckoutCountdown({ expiresAtIso }: { expiresAtIso: string }) {
 
   return (
     <span>
-      Complete payment within{" "}
+      Complete payment within{' '}
       <span className="font-mono font-semibold">
         {pad(minutes)}:{pad(seconds)}
       </span>

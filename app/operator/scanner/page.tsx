@@ -1,6 +1,6 @@
-import { requireOperator } from "@/lib/auth";
-import { getOperatorLegs } from "@/lib/operator-data";
-import { ScannerClient } from "./scanner-client";
+import { requireOperator } from '@/lib/auth';
+import { getOperatorLegs } from '@/lib/operator-data';
+import { ScannerClient } from './scanner-client';
 
 export default async function OperatorScannerPage({
   searchParams,

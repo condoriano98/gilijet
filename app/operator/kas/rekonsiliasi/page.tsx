@@ -1,11 +1,11 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { ListPageTemplate } from "@/components/operator-shell/templates/list-page-template";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { NotesCell } from "./notes-cell";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { ListPageTemplate } from '@/components/operator-shell/templates/list-page-template';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { NotesCell } from './notes-cell';
 
 export default async function RekonsiliasiPage() {
   const session = await requireOperator();
@@ -16,55 +16,55 @@ export default async function RekonsiliasiPage() {
   const sessions = await prisma.cashDrawerSession.findMany({
     where: { operatorId, closedAt: { not: null }, variance: { not: 0 } },
     include: { staff: true },
-    orderBy: { closedAt: "desc" },
+    orderBy: { closedAt: 'desc' },
   });
 
   type Row = (typeof sessions)[number];
 
   const columns = [
     {
-      key: "id",
-      header: "Sesi",
+      key: 'id',
+      header: 'Sesi',
       render: (r: Row) => (
         <span className="font-mono text-xs text-mekari-neutral-500">{r.id.slice(-8)}</span>
       ),
     },
     {
-      key: "staff",
-      header: "Staf",
+      key: 'staff',
+      header: 'Staf',
       render: (r: Row) => r.staff.fullName,
     },
     {
-      key: "openedAt",
-      header: "Dibuka",
+      key: 'openedAt',
+      header: 'Dibuka',
       render: (r: Row) => formatLocalDateTime(r.openedAt),
     },
     {
-      key: "expectedCash",
-      header: "Kas Diharapkan",
-      align: "right" as const,
+      key: 'expectedCash',
+      header: 'Kas Diharapkan',
+      align: 'right' as const,
       render: (r: Row) => formatIDR(Number(r.expectedCash)),
     },
     {
-      key: "closingBalanceCounted",
-      header: "Dihitung",
-      align: "right" as const,
+      key: 'closingBalanceCounted',
+      header: 'Dihitung',
+      align: 'right' as const,
       render: (r: Row) => formatIDR(Number(r.closingBalanceCounted ?? 0)),
     },
     {
-      key: "variance",
-      header: "Selisih",
-      align: "right" as const,
+      key: 'variance',
+      header: 'Selisih',
+      align: 'right' as const,
       render: (r: Row) => {
         const v = Number(r.variance ?? 0);
-        const variant = v > 0 ? "warning" : "danger";
+        const variant = v > 0 ? 'warning' : 'danger';
         return <StatusBadge variant={variant}>{formatIDR(v)}</StatusBadge>;
       },
     },
     {
-      key: "notes",
-      header: "Catatan",
-      render: (r: Row) => <NotesCell sessionId={r.id} initial={r.notes ?? ""} />,
+      key: 'notes',
+      header: 'Catatan',
+      render: (r: Row) => <NotesCell sessionId={r.id} initial={r.notes ?? ''} />,
     },
   ];
 
@@ -72,7 +72,7 @@ export default async function RekonsiliasiPage() {
     <ListPageTemplate
       title="Rekonsiliasi Kas"
       subtitle="Sesi dengan selisih (variance) bukan nol"
-      secondaryActions={[{ label: "Kembali", href: "/operator/kas" }]}
+      secondaryActions={[{ label: 'Kembali', href: '/operator/kas' }]}
     >
       <DataTable
         columns={columns}

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { format } from "date-fns";
-import { DayPicker } from "react-day-picker";
-import "react-day-picker/style.css";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import * as React from 'react';
+import { format } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 export type DatePickerProps = {
   value: string; // ISO yyyy-MM-dd
@@ -18,14 +18,14 @@ export type DatePickerProps = {
 
 function toDate(ymd: string): Date | undefined {
   if (!ymd) return undefined;
-  const d = new Date(ymd + "T00:00:00");
+  const d = new Date(ymd + 'T00:00:00');
   return isNaN(d.getTime()) ? undefined : d;
 }
 
 function fromDate(d: Date): string {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -33,13 +33,13 @@ export function DatePicker({
   value,
   onChange,
   minDate,
-  placeholder = "Pick a date",
+  placeholder = 'Pick a date',
   id,
   className,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selected = toDate(value);
-  const min = toDate(minDate ?? "");
+  const min = toDate(minDate ?? '');
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -48,12 +48,12 @@ export function DatePicker({
           id={id}
           type="button"
           className={cn(
-            "flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm",
+            'flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm',
             className,
           )}
         >
-          <span className={selected ? "" : "text-slate-400"}>
-            {selected ? format(selected, "dd MMM yyyy") : placeholder}
+          <span className={selected ? '' : 'text-slate-400'}>
+            {selected ? format(selected, 'dd MMM yyyy') : placeholder}
           </span>
           <svg
             className="ml-auto h-4 w-4 text-slate-400"

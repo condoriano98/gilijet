@@ -1,19 +1,19 @@
-import Link from "next/link";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { createCoupon, generateBulkCodes } from "../../actions";
-import { CouponFields } from "../coupon-fields";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { createCoupon, generateBulkCodes } from '../../actions';
+import { CouponFields } from '../coupon-fields';
 
-export const metadata = { title: "New coupon · Owner Console" };
+export const metadata = { title: 'New coupon · Owner Console' };
 
 export default async function NewCouponPage({
   searchParams,
@@ -27,19 +27,19 @@ export default async function NewCouponPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          {bulk ? "Generate coupon batch" : "New coupon"}
+          {bulk ? 'Generate coupon batch' : 'New coupon'}
         </h2>
         <div className="flex gap-2 text-sm">
           <Link
             href="/admin/console/coupons/new"
-            className={!bulk ? "font-semibold text-sky-700" : "text-muted-foreground hover:underline"}
+            className={!bulk ? 'font-semibold text-sky-700' : 'text-muted-foreground hover:underline'}
           >
             Single
           </Link>
           <span className="text-muted-foreground">·</span>
           <Link
             href="/admin/console/coupons/new?bulk=1"
-            className={bulk ? "font-semibold text-sky-700" : "text-muted-foreground hover:underline"}
+            className={bulk ? 'font-semibold text-sky-700' : 'text-muted-foreground hover:underline'}
           >
             Bulk
           </Link>
@@ -54,11 +54,11 @@ export default async function NewCouponPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>{bulk ? "Batch settings" : "Coupon settings"}</CardTitle>
+          <CardTitle>{bulk ? 'Batch settings' : 'Coupon settings'}</CardTitle>
           <CardDescription>
             {bulk
-              ? "Generate many unique codes that share these settings (e.g. for a campaign)."
-              : "All customer-facing checks run server-side at booking time."}
+              ? 'Generate many unique codes that share these settings (e.g. for a campaign).'
+              : 'All customer-facing checks run server-side at booking time.'}
           </CardDescription>
         </CardHeader>
         <CardContent>

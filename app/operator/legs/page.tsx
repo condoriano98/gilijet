@@ -1,14 +1,14 @@
-import Link from "next/link";
-import { LegStatus } from "@prisma/client";
-import { requireOperator } from "@/lib/auth";
-import { getOperatorLegs } from "@/lib/operator-data";
+import Link from 'next/link';
+import { LegStatus } from '@prisma/client';
+import { requireOperator } from '@/lib/auth';
+import { getOperatorLegs } from '@/lib/operator-data';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -16,12 +16,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 
-const STATUSES: LegStatus[] = ["OPEN", "FULL", "SAILED", "CANCELLED"];
+const STATUSES: LegStatus[] = ['OPEN', 'FULL', 'SAILED', 'CANCELLED'];
 
 function rangeFromKey(
   key: string,
@@ -31,27 +31,27 @@ function rangeFromKey(
   startOfDay.setUTCHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
   switch (key) {
-    case "today":
-      return { fromUtc: startOfDay, toUtc: endOfDay, label: "Today" };
-    case "upcoming":
-      return { fromUtc: now, label: "Upcoming" };
-    case "past":
-      return { toUtc: now, label: "Past" };
+    case 'today':
+      return { fromUtc: startOfDay, toUtc: endOfDay, label: 'Today' };
+    case 'upcoming':
+      return { fromUtc: now, label: 'Upcoming' };
+    case 'past':
+      return { toUtc: now, label: 'Past' };
     default:
-      return { fromUtc: now, label: "Upcoming" };
+      return { fromUtc: now, label: 'Upcoming' };
   }
 }
 
 function statusVariant(s: LegStatus) {
   switch (s) {
-    case "OPEN":
-      return "success" as const;
-    case "FULL":
-      return "warning" as const;
-    case "SAILED":
-      return "secondary" as const;
-    case "CANCELLED":
-      return "destructive" as const;
+    case 'OPEN':
+      return 'success' as const;
+    case 'FULL':
+      return 'warning' as const;
+    case 'SAILED':
+      return 'secondary' as const;
+    case 'CANCELLED':
+      return 'destructive' as const;
   }
 }
 
@@ -61,7 +61,7 @@ export default async function OperatorLegsPage({
   searchParams: Promise<{ range?: string; status?: string }>;
 }) {
   const session = await requireOperator();
-  const { range = "upcoming", status } = await searchParams;
+  const { range = 'upcoming', status } = await searchParams;
   const r = rangeFromKey(range);
 
   const legs = await getOperatorLegs(session.sub, {
@@ -74,9 +74,9 @@ export default async function OperatorLegsPage({
   });
 
   const ranges = [
-    { key: "today", label: "Today" },
-    { key: "upcoming", label: "Upcoming" },
-    { key: "past", label: "Past" },
+    { key: 'today', label: 'Today' },
+    { key: 'upcoming', label: 'Upcoming' },
+    { key: 'past', label: 'Past' },
   ];
 
   return (
@@ -91,21 +91,21 @@ export default async function OperatorLegsPage({
       <div className="flex flex-wrap items-center gap-2">
         {ranges.map((rg) => (
           <Link key={rg.key} href={`/operator/legs?range=${rg.key}`}>
-            <Badge variant={range === rg.key ? "default" : "outline"}>
+            <Badge variant={range === rg.key ? 'default' : 'outline'}>
               {rg.label}
             </Badge>
           </Link>
         ))}
         <span className="mx-2 h-4 w-px bg-border" />
         <Link href={`/operator/legs?range=${range}`}>
-          <Badge variant={!status ? "default" : "outline"}>All</Badge>
+          <Badge variant={!status ? 'default' : 'outline'}>All</Badge>
         </Link>
         {STATUSES.map((s) => (
           <Link
             key={s}
             href={`/operator/legs?range=${range}&status=${s}`}
           >
-            <Badge variant={status === s ? "default" : "outline"}>{s}</Badge>
+            <Badge variant={status === s ? 'default' : 'outline'}>{s}</Badge>
           </Link>
         ))}
       </div>
@@ -113,10 +113,10 @@ export default async function OperatorLegsPage({
       <Card>
         <CardHeader>
           <CardTitle>
-            {r.label} {status ? `· ${status}` : ""}
+            {r.label} {status ? `· ${status}` : ''}
           </CardTitle>
           <CardDescription>
-            {legs.length} departure{legs.length === 1 ? "" : "s"}
+            {legs.length} departure{legs.length === 1 ? '' : 's'}
           </CardDescription>
         </CardHeader>
         <CardContent>

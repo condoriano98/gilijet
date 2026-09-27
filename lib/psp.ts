@@ -13,15 +13,15 @@
  * that gateway's hosted page → payment settles → admin rings the operator to
  * check availability → tickets issued.
  */
-import { PaymentMethod, PaymentProvider } from "@prisma/client";
-import { prisma } from "./db";
-import { env } from "./env";
+import { PaymentMethod, PaymentProvider } from '@prisma/client';
+import { prisma } from './db';
+import { env } from './env';
 import {
   createCheckout,
   isDokuConfigured,
   isDokuMock,
   type CreateCheckoutResult,
-} from "./doku";
+} from './doku';
 import {
   captureOrder,
   createOrder,
@@ -29,11 +29,11 @@ import {
   paypalCredentialsWork,
   paypalPresentmentCurrency,
   type CaptureResult,
-} from "./paypal";
-import { quoteForeignCharge, type ForeignChargeQuote } from "./fx";
-import { applyGatewayModeOverrides } from "./payment-mode";
-import { recordPaymentAwaitingConfirmation } from "./ticket-issuer";
-import { notifyPaymentReceived } from "./booking-notifications";
+} from './paypal';
+import { quoteForeignCharge, type ForeignChargeQuote } from './fx';
+import { applyGatewayModeOverrides } from './payment-mode';
+import { recordPaymentAwaitingConfirmation } from './ticket-issuer';
+import { notifyPaymentReceived } from './booking-notifications';
 
 /** True when a real (non-mock) gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
@@ -56,9 +56,9 @@ export async function startDokuCheckout(
     where: { bookingReference },
     include: { payment: true },
   });
-  if (!booking) throw new Error("Booking not found");
-  if (booking.status !== "PENDING_PAYMENT") {
-    throw new Error("Booking is no longer awaiting payment");
+  if (!booking) throw new Error('Booking not found');
+  if (booking.status !== 'PENDING_PAYMENT') {
+    throw new Error('Booking is no longer awaiting payment');
   }
 
   const result = await createCheckout({
@@ -74,8 +74,8 @@ export async function startDokuCheckout(
   await prisma.payment.update({
     where: { bookingId: booking.id },
     data: {
-      method: "BANK_TRANSFER",
-      status: "PENDING",
+      method: 'BANK_TRANSFER',
+      status: 'PENDING',
       gatewayProvider: PaymentProvider.DOKU,
       gatewayReference: result.invoiceNumber,
     },
@@ -116,9 +116,9 @@ export async function startPaypalOrder(
       leg: { include: { schedule: true } },
     },
   });
-  if (!booking) throw new Error("Booking not found");
-  if (booking.status !== "PENDING_PAYMENT") {
-    throw new Error("Booking is no longer awaiting payment");
+  if (!booking) throw new Error('Booking not found');
+  if (booking.status !== 'PENDING_PAYMENT') {
+    throw new Error('Booking is no longer awaiting payment');
   }
 
   const currency = paypalPresentmentCurrency();
@@ -137,7 +137,7 @@ export async function startPaypalOrder(
     where: { bookingId: booking.id },
     data: {
       method: PaymentMethod.PAYPAL,
-      status: "PENDING",
+      status: 'PENDING',
       gatewayProvider: PaymentProvider.PAYPAL,
       gatewayReference: order.id,
       presentmentCurrency: quote.currency,
@@ -172,7 +172,7 @@ export async function quotePaypalIfAvailable(
   try {
     return await quoteForeignCharge(idrTotal, paypalPresentmentCurrency());
   } catch (err) {
-    console.warn("[psp] PayPal unavailable — no usable FX rate:", err);
+    console.warn('[psp] PayPal unavailable — no usable FX rate:', err);
     return null;
   }
 }
@@ -202,11 +202,11 @@ export async function capturePaypalOrder(
     where: { bookingReference },
     include: { payment: true },
   });
-  if (!booking) return { ok: false, reason: "Booking not found" };
+  if (!booking) return { ok: false, reason: 'Booking not found' };
 
   const payment = booking.payment;
   if (!payment?.gatewayReference || payment.gatewayProvider !== PaymentProvider.PAYPAL) {
-    return { ok: false, reason: "No PayPal order for this booking" };
+    return { ok: false, reason: 'No PayPal order for this booking' };
   }
 
   // PayPal echoes the approved order as ?token= on the return URL. Prefer it
@@ -219,7 +219,7 @@ export async function capturePaypalOrder(
     capture = await captureOrder(orderId);
   } catch (err) {
     console.error(`[psp] PayPal capture failed for ${bookingReference}:`, err);
-    return { ok: false, reason: "Capture failed" };
+    return { ok: false, reason: 'Capture failed' };
   }
 
   // That token is attacker-supplied, so an order id alone proves nothing. The
@@ -229,11 +229,11 @@ export async function capturePaypalOrder(
     console.error(
       `[psp] PayPal order ${orderId} belongs to ${capture.bookingReference}, not ${bookingReference}`,
     );
-    return { ok: false, reason: "Order does not belong to this booking" };
+    return { ok: false, reason: 'Order does not belong to this booking' };
   }
   if (!capture.bookingReference && orderId !== payment.gatewayReference) {
     // An unverifiable id we did not issue ourselves — refuse it.
-    return { ok: false, reason: "Order could not be matched to this booking" };
+    return { ok: false, reason: 'Order could not be matched to this booking' };
   }
 
   if (!capture.completed) {
@@ -249,7 +249,7 @@ export async function capturePaypalOrder(
       console.error(
         `[psp] PayPal amount mismatch for ${bookingReference}: captured=${captured} quoted=${quoted}`,
       );
-      return { ok: false, reason: "Amount mismatch" };
+      return { ok: false, reason: 'Amount mismatch' };
     }
   }
 
@@ -276,7 +276,7 @@ export async function capturePaypalOrder(
 
   if (!result.alreadyRecorded) {
     notifyPaymentReceived(booking.id).catch((err) =>
-      console.error("[psp] notify failed:", err),
+      console.error('[psp] notify failed:', err),
     );
   }
 
@@ -346,28 +346,28 @@ export function normalizePaymentMethod(raw: string): PaymentMethod {
   // Channel-family prefixes are checked before brand substrings, because the
   // brands overlap: VIRTUAL_ACCOUNT_BANK_DANAMON contains "DANA" and would
   // otherwise be recorded as a DANA e-wallet payment rather than a transfer.
-  if (upper.startsWith("VIRTUAL_ACCOUNT")) {
-    if (upper.includes("BCA")) return PaymentMethod.VA_BCA;
-    if (upper.includes("BNI")) return PaymentMethod.VA_BNI;
-    if (upper.includes("BRI")) return PaymentMethod.VA_BRI;
-    if (upper.includes("MANDIRI")) return PaymentMethod.VA_MANDIRI;
-    if (upper.includes("PERMATA") || upper.includes("CIMB")) {
+  if (upper.startsWith('VIRTUAL_ACCOUNT')) {
+    if (upper.includes('BCA')) return PaymentMethod.VA_BCA;
+    if (upper.includes('BNI')) return PaymentMethod.VA_BNI;
+    if (upper.includes('BRI')) return PaymentMethod.VA_BRI;
+    if (upper.includes('MANDIRI')) return PaymentMethod.VA_MANDIRI;
+    if (upper.includes('PERMATA') || upper.includes('CIMB')) {
       return PaymentMethod.VA_PERMATA;
     }
     return PaymentMethod.BANK_TRANSFER;
   }
-  if (upper.startsWith("ONLINE_TO_OFFLINE") || upper.startsWith("PEER_TO_PEER")) {
+  if (upper.startsWith('ONLINE_TO_OFFLINE') || upper.startsWith('PEER_TO_PEER')) {
     return PaymentMethod.BANK_TRANSFER;
   }
 
-  if (upper.includes("SHOPEE")) return PaymentMethod.SHOPEEPAY;
-  if (upper.includes("GOPAY")) return PaymentMethod.GOPAY;
-  if (upper.includes("OVO")) return PaymentMethod.OVO;
-  if (upper.includes("DANA")) return PaymentMethod.DANA;
-  if (upper.includes("LINKAJ")) return PaymentMethod.LINKAJA;
-  if (upper.includes("QRIS")) return PaymentMethod.QRIS;
-  if (upper.includes("CARD")) return PaymentMethod.CREDIT_CARD;
-  if (upper.includes("ALFA") || upper.includes("INDOMARET")) {
+  if (upper.includes('SHOPEE')) return PaymentMethod.SHOPEEPAY;
+  if (upper.includes('GOPAY')) return PaymentMethod.GOPAY;
+  if (upper.includes('OVO')) return PaymentMethod.OVO;
+  if (upper.includes('DANA')) return PaymentMethod.DANA;
+  if (upper.includes('LINKAJ')) return PaymentMethod.LINKAJA;
+  if (upper.includes('QRIS')) return PaymentMethod.QRIS;
+  if (upper.includes('CARD')) return PaymentMethod.CREDIT_CARD;
+  if (upper.includes('ALFA') || upper.includes('INDOMARET')) {
     return PaymentMethod.BANK_TRANSFER;
   }
   throw new Error(`Unknown payment method: ${raw}`);

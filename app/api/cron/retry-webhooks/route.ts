@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { dispatchWebhookPayload } from "@/lib/webhook-processor";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { dispatchWebhookPayload } from '@/lib/webhook-processor';
 
 /**
  * Cron job: retries PENDING or FAILED webhook events.
@@ -9,9 +9,9 @@ import { dispatchWebhookPayload } from "@/lib/webhook-processor";
  * Secured by CRON_SECRET header (set in vercel.json and env).
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
+  const authHeader = req.headers.get('authorization');
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
@@ -19,12 +19,12 @@ export async function GET(req: NextRequest) {
   // Pick events that need retry: PENDING > 2 min old, or FAILED < 5 attempts
   const events = await prisma.webhookEvent.findMany({
     where: {
-      provider: "doku",
-      status: { in: ["PENDING", "FAILED"] },
+      provider: 'doku',
+      status: { in: ['PENDING', 'FAILED'] },
       attempts: { lt: 5 },
       lastAttemptAt: { lt: twoMinutesAgo },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: 'asc' },
     take: 20,
   });
 
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     await prisma.webhookEvent.update({
       where: { id: event.id },
       data: {
-        status: "PROCESSING",
+        status: 'PROCESSING',
         attempts: { increment: 1 },
         lastAttemptAt: new Date(),
       },
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       await prisma.webhookEvent.update({
         where: { id: event.id },
         data: {
-          status: result.ok ? "PROCESSED" : "FAILED",
+          status: result.ok ? 'PROCESSED' : 'FAILED',
           processedAt: result.ok ? new Date() : undefined,
           errorMessage: result.ok ? null : (result as { error: string }).error,
         },
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       await prisma.webhookEvent.update({
         where: { id: event.id },
         data: {
-          status: "FAILED",
+          status: 'FAILED',
           errorMessage: err instanceof Error ? err.message : String(err),
         },
       }).catch(() => {});
@@ -72,4 +72,4 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, processed, failed, total: events.length });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

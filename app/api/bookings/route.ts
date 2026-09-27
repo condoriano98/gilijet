@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   reserveSeatsAndCreateBooking,
   startPaymentForBooking,
   releaseBookingSeats,
   BookingError,
-} from "@/lib/booking-engine";
+} from '@/lib/booking-engine';
 
 /**
  * Public POST /api/bookings — accepts an Idempotency-Key header to make
@@ -24,7 +24,7 @@ const bodySchema = z.object({
     name: z.string().min(2).max(120),
     email: z.string().email(),
     phone: z.string().min(6).max(40),
-    nationality: z.string().trim().min(1, "Nationality is required").max(80),
+    nationality: z.string().trim().min(1, 'Nationality is required').max(80),
   }),
   passengers: z.array(passengerSchema).min(1).max(10),
   notes: z.string().max(500).optional().nullable(),
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     body = await req.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "Invalid JSON" },
+      { ok: false, error: 'Invalid JSON' },
       { status: 400 },
     );
   }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 
   const idempotencyKey =
-    req.headers.get("idempotency-key") ?? req.headers.get("Idempotency-Key");
+    req.headers.get('idempotency-key') ?? req.headers.get('Idempotency-Key');
 
   let created: { bookingId: string; bookingReference: string };
   try {
@@ -67,9 +67,9 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("[POST /api/bookings] reserve failed:", err);
+    console.error('[POST /api/bookings] reserve failed:', err);
     return NextResponse.json(
-      { ok: false, error: "Internal error" },
+      { ok: false, error: 'Internal error' },
       { status: 500 },
     );
   }
@@ -83,14 +83,14 @@ export async function POST(req: NextRequest) {
       mockPayment: result.mock,
     });
   } catch (err) {
-    await releaseBookingSeats(created.bookingId, "payment_failed").catch(
+    await releaseBookingSeats(created.bookingId, 'payment_failed').catch(
       () => {},
     );
-    console.error("[POST /api/bookings] payment init failed:", err);
+    console.error('[POST /api/bookings] payment init failed:', err);
     return NextResponse.json(
       {
         ok: false,
-        error: "Payment setup failed; seats released",
+        error: 'Payment setup failed; seats released',
         bookingReference: created.bookingReference,
       },
       { status: 502 },

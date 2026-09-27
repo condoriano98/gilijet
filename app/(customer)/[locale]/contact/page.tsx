@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export const metadata = { title: "Contact · Gilifast" };
+export const metadata = { title: 'Contact · Gilifast' };
 
 export default function ContactPage() {
   return (
@@ -23,13 +23,13 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
-                <span className="text-slate-600">Email:</span>{" "}
+                <span className="text-slate-600">Email:</span>{' '}
                 <a className="font-medium text-sky-700 hover:underline" href="mailto:info@balinusafast.com">
                   info@balinusafast.com
                 </a>
               </div>
               <div>
-                <span className="text-slate-600">WhatsApp:</span>{" "}
+                <span className="text-slate-600">WhatsApp:</span>{' '}
                 <a className="font-medium text-sky-700 hover:underline" href="https://wa.me/628133399869">
                   +62 813-3399-869
                 </a>
@@ -47,7 +47,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
-                <span className="text-slate-600">Email:</span>{" "}
+                <span className="text-slate-600">Email:</span>{' '}
                 <a className="font-medium text-sky-700 hover:underline" href="mailto:info@balinusafast.com">
                   info@balinusafast.com
                 </a>

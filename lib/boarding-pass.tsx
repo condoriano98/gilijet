@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Document,
   Image,
@@ -7,13 +7,13 @@ import {
   Text,
   View,
   renderToBuffer,
-} from "@react-pdf/renderer";
-import { prisma } from "./db";
-import { buildQrPayload } from "./qr";
-import { renderQrPng } from "./qr-render";
-import { formatLocalDate, formatLocalTime } from "./datetime";
-import { getPortInfo } from "./port-info";
-import { formatIDR } from "./utils";
+} from '@react-pdf/renderer';
+import { prisma } from './db';
+import { buildQrPayload } from './qr';
+import { renderQrPng } from './qr-render';
+import { formatLocalDate, formatLocalTime } from './datetime';
+import { getPortInfo } from './port-info';
+import { formatIDR } from './utils';
 
 /**
  * The boarding pass PDF, generated once a booking reaches CONFIRMED.
@@ -27,33 +27,33 @@ import { formatIDR } from "./utils";
  * settling is not enough; an admin has to have reached the operator first.
  */
 
-const INK = "#0f172a";
-const MUTED = "#64748b";
-const FAINT = "#94a3b8";
-const BRAND = "#0369a1";
-const RULE = "#e2e8f0";
-const WASH = "#f8fafc";
+const INK = '#0f172a';
+const MUTED = '#64748b';
+const FAINT = '#94a3b8';
+const BRAND = '#0369a1';
+const RULE = '#e2e8f0';
+const WASH = '#f8fafc';
 
 const s = StyleSheet.create({
   page: { paddingTop: 28, paddingBottom: 28, paddingHorizontal: 32, fontSize: 9, color: INK },
 
   brandBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     borderBottomWidth: 2,
     borderBottomColor: BRAND,
     paddingBottom: 8,
   },
-  brand: { fontSize: 17, color: BRAND, fontFamily: "Helvetica-Bold" },
+  brand: { fontSize: 17, color: BRAND, fontFamily: 'Helvetica-Bold' },
   kicker: { fontSize: 7.5, color: MUTED, letterSpacing: 1.6, marginTop: 3 },
-  refLabel: { fontSize: 7, color: MUTED, letterSpacing: 1.2, textAlign: "right" },
-  ref: { fontSize: 13, fontFamily: "Courier-Bold", color: INK, textAlign: "right", marginTop: 2 },
+  refLabel: { fontSize: 7, color: MUTED, letterSpacing: 1.2, textAlign: 'right' },
+  ref: { fontSize: 13, fontFamily: 'Courier-Bold', color: INK, textAlign: 'right', marginTop: 2 },
 
   // Route: the thing a passenger and a gate agent both look for first.
   route: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -61,19 +61,19 @@ const s = StyleSheet.create({
     borderRadius: 6,
   },
   endpoint: { flex: 1 },
-  endpointRight: { flex: 1, alignItems: "flex-end" },
-  port: { fontSize: 15, fontFamily: "Helvetica-Bold", color: INK },
-  time: { fontSize: 20, fontFamily: "Helvetica-Bold", color: BRAND, marginTop: 3 },
+  endpointRight: { flex: 1, alignItems: 'flex-end' },
+  port: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: INK },
+  time: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: BRAND, marginTop: 3 },
   timeNote: { fontSize: 7, color: MUTED, marginTop: 2 },
-  connector: { width: 96, alignItems: "center", paddingHorizontal: 8 },
-  connectorLine: { height: 1, backgroundColor: FAINT, width: "100%", marginVertical: 4 },
+  connector: { width: 96, alignItems: 'center', paddingHorizontal: 8 },
+  connectorLine: { height: 1, backgroundColor: FAINT, width: '100%', marginVertical: 4 },
   duration: { fontSize: 7.5, color: MUTED },
 
-  facts: { flexDirection: "row", marginTop: 14, flexWrap: "wrap" },
-  fact: { width: "25%", paddingRight: 10, marginBottom: 10 },
-  factWide: { width: "50%", paddingRight: 10, marginBottom: 10 },
+  facts: { flexDirection: 'row', marginTop: 14, flexWrap: 'wrap' },
+  fact: { width: '25%', paddingRight: 10, marginBottom: 10 },
+  factWide: { width: '50%', paddingRight: 10, marginBottom: 10 },
   label: { fontSize: 6.5, color: MUTED, letterSpacing: 1, marginBottom: 2 },
-  value: { fontSize: 9.5, fontFamily: "Helvetica-Bold" },
+  value: { fontSize: 9.5, fontFamily: 'Helvetica-Bold' },
   valueSmall: { fontSize: 8, lineHeight: 1.35 },
 
   sectionTitle: {
@@ -85,26 +85,26 @@ const s = StyleSheet.create({
   },
 
   pass: {
-    flexDirection: "row",
+    flexDirection: 'row',
     borderWidth: 1,
     borderColor: RULE,
     borderRadius: 6,
     padding: 12,
     marginBottom: 8,
-    alignItems: "center",
+    alignItems: 'center',
   },
   passBody: { flex: 1, paddingRight: 12 },
   seq: { fontSize: 6.5, color: FAINT, letterSpacing: 1 },
-  passenger: { fontSize: 12, fontFamily: "Helvetica-Bold", marginTop: 2 },
-  ticketCode: { fontSize: 8.5, fontFamily: "Courier", color: MUTED, marginTop: 3 },
+  passenger: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginTop: 2 },
+  ticketCode: { fontSize: 8.5, fontFamily: 'Courier', color: MUTED, marginTop: 3 },
   idNote: { fontSize: 7.5, color: MUTED, marginTop: 5, lineHeight: 1.35 },
   // The perforation a paper ticket would have; sells the "tear here" idea.
   stub: {
     borderLeftWidth: 1,
     borderLeftColor: RULE,
-    borderLeftStyle: "dashed",
+    borderLeftStyle: 'dashed',
     paddingLeft: 12,
-    alignItems: "center",
+    alignItems: 'center',
   },
   qr: { width: 84, height: 84 },
   scanNote: { fontSize: 6, color: FAINT, marginTop: 3 },
@@ -112,24 +112,24 @@ const s = StyleSheet.create({
   notice: {
     marginTop: 4,
     padding: 10,
-    backgroundColor: "#fffbeb",
+    backgroundColor: '#fffbeb',
     borderWidth: 1,
-    borderColor: "#fcd34d",
+    borderColor: '#fcd34d',
     borderRadius: 5,
   },
-  noticeTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#92400e" },
-  noticeBody: { fontSize: 7.5, color: "#92400e", marginTop: 3, lineHeight: 1.45 },
+  noticeTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#92400e' },
+  noticeBody: { fontSize: 7.5, color: '#92400e', marginTop: 3, lineHeight: 1.45 },
 
   footer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 20,
     left: 32,
     right: 32,
     borderTopWidth: 1,
     borderTopColor: RULE,
     paddingTop: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   footerText: { fontSize: 6.5, color: FAINT },
 });
@@ -205,7 +205,7 @@ function BoardingPassDocument({ data }: { data: BoardingPassData }) {
             <Text style={s.port}>{data.originPort}</Text>
             <Text style={s.time}>{formatLocalTime(dep)}</Text>
             <Text style={s.timeNote}>
-              {formatLocalDate(dep, "EEE, dd MMM yyyy")} · WITA
+              {formatLocalDate(dep, 'EEE, dd MMM yyyy')} · WITA
             </Text>
           </View>
           <View style={s.connector}>
@@ -317,7 +317,7 @@ export async function generateBoardingPassPdf(
       tickets: true,
     },
   });
-  if (!booking || booking.status !== "CONFIRMED") return null;
+  if (!booking || booking.status !== 'CONFIRMED') return null;
   if (booking.tickets.length === 0) return null;
 
   const { leg } = booking;

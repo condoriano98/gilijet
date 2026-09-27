@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,25 +15,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/lib/utils";
-import { toggleCoupon, archiveCoupon } from "../actions";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatIDR } from '@/lib/utils';
+import { toggleCoupon, archiveCoupon } from '../actions';
 
-export const metadata = { title: "Coupons · Owner Console" };
+export const metadata = { title: 'Coupons · Owner Console' };
 
 type Promo = Awaited<ReturnType<typeof prisma.promotion.findMany>>[number];
 
-function status(p: Promo): { label: string; variant: "success" | "destructive" | "outline" | "secondary" } {
+function status(p: Promo): { label: string; variant: 'success' | 'destructive' | 'outline' | 'secondary' } {
   const now = Date.now();
-  if (p.archivedAt) return { label: "Archived", variant: "outline" };
-  if (!p.isActive) return { label: "Inactive", variant: "outline" };
-  if (p.startsAt && p.startsAt.getTime() > now) return { label: "Scheduled", variant: "secondary" };
-  if (p.expiresAt && p.expiresAt.getTime() < now) return { label: "Expired", variant: "destructive" };
-  if (p.maxUses != null && p.usedCount >= p.maxUses) return { label: "Exhausted", variant: "destructive" };
-  if (p.budgetCap != null && Number(p.budgetSpent) >= Number(p.budgetCap)) return { label: "Budget spent", variant: "destructive" };
-  return { label: "Active", variant: "success" };
+  if (p.archivedAt) return { label: 'Archived', variant: 'outline' };
+  if (!p.isActive) return { label: 'Inactive', variant: 'outline' };
+  if (p.startsAt && p.startsAt.getTime() > now) return { label: 'Scheduled', variant: 'secondary' };
+  if (p.expiresAt && p.expiresAt.getTime() < now) return { label: 'Expired', variant: 'destructive' };
+  if (p.maxUses != null && p.usedCount >= p.maxUses) return { label: 'Exhausted', variant: 'destructive' };
+  if (p.budgetCap != null && Number(p.budgetSpent) >= Number(p.budgetCap)) return { label: 'Budget spent', variant: 'destructive' };
+  return { label: 'Active', variant: 'success' };
 }
 
 export default async function CouponsPage({
@@ -45,14 +45,14 @@ export default async function CouponsPage({
   const { generated } = await searchParams;
 
   const promos = await prisma.promotion.findMany({
-    orderBy: [{ archivedAt: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ archivedAt: 'asc' }, { createdAt: 'desc' }],
   });
 
   return (
     <div className="space-y-6">
       {generated ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-          Generated {generated} coupon code{generated === "1" ? "" : "s"}.
+          Generated {generated} coupon code{generated === '1' ? '' : 's'}.
         </div>
       ) : null}
 
@@ -108,8 +108,8 @@ export default async function CouponsPage({
                         </Link>
                       </TableCell>
                       <TableCell>
-                        {p.discountType === "PERCENT"
-                          ? `${Number(p.discountValue)}%${p.maxDiscountAmount != null ? ` ≤${formatIDR(Number(p.maxDiscountAmount))}` : ""}`
+                        {p.discountType === 'PERCENT'
+                          ? `${Number(p.discountValue)}%${p.maxDiscountAmount != null ? ` ≤${formatIDR(Number(p.maxDiscountAmount))}` : ''}`
                           : formatIDR(Number(p.discountValue))}
                       </TableCell>
                       <TableCell>
@@ -119,12 +119,12 @@ export default async function CouponsPage({
                       </TableCell>
                       <TableCell>
                         {p.usedCount}
-                        {p.maxUses != null ? ` / ${p.maxUses}` : ""}
+                        {p.maxUses != null ? ` / ${p.maxUses}` : ''}
                       </TableCell>
                       <TableCell className="text-xs">
                         {p.budgetCap != null
                           ? `${formatIDR(Number(p.budgetSpent))} / ${formatIDR(Number(p.budgetCap))}`
-                          : "—"}
+                          : '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={st.variant}>{st.label}</Badge>
@@ -138,10 +138,10 @@ export default async function CouponsPage({
                                 <input
                                   type="hidden"
                                   name="next"
-                                  value={p.isActive ? "0" : "1"}
+                                  value={p.isActive ? '0' : '1'}
                                 />
                                 <Button type="submit" variant="outline" size="sm">
-                                  {p.isActive ? "Deactivate" : "Activate"}
+                                  {p.isActive ? 'Deactivate' : 'Activate'}
                                 </Button>
                               </form>
                               <form action={archiveCoupon}>

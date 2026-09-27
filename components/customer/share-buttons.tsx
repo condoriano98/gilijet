@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { CopyButton } from "./payment-countdown";
+import { CopyButton } from './payment-countdown';
 
 /**
  * Share/copy actions for a confirmed booking. WhatsApp deep link works on

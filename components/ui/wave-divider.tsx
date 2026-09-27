@@ -1,5 +1,5 @@
 export function WaveDivider({
-  fillClass = "fill-white",
+  fillClass = 'fill-white',
   flipped = false,
 }: {
   fillClass?: string;
@@ -9,7 +9,7 @@ export function WaveDivider({
     <svg
       viewBox="0 0 1440 60"
       preserveAspectRatio="none"
-      className={`block w-full h-8 sm:h-12 ${flipped ? "rotate-180" : ""}`}
+      className={`block w-full h-8 sm:h-12 ${flipped ? 'rotate-180' : ''}`}
       aria-hidden
     >
       <path

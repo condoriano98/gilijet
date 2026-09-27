@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { buildQrPayload } from "@/lib/qr";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { buildQrPayload } from '@/lib/qr';
 
 /**
  * Returns a manifest of all ISSUED tickets for a leg.
@@ -16,7 +16,7 @@ export async function GET(
   try {
     session = await requireOperator();
   } catch {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const { legId } = await params;
@@ -27,14 +27,14 @@ export async function GET(
     include: {
       schedule: { include: { boat: true } },
       bookings: {
-        where: { status: "CONFIRMED" },
-        include: { tickets: { where: { status: { in: ["ISSUED", "CHECKED_IN"] } } } },
+        where: { status: 'CONFIRMED' },
+        include: { tickets: { where: { status: { in: ['ISSUED', 'CHECKED_IN'] } } } },
       },
     },
   });
 
   if (!leg) {
-    return NextResponse.json({ ok: false, error: "Leg not found" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: 'Leg not found' }, { status: 404 });
   }
 
   const tickets = leg.bookings.flatMap((b) =>
@@ -60,4 +60,4 @@ export async function GET(
   });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

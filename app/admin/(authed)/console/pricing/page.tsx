@@ -1,13 +1,13 @@
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
-import { getPlatformConfig } from "@/lib/platform-config";
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
+import { getPlatformConfig } from '@/lib/platform-config';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,16 +15,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { savePlatformConfig, setOperatorCommission } from "../actions";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { savePlatformConfig, setOperatorCommission } from '../actions';
 
-export const metadata = { title: "Pricing · Owner Console" };
+export const metadata = { title: 'Pricing · Owner Console' };
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 export default async function PricingPage({
   searchParams,
@@ -37,7 +37,7 @@ export default async function PricingPage({
   const config = await getPlatformConfig();
   const operators = await prisma.operator.findMany({
     where: { deletedAt: null },
-    orderBy: { companyName: "asc" },
+    orderBy: { companyName: 'asc' },
     select: { id: true, companyName: true, commissionRate: true, status: true },
   });
 
@@ -88,7 +88,7 @@ export default async function PricingPage({
                 <select
                   id="serviceFeeType"
                   name="serviceFeeType"
-                  defaultValue={config.serviceFeeType ?? "NONE"}
+                  defaultValue={config.serviceFeeType ?? 'NONE'}
                   className={selectClass}
                 >
                   <option value="NONE">None</option>

@@ -1,29 +1,29 @@
-import { requireOperator } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatLocalDate, formatLocalTime, ymdInZone } from "@/lib/datetime";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { requireOperator } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { formatLocalDate, formatLocalTime, ymdInZone } from '@/lib/datetime';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { DataTable } from '@/components/ui/data-table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   Banknote,
   Ticket,
   Ship,
-} from "lucide-react";
+} from 'lucide-react';
 
 function formatRupiah(n: number): string {
-  return "Rp " + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
+  return 'Rp ' + n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 }
 
 function getGreeting(): string {
   const hour = new Date().getUTCHours() + 8;
   const h = hour >= 24 ? hour - 24 : hour;
-  if (h >= 5 && h < 11) return "Selamat pagi";
-  if (h >= 11 && h < 15) return "Selamat siang";
-  if (h >= 15 && h < 18) return "Selamat sore";
-  return "Selamat malam";
+  if (h >= 5 && h < 11) return 'Selamat pagi';
+  if (h >= 11 && h < 15) return 'Selamat siang';
+  if (h >= 15 && h < 18) return 'Selamat sore';
+  return 'Selamat malam';
 }
 
 export default async function OperatorDashboard() {
@@ -34,7 +34,7 @@ export default async function OperatorDashboard() {
   const todayStart = new Date(`${todayYmd}T00:00:00+08:00`);
   const todayEnd = new Date(`${todayYmd}T23:59:59+08:00`);
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const monthStart = new Date(todayYmd.slice(0, 7) + "-01T00:00:00+08:00");
+  const monthStart = new Date(todayYmd.slice(0, 7) + '-01T00:00:00+08:00');
 
   const [todayLegs, todayRevenue, weekRevenue, monthRevenue, monthBookings, scheduleCount, boatCount] =
     await Promise.all([
@@ -45,49 +45,49 @@ export default async function OperatorDashboard() {
           schedule: { deletedAt: null, boat: { deletedAt: null } },
         },
         include: { schedule: { include: { boat: true } } },
-        orderBy: { departureDate: "asc" },
+        orderBy: { departureDate: 'asc' },
       }),
       prisma.booking.aggregate({
-        where: { operatorId, status: "CONFIRMED", createdAt: { gte: todayStart, lte: todayEnd } },
+        where: { operatorId, status: 'CONFIRMED', createdAt: { gte: todayStart, lte: todayEnd } },
         _sum: { operatorAmount: true },
         _count: true,
       }),
       prisma.booking.aggregate({
-        where: { operatorId, status: "CONFIRMED", createdAt: { gte: weekAgo } },
+        where: { operatorId, status: 'CONFIRMED', createdAt: { gte: weekAgo } },
         _sum: { operatorAmount: true },
       }),
       prisma.booking.aggregate({
-        where: { operatorId, status: "CONFIRMED", createdAt: { gte: monthStart } },
+        where: { operatorId, status: 'CONFIRMED', createdAt: { gte: monthStart } },
         _sum: { operatorAmount: true },
         _count: true,
       }),
       prisma.booking.findMany({
-        where: { operatorId, status: "CONFIRMED", createdAt: { gte: monthStart } },
+        where: { operatorId, status: 'CONFIRMED', createdAt: { gte: monthStart } },
         include: { leg: { include: { schedule: true } } },
         take: 500,
       }),
-      prisma.schedule.count({ where: { status: "ACTIVE", deletedAt: null, boat: { operatorId, deletedAt: null } } }),
-      prisma.boat.count({ where: { operatorId, status: "ACTIVE", deletedAt: null } }),
+      prisma.schedule.count({ where: { status: 'ACTIVE', deletedAt: null, boat: { operatorId, deletedAt: null } } }),
+      prisma.boat.count({ where: { operatorId, status: 'ACTIVE', deletedAt: null } }),
     ]);
 
   const todayRevenueNum = Number(todayRevenue._sum.operatorAmount ?? 0);
   const weekRevenueNum = Number(weekRevenue._sum.operatorAmount ?? 0);
   const monthRevenueNum = Number(monthRevenue._sum.operatorAmount ?? 0);
   const todayTickets = todayRevenue._count;
-  const sailedCount = todayLegs.filter((l) => l.status === "SAILED").length;
+  const sailedCount = todayLegs.filter((l) => l.status === 'SAILED').length;
 
-  const firstName = session.email.split("@")[0];
+  const firstName = session.email.split('@')[0];
 
-  const statusVariant: Record<string, "success" | "warning" | "danger" | "neutral"> = {
-    OPEN: "success", FULL: "warning", SAILED: "info" as "success", CANCELLED: "danger",
+  const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
+    OPEN: 'success', FULL: 'warning', SAILED: 'info' as 'success', CANCELLED: 'danger',
   };
 
   const legColumns = [
-    { key: "time",   header: "Waktu" },
-    { key: "route",  header: "Rute" },
-    { key: "boat",   header: "Kapal" },
-    { key: "status", header: "Status" },
-    { key: "action", header: "Aksi", align: "right" as const },
+    { key: 'time',   header: 'Waktu' },
+    { key: 'route',  header: 'Rute' },
+    { key: 'boat',   header: 'Kapal' },
+    { key: 'status', header: 'Status' },
+    { key: 'action', header: 'Aksi', align: 'right' as const },
   ];
 
   const legRows = todayLegs.map((leg) => ({
@@ -95,7 +95,7 @@ export default async function OperatorDashboard() {
     time: <span className="font-mono font-medium">{formatLocalTime(leg.departureDate)}</span>,
     route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
     boat: leg.schedule.boat.name,
-    status: <StatusBadge variant={statusVariant[leg.status] ?? "neutral"}>{leg.status}</StatusBadge>,
+    status: <StatusBadge variant={statusVariant[leg.status] ?? 'neutral'}>{leg.status}</StatusBadge>,
     action: (
       <Button asChild variant="outline" size="sm">
         <Link href={`/operator/legs/${leg.id}`}>Lihat Manifest</Link>
@@ -110,7 +110,7 @@ export default async function OperatorDashboard() {
           {getGreeting()}, {firstName}
         </h1>
         <p className="text-sm text-mekari-neutral-500">
-          {formatLocalDate(new Date(), "EEEE, dd MMMM yyyy")}
+          {formatLocalDate(new Date(), 'EEEE, dd MMMM yyyy')}
         </p>
       </div>
 

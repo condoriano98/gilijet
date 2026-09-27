@@ -1,8 +1,8 @@
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge } from '@/components/ui/status-badge';
 
 type DetailPageTemplateProps = {
   title: string;
-  status?: { label: string; variant: "success" | "warning" | "danger" | "neutral" | "info" };
+  status?: { label: string; variant: 'success' | 'warning' | 'danger' | 'neutral' | 'info' };
   actions?: React.ReactNode;
   tabs?: { label: string; href: string; active?: boolean }[];
   children: React.ReactNode;
@@ -32,8 +32,8 @@ export function DetailPageTemplate({
               href={tab.href}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab.active
-                  ? "border-mekari-primary text-mekari-primary"
-                  : "border-transparent text-mekari-neutral-500 hover:text-mekari-neutral-700"
+                  ? 'border-mekari-primary text-mekari-primary'
+                  : 'border-transparent text-mekari-neutral-500 hover:text-mekari-neutral-700'
               }`}
             >
               {tab.label}

@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./db";
-import { env } from "./env";
+import { Prisma } from '@prisma/client';
+import { prisma } from './db';
+import { env } from './env';
 
 /**
  * Platform-economics config — the values the owner console tunes.
@@ -14,7 +14,7 @@ import { env } from "./env";
  */
 
 const DEFAULT_COMMISSION_RATE = 0.08;
-const PLATFORM_CONFIG_ID = "default";
+const PLATFORM_CONFIG_ID = 'default';
 
 /** Read the singleton config, creating it with defaults on first access. */
 export async function getPlatformConfig() {
@@ -27,15 +27,15 @@ export async function getPlatformConfig() {
 
 function envCommissionRate(): number {
   const fromEnv = env.PLATFORM_COMMISSION_RATE;
-  return typeof fromEnv === "number" && Number.isFinite(fromEnv)
+  return typeof fromEnv === 'number' && Number.isFinite(fromEnv)
     ? fromEnv
     : DEFAULT_COMMISSION_RATE;
 }
 
 export type ResolvedPlatformPricing = {
   commissionRate: Prisma.Decimal;
-  multipliers: Partial<Record<"ADULT" | "CHILD" | "INFANT", number>> | undefined;
-  serviceFee: { type: "PERCENT" | "FLAT"; value: number } | null;
+  multipliers: Partial<Record<'ADULT' | 'CHILD' | 'INFANT', number>> | undefined;
+  serviceFee: { type: 'PERCENT' | 'FLAT'; value: number } | null;
 };
 
 /**

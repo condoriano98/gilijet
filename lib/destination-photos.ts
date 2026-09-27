@@ -13,71 +13,71 @@ export type DestinationPhoto = {
 const LOCAL = (slug: string) => `/destinations/${slug}.jpg`;
 
 export const DESTINATION_PHOTOS: Record<string, DestinationPhoto> = {
-  "gili-trawangan": {
-    url: LOCAL("gili-trawangan"),
+  'gili-trawangan': {
+    url: LOCAL('gili-trawangan'),
     alt: "Aerial view of Gili Trawangan's turquoise water and white-sand beach",
-    credit: "Artem Beliaikin on Unsplash",
+    credit: 'Artem Beliaikin on Unsplash',
   },
-  "nusa-penida": {
-    url: LOCAL("nusa-penida"),
-    alt: "Kelingking Beach cliff viewpoint on Nusa Penida",
-    credit: "Wikimedia Commons",
+  'nusa-penida': {
+    url: LOCAL('nusa-penida'),
+    alt: 'Kelingking Beach cliff viewpoint on Nusa Penida',
+    credit: 'Wikimedia Commons',
   },
-  "nusa-lembongan": {
-    url: LOCAL("nusa-lembongan"),
+  'nusa-lembongan': {
+    url: LOCAL('nusa-lembongan'),
     alt: "Devil's Tear viewpoint on Nusa Lembongan",
-    credit: "Milos Prelevic on Unsplash",
+    credit: 'Milos Prelevic on Unsplash',
   },
   lombok: {
-    url: LOCAL("lombok"),
-    alt: "Mount Rinjani crater lake and Segara Anak",
-    credit: "Wikimedia Commons",
+    url: LOCAL('lombok'),
+    alt: 'Mount Rinjani crater lake and Segara Anak',
+    credit: 'Wikimedia Commons',
   },
   komodo: {
-    url: LOCAL("komodo"),
-    alt: "Padar Island viewpoint in Komodo National Park",
-    credit: "Wikimedia Commons",
+    url: LOCAL('komodo'),
+    alt: 'Padar Island viewpoint in Komodo National Park',
+    credit: 'Wikimedia Commons',
   },
   sanur: {
-    url: LOCAL("sanur"),
-    alt: "Sanur sunrise with traditional prayer boats",
-    credit: "Rubén Hutabarat on Unsplash",
+    url: LOCAL('sanur'),
+    alt: 'Sanur sunrise with traditional prayer boats',
+    credit: 'Rubén Hutabarat on Unsplash',
   },
-  "padang-bai": {
-    url: LOCAL("padang-bai"),
-    alt: "Fast boats moored at Padang Bai harbour",
-    credit: "Niklas Weiss on Unsplash",
+  'padang-bai': {
+    url: LOCAL('padang-bai'),
+    alt: 'Fast boats moored at Padang Bai harbour',
+    credit: 'Niklas Weiss on Unsplash',
   },
   bangsal: {
-    url: LOCAL("bangsal"),
-    alt: "Bangsal harbour as seen from the deck of a Gili boat",
-    credit: "Mufid Majnun on Unsplash",
+    url: LOCAL('bangsal'),
+    alt: 'Bangsal harbour as seen from the deck of a Gili boat',
+    credit: 'Mufid Majnun on Unsplash',
   },
-  "labuan-bajo": {
-    url: LOCAL("labuan-bajo"),
-    alt: "Labuan Bajo harbour at golden hour with Phinisi boats",
-    credit: "Michael Anfang on Unsplash",
+  'labuan-bajo': {
+    url: LOCAL('labuan-bajo'),
+    alt: 'Labuan Bajo harbour at golden hour with Phinisi boats',
+    credit: 'Michael Anfang on Unsplash',
   },
-  "gili-islands": {
-    url: LOCAL("gili-islands"),
-    alt: "Beach on Gili Trawangan with turquoise water",
-    credit: "Wikimedia Commons",
+  'gili-islands': {
+    url: LOCAL('gili-islands'),
+    alt: 'Beach on Gili Trawangan with turquoise water',
+    credit: 'Wikimedia Commons',
   },
 };
 
 export const HERO_PHOTO: DestinationPhoto = {
-  url: LOCAL("hero"),
-  alt: "Indonesian fast boats heading to the Gili Islands at sunrise",
-  credit: "Arief Hidayat on Unsplash",
+  url: LOCAL('hero'),
+  alt: 'Indonesian fast boats heading to the Gili Islands at sunrise',
+  credit: 'Arief Hidayat on Unsplash',
 };
 
 export function slugForPort(name: string): string {
   return name
     .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 export function photoForPort(name: string): DestinationPhoto | null {

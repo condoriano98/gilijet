@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
@@ -8,17 +8,17 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { createBoat } from "../../actions";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { createBoat } from '../../actions';
 
-export const metadata = { title: "Add boat · Operations" };
+export const metadata = { title: 'Add boat · Operations' };
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 export default async function NewBoatPage({
   searchParams,
@@ -30,7 +30,7 @@ export default async function NewBoatPage({
 
   const operators = await prisma.operator.findMany({
     where: { deletedAt: null },
-    orderBy: { companyName: "asc" },
+    orderBy: { companyName: 'asc' },
     select: { id: true, companyName: true, status: true },
   });
 
@@ -64,7 +64,7 @@ export default async function NewBoatPage({
               <select
                 id="operatorId"
                 name="operatorId"
-                defaultValue={operatorId ?? ""}
+                defaultValue={operatorId ?? ''}
                 className={selectClass}
                 required
               >
@@ -72,7 +72,7 @@ export default async function NewBoatPage({
                 {operators.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.companyName}
-                    {o.status !== "ACTIVE" ? ` (${o.status})` : ""}
+                    {o.status !== 'ACTIVE' ? ` (${o.status})` : ''}
                   </option>
                 ))}
               </select>

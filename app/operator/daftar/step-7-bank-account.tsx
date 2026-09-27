@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { submitBankAccount } from "./actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import type { Operator } from "@prisma/client";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { submitBankAccount } from './actions';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { Operator } from '@prisma/client';
 
 export function Step7BankAccount({ operator }: { operator: Operator }) {
   const router = useRouter();
@@ -29,10 +29,10 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
 
       const result = await submitBankAccount(formData);
       if (result.success) {
-        router.push("/operator?registered=true");
+        router.push('/operator?registered=true');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save bank account");
+      setError(err instanceof Error ? err.message : 'Failed to save bank account');
       setLoading(false);
     }
   }
@@ -68,7 +68,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
           <Input
             id="bankName"
             name="bankName"
-            defaultValue={bankInfo?.bankName || ""}
+            defaultValue={bankInfo?.bankName || ''}
             placeholder="e.g., BCA, Mandiri, BNI"
             required
           />
@@ -79,7 +79,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
           <Input
             id="accountNumber"
             name="accountNumber"
-            defaultValue={bankInfo?.accountNumber || ""}
+            defaultValue={bankInfo?.accountNumber || ''}
             placeholder="e.g., 1234567890"
             required
           />
@@ -90,7 +90,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
           <Input
             id="accountHolder"
             name="accountHolder"
-            defaultValue={bankInfo?.accountHolder || ""}
+            defaultValue={bankInfo?.accountHolder || ''}
             placeholder="Name as shown in bank"
             required
           />
@@ -105,7 +105,7 @@ export function Step7BankAccount({ operator }: { operator: Operator }) {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? "Submitting..." : "Complete Registration"}
+            {loading ? 'Submitting...' : 'Complete Registration'}
           </Button>
         </div>
 

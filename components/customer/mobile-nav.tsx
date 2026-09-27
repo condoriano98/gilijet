@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Menu } from "lucide-react";
+import Link from 'next/link';
+import { Menu } from 'lucide-react';
 import {
   Sheet,
   SheetClose,
   SheetContent,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { useAuthState } from "@/components/customer/use-auth-state";
+} from '@/components/ui/sheet';
+import { useAuthState } from '@/components/customer/use-auth-state';
 
 const LINKS = [
-  { href: "/blog", label: "Blog" },
-  { href: "/b", label: "Find booking" },
-  { href: "/change-plans", label: "Change or refund a trip" },
-  { href: "/contact", label: "Contact" },
+  { href: '/blog', label: 'Blog' },
+  { href: '/b', label: 'Find booking' },
+  { href: '/change-plans', label: 'Change or refund a trip' },
+  { href: '/contact', label: 'Contact' },
 ];
 
 /**
@@ -51,7 +51,7 @@ export function MobileNav() {
           ))}
         </nav>
 
-        {state.status === "signed-in" ? (
+        {state.status === 'signed-in' ? (
           <SheetClose asChild>
             <Link
               href="/account"
@@ -60,7 +60,7 @@ export function MobileNav() {
               {state.firstName}
             </Link>
           </SheetClose>
-        ) : state.status === "guest" ? (
+        ) : state.status === 'guest' ? (
           <div className="flex flex-col gap-2">
             <SheetClose asChild>
               <Link

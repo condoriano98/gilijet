@@ -1,20 +1,20 @@
-import { requireSuperAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { isWhatsappConfigured, normalizeWhatsappNumber } from "@/lib/whatsapp";
-import { saveAlertConfig } from "../actions";
+import { requireSuperAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { isWhatsappConfigured, normalizeWhatsappNumber } from '@/lib/whatsapp';
+import { saveAlertConfig } from '../actions';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * Where booking alerts go. Database-first so the on-call number can move
@@ -30,13 +30,13 @@ export default async function AlertsConsolePage({
   const { ok, error } = await searchParams;
 
   const config = await prisma.platformConfig.findUnique({
-    where: { id: "default" },
+    where: { id: 'default' },
   });
 
-  const number = config?.adminWhatsappNumber ?? "";
-  const template = config?.adminAlertTemplate ?? "";
-  const effectiveNumber = number || env.ADMIN_WHATSAPP_NUMBER || "";
-  const effectiveTemplate = template || env.ADMIN_ALERT_TEMPLATE || "";
+  const number = config?.adminWhatsappNumber ?? '';
+  const template = config?.adminAlertTemplate ?? '';
+  const effectiveNumber = number || env.ADMIN_WHATSAPP_NUMBER || '';
+  const effectiveTemplate = template || env.ADMIN_ALERT_TEMPLATE || '';
   const normalised = effectiveNumber
     ? normalizeWhatsappNumber(effectiveNumber)
     : null;
@@ -82,10 +82,10 @@ export default async function AlertsConsolePage({
               <p className="text-xs text-muted-foreground">
                 {normalised
                   ? `Sends to ${normalised}.`
-                  : "08…, +62… and 62… are all accepted."}
+                  : '08…, +62… and 62… are all accepted.'}
                 {!number && env.ADMIN_WHATSAPP_NUMBER
-                  ? " Currently falling back to ADMIN_WHATSAPP_NUMBER."
-                  : ""}
+                  ? ' Currently falling back to ADMIN_WHATSAPP_NUMBER.'
+                  : ''}
               </p>
             </div>
 
@@ -140,13 +140,13 @@ export default async function AlertsConsolePage({
         <CardContent className="space-y-2 text-sm">
           <p>
             {armed
-              ? "✓ Alerts are configured."
-              : "✗ Alerts are off — set both a number and a template name."}
+              ? '✓ Alerts are configured.'
+              : '✗ Alerts are off — set both a number and a template name.'}
           </p>
-          <p className={live ? "" : "text-amber-700"}>
+          <p className={live ? '' : 'text-amber-700'}>
             {live
-              ? "✓ WATI credentials are present, so alerts send for real."
-              : "✗ WATI credentials are absent — alerts are written to the server log instead of sent. Set WATI_API_KEY, WATI_TENANT_ID and WATI_API_URL."}
+              ? '✓ WATI credentials are present, so alerts send for real.'
+              : '✗ WATI credentials are absent — alerts are written to the server log instead of sent. Set WATI_API_KEY, WATI_TENANT_ID and WATI_API_URL.'}
           </p>
           <p className="text-xs text-muted-foreground">
             The template needs these variables: event, reference, route,

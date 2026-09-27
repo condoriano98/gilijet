@@ -1,14 +1,14 @@
-import type { Promotion } from "@prisma/client";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { formatLocalDate } from "@/lib/datetime";
+import type { Promotion } from '@prisma/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { formatLocalDate } from '@/lib/datetime';
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 function witaLocal(d: Date | null | undefined): string {
-  return d ? formatLocalDate(d, "yyyy-MM-dd'T'HH:mm") : "";
+  return d ? formatLocalDate(d, "yyyy-MM-dd'T'HH:mm") : '';
 }
 
 /**
@@ -27,7 +27,7 @@ export function CouponFields({
 }) {
   return (
     <div className="grid gap-5">
-      <div className={hideCode ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
+      <div className={hideCode ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
         {hideCode ? (
           // Bulk mode: codes are generated from the prefix. A template value
           // keeps the shared settings validator happy; it is never persisted.
@@ -51,7 +51,7 @@ export function CouponFields({
           <select
             id="costBearer"
             name="costBearer"
-            defaultValue={promo?.costBearer ?? "SHARED"}
+            defaultValue={promo?.costBearer ?? 'SHARED'}
             className={selectClass}
           >
             <option value="SHARED">Shared (platform + operator pro-rata)</option>
@@ -67,7 +67,7 @@ export function CouponFields({
           <select
             id="discountType"
             name="discountType"
-            defaultValue={promo?.discountType ?? "PERCENT"}
+            defaultValue={promo?.discountType ?? 'PERCENT'}
             className={selectClass}
           >
             <option value="PERCENT">Percent (%)</option>
@@ -82,7 +82,7 @@ export function CouponFields({
             type="number"
             step="any"
             min="0"
-            defaultValue={promo ? Number(promo.discountValue) : ""}
+            defaultValue={promo ? Number(promo.discountValue) : ''}
             required
           />
         </div>
@@ -93,7 +93,7 @@ export function CouponFields({
             name="maxDiscountAmount"
             type="number"
             min="0"
-            defaultValue={promo?.maxDiscountAmount != null ? Number(promo.maxDiscountAmount) : ""}
+            defaultValue={promo?.maxDiscountAmount != null ? Number(promo.maxDiscountAmount) : ''}
             placeholder="optional"
           />
         </div>
@@ -106,18 +106,18 @@ export function CouponFields({
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="maxUses">Max total uses</Label>
-          <Input id="maxUses" name="maxUses" type="number" min="1" defaultValue={promo?.maxUses ?? ""} placeholder="unlimited" />
+          <Input id="maxUses" name="maxUses" type="number" min="1" defaultValue={promo?.maxUses ?? ''} placeholder="unlimited" />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="perCustomerLimit">Per-customer limit</Label>
-          <Input id="perCustomerLimit" name="perCustomerLimit" type="number" min="1" defaultValue={promo?.perCustomerLimit ?? ""} placeholder="unlimited" />
+          <Input id="perCustomerLimit" name="perCustomerLimit" type="number" min="1" defaultValue={promo?.perCustomerLimit ?? ''} placeholder="unlimited" />
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="grid gap-1.5">
           <Label htmlFor="budgetCap">Budget cap (IDR)</Label>
-          <Input id="budgetCap" name="budgetCap" type="number" min="0" defaultValue={promo?.budgetCap != null ? Number(promo.budgetCap) : ""} placeholder="unlimited" />
+          <Input id="budgetCap" name="budgetCap" type="number" min="0" defaultValue={promo?.budgetCap != null ? Number(promo.budgetCap) : ''} placeholder="unlimited" />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="startsAt">Starts (WITA)</Label>
@@ -132,11 +132,11 @@ export function CouponFields({
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="appliesToRouteCodes">Routes (ORIGIN-DEST, blank = all)</Label>
-          <Textarea id="appliesToRouteCodes" name="appliesToRouteCodes" rows={2} defaultValue={promo?.appliesToRouteCodes.join(", ")} placeholder="Sanur-Nusa Penida, Padangbai-Gili Trawangan" />
+          <Textarea id="appliesToRouteCodes" name="appliesToRouteCodes" rows={2} defaultValue={promo?.appliesToRouteCodes.join(', ')} placeholder="Sanur-Nusa Penida, Padangbai-Gili Trawangan" />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="appliesToOperatorIds">Operator IDs (blank = all)</Label>
-          <Textarea id="appliesToOperatorIds" name="appliesToOperatorIds" rows={2} defaultValue={promo?.appliesToOperatorIds.join(", ")} placeholder="cuid1, cuid2" />
+          <Textarea id="appliesToOperatorIds" name="appliesToOperatorIds" rows={2} defaultValue={promo?.appliesToOperatorIds.join(', ')} placeholder="cuid1, cuid2" />
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export function CouponFields({
 
       <div className="grid gap-1.5">
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" rows={2} defaultValue={promo?.description ?? ""} placeholder="Shown to customers / internal note" />
+        <Textarea id="description" name="description" rows={2} defaultValue={promo?.description ?? ''} placeholder="Shown to customers / internal note" />
       </div>
     </div>
   );

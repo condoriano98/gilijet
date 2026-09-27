@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
-import { formatLocalDateTime } from "@/lib/datetime";
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
+import { formatLocalDateTime } from '@/lib/datetime';
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -18,18 +18,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   regenerateDepartures,
   setScheduleStatus,
   updateSchedule,
   deleteSchedule,
-} from "../../actions";
-import { ScheduleFields } from "../../schedule-fields";
+} from '../../actions';
+import { ScheduleFields } from '../../schedule-fields';
 
-export const metadata = { title: "Schedule · Operations" };
+export const metadata = { title: 'Schedule · Operations' };
 
 export default async function OperationsScheduleDetailPage({
   params,
@@ -55,7 +55,7 @@ export default async function OperationsScheduleDetailPage({
       },
       legs: {
         where: { departureDate: { gte: new Date() } },
-        orderBy: { departureDate: "asc" },
+        orderBy: { departureDate: 'asc' },
         take: 20,
         select: {
           id: true,
@@ -70,12 +70,12 @@ export default async function OperationsScheduleDetailPage({
   const [operators, boats] = await Promise.all([
     prisma.operator.findMany({
       where: { deletedAt: null },
-      orderBy: { companyName: "asc" },
+      orderBy: { companyName: 'asc' },
       select: { id: true, companyName: true },
     }),
     prisma.boat.findMany({
-      where: { deletedAt: null, status: "ACTIVE", operatorId: schedule.boat.operatorId },
-      orderBy: { name: "asc" },
+      where: { deletedAt: null, status: 'ACTIVE', operatorId: schedule.boat.operatorId },
+      orderBy: { name: 'asc' },
       select: { id: true, name: true, operatorId: true },
     }),
   ]);
@@ -97,7 +97,7 @@ export default async function OperationsScheduleDetailPage({
             {schedule.boat.operator.companyName} · {schedule.boat.name}
           </p>
         </div>
-        <Badge variant={schedule.status === "ACTIVE" ? "success" : "outline"}>
+        <Badge variant={schedule.status === 'ACTIVE' ? 'success' : 'outline'}>
           {schedule.status}
         </Badge>
       </div>
@@ -159,7 +159,7 @@ export default async function OperationsScheduleDetailPage({
                 type="submit"
                 name="next"
                 value="ACTIVE"
-                disabled={schedule.status === "ACTIVE"}
+                disabled={schedule.status === 'ACTIVE'}
               >
                 Activate
               </Button>
@@ -168,7 +168,7 @@ export default async function OperationsScheduleDetailPage({
                 name="next"
                 value="INACTIVE"
                 variant="outline"
-                disabled={schedule.status === "INACTIVE"}
+                disabled={schedule.status === 'INACTIVE'}
               >
                 Deactivate
               </Button>
@@ -241,7 +241,7 @@ export default async function OperationsScheduleDetailPage({
                   <TableRow key={l.id}>
                     <TableCell>{formatLocalDateTime(l.departureDate)}</TableCell>
                     <TableCell>
-                      <Badge variant={l.status === "OPEN" ? "success" : "outline"}>
+                      <Badge variant={l.status === 'OPEN' ? 'success' : 'outline'}>
                         {l.status}
                       </Badge>
                     </TableCell>

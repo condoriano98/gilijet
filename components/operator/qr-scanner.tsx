@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import type { IScannerControls } from "@zxing/browser";
+import * as React from 'react';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import type { IScannerControls } from '@zxing/browser';
 
 /**
  * Wraps @zxing/browser to render a live camera preview and call `onDetected`
@@ -20,7 +20,7 @@ export function QrScanner({
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const controlsRef = React.useRef<IScannerControls | null>(null);
   const lastScanRef = React.useRef<{ text: string; at: number }>({
-    text: "",
+    text: '',
     at: 0,
   });
   const [error, setError] = React.useState<string | null>(null);
@@ -39,7 +39,7 @@ export function QrScanner({
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
         if (cancelled) return;
         if (devices.length === 0) {
-          setError("No camera detected on this device.");
+          setError('No camera detected on this device.');
           setStarting(false);
           return;
         }
@@ -75,7 +75,7 @@ export function QrScanner({
         setError(
           err instanceof Error
             ? err.message
-            : "Failed to access the camera. Grant permission and try again.",
+            : 'Failed to access the camera. Grant permission and try again.',
         );
         setStarting(false);
       }

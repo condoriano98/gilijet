@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import type { HomeReview } from "@/lib/home-data";
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import type { HomeReview } from '@/lib/home-data';
 
 const MONTHS_ID = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReduced(mq.matches);
     const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
   return reduced;
 }
@@ -69,7 +69,7 @@ export function ReviewsCarousel({ reviews }: { reviews: HomeReview[] }) {
                 setPaused(true);
               }}
               className={`h-2 rounded-full transition-all ${
-                i === index ? "w-6 bg-gilifast-deep" : "w-2 bg-slate-300 hover:bg-slate-400"
+                i === index ? 'w-6 bg-gilifast-deep' : 'w-2 bg-slate-300 hover:bg-slate-400'
               }`}
               aria-label={`Show review ${i + 1} of ${reviews.length}`}
             />
@@ -110,8 +110,8 @@ function Stars({ rating }: { rating: number }) {
       aria-label={`Rated ${r} out of 5`}
       className="text-base text-amber-500"
     >
-      {"★".repeat(r)}
-      <span className="text-slate-200">{"★".repeat(5 - r)}</span>
+      {'★'.repeat(r)}
+      <span className="text-slate-200">{'★'.repeat(5 - r)}</span>
     </div>
   );
 }

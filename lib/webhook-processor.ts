@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { prisma } from "./db";
-import { env } from "./env";
-import { recordPaymentAwaitingConfirmation } from "./ticket-issuer";
-import { releaseBookingSeats } from "./booking-engine";
-import { notifyPaymentReceived } from "./booking-notifications";
-import { normalizePaymentMethod } from "./psp";
+import { z } from 'zod';
+import { prisma } from './db';
+import { env } from './env';
+import { recordPaymentAwaitingConfirmation } from './ticket-issuer';
+import { releaseBookingSeats } from './booking-engine';
+import { notifyPaymentReceived } from './booking-notifications';
+import { normalizePaymentMethod } from './psp';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -38,10 +38,10 @@ export async function processInvoicePaid(
 ): Promise<ProcessResult> {
   const parsed = invoicePaidSchema.safeParse(body);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid invoice.paid payload", httpStatus: 400 };
+    return { ok: false, error: 'Invalid invoice.paid payload', httpStatus: 400 };
   }
   const data = parsed.data;
-  const invoiceId = data.id ?? data.invoice_id ?? "";
+  const invoiceId = data.id ?? data.invoice_id ?? '';
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: data.external_id },
@@ -52,13 +52,13 @@ export async function processInvoicePaid(
     },
   });
   if (!booking) {
-    return { ok: false, error: "Booking not found", httpStatus: 404 };
+    return { ok: false, error: 'Booking not found', httpStatus: 404 };
   }
 
   const result = await recordPaymentAwaitingConfirmation({
     bookingId: booking.id,
     paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
-    method: normalizePaymentMethod(data.payment_method ?? "BANK_TRANSFER"),
+    method: normalizePaymentMethod(data.payment_method ?? 'BANK_TRANSFER'),
     gatewayReference: invoiceId || null,
     gatewayFee: data.fees_paid_amount ?? null,
   });
@@ -72,11 +72,11 @@ export async function processInvoicePaid(
 
   if (!result.alreadyRecorded) {
     notifyPaymentReceived(booking.id).catch((err) =>
-      console.error("[webhook-processor] notify failed:", err),
+      console.error('[webhook-processor] notify failed:', err),
     );
   }
 
-  return { ok: true, status: "awaiting_confirmation" };
+  return { ok: true, status: 'awaiting_confirmation' };
 }
 
 export async function processInvoiceExpired(
@@ -84,26 +84,26 @@ export async function processInvoiceExpired(
 ): Promise<ProcessResult> {
   const parsed = invoiceExpiredSchema.safeParse(body);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid invoice.expired payload", httpStatus: 400 };
+    return { ok: false, error: 'Invalid invoice.expired payload', httpStatus: 400 };
   }
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: parsed.data.external_id },
   });
-  if (!booking) return { ok: false, error: "Booking not found", httpStatus: 404 };
-  if (booking.status !== "PENDING_PAYMENT") {
-    return { ok: true, status: "noop" };
+  if (!booking) return { ok: false, error: 'Booking not found', httpStatus: 404 };
+  if (booking.status !== 'PENDING_PAYMENT') {
+    return { ok: true, status: 'noop' };
   }
 
   await prisma.booking.update({
     where: { id: booking.id },
-    data: { status: "EXPIRED" },
+    data: { status: 'EXPIRED' },
   });
   await prisma.payment.updateMany({
-    where: { bookingId: booking.id, status: "PENDING" },
-    data: { status: "EXPIRED" },
+    where: { bookingId: booking.id, status: 'PENDING' },
+    data: { status: 'EXPIRED' },
   });
-  await releaseBookingSeats(booking.id, "expired");
-  return { ok: true, status: "expired" };
+  await releaseBookingSeats(booking.id, 'expired');
+  return { ok: true, status: 'expired' };
 }
 
 export async function processRefundSucceeded(
@@ -111,25 +111,25 @@ export async function processRefundSucceeded(
 ): Promise<ProcessResult> {
   const parsed = refundEventSchema.safeParse(body);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid refund payload", httpStatus: 400 };
+    return { ok: false, error: 'Invalid refund payload', httpStatus: 400 };
   }
   const refund = await prisma.refund.findFirst({
     where: { gatewayReference: parsed.data.id },
     include: { booking: true },
   });
-  if (!refund) return { ok: true, status: "ignored" };
+  if (!refund) return { ok: true, status: 'ignored' };
 
   await prisma.refund.update({
     where: { id: refund.id },
     data: {
-      status: "COMPLETED",
+      status: 'COMPLETED',
       processedAt: parsed.data.created ? new Date(parsed.data.created) : new Date(),
     },
   });
 
   // Fire refund-processed email (import inline to avoid circular deps)
   try {
-    const { sendRefundProcessedEmail } = await import("./email");
+    const { sendRefundProcessedEmail } = await import('./email');
     await sendRefundProcessedEmail({
       to: refund.booking.customerEmail,
       customerName: refund.booking.customerName,
@@ -138,10 +138,10 @@ export async function processRefundSucceeded(
       lookupUrl: `${env.APP_BASE_URL}/b/${refund.booking.bookingReference}`,
     });
   } catch (err) {
-    console.error("[webhook-processor] refund email failed:", err);
+    console.error('[webhook-processor] refund email failed:', err);
   }
 
-  return { ok: true, status: "refund_completed" };
+  return { ok: true, status: 'refund_completed' };
 }
 
 export async function processRefundFailed(
@@ -149,17 +149,17 @@ export async function processRefundFailed(
 ): Promise<ProcessResult> {
   const parsed = refundEventSchema.safeParse(body);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid refund payload", httpStatus: 400 };
+    return { ok: false, error: 'Invalid refund payload', httpStatus: 400 };
   }
   const refund = await prisma.refund.findFirst({
     where: { gatewayReference: parsed.data.id },
   });
-  if (!refund) return { ok: true, status: "ignored" };
+  if (!refund) return { ok: true, status: 'ignored' };
   await prisma.refund.update({
     where: { id: refund.id },
-    data: { status: "FAILED" },
+    data: { status: 'FAILED' },
   });
-  return { ok: true, status: "refund_failed" };
+  return { ok: true, status: 'refund_failed' };
 }
 
 /**
@@ -169,14 +169,14 @@ export async function processRefundFailed(
 export async function dispatchWebhookPayload(
   body: Record<string, unknown>,
 ): Promise<ProcessResult> {
-  const status = String(body.status ?? "").toUpperCase();
-  const event = String(body.event ?? "").toLowerCase();
+  const status = String(body.status ?? '').toUpperCase();
+  const event = String(body.event ?? '').toLowerCase();
 
-  if (status === "PAID") return processInvoicePaid(body);
-  if (status === "EXPIRED" || event === "invoice.expired")
+  if (status === 'PAID') return processInvoicePaid(body);
+  if (status === 'EXPIRED' || event === 'invoice.expired')
     return processInvoiceExpired(body);
-  if (event === "refund.succeeded") return processRefundSucceeded(body);
-  if (event === "refund.failed") return processRefundFailed(body);
+  if (event === 'refund.succeeded') return processRefundSucceeded(body);
+  if (event === 'refund.failed') return processRefundFailed(body);
 
-  return { ok: true, status: "ignored" };
+  return { ok: true, status: 'ignored' };
 }

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import type { DepartingSoon } from "@/lib/home-data";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import type { DepartingSoon } from '@/lib/home-data';
 
 export function DepartingToday({
   departures,
@@ -59,10 +59,10 @@ function DepartureCard({
 
   const urgency =
     minutesAway < 60
-      ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+      ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
       : minutesAway < 180
-        ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-        : "bg-gilifast-foam text-gilifast-deep ring-1 ring-gilifast-ocean/30";
+        ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+        : 'bg-gilifast-foam text-gilifast-deep ring-1 ring-gilifast-ocean/30';
 
   return (
     <Link
@@ -85,7 +85,7 @@ function DepartureCard({
           <div>
             <span className="text-xs text-slate-500">from </span>
             <span className="text-base font-bold text-gilifast-deep">
-              IDR {departure.priceIDR.toLocaleString("id-ID")}
+              IDR {departure.priceIDR.toLocaleString('id-ID')}
             </span>
           </div>
           <span className="text-xs font-semibold text-gilifast-deep group-hover:underline">
@@ -98,7 +98,7 @@ function DepartureCard({
 }
 
 function formatRelative(minutes: number): string {
-  if (minutes < 1) return "now";
+  if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

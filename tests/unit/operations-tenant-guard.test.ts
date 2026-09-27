@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 /**
  * The operations desk performs the only admin writes to operator-owned
@@ -21,8 +21,8 @@ import path from "node:path";
  */
 
 const source = readFileSync(
-  path.join(process.cwd(), "app", "admin", "(authed)", "operations", "actions.ts"),
-  "utf8",
+  path.join(process.cwd(), 'app', 'admin', '(authed)', 'operations', 'actions.ts'),
+  'utf8',
 );
 
 /**
@@ -34,41 +34,41 @@ const source = readFileSync(
  */
 function actionBody(name: string): string {
   const start = source.indexOf(`export async function ${name}(`);
-  if (start === -1) return "";
-  const end = source.indexOf("\n}", start);
+  if (start === -1) return '';
+  const end = source.indexOf('\n}', start);
   return source.slice(start, end === -1 ? source.length : end + 2);
 }
 
-describe("assertBoatOwnedBy", () => {
+describe('assertBoatOwnedBy', () => {
   const helper = source.slice(
-    source.indexOf("async function assertBoatOwnedBy"),
-    source.indexOf("async function scheduleWithOwner"),
+    source.indexOf('async function assertBoatOwnedBy'),
+    source.indexOf('async function scheduleWithOwner'),
   );
 
-  it("constrains on the operator, not just the boat id", () => {
-    expect(helper).toContain("operatorId");
+  it('constrains on the operator, not just the boat id', () => {
+    expect(helper).toContain('operatorId');
     expect(helper).toMatch(/id:\s*boatId/);
   });
 
-  it("uses findFirst with both keys rather than findUnique on the id alone", () => {
+  it('uses findFirst with both keys rather than findUnique on the id alone', () => {
     // findUnique({ where: { id } }) would return another tenant's boat.
-    expect(helper).toContain("findFirst");
-    expect(helper).not.toContain("findUnique");
+    expect(helper).toContain('findFirst');
+    expect(helper).not.toContain('findUnique');
   });
 
-  it("excludes soft-deleted boats", () => {
-    expect(helper).toContain("deletedAt: null");
+  it('excludes soft-deleted boats', () => {
+    expect(helper).toContain('deletedAt: null');
   });
 });
 
-describe("schedule writes are ownership-checked", () => {
-  it.each(["createSchedule", "updateSchedule"])(
-    "%s calls assertBoatOwnedBy before writing",
+describe('schedule writes are ownership-checked', () => {
+  it.each(['createSchedule', 'updateSchedule'])(
+    '%s calls assertBoatOwnedBy before writing',
     (name) => {
       const body = actionBody(name);
       expect(body.length, `${name} not found`).toBeGreaterThan(0);
 
-      const guardAt = body.indexOf("assertBoatOwnedBy(");
+      const guardAt = body.indexOf('assertBoatOwnedBy(');
       const writeAt = body.search(/prisma\.schedule\.(create|update)\(/);
 
       expect(guardAt, `${name} does not call assertBoatOwnedBy`).toBeGreaterThan(-1);
@@ -77,54 +77,54 @@ describe("schedule writes are ownership-checked", () => {
     },
   );
 
-  it("updateSchedule refuses to move a schedule between operators", () => {
-    const body = actionBody("updateSchedule");
-    expect(body).toContain("existing.boat.operatorId !== d.operatorId");
+  it('updateSchedule refuses to move a schedule between operators', () => {
+    const body = actionBody('updateSchedule');
+    expect(body).toContain('existing.boat.operatorId !== d.operatorId');
   });
 
   it("createSchedule passes the form's operator to the guard, not the boat's own", () => {
     // Reading operatorId off the boat would make the check tautological.
-    expect(actionBody("createSchedule")).toContain(
-      "assertBoatOwnedBy(d.boatId, d.operatorId)",
+    expect(actionBody('createSchedule')).toContain(
+      'assertBoatOwnedBy(d.boatId, d.operatorId)',
     );
   });
 });
 
-describe("boat ownership is immutable", () => {
-  it("updateBoat never writes operatorId", () => {
-    const body = actionBody("updateBoat");
-    const writeStart = body.indexOf("prisma.boat.update");
+describe('boat ownership is immutable', () => {
+  it('updateBoat never writes operatorId', () => {
+    const body = actionBody('updateBoat');
+    const writeStart = body.indexOf('prisma.boat.update');
     expect(writeStart).toBeGreaterThan(-1);
-    expect(body.slice(writeStart)).not.toContain("operatorId");
+    expect(body.slice(writeStart)).not.toContain('operatorId');
   });
 });
 
-describe("every action is gated", () => {
+describe('every action is gated', () => {
   const exported = [...source.matchAll(/export async function (\w+)\(/g)].map(
     (m) => m[1],
   );
 
-  it("exports the expected actions", () => {
+  it('exports the expected actions', () => {
     expect(exported).toEqual(
       expect.arrayContaining([
-        "createBoat",
-        "updateBoat",
-        "createSchedule",
-        "updateSchedule",
-        "setScheduleStatus",
-        "regenerateDepartures",
-        "cancelDeparture",
-        "adjustDeparturePrice",
-        "deleteSchedule",
+        'createBoat',
+        'updateBoat',
+        'createSchedule',
+        'updateSchedule',
+        'setScheduleStatus',
+        'regenerateDepartures',
+        'cancelDeparture',
+        'adjustDeparturePrice',
+        'deleteSchedule',
       ]),
     );
   });
 
   it.each(
     [...source.matchAll(/export async function (\w+)\(/g)].map((m) => [m[1]] as [string]),
-  )("%s requires super admin first", (name) => {
+  )('%s requires super admin first', (name) => {
     const body = actionBody(name);
-    const guardAt = body.indexOf("requireSuperAdmin()");
+    const guardAt = body.indexOf('requireSuperAdmin()');
     expect(guardAt, `${name} has no requireSuperAdmin guard`).toBeGreaterThan(-1);
 
     // A layout guard does not protect a server action, which is directly

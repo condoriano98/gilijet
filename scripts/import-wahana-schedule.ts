@@ -18,19 +18,19 @@
  *   pnpm import:wahana --capacity "Cantika 09=80,ROSE=60,WGO 5=60" --exclusive
  */
 
-import { Prisma } from "@prisma/client";
-import { prisma } from "../lib/db";
-import { generateLegsForSchedule, BOOKING_HORIZON_DAYS } from "../lib/legs";
-import { canonicalPortName } from "../lib/port-info";
-import { activeBoat, activeOperator, activeSchedule } from "../lib/operator-data";
-import { baseFareOf } from "../lib/fares";
-import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from "../lib/wahana-schedule";
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/db';
+import { generateLegsForSchedule, BOOKING_HORIZON_DAYS } from '../lib/legs';
+import { canonicalPortName } from '../lib/port-info';
+import { activeBoat, activeOperator, activeSchedule } from '../lib/operator-data';
+import { baseFareOf } from '../lib/fares';
+import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../lib/wahana-schedule';
 
-const dryRun = process.argv.includes("--dry-run");
-const exclusive = process.argv.includes("--exclusive");
+const dryRun = process.argv.includes('--dry-run');
+const exclusive = process.argv.includes('--exclusive');
 
 function say(...args: unknown[]) {
-  console.log(dryRun ? "[dry-run]" : "[import]", ...args);
+  console.log(dryRun ? '[dry-run]' : '[import]', ...args);
 }
 
 /**
@@ -39,14 +39,14 @@ function say(...args: unknown[]) {
  * sailing being oversold, so it is supplied deliberately or not at all.
  */
 function parseCapacities(): Map<string, number> {
-  const arg = process.argv.find((a) => a.startsWith("--capacity="));
+  const arg = process.argv.find((a) => a.startsWith('--capacity='));
   const inline = arg
-    ? arg.slice("--capacity=".length)
-    : process.argv[process.argv.indexOf("--capacity") + 1];
+    ? arg.slice('--capacity='.length)
+    : process.argv[process.argv.indexOf('--capacity') + 1];
   const out = new Map<string, number>();
-  if (!arg && !process.argv.includes("--capacity")) return out;
-  for (const pair of (inline ?? "").split(",")) {
-    const at = pair.lastIndexOf("=");
+  if (!arg && !process.argv.includes('--capacity')) return out;
+  for (const pair of (inline ?? '').split(',')) {
+    const at = pair.lastIndexOf('=');
     const name = pair.slice(0, at).trim();
     const seats = Number(pair.slice(at + 1).trim());
     if (!name || !Number.isInteger(seats) || seats <= 0) {
@@ -84,10 +84,10 @@ async function main() {
   const unpriced = missing.filter((n) => !capacities.has(n));
   if (unpriced.length) {
     throw new Error(
-      `No vessel on record for ${WAHANA_OPERATOR}: ${unpriced.join(", ")}. ` +
+      `No vessel on record for ${WAHANA_OPERATOR}: ${unpriced.join(', ')}. ` +
         `Either add them in the operator dashboard with their real capacity and ` +
         `registration number, or pass seat counts here, e.g. ` +
-        `--capacity "${unpriced.map((n) => `${n}=60`).join(",")}".`,
+        `--capacity "${unpriced.map((n) => `${n}=60`).join(',')}".`,
     );
   }
   for (const name of missing) {
@@ -119,7 +119,7 @@ async function main() {
   if (exclusive) {
     say(`--exclusive: retiring ${others.length} other operator(s):`);
     for (const o of others) {
-      say(`  - ${o.companyName} (${o.boats.map((b) => b.name).join(", ") || "no boats"})`);
+      say(`  - ${o.companyName} (${o.boats.map((b) => b.name).join(', ') || 'no boats'})`);
     }
   }
   const otherBoatIds = others.flatMap((o) => o.boats.map((b) => b.id));
@@ -159,8 +159,8 @@ async function main() {
     where: {
       scheduleId: { in: [...retiringIds, ...otherScheduleIds] },
       departureDate: { gte: now },
-      status: { not: "CANCELLED" },
-      bookings: { some: { status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] } } },
+      status: { not: 'CANCELLED' },
+      bookings: { some: { status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] } } },
     },
   });
   const blocked =
@@ -175,17 +175,17 @@ async function main() {
   say(`creating ${WAHANA_DEPARTURES.length} departure(s):`);
   for (const d of WAHANA_DEPARTURES) {
     const stops = d.transitStops.length
-      ? ` via ${d.transitStops.map((s) => `${s.portName}@${s.time}`).join(", ")}`
-      : "";
+      ? ` via ${d.transitStops.map((s) => `${s.portName}@${s.time}`).join(', ')}`
+      : '';
     say(
       `  + ${d.boat} ${canonicalPortName(d.origin)} -> ${canonicalPortName(d.destination)} ` +
         `${d.departureTime}-${d.arrivalTime} (${d.durationMinutes}m) ` +
-        `Rp${d.basePrice.toLocaleString("id-ID")}${stops}`,
+        `Rp${d.basePrice.toLocaleString('id-ID')}${stops}`,
     );
   }
 
   if (dryRun) {
-    say("nothing written.");
+    say('nothing written.');
     return;
   }
   if (blocked) throw new Error(blocked);
@@ -195,7 +195,7 @@ async function main() {
     // sailings already sold have to survive their schedule being withdrawn.
     const retired = await tx.schedule.updateMany({
       where: { id: { in: retiringIds } },
-      data: { deletedAt: now, status: "INACTIVE" },
+      data: { deletedAt: now, status: 'INACTIVE' },
     });
 
     // Hiding the schedule is not enough. Search excludes deleted schedules, but
@@ -205,11 +205,11 @@ async function main() {
       where: {
         scheduleId: { in: retiringIds },
         departureDate: { gte: now },
-        status: { in: ["OPEN", "FULL"] },
+        status: { in: ['OPEN', 'FULL'] },
       },
       data: {
-        status: "CANCELLED",
-        cancellationReason: "Timetable replaced by operator price sheet import",
+        status: 'CANCELLED',
+        cancellationReason: 'Timetable replaced by operator price sheet import',
       },
     });
     say(`retired ${retired.count} schedule(s), closed ${closed.count} future leg(s)`);
@@ -218,25 +218,25 @@ async function main() {
       const [ops, otherBoats, otherScheds, otherLegs] = await Promise.all([
         tx.operator.updateMany({
           where: { id: { in: others.map((o) => o.id) } },
-          data: { deletedAt: now, status: "SUSPENDED" },
+          data: { deletedAt: now, status: 'SUSPENDED' },
         }),
         tx.boat.updateMany({
           where: { id: { in: otherBoatIds } },
-          data: { deletedAt: now, status: "INACTIVE" },
+          data: { deletedAt: now, status: 'INACTIVE' },
         }),
         tx.schedule.updateMany({
           where: { id: { in: otherScheduleIds } },
-          data: { deletedAt: now, status: "INACTIVE" },
+          data: { deletedAt: now, status: 'INACTIVE' },
         }),
         tx.leg.updateMany({
           where: {
             scheduleId: { in: otherScheduleIds },
             departureDate: { gte: now },
-            status: { in: ["OPEN", "FULL"] },
+            status: { in: ['OPEN', 'FULL'] },
           },
           data: {
-            status: "CANCELLED",
-            cancellationReason: "Operator retired from the platform",
+            status: 'CANCELLED',
+            cancellationReason: 'Operator retired from the platform',
           },
         }),
       ]);
@@ -254,11 +254,11 @@ async function main() {
         data: {
           operatorId: operator.id,
           name,
-          registrationNumber: `WVG-${name.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`,
+          registrationNumber: `WVG-${name.toUpperCase().replace(/[^A-Z0-9]+/g, '-')}`,
           capacity: capacities.get(name)!,
           photos: [],
           description: `${WAHANA_OPERATOR} vessel, from the operator price sheet.`,
-          status: "ACTIVE",
+          status: 'ACTIVE',
         },
       });
       byName.set(name, boat);
@@ -277,7 +277,7 @@ async function main() {
           durationMinutes: d.durationMinutes,
           basePrice: new Prisma.Decimal(baseFareOf(d.fares)),
           daysOfWeek: d.daysOfWeek,
-          status: "ACTIVE",
+          status: 'ACTIVE',
           fareMatrix: d.fares as unknown as Prisma.InputJsonValue,
           transitStops: {
             create: d.transitStops.map((s, i) => ({

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from '@prisma/client';
 
 /**
  * Refund policy (see gilifast.com Terms & Conditions §5.1).
@@ -9,7 +9,7 @@ import { Prisma } from "@prisma/client";
  *  Operator cancels (any window)               → 100% refund
  */
 
-export type CustomerRefundTier = "FULL" | "PARTIAL" | "NONE";
+export type CustomerRefundTier = 'FULL' | 'PARTIAL' | 'NONE';
 
 export type RefundPolicySnapshot = {
   version: string;
@@ -27,9 +27,9 @@ export function refundTierForCustomer(
 ): CustomerRefundTier {
   const ms = departure.getTime() - now.getTime();
   const hours = ms / (1000 * 60 * 60);
-  if (hours > 168) return "FULL"; // more than 7 days
-  if (hours >= 48) return "PARTIAL"; // 48 hours to 7 days
-  return "NONE"; // less than 48 hours
+  if (hours > 168) return 'FULL'; // more than 7 days
+  if (hours >= 48) return 'PARTIAL'; // 48 hours to 7 days
+  return 'NONE'; // less than 48 hours
 }
 
 export function refundAmountForCustomer(args: {
@@ -41,13 +41,13 @@ export function refundAmountForCustomer(args: {
   const tier = refundTierForCustomer(args.now, args.departure);
   let fraction: number;
   switch (tier) {
-    case "FULL":
+    case 'FULL':
       fraction = 1;
       break;
-    case "PARTIAL":
+    case 'PARTIAL':
       fraction = 0.5;
       break;
-    case "NONE":
+    case 'NONE':
       fraction = 0;
       break;
   }
@@ -85,7 +85,7 @@ export function snapshotCurrentPolicy(args: {
   deadline: Date;
 }): RefundPolicySnapshot {
   return {
-    version: "2026-01",
+    version: '2026-01',
     snapshotAt: new Date().toISOString(),
     tiers: [
       { hoursBeforeDeparture: 168, refundFraction: 1.0 },

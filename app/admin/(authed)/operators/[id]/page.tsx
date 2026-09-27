@@ -1,10 +1,10 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { OperatorStatus, OperatorDocumentStatus } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
-import { audit } from "@/lib/audit";
-import { getOperatorDocumentUrl } from "@/lib/operator-documents";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { OperatorStatus, OperatorDocumentStatus } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { getOperatorDocumentUrl } from '@/lib/operator-documents';
 import {
   Card,
   CardContent,
@@ -12,11 +12,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { deleteOperatorAction } from "../actions";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { deleteOperatorAction } from '../actions';
 import {
   Table,
   TableBody,
@@ -24,25 +24,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatDateTimeID } from "@/lib/utils";
+} from '@/components/ui/table';
+import { formatDateTimeID } from '@/lib/utils';
 
 const DOC_TYPE_LABEL: Record<string, string> = {
-  SIUP: "SIUP (business permit)",
-  NPWP: "NPWP (tax ID)",
-  VESSEL_LICENSE: "Vessel license",
-  INSURANCE_CERTIFICATE: "Insurance certificate",
-  CAPTAIN_LICENSE: "Captain license",
-  OTHER: "Other",
+  SIUP: 'SIUP (business permit)',
+  NPWP: 'NPWP (tax ID)',
+  VESSEL_LICENSE: 'Vessel license',
+  INSURANCE_CERTIFICATE: 'Insurance certificate',
+  CAPTAIN_LICENSE: 'Captain license',
+  OTHER: 'Other',
 };
 
 async function reviewDocumentAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const operatorId = String(formData.get("operatorId") ?? "");
-  const docId = String(formData.get("docId") ?? "");
-  const next = String(formData.get("next") ?? "") as OperatorDocumentStatus;
-  const allowed: OperatorDocumentStatus[] = ["APPROVED", "REJECTED"];
+  const operatorId = String(formData.get('operatorId') ?? '');
+  const docId = String(formData.get('docId') ?? '');
+  const next = String(formData.get('next') ?? '') as OperatorDocumentStatus;
+  const allowed: OperatorDocumentStatus[] = ['APPROVED', 'REJECTED'];
   if (!operatorId || !docId || !allowed.includes(next)) {
     redirect(`/admin/operators/${operatorId}`);
   }
@@ -59,18 +59,18 @@ async function reviewDocumentAction(formData: FormData) {
       verifiedBy: session.sub,
       verifiedAt: new Date(),
       rejectionNote:
-        next === "REJECTED"
-          ? String(formData.get("rejectionNote") ?? "").trim() || null
+        next === 'REJECTED'
+          ? String(formData.get('rejectionNote') ?? '').trim() || null
           : null,
     },
   });
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: operatorId,
     action: `document_${next.toLowerCase()}`,
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { docId, status: prev.status },
     newState: { docId, status: next },
   });
@@ -79,32 +79,32 @@ async function reviewDocumentAction(formData: FormData) {
 }
 
 async function transitionAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const id = String(formData.get("id") ?? "");
-  const next = String(formData.get("next") ?? "") as OperatorStatus;
-  const allowed: OperatorStatus[] = ["ACTIVE", "SUSPENDED", "REJECTED"];
+  const id = String(formData.get('id') ?? '');
+  const next = String(formData.get('next') ?? '') as OperatorStatus;
+  const allowed: OperatorStatus[] = ['ACTIVE', 'SUSPENDED', 'REJECTED'];
   if (!id || !allowed.includes(next)) redirect(`/admin/operators/${id}`);
 
   const prev = await prisma.operator.findFirst({
     where: { id, deletedAt: null },
   });
-  if (!prev) redirect("/admin/operators");
+  if (!prev) redirect('/admin/operators');
 
   const updated = await prisma.operator.update({
     where: { id },
     data: {
       status: next,
-      documentsVerified: next === "ACTIVE" ? true : prev.documentsVerified,
+      documentsVerified: next === 'ACTIVE' ? true : prev.documentsVerified,
     },
   });
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: id,
     action: `status_${next.toLowerCase()}`,
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     previousState: { status: prev.status },
     newState: { status: updated.status },
   });
@@ -114,12 +114,12 @@ async function transitionAction(formData: FormData) {
 
 function statusVariant(s: OperatorStatus) {
   switch (s) {
-    case "ACTIVE":
-      return "success" as const;
-    case "PENDING":
-      return "warning" as const;
+    case 'ACTIVE':
+      return 'success' as const;
+    case 'PENDING':
+      return 'warning' as const;
     default:
-      return "destructive" as const;
+      return 'destructive' as const;
   }
 }
 
@@ -137,8 +137,8 @@ export default async function OperatorDetailPage({
   const operator = await prisma.operator.findFirst({
     where: { id, deletedAt: null },
     include: {
-      boats: { where: { deletedAt: null }, orderBy: { createdAt: "desc" } },
-      documents: { orderBy: { createdAt: "desc" } },
+      boats: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } },
+      documents: { orderBy: { createdAt: 'desc' } },
     },
   });
   if (!operator) notFound();
@@ -196,7 +196,7 @@ export default async function OperatorDetailPage({
               type="submit"
               name="next"
               value="ACTIVE"
-              disabled={operator.status === "ACTIVE"}
+              disabled={operator.status === 'ACTIVE'}
             >
               Approve &amp; activate
             </Button>
@@ -205,7 +205,7 @@ export default async function OperatorDetailPage({
               name="next"
               value="SUSPENDED"
               variant="outline"
-              disabled={operator.status === "SUSPENDED"}
+              disabled={operator.status === 'SUSPENDED'}
             >
               Suspend
             </Button>
@@ -214,7 +214,7 @@ export default async function OperatorDetailPage({
               name="next"
               value="REJECTED"
               variant="destructive"
-              disabled={operator.status === "REJECTED"}
+              disabled={operator.status === 'REJECTED'}
             >
               Reject
             </Button>
@@ -230,11 +230,11 @@ export default async function OperatorDetailPage({
           <CardContent className="space-y-2 text-sm">
             <KV label="Contact person" value={operator.contactPerson} />
             <KV label="Phone (WhatsApp)" value={operator.phoneNumber} />
-            <KV label="NPWP" value={operator.npwp ?? "—"} />
+            <KV label="NPWP" value={operator.npwp ?? '—'} />
             <KV label="Commission rate" value={`${(Number(operator.commissionRate) * 100).toFixed(2)}%`} />
             <KV
               label="Documents verified"
-              value={operator.documentsVerified ? "Yes" : "No"}
+              value={operator.documentsVerified ? 'Yes' : 'No'}
             />
             <KV label="Created" value={formatDateTimeID(operator.createdAt)} />
           </CardContent>
@@ -245,9 +245,9 @@ export default async function OperatorDetailPage({
             <CardTitle>Payout account</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <KV label="Bank" value={bank.bankName ?? "—"} />
-            <KV label="Account number" value={bank.accountNumber ?? "—"} />
-            <KV label="Account holder" value={bank.accountHolder ?? "—"} />
+            <KV label="Bank" value={bank.bankName ?? '—'} />
+            <KV label="Account number" value={bank.accountNumber ?? '—'} />
+            <KV label="Account holder" value={bank.accountHolder ?? '—'} />
           </CardContent>
         </Card>
       </div>
@@ -278,10 +278,10 @@ export default async function OperatorDetailPage({
                       {DOC_TYPE_LABEL[doc.type] ?? doc.type}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {doc.fileName ?? doc.fileUrl} · uploaded{" "}
+                      {doc.fileName ?? doc.fileUrl} · uploaded{' '}
                       {formatDateTimeID(doc.createdAt)}
                     </p>
-                    {doc.status === "REJECTED" && doc.rejectionNote ? (
+                    {doc.status === 'REJECTED' && doc.rejectionNote ? (
                       <p className="mt-1 text-xs text-red-600">
                         Rejection note: {doc.rejectionNote}
                       </p>
@@ -300,11 +300,11 @@ export default async function OperatorDetailPage({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={
-                        doc.status === "APPROVED"
-                          ? "success"
-                          : doc.status === "REJECTED"
-                            ? "destructive"
-                            : "warning"
+                        doc.status === 'APPROVED'
+                          ? 'success'
+                          : doc.status === 'REJECTED'
+                            ? 'destructive'
+                            : 'warning'
                       }
                     >
                       {doc.status}
@@ -317,7 +317,7 @@ export default async function OperatorDetailPage({
                         name="next"
                         value="APPROVED"
                         size="sm"
-                        disabled={doc.status === "APPROVED"}
+                        disabled={doc.status === 'APPROVED'}
                       >
                         Approve
                       </Button>
@@ -327,7 +327,7 @@ export default async function OperatorDetailPage({
                         value="REJECTED"
                         size="sm"
                         variant="destructive"
-                        disabled={doc.status === "REJECTED"}
+                        disabled={doc.status === 'REJECTED'}
                       >
                         Reject
                       </Button>
@@ -347,7 +347,7 @@ export default async function OperatorDetailPage({
           </CardTitle>
           <CardDescription>
             Operators can add their own from the operator dashboard, or you can
-            add them for this operator under{" "}
+            add them for this operator under{' '}
             <Link
               href={`/admin/operations/boats/new?operatorId=${operator.id}`}
               className="text-sky-700 hover:underline"
@@ -389,7 +389,7 @@ export default async function OperatorDetailPage({
         </CardContent>
       </Card>
 
-      {session.adminRole === "SUPER_ADMIN" ? (
+      {session.adminRole === 'SUPER_ADMIN' ? (
         <Card className="border-red-200">
           <CardHeader>
             <CardTitle>Delete operator</CardTitle>
@@ -411,7 +411,7 @@ export default async function OperatorDetailPage({
               >
                 Type <span className="font-medium text-foreground">
                   {operator.companyName}
-                </span>{" "}
+                </span>{' '}
                 to confirm.
               </label>
               <Input

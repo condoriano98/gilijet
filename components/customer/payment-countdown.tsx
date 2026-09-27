@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { Clock } from 'lucide-react';
 
 export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: string; holdMinutes: number }) {
   const expiresAt = new Date(createdAtIso).getTime() + holdMinutes * 60 * 1000;
@@ -22,13 +22,13 @@ export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: 
   return (
     <div
       className={[
-        "flex items-center gap-2 rounded-md p-3 text-sm",
+        'flex items-center gap-2 rounded-md p-3 text-sm',
         expired
-          ? "bg-red-50 text-red-700"
+          ? 'bg-red-50 text-red-700'
           : warning
-            ? "bg-amber-50 text-amber-900"
-            : "bg-sky-50 text-sky-900",
-      ].join(" ")}
+            ? 'bg-amber-50 text-amber-900'
+            : 'bg-sky-50 text-sky-900',
+      ].join(' ')}
     >
       <Clock className="h-4 w-4" />
       {expired ? (
@@ -36,7 +36,7 @@ export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: 
       ) : (
         <>
           <span className="font-medium">
-            {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+            {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
           </span>
           <span>remaining to complete payment</span>
         </>
@@ -45,7 +45,7 @@ export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: 
   );
 }
 
-export function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+export function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -64,7 +64,7 @@ export function CopyButton({ value, label = "Copy" }: { value: string; label?: s
       onClick={handleCopy}
       className="ml-2 inline-flex items-center rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
     >
-      {copied ? "Copied!" : label}
+      {copied ? 'Copied!' : label}
     </button>
   );
 }

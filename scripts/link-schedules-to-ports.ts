@@ -3,12 +3,12 @@
  * Sets originPortId and destinationPortId by looking up Port records.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Linking schedules to ports...");
+  console.log('Linking schedules to ports...');
 
   // Get all unique port names from schedules
   const schedules = await prisma.schedule.findMany({
@@ -34,8 +34,8 @@ async function main() {
   // Check for unmatched ports
   const unmatched = Array.from(portNames).filter((name) => !portMap.has(name));
   if (unmatched.length > 0) {
-    console.warn(`⚠ Unmatched ports: ${unmatched.join(", ")}`);
-    console.warn("These will not be linked. Check port names in CSV vs Port table.");
+    console.warn(`⚠ Unmatched ports: ${unmatched.join(', ')}`);
+    console.warn('These will not be linked. Check port names in CSV vs Port table.');
   }
 
   // Update schedules
@@ -70,7 +70,7 @@ async function main() {
     take: 5,
   });
 
-  console.log("\nSample linked schedules:");
+  console.log('\nSample linked schedules:');
   sample.forEach((s) => {
     console.log(`  ${s.originPort} (${s.originPortId}) → ${s.destinationPort} (${s.destinationPortId})`);
   });

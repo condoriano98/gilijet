@@ -5,9 +5,9 @@
  *   pnpm seed:schedules
  */
 
-import fs from "fs";
-import path from "path";
-import { PrismaClient } from "@prisma/client";
+import fs from 'fs';
+import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -23,8 +23,8 @@ type PriceRow = {
 };
 
 function parseCSV(content: string): PriceRow[] {
-  const lines = content.split("\n");
-  const headers = lines[0]!.split(",").map((h) => h.trim().replace(/^"(.*)"$/, "$1"));
+  const lines = content.split('\n');
+  const headers = lines[0]!.split(',').map((h) => h.trim().replace(/^"(.*)"$/, '$1'));
   const rows: PriceRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -32,7 +32,7 @@ function parseCSV(content: string): PriceRow[] {
     if (!line) continue;
 
     const fields: string[] = [];
-    let current = "";
+    let current = '';
     let inQuotes = false;
 
     for (let j = 0; j < line.length; j++) {
@@ -44,18 +44,18 @@ function parseCSV(content: string): PriceRow[] {
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === "," && !inQuotes) {
-        fields.push(current.trim().replace(/^"(.*)"$/, "$1"));
-        current = "";
+      } else if (char === ',' && !inQuotes) {
+        fields.push(current.trim().replace(/^"(.*)"$/, '$1'));
+        current = '';
       } else {
         current += char;
       }
     }
-    fields.push(current.trim().replace(/^"(.*)"$/, "$1"));
+    fields.push(current.trim().replace(/^"(.*)"$/, '$1'));
 
     const row: Record<string, string> = {};
     for (let j = 0; j < headers.length && j < fields.length; j++) {
-      row[headers[j]!] = fields[j] || "";
+      row[headers[j]!] = fields[j] || '';
     }
 
     rows.push(row as PriceRow);
@@ -65,22 +65,22 @@ function parseCSV(content: string): PriceRow[] {
 }
 
 async function main() {
-  const csvPath = path.join(process.cwd(), "price_schedule_pt wahana virendra group.csv");
+  const csvPath = path.join(process.cwd(), 'price_schedule_pt wahana virendra group.csv');
 
   if (!fs.existsSync(csvPath)) {
     throw new Error(`CSV not found at ${csvPath}`);
   }
 
-  const content = fs.readFileSync(csvPath, "utf-8");
+  const content = fs.readFileSync(csvPath, 'utf-8');
   const rows = parseCSV(content);
 
   // Get or create operator
   const operator = await prisma.operator.findFirst({
-    where: { companyName: "PT WAHANA VIRENDRA GROUP", deletedAt: null },
+    where: { companyName: 'PT WAHANA VIRENDRA GROUP', deletedAt: null },
   });
 
   if (!operator) {
-    throw new Error("Operator PT WAHANA VIRENDRA GROUP not found. Create it in dashboard first.");
+    throw new Error('Operator PT WAHANA VIRENDRA GROUP not found. Create it in dashboard first.');
   }
 
   // Get boats by name
@@ -92,15 +92,15 @@ async function main() {
   const boatMap = new Map(boats.map((b) => [b.name, b.id]));
   const missingBoats = boatNames.filter((name) => !boatMap.has(name));
   if (missingBoats.length > 0) {
-    throw new Error(`Boats not found: ${missingBoats.join(", ")}. Create them in dashboard first.`);
+    throw new Error(`Boats not found: ${missingBoats.join(', ')}. Create them in dashboard first.`);
   }
 
   // Reset: soft-delete all existing schedules for this operator
   await prisma.schedule.updateMany({
     where: { boat: { operatorId: operator.id }, deletedAt: null },
-    data: { deletedAt: new Date(), status: "INACTIVE" },
+    data: { deletedAt: new Date(), status: 'INACTIVE' },
   });
-  console.log("✓ Soft-deleted existing schedules");
+  console.log('✓ Soft-deleted existing schedules');
 
   // Group by unique departure (boat, origin, destination, departure time)
   const departures = new Map<
@@ -126,7 +126,7 @@ async function main() {
         departureTime: row.departureTime,
         arrivalTime: row.arrivalTime,
         durationMinutes: parseInt(row.durationMinutes, 10),
-        basePrice: parseInt(row.basePrice.replace(/,/g, ""), 10),
+        basePrice: parseInt(row.basePrice.replace(/,/g, ''), 10),
       });
     }
   }
@@ -146,18 +146,18 @@ async function main() {
     const boatId = boatMap.get(dep.boat)!;
 
     // Extract port name (before " - " for "Port - Region" format)
-    const originPortName = dep.originPort.split(" - ")[0]!.trim();
-    const destPortName = dep.destinationPort.split(" - ")[0]!.trim();
+    const originPortName = dep.originPort.split(' - ')[0]!.trim();
+    const destPortName = dep.destinationPort.split(' - ')[0]!.trim();
     const originPortId = portNameToId.get(originPortName);
     const destPortId = portNameToId.get(destPortName);
 
     // Extract just port name (remove region suffix)
-    const originPortNameOnly = dep.originPort.split(" - ")[0]!.trim();
-    const destPortNameOnly = dep.destinationPort.split(" - ")[0]!.trim();
+    const originPortNameOnly = dep.originPort.split(' - ')[0]!.trim();
+    const destPortNameOnly = dep.destinationPort.split(' - ')[0]!.trim();
 
     // Pad departure time to HH:MM format (e.g., "9:30" → "09:30")
-    const [hours, minutes] = dep.departureTime.split(":");
-    const paddedTime = `${hours?.padStart(2, "0")}:${minutes}`;
+    const [hours, minutes] = dep.departureTime.split(':');
+    const paddedTime = `${hours?.padStart(2, '0')}:${minutes}`;
 
     await prisma.schedule.create({
       data: {
@@ -170,7 +170,7 @@ async function main() {
         durationMinutes: dep.durationMinutes,
         basePrice: dep.basePrice,
         daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
     });
     created++;
@@ -179,9 +179,9 @@ async function main() {
   console.log(`✓ Created ${created} schedules`);
 
   // Generate legs
-  const { generateLegsForSchedule, seasonSeedParams } = await import("../lib/legs");
+  const { generateLegsForSchedule, seasonSeedParams } = await import('../lib/legs');
   const schedules = await prisma.schedule.findMany({
-    where: { boat: { operatorId: operator.id }, status: "ACTIVE", deletedAt: null },
+    where: { boat: { operatorId: operator.id }, status: 'ACTIVE', deletedAt: null },
     select: { id: true },
   });
 

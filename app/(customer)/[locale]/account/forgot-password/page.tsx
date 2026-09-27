@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { randomBytes, createHash } from "crypto";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { sendPasswordResetEmail } from "@/lib/email";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { randomBytes, createHash } from 'crypto';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { sendPasswordResetEmail } from '@/lib/email';
 import {
   Card,
   CardContent,
@@ -11,24 +11,24 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export const metadata = { title: "Forgot password · Gilifast" };
+export const metadata = { title: 'Forgot password · Gilifast' };
 
 async function requestResetAction(formData: FormData) {
-  "use server";
-  const email = String(formData.get("email") ?? "")
+  'use server';
+  const email = String(formData.get('email') ?? '')
     .toLowerCase()
     .trim();
-  if (!email) redirect("/account/forgot-password?error=invalid");
+  if (!email) redirect('/account/forgot-password?error=invalid');
 
   const customer = await prisma.customer.findUnique({ where: { email } });
   if (customer) {
-    const rawToken = randomBytes(32).toString("hex");
-    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await prisma.passwordResetToken.create({
@@ -40,7 +40,7 @@ async function requestResetAction(formData: FormData) {
   }
 
   // Always show success to prevent email enumeration
-  redirect("/account/forgot-password?ok=sent");
+  redirect('/account/forgot-password?ok=sent');
 }
 
 export default async function ForgotPasswordPage({
@@ -61,7 +61,7 @@ export default async function ForgotPasswordPage({
             </CardDescription>
           </CardHeader>
 
-          {ok === "sent" ? (
+          {ok === 'sent' ? (
             <CardContent className="space-y-4">
               <div className="rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 If an account exists for that email, you&apos;ll receive a
@@ -74,7 +74,7 @@ export default async function ForgotPasswordPage({
           ) : (
             <form action={requestResetAction}>
               <CardContent className="space-y-4">
-                {error === "invalid" && (
+                {error === 'invalid' && (
                   <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                     Please enter a valid email address.
                   </p>
@@ -96,7 +96,7 @@ export default async function ForgotPasswordPage({
                   Send reset link
                 </Button>
                 <div className="text-center text-sm text-slate-600">
-                  Remember it?{" "}
+                  Remember it?{' '}
                   <Link
                     href="/account/login"
                     className="font-medium text-sky-700 hover:underline"

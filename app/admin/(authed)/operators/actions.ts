@@ -1,18 +1,18 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { requireSuperAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { audit } from "@/lib/audit";
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { requireSuperAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
 import {
   collectOperatorSubtree,
   describeMoneyBlockers,
   purgeOperator,
   subtreeBlockers,
-} from "@/lib/operator-purge";
+} from '@/lib/operator-purge';
 
-const LIST = "/admin/operators";
+const LIST = '/admin/operators';
 
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -32,7 +32,7 @@ function fail(path: string, message: string): never {
  */
 export async function deleteOperatorAction(formData: FormData) {
   const session = await requireSuperAdmin();
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get('id') ?? '');
   if (!id) redirect(LIST);
   const back = `${LIST}/${id}`;
 
@@ -41,8 +41,8 @@ export async function deleteOperatorAction(formData: FormData) {
   });
   if (!operator) redirect(LIST);
 
-  if (String(formData.get("confirmation") ?? "").trim() !== operator.companyName) {
-    fail(back, "Type the company name exactly as shown to confirm deletion.");
+  if (String(formData.get('confirmation') ?? '').trim() !== operator.companyName) {
+    fail(back, 'Type the company name exactly as shown to confirm deletion.');
   }
 
   const subtree = await collectOperatorSubtree(id);
@@ -52,7 +52,7 @@ export async function deleteOperatorAction(formData: FormData) {
   if (money.length > 0) {
     fail(
       back,
-      `${operator.companyName} has ${money.join(" and ")} on record. That is the audit trail for money already taken, so this operator cannot be erased — suspend it instead.`,
+      `${operator.companyName} has ${money.join(' and ')} on record. That is the audit trail for money already taken, so this operator cannot be erased — suspend it instead.`,
     );
   }
 
@@ -60,18 +60,18 @@ export async function deleteOperatorAction(formData: FormData) {
     const n = blockers.liveBookings;
     fail(
       back,
-      `${n} upcoming booking${n === 1 ? " is" : "s are"} still live — cancel those departures first, which refunds the customers.`,
+      `${n} upcoming booking${n === 1 ? ' is' : 's are'} still live — cancel those departures first, which refunds the customers.`,
     );
   }
 
   const deleted = await purgeOperator(id, subtree);
 
   await audit({
-    entityType: "OPERATOR",
+    entityType: 'OPERATOR',
     entityId: id,
-    action: "deleted_by_admin",
+    action: 'deleted_by_admin',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     // The row no longer exists, so this snapshot is the only surviving record
     // of who was removed. AuditLog has no foreign key to Operator, so earlier
     // entries for this id stay readable alongside it.

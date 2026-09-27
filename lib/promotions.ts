@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./db";
+import { Prisma } from '@prisma/client';
+import { prisma } from './db';
 
 export type PromoValidation =
   | {
@@ -7,10 +7,10 @@ export type PromoValidation =
       promotion: {
         id: string;
         code: string;
-        discountType: "PERCENT" | "FLAT";
+        discountType: 'PERCENT' | 'FLAT';
         discountValue: number;
         description: string | null;
-        costBearer: "PLATFORM" | "OPERATOR" | "SHARED";
+        costBearer: 'PLATFORM' | 'OPERATOR' | 'SHARED';
       };
       discountAmount: number;
     }
@@ -40,36 +40,36 @@ export async function validatePromoCode(
   ctx: PromoContext | number,
 ): Promise<PromoValidation> {
   const context: PromoContext =
-    typeof ctx === "number" ? { totalAmount: ctx } : ctx;
+    typeof ctx === 'number' ? { totalAmount: ctx } : ctx;
   const { totalAmount } = context;
 
   const normalized = code.trim().toUpperCase();
-  if (!normalized) return { valid: false, error: "Enter a promo code" };
+  if (!normalized) return { valid: false, error: 'Enter a promo code' };
 
   const promo = await prisma.promotion.findUnique({
     where: { code: normalized },
   });
-  if (!promo) return { valid: false, error: "Invalid promo code" };
+  if (!promo) return { valid: false, error: 'Invalid promo code' };
   if (!promo.isActive || promo.archivedAt) {
-    return { valid: false, error: "Promo code is inactive" };
+    return { valid: false, error: 'Promo code is inactive' };
   }
 
   const now = Date.now();
   if (promo.startsAt && promo.startsAt.getTime() > now) {
-    return { valid: false, error: "Promo code is not active yet" };
+    return { valid: false, error: 'Promo code is not active yet' };
   }
   if (promo.expiresAt && promo.expiresAt.getTime() < now) {
-    return { valid: false, error: "Promo code has expired" };
+    return { valid: false, error: 'Promo code has expired' };
   }
   if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
-    return { valid: false, error: "Promo code is fully redeemed" };
+    return { valid: false, error: 'Promo code is fully redeemed' };
   }
 
   const minAmount = Number(promo.minAmount);
   if (minAmount > 0 && totalAmount < minAmount) {
     return {
       valid: false,
-      error: `Minimum spend IDR ${minAmount.toLocaleString("id-ID")} required`,
+      error: `Minimum spend IDR ${minAmount.toLocaleString('id-ID')} required`,
     };
   }
 
@@ -79,14 +79,14 @@ export async function validatePromoCode(
     context.operatorId &&
     !promo.appliesToOperatorIds.includes(context.operatorId)
   ) {
-    return { valid: false, error: "Promo code not valid for this operator" };
+    return { valid: false, error: 'Promo code not valid for this operator' };
   }
   if (
     promo.appliesToRouteCodes.length > 0 &&
     context.routeCode &&
     !promo.appliesToRouteCodes.includes(context.routeCode)
   ) {
-    return { valid: false, error: "Promo code not valid for this route" };
+    return { valid: false, error: 'Promo code not valid for this route' };
   }
 
   // --- per-customer limit ---
@@ -98,7 +98,7 @@ export async function validatePromoCode(
       },
     });
     if (used >= promo.perCustomerLimit) {
-      return { valid: false, error: "You have already used this promo code" };
+      return { valid: false, error: 'You have already used this promo code' };
     }
   }
 
@@ -116,20 +116,20 @@ export async function validatePromoCode(
     ].filter(Boolean) as Prisma.BookingWhereInput[];
     const prior = await prisma.booking.findFirst({
       where: {
-        status: { in: ["PENDING_PAYMENT", "AWAITING_CONFIRMATION", "CONFIRMED"] },
+        status: { in: ['PENDING_PAYMENT', 'AWAITING_CONFIRMATION', 'CONFIRMED'] },
         OR: priorOr,
       },
       select: { id: true },
     });
     if (prior) {
-      return { valid: false, error: "Promo code is for first bookings only" };
+      return { valid: false, error: 'Promo code is for first bookings only' };
     }
   }
 
   // --- discount computation + cap ---
   const discountValue = Number(promo.discountValue);
   let discountAmount: number;
-  if (promo.discountType === "PERCENT") {
+  if (promo.discountType === 'PERCENT') {
     discountAmount = Math.round((totalAmount * discountValue) / 100);
     if (promo.maxDiscountAmount != null) {
       discountAmount = Math.min(discountAmount, Number(promo.maxDiscountAmount));
@@ -143,7 +143,7 @@ export async function validatePromoCode(
   if (promo.budgetCap != null) {
     const remaining = Number(promo.budgetCap) - Number(promo.budgetSpent);
     if (discountAmount > remaining) {
-      return { valid: false, error: "Promo code budget is exhausted" };
+      return { valid: false, error: 'Promo code budget is exhausted' };
     }
   }
 
@@ -193,17 +193,17 @@ export async function applyPromoCode(
       budgetSpent: { increment: new Prisma.Decimal(redemption.amount) },
     },
   });
-  if (updated.count === 0) throw new Error("PROMO_INACTIVE");
+  if (updated.count === 0) throw new Error('PROMO_INACTIVE');
 
   const after = await tx.promotion.findUnique({ where: { id: promotionId } });
   if (after?.maxUses != null && after.usedCount > after.maxUses) {
-    throw new Error("PROMO_EXHAUSTED");
+    throw new Error('PROMO_EXHAUSTED');
   }
   if (
     after?.budgetCap != null &&
     Number(after.budgetSpent) > Number(after.budgetCap)
   ) {
-    throw new Error("PROMO_BUDGET_EXHAUSTED");
+    throw new Error('PROMO_BUDGET_EXHAUSTED');
   }
 
   // Per-customer limit / first-booking, re-checked under the lock so committed
@@ -215,7 +215,7 @@ export async function applyPromoCode(
     const priorRedemptions = await tx.promotionRedemption.count({
       where: { promotionId, customerEmail: email },
     });
-    if (priorRedemptions >= effLimit) throw new Error("PROMO_CUSTOMER_LIMIT");
+    if (priorRedemptions >= effLimit) throw new Error('PROMO_CUSTOMER_LIMIT');
   }
 
   await tx.promotionRedemption.create({

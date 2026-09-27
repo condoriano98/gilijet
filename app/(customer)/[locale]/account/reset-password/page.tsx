@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createHash } from "crypto";
-import { prisma } from "@/lib/db";
-import { hashPassword, setCustomerSession } from "@/lib/auth";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createHash } from 'crypto';
+import { prisma } from '@/lib/db';
+import { hashPassword, setCustomerSession } from '@/lib/auth';
 import {
   Card,
   CardContent,
@@ -10,20 +10,20 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export const metadata = { title: "Reset password · Gilifast" };
+export const metadata = { title: 'Reset password · Gilifast' };
 
 async function resetPasswordAction(formData: FormData) {
-  "use server";
-  const rawToken = String(formData.get("token") ?? "");
-  const newPassword = String(formData.get("password") ?? "");
-  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  'use server';
+  const rawToken = String(formData.get('token') ?? '');
+  const newPassword = String(formData.get('password') ?? '');
+  const confirmPassword = String(formData.get('confirmPassword') ?? '');
 
-  if (!rawToken) redirect("/account/forgot-password");
+  if (!rawToken) redirect('/account/forgot-password');
 
   if (newPassword.length < 8 || newPassword !== confirmPassword) {
     redirect(
@@ -31,13 +31,13 @@ async function resetPasswordAction(formData: FormData) {
     );
   }
 
-  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
   const record = await prisma.passwordResetToken.findUnique({
     where: { tokenHash },
   });
 
   if (!record || record.usedAt || record.expiresAt < new Date()) {
-    redirect("/account/reset-password?error=expired");
+    redirect('/account/reset-password?error=expired');
   }
 
   const [customer] = await Promise.all([
@@ -53,12 +53,12 @@ async function resetPasswordAction(formData: FormData) {
 
   await setCustomerSession({
     sub: customer.id,
-    role: "customer",
+    role: 'customer',
     email: customer.email,
     fullName: customer.fullName,
   });
 
-  redirect("/account?ok=password_changed");
+  redirect('/account?ok=password_changed');
 }
 
 export default async function ResetPasswordPage({
@@ -68,11 +68,11 @@ export default async function ResetPasswordPage({
 }) {
   const { token, error } = await searchParams;
 
-  if (!token && error !== "expired") {
-    redirect("/account/forgot-password");
+  if (!token && error !== 'expired') {
+    redirect('/account/forgot-password');
   }
 
-  if (error === "expired") {
+  if (error === 'expired') {
     return (
       <div className="container py-12">
         <div className="mx-auto max-w-md">
@@ -106,9 +106,9 @@ export default async function ResetPasswordPage({
           </CardHeader>
           <form action={resetPasswordAction}>
             <CardContent className="space-y-4">
-              <input type="hidden" name="token" value={token ?? ""} />
+              <input type="hidden" name="token" value={token ?? ''} />
 
-              {error === "invalid" && (
+              {error === 'invalid' && (
                 <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                   Passwords must match and be at least 8 characters.
                 </p>

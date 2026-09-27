@@ -1,5 +1,5 @@
-import type { Prisma } from "@prisma/client";
-import { prisma } from "./db";
+import type { Prisma } from '@prisma/client';
+import { prisma } from './db';
 
 /**
  * Hard-deleting anything in the catalogue means walking its subtree bottom-up
@@ -138,7 +138,7 @@ export async function subtreeBlockers(s: Subtree): Promise<PurgeBlockers> {
     prisma.booking.count({
       where: {
         id: { in: s.bookingIds },
-        status: { in: ["CONFIRMED", "AWAITING_CONFIRMATION", "PENDING_PAYMENT"] },
+        status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] },
         leg: { departureDate: { gte: new Date() } },
       },
     }),
@@ -148,11 +148,11 @@ export async function subtreeBlockers(s: Subtree): Promise<PurgeBlockers> {
 
 /** Human-readable list of the money rows that forbid a purge, empty if clean. */
 export function describeMoneyBlockers(b: PurgeBlockers): string[] {
-  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
   return [
-    b.payments ? plural(b.payments, "payment") : null,
-    b.refunds ? plural(b.refunds, "refund") : null,
-    b.tickets ? plural(b.tickets, "issued ticket") : null,
+    b.payments ? plural(b.payments, 'payment') : null,
+    b.refunds ? plural(b.refunds, 'refund') : null,
+    b.tickets ? plural(b.tickets, 'issued ticket') : null,
   ].filter((x): x is string => x !== null);
 }
 

@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,11 +15,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-export const metadata = { title: "Boats · Operations" };
+export const metadata = { title: 'Boats · Operations' };
 
 export default async function OperationsBoatsPage({
   searchParams,
@@ -31,7 +31,7 @@ export default async function OperationsBoatsPage({
 
   const boats = await prisma.boat.findMany({
     where: { deletedAt: null },
-    orderBy: [{ operator: { companyName: "asc" } }, { name: "asc" }],
+    orderBy: [{ operator: { companyName: 'asc' } }, { name: 'asc' }],
     select: {
       id: true,
       name: true,
@@ -105,7 +105,7 @@ export default async function OperationsBoatsPage({
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={b.status === "ACTIVE" ? "success" : "outline"}
+                        variant={b.status === 'ACTIVE' ? 'success' : 'outline'}
                       >
                         {b.status}
                       </Badge>

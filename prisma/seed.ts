@@ -1,23 +1,23 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { Prisma, PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-import { generateLegsForSchedule, seasonSeedParams } from "../lib/legs";
-import { activeSchedule } from "../lib/operator-data";
-import { ymdInZone } from "../lib/datetime";
-import { buildQrPayload, signTicketCode } from "../lib/qr";
-import { newBookingReference, newTicketCode } from "../lib/references";
-import { computeBookingPrice } from "../lib/pricing";
-import { computeRefundDeadline } from "../lib/refunds";
+import { generateLegsForSchedule, seasonSeedParams } from '../lib/legs';
+import { activeSchedule } from '../lib/operator-data';
+import { ymdInZone } from '../lib/datetime';
+import { buildQrPayload, signTicketCode } from '../lib/qr';
+import { newBookingReference, newTicketCode } from '../lib/references';
+import { computeBookingPrice } from '../lib/pricing';
+import { computeRefundDeadline } from '../lib/refunds';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@gilifast.local";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@gilifast.local';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'changeme123';
   const operatorEmail =
-    process.env.SEED_OPERATOR_EMAIL ?? "operator@example.com";
+    process.env.SEED_OPERATOR_EMAIL ?? 'operator@example.com';
   const operatorPassword =
-    process.env.SEED_OPERATOR_PASSWORD ?? "changeme123";
+    process.env.SEED_OPERATOR_PASSWORD ?? 'changeme123';
 
   const adminHash = await bcrypt.hash(adminPassword, 12);
   const opHash = await bcrypt.hash(operatorPassword, 12);
@@ -27,8 +27,8 @@ async function main() {
     create: {
       email: adminEmail,
       passwordHash: adminHash,
-      fullName: "Platform Admin",
-      role: "SUPER_ADMIN",
+      fullName: 'Platform Admin',
+      role: 'SUPER_ADMIN',
     },
     update: {},
   });
@@ -39,15 +39,15 @@ async function main() {
     create: {
       email: operatorEmail,
       passwordHash: opHash,
-      companyName: "Sanur Fast Boats (sample)",
-      contactPerson: "Wayan Putra",
-      phoneNumber: "+6281234567890",
-      status: "ACTIVE",
+      companyName: 'Sanur Fast Boats (sample)',
+      contactPerson: 'Wayan Putra',
+      phoneNumber: '+6281234567890',
+      status: 'ACTIVE',
       documentsVerified: true,
       bankAccountInfo: {
-        bankName: "BCA",
-        accountNumber: "1234567890",
-        accountHolder: "Sanur Fast Boats",
+        bankName: 'BCA',
+        accountNumber: '1234567890',
+        accountHolder: 'Sanur Fast Boats',
       },
     },
     update: {},
@@ -55,21 +55,21 @@ async function main() {
   console.log(`✓ operator: ${operator.email} (${operator.status})`);
 
   // A second operator so the marketplace has variety.
-  const operator2Email = "demo2@gilifast.local";
+  const operator2Email = 'demo2@gilifast.local';
   const operator2 = await prisma.operator.upsert({
     where: { email: operator2Email },
     create: {
       email: operator2Email,
       passwordHash: opHash,
-      companyName: "Gili Getaway Express (sample)",
-      contactPerson: "Made Surya",
-      phoneNumber: "+6281298765432",
-      status: "ACTIVE",
+      companyName: 'Gili Getaway Express (sample)',
+      contactPerson: 'Made Surya',
+      phoneNumber: '+6281298765432',
+      status: 'ACTIVE',
       documentsVerified: true,
       bankAccountInfo: {
-        bankName: "Mandiri",
-        accountNumber: "9876543210",
-        accountHolder: "Gili Getaway Express",
+        bankName: 'Mandiri',
+        accountNumber: '9876543210',
+        accountHolder: 'Gili Getaway Express',
       },
     },
     update: {},
@@ -86,31 +86,31 @@ async function main() {
   }> = [
     {
       operatorId: operator.id,
-      name: "Sanur Express I",
-      registrationNumber: "SAMPLE-001",
+      name: 'Sanur Express I',
+      registrationNumber: 'SAMPLE-001',
       capacity: 50,
-      description: "Fast boat, AC cabin, life jackets included.",
+      description: 'Fast boat, AC cabin, life jackets included.',
     },
     {
       operatorId: operator.id,
-      name: "Sanur Express II",
-      registrationNumber: "SAMPLE-002",
+      name: 'Sanur Express II',
+      registrationNumber: 'SAMPLE-002',
       capacity: 80,
-      description: "Larger fast boat with open deck.",
+      description: 'Larger fast boat with open deck.',
     },
     {
       operatorId: operator2.id,
-      name: "Gili Cat I",
-      registrationNumber: "SAMPLE-003",
+      name: 'Gili Cat I',
+      registrationNumber: 'SAMPLE-003',
       capacity: 60,
-      description: "Premium fast boat with WiFi and snacks.",
+      description: 'Premium fast boat with WiFi and snacks.',
     },
     {
       operatorId: operator2.id,
-      name: "Gili Cat II",
-      registrationNumber: "SAMPLE-004",
+      name: 'Gili Cat II',
+      registrationNumber: 'SAMPLE-004',
       capacity: 45,
-      description: "Speedboat with reclining seats.",
+      description: 'Speedboat with reclining seats.',
     },
   ];
 
@@ -125,7 +125,7 @@ async function main() {
         capacity: b.capacity,
         photos: [],
         description: b.description,
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
       update: {},
     });
@@ -144,83 +144,83 @@ async function main() {
   }> = [
     // Sanur Fast Boats — Bali ↔ Nusa Islands
     {
-      boatReg: "SAMPLE-001",
-      originPort: "Sanur",
-      destinationPort: "Nusa Penida",
-      departureTime: "09:00",
+      boatReg: 'SAMPLE-001',
+      originPort: 'Sanur',
+      destinationPort: 'Nusa Penida',
+      departureTime: '09:00',
       durationMinutes: 45,
       basePrice: 250000,
     },
     {
-      boatReg: "SAMPLE-001",
-      originPort: "Nusa Penida",
-      destinationPort: "Sanur",
-      departureTime: "16:00",
+      boatReg: 'SAMPLE-001',
+      originPort: 'Nusa Penida',
+      destinationPort: 'Sanur',
+      departureTime: '16:00',
       durationMinutes: 45,
       basePrice: 250000,
     },
     {
-      boatReg: "SAMPLE-002",
-      originPort: "Sanur",
-      destinationPort: "Nusa Lembongan",
-      departureTime: "10:30",
+      boatReg: 'SAMPLE-002',
+      originPort: 'Sanur',
+      destinationPort: 'Nusa Lembongan',
+      departureTime: '10:30',
       durationMinutes: 35,
       basePrice: 200000,
     },
     {
-      boatReg: "SAMPLE-002",
-      originPort: "Nusa Lembongan",
-      destinationPort: "Sanur",
-      departureTime: "15:30",
+      boatReg: 'SAMPLE-002',
+      originPort: 'Nusa Lembongan',
+      destinationPort: 'Sanur',
+      departureTime: '15:30',
       durationMinutes: 35,
       basePrice: 200000,
     },
     // Gili Getaway — Bali ↔ Gili Islands ↔ Lombok
     {
-      boatReg: "SAMPLE-003",
-      originPort: "Padang Bai",
-      destinationPort: "Gili Trawangan",
-      departureTime: "08:00",
+      boatReg: 'SAMPLE-003',
+      originPort: 'Padang Bai',
+      destinationPort: 'Gili Trawangan',
+      departureTime: '08:00',
       durationMinutes: 150,
       basePrice: 425000,
     },
     {
-      boatReg: "SAMPLE-003",
-      originPort: "Padang Bai",
-      destinationPort: "Gili Air",
-      departureTime: "08:00",
+      boatReg: 'SAMPLE-003',
+      originPort: 'Padang Bai',
+      destinationPort: 'Gili Air',
+      departureTime: '08:00',
       durationMinutes: 135,
       basePrice: 425000,
     },
     {
-      boatReg: "SAMPLE-003",
-      originPort: "Gili Trawangan",
-      destinationPort: "Padang Bai",
-      departureTime: "11:30",
+      boatReg: 'SAMPLE-003',
+      originPort: 'Gili Trawangan',
+      destinationPort: 'Padang Bai',
+      departureTime: '11:30',
       durationMinutes: 150,
       basePrice: 425000,
     },
     {
-      boatReg: "SAMPLE-004",
-      originPort: "Padang Bai",
-      destinationPort: "Lombok",
-      departureTime: "13:00",
+      boatReg: 'SAMPLE-004',
+      originPort: 'Padang Bai',
+      destinationPort: 'Lombok',
+      departureTime: '13:00',
       durationMinutes: 180,
       basePrice: 395000,
     },
     {
-      boatReg: "SAMPLE-004",
-      originPort: "Bangsal",
-      destinationPort: "Gili Trawangan",
-      departureTime: "09:30",
+      boatReg: 'SAMPLE-004',
+      originPort: 'Bangsal',
+      destinationPort: 'Gili Trawangan',
+      departureTime: '09:30',
       durationMinutes: 25,
       basePrice: 85000,
     },
     {
-      boatReg: "SAMPLE-004",
-      originPort: "Bangsal",
-      destinationPort: "Gili Air",
-      departureTime: "12:00",
+      boatReg: 'SAMPLE-004',
+      originPort: 'Bangsal',
+      destinationPort: 'Gili Air',
+      departureTime: '12:00',
       durationMinutes: 20,
       basePrice: 85000,
     },
@@ -251,7 +251,7 @@ async function main() {
           durationMinutes: s.durationMinutes,
           basePrice: s.basePrice,
           daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
-          status: "ACTIVE",
+          status: 'ACTIVE',
         },
       }));
     allSchedules.push({
@@ -267,9 +267,9 @@ async function main() {
   // Backwards-compat: the demo booking block below expects a single named `schedule`.
   const schedule = await prisma.schedule.findFirstOrThrow({
     where: {
-      boatId: boats["SAMPLE-001"].id,
-      originPort: "Sanur",
-      destinationPort: "Nusa Penida",
+      boatId: boats['SAMPLE-001'].id,
+      originPort: 'Sanur',
+      destinationPort: 'Nusa Penida',
     },
   });
 
@@ -285,41 +285,41 @@ async function main() {
     console.log(`✓ generated ${totalGenerated} upcoming legs across ${allSchedules.length} schedules`);
   }
 
-  if (process.env.SEED_DEMO_BOOKINGS !== "0") {
+  if (process.env.SEED_DEMO_BOOKINGS !== '0') {
     const upcomingLeg = await prisma.leg.findFirst({
-      where: { scheduleId: schedule.id, status: "OPEN" },
-      orderBy: { departureDate: "asc" },
+      where: { scheduleId: schedule.id, status: 'OPEN' },
+      orderBy: { departureDate: 'asc' },
     });
     if (upcomingLeg) {
       const demoBookings = await prisma.booking.count({
-        where: { legId: upcomingLeg.id, customerEmail: "demo@gilifast.local" },
+        where: { legId: upcomingLeg.id, customerEmail: 'demo@gilifast.local' },
       });
       if (demoBookings === 0) {
         await seedDemoBooking(upcomingLeg.id, upcomingLeg.departureDate, {
-          customerName: "Demo Andika",
-          passengers: ["Demo Andika", "Demo Sari"],
+          customerName: 'Demo Andika',
+          passengers: ['Demo Andika', 'Demo Sari'],
           unitPrice: Number(upcomingLeg.basePrice),
         });
         await seedDemoBooking(upcomingLeg.id, upcomingLeg.departureDate, {
-          customerName: "Demo Made",
-          passengers: ["Demo Made"],
+          customerName: 'Demo Made',
+          passengers: ['Demo Made'],
           unitPrice: Number(upcomingLeg.basePrice),
         });
         console.log(
-          "✓ 2 demo bookings + 3 tickets created on the next upcoming leg",
+          '✓ 2 demo bookings + 3 tickets created on the next upcoming leg',
         );
       }
     }
   }
 
-  console.log("\nLogin credentials (change in production):");
+  console.log('\nLogin credentials (change in production):');
   console.log(`  admin    → ${adminEmail} / ${adminPassword}`);
   console.log(`  operator → ${operatorEmail} / ${operatorPassword}`);
   console.log(
-    "\nTip: ticket QR payloads are emitted to stdout for any newly-created demo bookings,",
+    '\nTip: ticket QR payloads are emitted to stdout for any newly-created demo bookings,',
   );
   console.log(
-    "     copy/paste one into https://www.the-qrcode-generator.com to test the scanner.",
+    '     copy/paste one into https://www.the-qrcode-generator.com to test the scanner.',
   );
 }
 
@@ -345,20 +345,20 @@ async function seedDemoBooking(
       legId,
       operatorId: leg.operatorId,
       customerName: args.customerName,
-      customerEmail: "demo@gilifast.local",
-      customerPhone: "+6281200000000",
+      customerEmail: 'demo@gilifast.local',
+      customerPhone: '+6281200000000',
       totalAmount: price.totalAmount,
       commissionAmount: price.commissionAmount,
       operatorAmount: price.operatorAmount,
-      status: "CONFIRMED",
+      status: 'CONFIRMED',
       refundDeadline: computeRefundDeadline(departureDate),
       payment: {
         create: {
           amount: price.totalAmount,
-          method: "QRIS",
-          status: "SUCCESSFUL",
+          method: 'QRIS',
+          status: 'SUCCESSFUL',
           paidAt: new Date(),
-          gatewayProvider: "DOKU",
+          gatewayProvider: 'DOKU',
         },
       },
     },
@@ -374,7 +374,7 @@ async function seedDemoBooking(
         ticketCode,
         passengerName: args.passengers[i],
         qrHash,
-        status: "ISSUED",
+        status: 'ISSUED',
       },
     });
     console.log(

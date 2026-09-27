@@ -1,70 +1,70 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from 'vitest';
 import {
   computeBookingPrice,
   computeBookingPriceWithTypes,
-} from "@/lib/pricing";
-import { Prisma } from "@prisma/client";
+} from '@/lib/pricing';
+import { Prisma } from '@prisma/client';
 
-describe("computeBookingPrice", () => {
-  it("computes total for single passenger", () => {
+describe('computeBookingPrice', () => {
+  it('computes total for single passenger', () => {
     const result = computeBookingPrice({
       unitPrice: 250_000,
       quantity: 1,
       commissionRate: 0.08,
     });
-    expect(result.totalAmount.toString()).toBe("250000");
-    expect(result.commissionAmount.toString()).toBe("20000");
-    expect(result.operatorAmount.toString()).toBe("230000");
+    expect(result.totalAmount.toString()).toBe('250000');
+    expect(result.commissionAmount.toString()).toBe('20000');
+    expect(result.operatorAmount.toString()).toBe('230000');
   });
 
-  it("computes total for multiple passengers", () => {
+  it('computes total for multiple passengers', () => {
     const result = computeBookingPrice({
       unitPrice: 300_000,
       quantity: 3,
       commissionRate: 0.08,
     });
-    expect(result.totalAmount.toString()).toBe("900000");
-    expect(result.commissionAmount.toString()).toBe("72000");
-    expect(result.operatorAmount.toString()).toBe("828000");
+    expect(result.totalAmount.toString()).toBe('900000');
+    expect(result.commissionAmount.toString()).toBe('72000');
+    expect(result.operatorAmount.toString()).toBe('828000');
   });
 
-  it("throws for zero quantity", () => {
+  it('throws for zero quantity', () => {
     expect(() =>
       computeBookingPrice({ unitPrice: 100, quantity: 0, commissionRate: 0.08 }),
-    ).toThrow("quantity must be >= 1");
+    ).toThrow('quantity must be >= 1');
   });
 
-  it("handles large values", () => {
+  it('handles large values', () => {
     const result = computeBookingPrice({
       unitPrice: 1_000_000,
       quantity: 10,
       commissionRate: 0.08,
     });
-    expect(result.totalAmount.toString()).toBe("10000000");
-    expect(result.commissionAmount.toString()).toBe("800000");
+    expect(result.totalAmount.toString()).toBe('10000000');
+    expect(result.commissionAmount.toString()).toBe('800000');
   });
 });
 
-describe("computeBookingPriceWithTypes", () => {
-  it("adults pay full price", () => {
+describe('computeBookingPriceWithTypes', () => {
+  it('adults pay full price', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 200_000,
-      passengerTypes: ["ADULT", "ADULT"],
+      passengerTypes: ['ADULT', 'ADULT'],
       commissionRate: 0.08,
     });
-    expect(result.totalAmount.toString()).toBe("400000");
+    expect(result.totalAmount.toString()).toBe('400000');
     expect(result.adultCount).toBe(2);
     expect(result.seatCount).toBe(2);
   });
 
-  it("children pay 50%", () => {
+  it('children pay 50%', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 200_000,
-      passengerTypes: ["ADULT", "CHILD", "CHILD"],
+      passengerTypes: ['ADULT', 'CHILD', 'CHILD'],
       commissionRate: 0.08,
     });
     // 200k + 100k + 100k = 400k
-    expect(result.totalAmount.toString()).toBe("400000");
+    expect(result.totalAmount.toString()).toBe('400000');
     expect(result.adultCount).toBe(1);
     expect(result.childCount).toBe(2);
     expect(result.seatCount).toBe(3);
@@ -73,123 +73,123 @@ describe("computeBookingPriceWithTypes", () => {
   it("infants are free and don't take seats", () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 200_000,
-      passengerTypes: ["ADULT", "ADULT", "INFANT"],
+      passengerTypes: ['ADULT', 'ADULT', 'INFANT'],
       commissionRate: 0.08,
     });
-    expect(result.totalAmount.toString()).toBe("400000");
+    expect(result.totalAmount.toString()).toBe('400000');
     expect(result.infantCount).toBe(1);
     expect(result.seatCount).toBe(2);
   });
 
-  it("applies discount before commission", () => {
+  it('applies discount before commission', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 300_000,
-      passengerTypes: ["ADULT", "ADULT"],
+      passengerTypes: ['ADULT', 'ADULT'],
       commissionRate: 0.08,
       discountAmount: 100_000,
     });
     // 600k - 100k = 500k, commission = 40k
-    expect(result.totalAmount.toString()).toBe("500000");
-    expect(result.commissionAmount.toString()).toBe("40000");
+    expect(result.totalAmount.toString()).toBe('500000');
+    expect(result.commissionAmount.toString()).toBe('40000');
   });
 
-  it("discount cannot make total negative", () => {
+  it('discount cannot make total negative', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 100_000,
-      passengerTypes: ["ADULT"],
+      passengerTypes: ['ADULT'],
       commissionRate: 0.08,
       discountAmount: 999_999,
     });
-    expect(result.totalAmount.toString()).toBe("0");
-    expect(result.commissionAmount.toString()).toBe("0");
+    expect(result.totalAmount.toString()).toBe('0');
+    expect(result.commissionAmount.toString()).toBe('0');
   });
 
-  it("throws for empty passenger list", () => {
+  it('throws for empty passenger list', () => {
     expect(() =>
       computeBookingPriceWithTypes({
         unitPrice: 100,
         passengerTypes: [],
         commissionRate: 0.08,
       }),
-    ).toThrow("at least one passenger required");
+    ).toThrow('at least one passenger required');
   });
 
-  it("mixed passengers with correct counts", () => {
+  it('mixed passengers with correct counts', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 250_000,
-      passengerTypes: ["ADULT", "ADULT", "CHILD", "CHILD", "INFANT"],
+      passengerTypes: ['ADULT', 'ADULT', 'CHILD', 'CHILD', 'INFANT'],
       commissionRate: 0.08,
     });
     // 250k+250k+125k+125k+0 = 750k, commission 8% = 60k
-    expect(result.totalAmount.toString()).toBe("750000");
+    expect(result.totalAmount.toString()).toBe('750000');
     expect(result.adultCount).toBe(2);
     expect(result.childCount).toBe(2);
     expect(result.infantCount).toBe(1);
     expect(result.seatCount).toBe(4);
-    expect(result.commissionAmount.toString()).toBe("60000");
+    expect(result.commissionAmount.toString()).toBe('60000');
   });
 
-  it("categoryUnitPrices overrides multipliers with absolute fareMatrix fares", () => {
+  it('categoryUnitPrices overrides multipliers with absolute fareMatrix fares', () => {
     // WGO 5, Sanur -> Banjar Nyuh, one-way/low: adult 150k, child 110k, infant free.
     // Real operator data — child is NOT the 50% global default.
     const result = computeBookingPriceWithTypes({
       unitPrice: 150_000,
-      passengerTypes: ["ADULT", "CHILD", "INFANT"],
+      passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
       commissionRate: 0.08,
       categoryUnitPrices: { ADULT: 150_000, CHILD: 110_000, INFANT: 0 },
     });
-    expect(result.totalAmount.toString()).toBe("260000");
+    expect(result.totalAmount.toString()).toBe('260000');
   });
 
-  it("categoryUnitPrices only overrides the types it names; others still use multipliers", () => {
+  it('categoryUnitPrices only overrides the types it names; others still use multipliers', () => {
     const result = computeBookingPriceWithTypes({
       unitPrice: 100_000,
-      passengerTypes: ["ADULT", "CHILD"],
+      passengerTypes: ['ADULT', 'CHILD'],
       commissionRate: 0.08,
       categoryUnitPrices: { CHILD: 100_000 }, // child = full price on this boat
     });
     // adult falls back to unitPrice * 1.0 = 100k; child overridden to 100k
-    expect(result.totalAmount.toString()).toBe("200000");
+    expect(result.totalAmount.toString()).toBe('200000');
   });
 });
 
-describe("computeBookingPriceWithTypes — costBearer", () => {
+describe('computeBookingPriceWithTypes — costBearer', () => {
   // 1 adult @ 200k, 10% commission, 50k coupon. gross=200k, customerPays=150k.
   const base = {
     unitPrice: 200_000,
-    passengerTypes: ["ADULT"] as ("ADULT" | "CHILD" | "INFANT")[],
+    passengerTypes: ['ADULT'] as ('ADULT' | 'CHILD' | 'INFANT')[],
     commissionRate: 0.1,
     discountAmount: 50_000,
   };
 
-  it("SHARED: commission on the discounted total (both share)", () => {
-    const r = computeBookingPriceWithTypes({ ...base, costBearer: "SHARED" });
-    expect(r.totalAmount.toString()).toBe("150000");
-    expect(r.commissionAmount.toString()).toBe("15000"); // 10% of 150k
-    expect(r.operatorAmount.toString()).toBe("135000");
+  it('SHARED: commission on the discounted total (both share)', () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: 'SHARED' });
+    expect(r.totalAmount.toString()).toBe('150000');
+    expect(r.commissionAmount.toString()).toBe('15000'); // 10% of 150k
+    expect(r.operatorAmount.toString()).toBe('135000');
   });
 
-  it("PLATFORM: operator paid as if full fare; platform eats discount", () => {
-    const r = computeBookingPriceWithTypes({ ...base, costBearer: "PLATFORM" });
-    expect(r.totalAmount.toString()).toBe("150000");
-    expect(r.operatorAmount.toString()).toBe("180000"); // 200k - 10% = 180k
-    expect(r.commissionAmount.toString()).toBe("-30000"); // 150k - 180k
+  it('PLATFORM: operator paid as if full fare; platform eats discount', () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: 'PLATFORM' });
+    expect(r.totalAmount.toString()).toBe('150000');
+    expect(r.operatorAmount.toString()).toBe('180000'); // 200k - 10% = 180k
+    expect(r.commissionAmount.toString()).toBe('-30000'); // 150k - 180k
   });
 
-  it("OPERATOR: platform commission on gross; operator eats discount", () => {
-    const r = computeBookingPriceWithTypes({ ...base, costBearer: "OPERATOR" });
-    expect(r.totalAmount.toString()).toBe("150000");
-    expect(r.commissionAmount.toString()).toBe("20000"); // 10% of gross 200k
-    expect(r.operatorAmount.toString()).toBe("130000"); // 150k - 20k
+  it('OPERATOR: platform commission on gross; operator eats discount', () => {
+    const r = computeBookingPriceWithTypes({ ...base, costBearer: 'OPERATOR' });
+    expect(r.totalAmount.toString()).toBe('150000');
+    expect(r.commissionAmount.toString()).toBe('20000'); // 10% of gross 200k
+    expect(r.operatorAmount.toString()).toBe('130000'); // 150k - 20k
   });
 
-  it("defaults to SHARED when costBearer omitted", () => {
+  it('defaults to SHARED when costBearer omitted', () => {
     const r = computeBookingPriceWithTypes(base);
-    expect(r.commissionAmount.toString()).toBe("15000");
+    expect(r.commissionAmount.toString()).toBe('15000');
   });
 
-  it("invariant: commission + operator === customer total in every branch", () => {
-    for (const costBearer of ["SHARED", "PLATFORM", "OPERATOR"] as const) {
+  it('invariant: commission + operator === customer total in every branch', () => {
+    for (const costBearer of ['SHARED', 'PLATFORM', 'OPERATOR'] as const) {
       const r = computeBookingPriceWithTypes({ ...base, costBearer });
       expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe(
         r.totalAmount.toString(),
@@ -198,61 +198,61 @@ describe("computeBookingPriceWithTypes — costBearer", () => {
   });
 });
 
-describe("computeBookingPriceWithTypes — payout floor & service fee", () => {
-  it("OPERATOR bearer: operator payout is floored at 0 (never negative)", () => {
+describe('computeBookingPriceWithTypes — payout floor & service fee', () => {
+  it('OPERATOR bearer: operator payout is floored at 0 (never negative)', () => {
     // gross=1,000,000; rate=8% -> commission on gross = 80,000.
     // A 950k FLAT operator-borne discount would push operator to -30k.
     const r = computeBookingPriceWithTypes({
       unitPrice: 1_000_000,
-      passengerTypes: ["ADULT"],
+      passengerTypes: ['ADULT'],
       commissionRate: 0.08,
       discountAmount: 950_000,
-      costBearer: "OPERATOR",
+      costBearer: 'OPERATOR',
     });
-    expect(r.totalAmount.toString()).toBe("50000"); // customer still pays fare
-    expect(r.operatorAmount.toString()).toBe("0"); // floored, not -30000
-    expect(r.commissionAmount.toString()).toBe("50000"); // shortfall shifts here
+    expect(r.totalAmount.toString()).toBe('50000'); // customer still pays fare
+    expect(r.operatorAmount.toString()).toBe('0'); // floored, not -30000
+    expect(r.commissionAmount.toString()).toBe('50000'); // shortfall shifts here
     // invariant preserved
     expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe(
       r.totalAmount.toString(),
     );
   });
 
-  it("adds a PERCENT service fee on top of the fare, kept by the platform", () => {
+  it('adds a PERCENT service fee on top of the fare, kept by the platform', () => {
     const r = computeBookingPriceWithTypes({
       unitPrice: 200_000,
-      passengerTypes: ["ADULT"],
+      passengerTypes: ['ADULT'],
       commissionRate: 0.1,
-      serviceFee: { type: "PERCENT", value: 5 },
+      serviceFee: { type: 'PERCENT', value: 5 },
     });
-    expect(r.fareAmount.toString()).toBe("200000");
-    expect(r.serviceFeeAmount.toString()).toBe("10000"); // 5% of 200k
-    expect(r.totalAmount.toString()).toBe("210000"); // customer pays fare + fee
+    expect(r.fareAmount.toString()).toBe('200000');
+    expect(r.serviceFeeAmount.toString()).toBe('10000'); // 5% of 200k
+    expect(r.totalAmount.toString()).toBe('210000'); // customer pays fare + fee
     // commission = 10% of fare (20k) + service fee (10k)
-    expect(r.commissionAmount.toString()).toBe("30000");
-    expect(r.operatorAmount.toString()).toBe("180000");
-    expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe("210000");
+    expect(r.commissionAmount.toString()).toBe('30000');
+    expect(r.operatorAmount.toString()).toBe('180000');
+    expect(r.commissionAmount.add(r.operatorAmount).toString()).toBe('210000');
   });
 
-  it("adds a FLAT service fee", () => {
+  it('adds a FLAT service fee', () => {
     const r = computeBookingPriceWithTypes({
       unitPrice: 100_000,
-      passengerTypes: ["ADULT"],
+      passengerTypes: ['ADULT'],
       commissionRate: 0.08,
-      serviceFee: { type: "FLAT", value: 5_000 },
+      serviceFee: { type: 'FLAT', value: 5_000 },
     });
-    expect(r.serviceFeeAmount.toString()).toBe("5000");
-    expect(r.totalAmount.toString()).toBe("105000");
+    expect(r.serviceFeeAmount.toString()).toBe('5000');
+    expect(r.totalAmount.toString()).toBe('105000');
   });
 
-  it("honours configured traveler multipliers", () => {
+  it('honours configured traveler multipliers', () => {
     const r = computeBookingPriceWithTypes({
       unitPrice: 100_000,
-      passengerTypes: ["ADULT", "CHILD"],
+      passengerTypes: ['ADULT', 'CHILD'],
       commissionRate: 0.08,
       multipliers: { ADULT: 1, CHILD: 0.75, INFANT: 0 },
     });
     // 100k + 75k = 175k
-    expect(r.fareAmount.toString()).toBe("175000");
+    expect(r.fareAmount.toString()).toBe('175000');
   });
 });

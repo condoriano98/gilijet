@@ -1,15 +1,15 @@
-import Link from "next/link";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
-import { formatLocalDateTime, localDateTimeToUtc } from "@/lib/datetime";
+import Link from 'next/link';
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
+import { formatLocalDateTime, localDateTimeToUtc } from '@/lib/datetime';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,22 +17,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export const metadata = { title: "Departures · Operations" };
+export const metadata = { title: 'Departures · Operations' };
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 /** WITA day bounds for a YYYY-MM-DD, or undefined when blank/invalid. */
 function witaDay(ymd?: string): { gte: Date; lte: Date } | undefined {
   if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return undefined;
   return {
-    gte: localDateTimeToUtc(ymd, "00:00"),
-    lte: localDateTimeToUtc(ymd, "23:59"),
+    gte: localDateTimeToUtc(ymd, '00:00'),
+    lte: localDateTimeToUtc(ymd, '23:59'),
   };
 }
 
@@ -53,12 +53,12 @@ export default async function OperationsDeparturesPage({
   const [operators, legs] = await Promise.all([
     prisma.operator.findMany({
       where: { deletedAt: null },
-      orderBy: { companyName: "asc" },
+      orderBy: { companyName: 'asc' },
       select: { id: true, companyName: true },
     }),
     prisma.leg.findMany({
       where,
-      orderBy: { departureDate: "asc" },
+      orderBy: { departureDate: 'asc' },
       take: 100,
       select: {
         id: true,
@@ -86,8 +86,8 @@ export default async function OperationsDeparturesPage({
           <CardTitle>Departures</CardTitle>
           <CardDescription>
             {day
-              ? "Sailings on the selected day."
-              : "Upcoming sailings across all operators, soonest first."}{" "}
+              ? 'Sailings on the selected day.'
+              : 'Upcoming sailings across all operators, soonest first.'}{' '}
             Times are WITA.
           </CardDescription>
         </CardHeader>
@@ -101,7 +101,7 @@ export default async function OperationsDeparturesPage({
                 id="date"
                 name="date"
                 type="date"
-                defaultValue={date ?? ""}
+                defaultValue={date ?? ''}
                 className="w-44"
               />
             </div>
@@ -112,7 +112,7 @@ export default async function OperationsDeparturesPage({
               <select
                 id="operatorId"
                 name="operatorId"
-                defaultValue={operatorId ?? ""}
+                defaultValue={operatorId ?? ''}
                 className={selectClass}
               >
                 <option value="">All operators</option>
@@ -172,11 +172,11 @@ export default async function OperationsDeparturesPage({
                     <TableCell>
                       <Badge
                         variant={
-                          l.status === "OPEN"
-                            ? "success"
-                            : l.status === "CANCELLED"
-                              ? "destructive"
-                              : "outline"
+                          l.status === 'OPEN'
+                            ? 'success'
+                            : l.status === 'CANCELLED'
+                              ? 'destructive'
+                              : 'outline'
                         }
                       >
                         {l.status}

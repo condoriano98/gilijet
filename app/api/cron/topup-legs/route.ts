@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { BOOKING_HORIZON_DAYS, generateLegsForSchedule } from "@/lib/legs";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { BOOKING_HORIZON_DAYS, generateLegsForSchedule } from '@/lib/legs';
 
 /**
  * Cron: keep the next BOOKING_HORIZON_DAYS of departures populated for every
@@ -15,16 +15,16 @@ import { BOOKING_HORIZON_DAYS, generateLegsForSchedule } from "@/lib/legs";
  * seed scripts. Secured by CRON_SECRET.
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
+  const authHeader = req.headers.get('authorization');
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const schedules = await prisma.schedule.findMany({
     where: {
-      status: "ACTIVE",
+      status: 'ACTIVE',
       deletedAt: null,
-      boat: { status: "ACTIVE", deletedAt: null },
+      boat: { status: 'ACTIVE', deletedAt: null },
     },
     select: { id: true },
   });
@@ -44,5 +44,5 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, schedules: schedules.length, created, failed });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const maxDuration = 300;

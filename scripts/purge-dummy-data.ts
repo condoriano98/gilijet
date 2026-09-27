@@ -26,9 +26,9 @@
  *   pnpm purge:dummy --confirm
  */
 
-import { prisma } from "../lib/db";
-import { activeOperator } from "../lib/operator-data";
-import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from "../lib/wahana-schedule";
+import { prisma } from '../lib/db';
+import { activeOperator } from '../lib/operator-data';
+import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../lib/wahana-schedule';
 import {
   collectBoatSubtree,
   collectOperatorSubtree,
@@ -38,20 +38,20 @@ import {
   subtreeBlockers,
   type PurgeCounts,
   type Subtree,
-} from "../lib/operator-purge";
+} from '../lib/operator-purge';
 
-const confirm = process.argv.includes("--confirm");
-const retireBlocked = process.argv.includes("--retire-blocked");
+const confirm = process.argv.includes('--confirm');
+const retireBlocked = process.argv.includes('--retire-blocked');
 
 function keepOperatorIdArg(): string | null {
-  const eq = process.argv.find((a) => a.startsWith("--keep-operator-id="));
-  if (eq) return eq.slice("--keep-operator-id=".length);
-  const i = process.argv.indexOf("--keep-operator-id");
+  const eq = process.argv.find((a) => a.startsWith('--keep-operator-id='));
+  if (eq) return eq.slice('--keep-operator-id='.length);
+  const i = process.argv.indexOf('--keep-operator-id');
   return i >= 0 ? (process.argv[i + 1] ?? null) : null;
 }
 
 function say(...args: unknown[]) {
-  console.log(confirm ? "[purge]" : "[dry-run]", ...args);
+  console.log(confirm ? '[purge]' : '[dry-run]', ...args);
 }
 
 /**
@@ -62,7 +62,7 @@ function say(...args: unknown[]) {
 function realRegistrations(): Set<string> {
   const names = new Set(WAHANA_DEPARTURES.map((d) => d.boat));
   return new Set(
-    [...names].map((n) => `WVG-${n.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`),
+    [...names].map((n) => `WVG-${n.toUpperCase().replace(/[^A-Z0-9]+/g, '-')}`),
   );
 }
 
@@ -72,25 +72,25 @@ async function retireOperator(operatorId: string, s: Subtree) {
   await prisma.$transaction([
     prisma.operator.update({
       where: { id: operatorId },
-      data: { deletedAt: now, status: "SUSPENDED" },
+      data: { deletedAt: now, status: 'SUSPENDED' },
     }),
     prisma.boat.updateMany({
       where: { id: { in: s.boatIds } },
-      data: { deletedAt: now, status: "INACTIVE" },
+      data: { deletedAt: now, status: 'INACTIVE' },
     }),
     prisma.schedule.updateMany({
       where: { id: { in: s.scheduleIds } },
-      data: { deletedAt: now, status: "INACTIVE" },
+      data: { deletedAt: now, status: 'INACTIVE' },
     }),
     prisma.leg.updateMany({
       where: {
         id: { in: s.legIds },
         departureDate: { gte: now },
-        status: { in: ["OPEN", "FULL"] },
+        status: { in: ['OPEN', 'FULL'] },
       },
       data: {
-        status: "CANCELLED",
-        cancellationReason: "Operator retired from the platform",
+        status: 'CANCELLED',
+        cancellationReason: 'Operator retired from the platform',
       },
     }),
   ]);
@@ -140,7 +140,7 @@ async function main() {
   const others = await prisma.operator.findMany({
     where: { ...activeOperator, id: { not: keeper.id } },
     select: { id: true, companyName: true, email: true },
-    orderBy: { companyName: "asc" },
+    orderBy: { companyName: 'asc' },
   });
   say(`${others.length} other operator(s) to remove`);
 
@@ -153,8 +153,8 @@ async function main() {
       `${subtree.legIds.length} leg(s), ${subtree.bookingIds.length} booking(s)`;
 
     if (money.length > 0) {
-      blocked.push(`${op.companyName} — ${money.join(", ")}`);
-      say(`BLOCKED ${op.companyName}: ${money.join(", ")} on record`);
+      blocked.push(`${op.companyName} — ${money.join(', ')}`);
+      say(`BLOCKED ${op.companyName}: ${money.join(', ')} on record`);
       if (retireBlocked && confirm) {
         await retireOperator(op.id, subtree);
         say(`  retired instead (suspended, future departures cancelled)`);
@@ -183,7 +183,7 @@ async function main() {
   const keeperBoats = await prisma.boat.findMany({
     where: { operatorId: keeper.id },
     select: { id: true, name: true, registrationNumber: true },
-    orderBy: { name: "asc" },
+    orderBy: { name: 'asc' },
   });
   const fakeBoats = keeperBoats.filter((b) => !real.has(b.registrationNumber));
 
@@ -198,8 +198,8 @@ async function main() {
       const label = `${boat.name} (${boat.registrationNumber})`;
 
       if (money.length > 0) {
-        blocked.push(`${label} — ${money.join(", ")}`);
-        say(`BLOCKED ${label}: ${money.join(", ")} on record`);
+        blocked.push(`${label} — ${money.join(', ')}`);
+        say(`BLOCKED ${label}: ${money.join(', ')} on record`);
         continue;
       }
       if (!confirm) {
@@ -215,7 +215,7 @@ async function main() {
   }
 
   // ---- Summary ----
-  console.log("");
+  console.log('');
   if (confirm) {
     say(
       `done — ${purged} operator(s), ${totals.boats} boat(s), ` +
@@ -227,7 +227,7 @@ async function main() {
     say(`re-run with --confirm to apply`);
   }
   if (blocked.length) {
-    console.log("");
+    console.log('');
     say(`${blocked.length} kept because money moved through them:`);
     for (const b of blocked) say(`  - ${b}`);
     if (!retireBlocked) {

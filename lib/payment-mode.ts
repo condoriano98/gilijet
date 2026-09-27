@@ -1,6 +1,6 @@
-import { prisma } from "./db";
-import { setDokuModeOverride } from "./doku";
-import { setPaypalModeOverride } from "./paypal";
+import { prisma } from './db';
+import { setDokuModeOverride } from './doku';
+import { setPaypalModeOverride } from './paypal';
 
 /**
  * Runtime payment-gateway mode overrides.
@@ -18,10 +18,10 @@ import { setPaypalModeOverride } from "./paypal";
  * Applying is idempotent and cheap: a single PK read on the config row.
  */
 
-export const PLATFORM_CONFIG_ID = "default";
+export const PLATFORM_CONFIG_ID = 'default';
 
 /** How one gateway's host is chosen. ENV = follow the env flag. */
-export type GatewayModeOverride = "ENV" | "SANDBOX" | "LIVE";
+export type GatewayModeOverride = 'ENV' | 'SANDBOX' | 'LIVE';
 
 export async function readGatewayModeOverrides(): Promise<{
   doku: GatewayModeOverride;
@@ -32,8 +32,8 @@ export async function readGatewayModeOverrides(): Promise<{
     select: { dokuMode: true, paypalMode: true },
   });
   return {
-    doku: config?.dokuMode ?? "ENV",
-    paypal: config?.paypalMode ?? "ENV",
+    doku: config?.dokuMode ?? 'ENV',
+    paypal: config?.paypalMode ?? 'ENV',
   };
 }
 

@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import * as React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const DAYS = [
-  { value: 1, label: "Mon" },
-  { value: 2, label: "Tue" },
-  { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" },
-  { value: 5, label: "Fri" },
-  { value: 6, label: "Sat" },
-  { value: 7, label: "Sun" },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 7, label: 'Sun' },
 ];
 
 /**
@@ -20,7 +20,7 @@ const DAYS = [
  */
 export function DaysOfWeekPicker({
   defaultValue = [],
-  name = "daysOfWeek",
+  name = 'daysOfWeek',
 }: {
   defaultValue?: number[];
   name?: string;
@@ -36,7 +36,7 @@ export function DaysOfWeekPicker({
       return next;
     });
   };
-  const csv = Array.from(selected).sort((a, b) => a - b).join(",");
+  const csv = Array.from(selected).sort((a, b) => a - b).join(',');
 
   return (
     <div className="space-y-2">

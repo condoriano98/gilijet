@@ -1,14 +1,14 @@
-import type { PostMeta } from "../index";
+import type { PostMeta } from '../index';
 
 export const meta: PostMeta = {
-  slug: "best-season-cross-lombok",
-  title: "The best season to cross from Bali to Lombok by boat",
+  slug: 'best-season-cross-lombok',
+  title: 'The best season to cross from Bali to Lombok by boat',
   description:
-    "Wave height, wind patterns, and crossing reliability month-by-month so you can pick a date that avoids cancellations and rough seas.",
-  publishedAt: "2026-06-12",
-  author: "Tim Gilifast",
+    'Wave height, wind patterns, and crossing reliability month-by-month so you can pick a date that avoids cancellations and rough seas.',
+  publishedAt: '2026-06-12',
+  author: 'Tim Gilifast',
   readingMinutes: 5,
-  tags: ["Lombok", "Sea conditions", "Travel planning"],
+  tags: ['Lombok', 'Sea conditions', 'Travel planning'],
 };
 
 export default function BestSeasonCrossLombok() {

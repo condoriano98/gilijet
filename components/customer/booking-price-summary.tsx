@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { CardContent } from "@/components/ui/card";
-import { formatIDR } from "@/lib/utils";
-import { useBookingPrice } from "./booking-price-provider";
-import type { PassengerType } from "@/lib/pricing";
+import { CardContent } from '@/components/ui/card';
+import { formatIDR } from '@/lib/utils';
+import { useBookingPrice } from './booking-price-provider';
+import type { PassengerType } from '@/lib/pricing';
 
-const ORDER: PassengerType[] = ["ADULT", "CHILD", "INFANT"];
+const ORDER: PassengerType[] = ['ADULT', 'CHILD', 'INFANT'];
 
 export function BookingPriceSummary() {
   const { types, unitPriceFor, total } = useBookingPrice();

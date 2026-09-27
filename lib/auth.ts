@@ -1,8 +1,8 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
-import { env } from "./env";
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { SignJWT, jwtVerify } from 'jose';
+import bcrypt from 'bcryptjs';
+import { env } from './env';
 
 /**
  * MVP auth: short-lived JWT in an HttpOnly cookie, separate cookies for
@@ -10,9 +10,9 @@ import { env } from "./env";
  * other. Customers are anonymous (no login).
  */
 
-const OPERATOR_COOKIE = "gilifast_op";
-const ADMIN_COOKIE = "gilifast_admin";
-const CUSTOMER_COOKIE = "gilifast_cust";
+const OPERATOR_COOKIE = 'gilifast_op';
+const ADMIN_COOKIE = 'gilifast_admin';
+const CUSTOMER_COOKIE = 'gilifast_cust';
 const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24h (see §9.1)
 
 type Session<Role extends string> = {
@@ -21,25 +21,25 @@ type Session<Role extends string> = {
   email: string;
 };
 
-export type OperatorSession = Session<"operator">;
-export type AdminSession = Session<"admin"> & {
-  adminRole: "SUPER_ADMIN" | "STAFF";
+export type OperatorSession = Session<'operator'>;
+export type AdminSession = Session<'admin'> & {
+  adminRole: 'SUPER_ADMIN' | 'STAFF';
 };
-export type CustomerSession = Session<"customer"> & {
+export type CustomerSession = Session<'customer'> & {
   fullName: string;
 };
 
 function secret(): Uint8Array {
   const s = env.AUTH_SECRET;
   if (!s) {
-    throw new Error("AUTH_SECRET is not configured");
+    throw new Error('AUTH_SECRET is not configured');
   }
   return new TextEncoder().encode(s);
 }
 
 async function sign(payload: object): Promise<string> {
   return new SignJWT(payload as Record<string, unknown>)
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
     .sign(secret());
@@ -57,9 +57,9 @@ async function verify<T>(token: string): Promise<T | null> {
 function cookieOptions() {
   return {
     httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
     maxAge: SESSION_TTL_SECONDS,
   };
 }
@@ -94,7 +94,7 @@ export async function getOperatorSession(): Promise<OperatorSession | null> {
 
 export async function requireOperator(): Promise<OperatorSession> {
   const s = await getOperatorSession();
-  if (!s) redirect("/operator/login");
+  if (!s) redirect('/operator/login');
   return s;
 }
 
@@ -120,13 +120,13 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
 export async function requireAdmin(): Promise<AdminSession> {
   const s = await getAdminSession();
-  if (!s) redirect("/admin/login");
+  if (!s) redirect('/admin/login');
   return s;
 }
 
 export async function requireSuperAdmin(): Promise<AdminSession> {
   const s = await requireAdmin();
-  if (s.adminRole !== "SUPER_ADMIN") redirect("/admin");
+  if (s.adminRole !== 'SUPER_ADMIN') redirect('/admin');
   return s;
 }
 
@@ -152,7 +152,7 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
 
 export async function requireCustomer(): Promise<CustomerSession> {
   const s = await getCustomerSession();
-  if (!s) redirect("/account/login");
+  if (!s) redirect('/account/login');
   return s;
 }
 

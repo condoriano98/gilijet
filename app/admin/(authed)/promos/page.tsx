@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 // Coupon management moved into the super-admin-only Owner Console.
 export default function PromosRedirect() {
-  redirect("/admin/console/coupons");
+  redirect('/admin/console/coupons');
 }

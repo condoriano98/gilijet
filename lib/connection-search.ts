@@ -1,5 +1,5 @@
-import type { Prisma } from "@prisma/client";
-import { prisma } from "./db";
+import type { Prisma } from '@prisma/client';
+import { prisma } from './db';
 
 const MIN_TRANSFER_MINUTES = 45;
 
@@ -29,13 +29,13 @@ export async function findConnections(
   const leg1Candidates = await prisma.leg.findMany({
     where: {
       departureDate: { gte: startUtc, lte: endUtc },
-      status: "OPEN",
+      status: 'OPEN',
       schedule: {
         is: {
-          originPort: { equals: origin, mode: "insensitive" },
-          status: "ACTIVE",
+          originPort: { equals: origin, mode: 'insensitive' },
+          status: 'ACTIVE',
           deletedAt: null,
-          destinationPort: { not: destination, mode: "insensitive" },
+          destinationPort: { not: destination, mode: 'insensitive' },
           boat: { is: { deletedAt: null } },
         },
       },
@@ -63,12 +63,12 @@ export async function findConnections(
     const leg2Candidates = await prisma.leg.findMany({
       where: {
         departureDate: { gte: earliestDeparture, lte: leg2EndUtc },
-        status: "OPEN",
+        status: 'OPEN',
         schedule: {
           is: {
-            originPort: { equals: transferPort, mode: "insensitive" },
-            destinationPort: { equals: destination, mode: "insensitive" },
-            status: "ACTIVE",
+            originPort: { equals: transferPort, mode: 'insensitive' },
+            destinationPort: { equals: destination, mode: 'insensitive' },
+            status: 'ACTIVE',
             deletedAt: null,
             boat: { is: { deletedAt: null } },
           },

@@ -1,12 +1,12 @@
-import { redirect } from "next/navigation";
-import { clearOperatorSession, getOperatorSession } from "@/lib/auth";
-import { TopBar } from "@/components/operator-shell/top-bar";
-import { Sidebar } from "@/components/operator-shell/sidebar";
+import { redirect } from 'next/navigation';
+import { clearOperatorSession, getOperatorSession } from '@/lib/auth';
+import { TopBar } from '@/components/operator-shell/top-bar';
+import { Sidebar } from '@/components/operator-shell/sidebar';
 
 async function signOutAction() {
-  "use server";
+  'use server';
   await clearOperatorSession();
-  redirect("/operator/login");
+  redirect('/operator/login');
 }
 
 export default async function OperatorLayout({

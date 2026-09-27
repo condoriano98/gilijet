@@ -1,5 +1,5 @@
-import { env } from "./env";
-import type { GatewayModeOverride } from "./payment-mode";
+import { env } from './env';
+import type { GatewayModeOverride } from './payment-mode';
 
 /**
  * PayPal Standard Checkout — the backup gateway for cards DOKU declines.
@@ -26,8 +26,8 @@ import type { GatewayModeOverride } from "./payment-mode";
 
 export class PaypalNotConfiguredError extends Error {
   constructor() {
-    super("PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not configured");
-    this.name = "PaypalNotConfiguredError";
+    super('PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not configured');
+    this.name = 'PaypalNotConfiguredError';
   }
 }
 
@@ -36,9 +36,9 @@ export class PaypalNotConfiguredError extends Error {
  * PayPal's supported list, which is the whole reason for the presentment path.
  */
 const PAYPAL_CURRENCIES = new Set([
-  "AUD", "BRL", "CAD", "CNY", "CZK", "DKK", "EUR", "HKD", "HUF", "ILS",
-  "JPY", "MYR", "MXN", "TWD", "NZD", "NOK", "PHP", "PLN", "GBP", "RUB",
-  "SGD", "SEK", "CHF", "THB", "USD",
+  'AUD', 'BRL', 'CAD', 'CNY', 'CZK', 'DKK', 'EUR', 'HKD', 'HUF', 'ILS',
+  'JPY', 'MYR', 'MXN', 'TWD', 'NZD', 'NOK', 'PHP', 'PLN', 'GBP', 'RUB',
+  'SGD', 'SEK', 'CHF', 'THB', 'USD',
 ]);
 
 export function isPaypalCurrency(currency: string): boolean {
@@ -47,18 +47,18 @@ export function isPaypalCurrency(currency: string): boolean {
 
 /** The currency PayPal bookings are charged in. Validated, not trusted. */
 export function paypalPresentmentCurrency(): string {
-  const c = (env.PAYPAL_PRESENTMENT_CURRENCY ?? "USD").toUpperCase();
-  return isPaypalCurrency(c) ? c : "USD";
+  const c = (env.PAYPAL_PRESENTMENT_CURRENCY ?? 'USD').toUpperCase();
+  return isPaypalCurrency(c) ? c : 'USD';
 }
 
-export type PaypalHost = "live" | "sandbox";
+export type PaypalHost = 'live' | 'sandbox';
 
 const HOSTS: Record<PaypalHost, string> = {
-  live: "https://api-m.paypal.com",
-  sandbox: "https://api-m.sandbox.paypal.com",
+  live: 'https://api-m.paypal.com',
+  sandbox: 'https://api-m.sandbox.paypal.com',
 };
 
-const otherHost = (h: PaypalHost): PaypalHost => (h === "live" ? "sandbox" : "live");
+const otherHost = (h: PaypalHost): PaypalHost => (h === 'live' ? 'sandbox' : 'live');
 
 /**
  * Where the credentials actually authenticated, once proven. Null until then.
@@ -77,7 +77,7 @@ let resolvedHost: PaypalHost | null = null;
  * forgets any previously proven host: the override picks a new first guess,
  * and the credentials re-prove whichever host actually issued them.
  */
-let modeOverride: GatewayModeOverride = "ENV";
+let modeOverride: GatewayModeOverride = 'ENV';
 
 export function setPaypalModeOverride(mode: GatewayModeOverride): void {
   modeOverride = mode;
@@ -85,9 +85,9 @@ export function setPaypalModeOverride(mode: GatewayModeOverride): void {
 }
 
 function configuredHost(): PaypalHost {
-  if (modeOverride === "SANDBOX") return "sandbox";
-  if (modeOverride === "LIVE") return "live";
-  return env.PAYPAL_IS_PRODUCTION ? "live" : "sandbox";
+  if (modeOverride === 'SANDBOX') return 'sandbox';
+  if (modeOverride === 'LIVE') return 'live';
+  return env.PAYPAL_IS_PRODUCTION ? 'live' : 'sandbox';
 }
 
 /** The host in use: proven if we have proof, otherwise the configured guess. */
@@ -106,7 +106,7 @@ export function isPaypalConfigured(): boolean {
 
 export function isPaypalMock(): boolean {
   const id = env.PAYPAL_CLIENT_ID;
-  return !isPaypalConfigured() || Boolean(id?.startsWith("test_mock_"));
+  return !isPaypalConfigured() || Boolean(id?.startsWith('test_mock_'));
 }
 
 /**
@@ -135,15 +135,15 @@ type TokenAttempt =
 async function requestToken(host: PaypalHost): Promise<TokenAttempt> {
   const basic = Buffer.from(
     `${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`,
-  ).toString("base64");
+  ).toString('base64');
 
   const res = await fetch(`${HOSTS[host]}/v1/oauth2/token`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: "grant_type=client_credentials",
+    body: 'grant_type=client_credentials',
   });
   const text = await res.text();
   if (!res.ok) {
@@ -156,7 +156,7 @@ async function requestToken(host: PaypalHost): Promise<TokenAttempt> {
   }
 
   const json = JSON.parse(text) as { access_token?: string; expires_in?: number };
-  if (!json.access_token) throw new Error("PayPal: missing access_token");
+  if (!json.access_token) throw new Error('PayPal: missing access_token');
   return { ok: true, value: json.access_token, expiresIn: json.expires_in ?? 32400 };
 }
 
@@ -202,7 +202,7 @@ async function accessToken(): Promise<{ token: string; host: PaypalHost }> {
         const r = a.result as Extract<TokenAttempt, { ok: false }>;
         return `${a.host} ${r.status}: ${r.body}`;
       })
-      .join(" | ");
+      .join(' | ');
     // Both hosts refusing rules out the wrong-host explanation, which leaves
     // only a bad key. Say that, rather than sending the operator to the flag.
     if (attempts.length > 1 && attempts.every((a) => !a.result.ok && a.result.invalidClient)) {
@@ -217,9 +217,9 @@ async function accessToken(): Promise<{ token: string; host: PaypalHost }> {
 
   if (won.host !== configuredHost() && resolvedHost !== won.host) {
     const source =
-      modeOverride !== "ENV"
+      modeOverride !== 'ENV'
         ? `console override (${modeOverride})`
-        : "env flag (PAYPAL_IS_PRODUCTION)";
+        : 'env flag (PAYPAL_IS_PRODUCTION)';
     console.warn(
       `[paypal] credentials belong to the ${won.host} host, not the ` +
         `${configuredHost()} host that the ${source} selects — using ` +
@@ -266,7 +266,7 @@ export async function paypalCredentialsWork(): Promise<boolean> {
     return true;
   } catch (err) {
     lastAuthFailureAt = Date.now();
-    console.warn("[paypal] credentials rejected — not offering PayPal:", err);
+    console.warn('[paypal] credentials rejected — not offering PayPal:', err);
     return false;
   }
 }
@@ -278,11 +278,11 @@ async function paypalFetch(
   const { token, host } = await accessToken();
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   };
   // PayPal treats PayPal-Request-Id as an idempotency key: a retried create or
   // capture with the same id returns the original result instead of charging twice.
-  if (init.requestId) headers["PayPal-Request-Id"] = init.requestId;
+  if (init.requestId) headers['PayPal-Request-Id'] = init.requestId;
 
   // Same host the token came from — see accessToken().
   const res = await fetch(`${HOSTS[host]}${path}`, {
@@ -324,7 +324,7 @@ export async function createOrder(
   if (isPaypalMock()) {
     return {
       id: `mock_pp_${params.orderId}`,
-      status: "CREATED",
+      status: 'CREATED',
       approveUrl: `/checkout/${params.orderId}`,
     };
   }
@@ -332,11 +332,11 @@ export async function createOrder(
     throw new Error(`PayPal cannot settle ${params.currency}`);
   }
 
-  const json = await paypalFetch("/v2/checkout/orders", {
-    method: "POST",
+  const json = await paypalFetch('/v2/checkout/orders', {
+    method: 'POST',
     requestId: `order-${params.orderId}`,
     body: {
-      intent: "CAPTURE",
+      intent: 'CAPTURE',
       purchase_units: [
         {
           // Both carry the booking reference: reference_id is echoed in the
@@ -351,27 +351,27 @@ export async function createOrder(
         },
       ],
       application_context: {
-        brand_name: "Gilifast",
-        user_action: "PAY_NOW",
-        shipping_preference: "NO_SHIPPING",
+        brand_name: 'Gilifast',
+        user_action: 'PAY_NOW',
+        shipping_preference: 'NO_SHIPPING',
         return_url: params.returnUrl,
         cancel_url: params.cancelUrl,
       },
     },
   });
 
-  const id = String(json.id ?? "");
-  if (!id) throw new Error("PayPal create order: missing id in response");
+  const id = String(json.id ?? '');
+  if (!id) throw new Error('PayPal create order: missing id in response');
 
   const links = Array.isArray(json.links) ? json.links : [];
   const approve = links.find(
     (l): l is { rel: string; href: string } =>
-      typeof l === "object" && l !== null && (l as { rel?: string }).rel === "approve",
+      typeof l === 'object' && l !== null && (l as { rel?: string }).rel === 'approve',
   );
 
   return {
     id,
-    status: String(json.status ?? "CREATED"),
+    status: String(json.status ?? 'CREATED'),
     approveUrl: approve?.href ?? null,
   };
 }
@@ -404,13 +404,13 @@ function readCapture(json: Record<string, unknown>): CaptureResult {
   const feeObj = (breakdown.paypal_fee ?? {}) as Record<string, unknown>;
   const fee = feeObj.value === undefined ? null : Number(feeObj.value);
 
-  const status = String(capture.status ?? json.status ?? "");
+  const status = String(capture.status ?? json.status ?? '');
 
   return {
-    orderId: String(json.id ?? ""),
+    orderId: String(json.id ?? ''),
     captureId: capture.id ? String(capture.id) : null,
     status,
-    completed: status.toUpperCase() === "COMPLETED",
+    completed: status.toUpperCase() === 'COMPLETED',
     amount: amountObj.value === undefined ? null : String(amountObj.value),
     currency: amountObj.currency_code === undefined ? null : String(amountObj.currency_code),
     feeAmount: fee !== null && Number.isFinite(fee) ? fee : null,
@@ -432,7 +432,7 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
     return {
       orderId,
       captureId: `mock_cap_${orderId}`,
-      status: "COMPLETED",
+      status: 'COMPLETED',
       completed: true,
       amount: null,
       currency: null,
@@ -443,14 +443,14 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
 
   try {
     const json = await paypalFetch(`/v2/checkout/orders/${orderId}/capture`, {
-      method: "POST",
+      method: 'POST',
       requestId: `capture-${orderId}`,
       body: {},
     });
     return readCapture(json);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("ORDER_ALREADY_CAPTURED")) {
+    if (message.includes('ORDER_ALREADY_CAPTURED')) {
       return getOrder(orderId);
     }
     throw err;
@@ -460,7 +460,7 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
 /** Read-only order lookup — used to resolve an already-captured order. */
 export async function getOrder(orderId: string): Promise<CaptureResult> {
   const json = await paypalFetch(`/v2/checkout/orders/${orderId}`, {
-    method: "GET",
+    method: 'GET',
   });
   return readCapture(json);
 }
@@ -474,14 +474,14 @@ export function readCaptureFromWebhook(
   const breakdown = (resource.seller_receivable_breakdown ?? {}) as Record<string, unknown>;
   const feeObj = (breakdown.paypal_fee ?? {}) as Record<string, unknown>;
   const fee = feeObj.value === undefined ? null : Number(feeObj.value);
-  const status = String(resource.status ?? "");
+  const status = String(resource.status ?? '');
 
   return {
     // The order id lives on the "up" link; custom_id is the reliable correlator.
-    orderId: "",
+    orderId: '',
     captureId: resource.id ? String(resource.id) : null,
     status,
-    completed: status.toUpperCase() === "COMPLETED",
+    completed: status.toUpperCase() === 'COMPLETED',
     amount: amountObj.value === undefined ? null : String(amountObj.value),
     currency: amountObj.currency_code === undefined ? null : String(amountObj.currency_code),
     feeAmount: fee !== null && Number.isFinite(fee) ? fee : null,
@@ -504,11 +504,11 @@ export async function refundCapture(args: {
   reason: string;
 }): Promise<RefundResult> {
   if (isPaypalMock()) {
-    return { id: `mock_refund_${args.captureId}`, status: "COMPLETED" };
+    return { id: `mock_refund_${args.captureId}`, status: 'COMPLETED' };
   }
 
   const json = await paypalFetch(`/v2/payments/captures/${args.captureId}/refund`, {
-    method: "POST",
+    method: 'POST',
     requestId: `refund-${args.captureId}`,
     body: {
       amount: { value: args.amount, currency_code: args.currency },
@@ -517,8 +517,8 @@ export async function refundCapture(args: {
   });
 
   return {
-    id: String(json.id ?? ""),
-    status: String(json.status ?? "PENDING"),
+    id: String(json.id ?? ''),
+    status: String(json.status ?? 'PENDING'),
   };
 }
 
@@ -535,11 +535,11 @@ export type PaypalWebhookHeaders = {
 
 export function readWebhookHeaders(h: Headers): PaypalWebhookHeaders {
   return {
-    transmissionId: h.get("paypal-transmission-id") ?? "",
-    transmissionTime: h.get("paypal-transmission-time") ?? "",
-    transmissionSig: h.get("paypal-transmission-sig") ?? "",
-    certUrl: h.get("paypal-cert-url") ?? "",
-    authAlgo: h.get("paypal-auth-algo") ?? "",
+    transmissionId: h.get('paypal-transmission-id') ?? '',
+    transmissionTime: h.get('paypal-transmission-time') ?? '',
+    transmissionSig: h.get('paypal-transmission-sig') ?? '',
+    certUrl: h.get('paypal-cert-url') ?? '',
+    authAlgo: h.get('paypal-auth-algo') ?? '',
   };
 }
 
@@ -589,8 +589,8 @@ export async function verifyPaypalWebhook(args: {
   }
 
   try {
-    const json = await paypalFetch("/v1/notifications/verify-webhook-signature", {
-      method: "POST",
+    const json = await paypalFetch('/v1/notifications/verify-webhook-signature', {
+      method: 'POST',
       body: {
         transmission_id: headers.transmissionId,
         transmission_time: headers.transmissionTime,
@@ -601,9 +601,9 @@ export async function verifyPaypalWebhook(args: {
         webhook_event: parsedBody,
       },
     });
-    return String(json.verification_status ?? "").toUpperCase() === "SUCCESS";
+    return String(json.verification_status ?? '').toUpperCase() === 'SUCCESS';
   } catch (err) {
-    console.error("[paypal] webhook verification failed:", err);
+    console.error('[paypal] webhook verification failed:', err);
     return false;
   }
 }
@@ -611,7 +611,7 @@ export async function verifyPaypalWebhook(args: {
 /** Read-only diagnostic — no funds move. */
 export function pingPaypal(): {
   ok: boolean;
-  mode: "live" | "sandbox" | "mock";
+  mode: 'live' | 'sandbox' | 'mock';
   /** True when `mode` was proven by a token, not inferred from the env flag. */
   modeProven: boolean;
   currency: string;
@@ -619,7 +619,7 @@ export function pingPaypal(): {
   /** The console override applied, ENV when the env flag decides. */
   override: GatewayModeOverride;
 } {
-  const mode = !isPaypalConfigured() ? "mock" : paypalHost();
+  const mode = !isPaypalConfigured() ? 'mock' : paypalHost();
   return {
     ok: isPaypalConfigured(),
     mode,

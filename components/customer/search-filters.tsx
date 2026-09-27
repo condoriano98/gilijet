@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import * as React from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTransition } from 'react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
-type SortBy = "time" | "price" | "duration";
-type TimeSlot = "any" | "morning" | "afternoon" | "evening";
+type SortBy = 'time' | 'price' | 'duration';
+type TimeSlot = 'any' | 'morning' | 'afternoon' | 'evening';
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: "time", label: "Departure time" },
-  { value: "price", label: "Price (low to high)" },
-  { value: "duration", label: "Duration (shortest)" },
+  { value: 'time', label: 'Departure time' },
+  { value: 'price', label: 'Price (low to high)' },
+  { value: 'duration', label: 'Duration (shortest)' },
 ];
 
 const TIME_OPTIONS: { value: TimeSlot; label: string; hint: string }[] = [
-  { value: "any", label: "Any time", hint: "" },
-  { value: "morning", label: "Morning", hint: "6am-12pm" },
-  { value: "afternoon", label: "Afternoon", hint: "12pm-5pm" },
-  { value: "evening", label: "Evening", hint: "5pm-12am" },
+  { value: 'any', label: 'Any time', hint: '' },
+  { value: 'morning', label: 'Morning', hint: '6am-12pm' },
+  { value: 'afternoon', label: 'Afternoon', hint: '12pm-5pm' },
+  { value: 'evening', label: 'Evening', hint: '5pm-12am' },
 ];
 
 export function SearchFilters({
@@ -36,14 +36,14 @@ export function SearchFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [priceInput, setPriceInput] = React.useState(
-    maxPrice ? String(maxPrice) : "",
+    maxPrice ? String(maxPrice) : '',
   );
   const [isPending, startTransition] = useTransition();
 
   function pushParam(updates: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     for (const [key, value] of Object.entries(updates)) {
-      if (value === null || value === "") {
+      if (value === null || value === '') {
         params.delete(key);
       } else {
         params.set(key, value);
@@ -60,13 +60,13 @@ export function SearchFilters({
   }
 
   function clearAll() {
-    setPriceInput("");
+    setPriceInput('');
     pushParam({ sortBy: null, timeSlot: null, maxPrice: null });
   }
 
   const activeCount =
-    (sortBy !== "time" ? 1 : 0) +
-    (timeSlot !== "any" ? 1 : 0) +
+    (sortBy !== 'time' ? 1 : 0) +
+    (timeSlot !== 'any' ? 1 : 0) +
     (maxPrice ? 1 : 0);
 
   return (
@@ -100,12 +100,12 @@ export function SearchFilters({
                 key={opt.value}
                 type="button"
                 onClick={() =>
-                  pushParam({ sortBy: opt.value === "time" ? null : opt.value })
+                  pushParam({ sortBy: opt.value === 'time' ? null : opt.value })
                 }
                 className={`block w-full rounded-md border px-3 py-1.5 text-left text-sm transition-colors ${
                   sortBy === opt.value
-                    ? "border-sky-600 bg-sky-50 font-medium text-sky-900"
-                    : "border-slate-200 hover:border-slate-300"
+                    ? 'border-sky-600 bg-sky-50 font-medium text-sky-900'
+                    : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
                 {opt.label}
@@ -125,13 +125,13 @@ export function SearchFilters({
                 type="button"
                 onClick={() =>
                   pushParam({
-                    timeSlot: opt.value === "any" ? null : opt.value,
+                    timeSlot: opt.value === 'any' ? null : opt.value,
                   })
                 }
                 className={`rounded-md border px-2 py-1.5 text-left text-xs transition-colors ${
                   timeSlot === opt.value
-                    ? "border-sky-600 bg-sky-50 font-medium text-sky-900"
-                    : "border-slate-200 hover:border-slate-300"
+                    ? 'border-sky-600 bg-sky-50 font-medium text-sky-900'
+                    : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
                 <div className="font-medium">{opt.label}</div>
@@ -160,7 +160,7 @@ export function SearchFilters({
               value={priceInput}
               onChange={(e) => setPriceInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === 'Enter') {
                   e.preventDefault();
                   applyPriceFilter();
                 }

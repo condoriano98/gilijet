@@ -1,15 +1,15 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { audit } from "@/lib/audit";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { requireAdmin } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,33 +17,33 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { Textarea } from '@/components/ui/textarea';
 
-export const metadata = { title: "Reschedule requests · Admin" };
+export const metadata = { title: 'Reschedule requests · Admin' };
 
 async function approveAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const requestId = String(formData.get("requestId"));
-  const adminNote = String(formData.get("adminNote") ?? "").trim() || null;
-  if (!requestId) redirect("/admin/reschedules");
+  const requestId = String(formData.get('requestId'));
+  const adminNote = String(formData.get('adminNote') ?? '').trim() || null;
+  if (!requestId) redirect('/admin/reschedules');
 
   const request = await prisma.rescheduleRequest.findUnique({
     where: { id: requestId },
     include: { booking: true, originalLeg: true, requestedLeg: true },
   });
-  if (!request || request.status !== "PENDING") {
-    redirect("/admin/reschedules?error=not_pending");
+  if (!request || request.status !== 'PENDING') {
+    redirect('/admin/reschedules?error=not_pending');
   }
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (request.requestedLeg.status !== "OPEN") {
-        throw new Error("REQUESTED_LEG_UNAVAILABLE");
+      if (request.requestedLeg.status !== 'OPEN') {
+        throw new Error('REQUESTED_LEG_UNAVAILABLE');
       }
 
       // Move the booking to the new leg
@@ -55,7 +55,7 @@ async function approveAction(formData: FormData) {
       await tx.rescheduleRequest.update({
         where: { id: requestId },
         data: {
-          status: "APPROVED",
+          status: 'APPROVED',
           processedBy: session.sub,
           processedAt: new Date(),
           adminNote,
@@ -63,43 +63,43 @@ async function approveAction(formData: FormData) {
       });
     });
   } catch (err) {
-    console.error("[reschedule] approval failed:", err);
+    console.error('[reschedule] approval failed:', err);
     redirect(`/admin/reschedules?error=approval_failed`);
   }
 
   await audit({
-    entityType: "BOOKING",
+    entityType: 'BOOKING',
     entityId: request.bookingId,
-    action: "reschedule_approved",
+    action: 'reschedule_approved',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     newState: {
       originalLegId: request.originalLegId,
       requestedLegId: request.requestedLegId,
     },
   });
 
-  redirect("/admin/reschedules?ok=approved");
+  redirect('/admin/reschedules?ok=approved');
 }
 
 async function rejectAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireAdmin();
-  const requestId = String(formData.get("requestId"));
-  const adminNote = String(formData.get("adminNote") ?? "").trim() || null;
-  if (!requestId) redirect("/admin/reschedules");
+  const requestId = String(formData.get('requestId'));
+  const adminNote = String(formData.get('adminNote') ?? '').trim() || null;
+  if (!requestId) redirect('/admin/reschedules');
 
   const request = await prisma.rescheduleRequest.findUnique({
     where: { id: requestId },
   });
-  if (!request || request.status !== "PENDING") {
-    redirect("/admin/reschedules?error=not_pending");
+  if (!request || request.status !== 'PENDING') {
+    redirect('/admin/reschedules?error=not_pending');
   }
 
   await prisma.rescheduleRequest.update({
     where: { id: requestId },
     data: {
-      status: "REJECTED",
+      status: 'REJECTED',
       processedBy: session.sub,
       processedAt: new Date(),
       adminNote,
@@ -107,15 +107,15 @@ async function rejectAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "BOOKING",
+    entityType: 'BOOKING',
     entityId: request.bookingId,
-    action: "reschedule_rejected",
+    action: 'reschedule_rejected',
     userId: session.sub,
-    userRole: "ADMIN",
+    userRole: 'ADMIN',
     newState: { reason: adminNote },
   });
 
-  redirect("/admin/reschedules?ok=rejected");
+  redirect('/admin/reschedules?ok=rejected');
 }
 
 export default async function AdminReschedulesPage({
@@ -127,22 +127,22 @@ export default async function AdminReschedulesPage({
   const { ok, error } = await searchParams;
 
   const pending = await prisma.rescheduleRequest.findMany({
-    where: { status: "PENDING" },
+    where: { status: 'PENDING' },
     include: {
       booking: true,
       originalLeg: { include: { schedule: true } },
       requestedLeg: { include: { schedule: { include: { boat: true } } } },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: 'asc' },
   });
 
   const recentDecisions = await prisma.rescheduleRequest.findMany({
-    where: { status: { in: ["APPROVED", "REJECTED"] } },
+    where: { status: { in: ['APPROVED', 'REJECTED'] } },
     include: {
       booking: true,
       requestedLeg: { include: { schedule: true } },
     },
-    orderBy: { processedAt: "desc" },
+    orderBy: { processedAt: 'desc' },
     take: 20,
   });
 
@@ -164,7 +164,7 @@ export default async function AdminReschedulesPage({
       ) : null}
       {error ? (
         <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error.replace(/_/g, " ")}
+          {error.replace(/_/g, ' ')}
         </p>
       ) : null}
 
@@ -190,18 +190,18 @@ export default async function AdminReschedulesPage({
                     {r.booking.bookingReference} · {r.booking.customerName}
                   </div>
                   <div className="mt-1 text-sm">
-                    <span className="text-muted-foreground">From:</span>{" "}
-                    {formatLocalDate(r.originalLeg.departureDate, "dd MMM")} ·{" "}
-                    {formatLocalTime(r.originalLeg.departureDate)} →{" "}
+                    <span className="text-muted-foreground">From:</span>{' '}
+                    {formatLocalDate(r.originalLeg.departureDate, 'dd MMM')} ·{' '}
+                    {formatLocalTime(r.originalLeg.departureDate)} →{' '}
                     <span className="font-medium text-slate-900">
-                      {formatLocalDate(r.requestedLeg.departureDate, "dd MMM")}{" "}
-                      ·{" "}
-                      {formatLocalTime(r.requestedLeg.departureDate)} on{" "}
+                      {formatLocalDate(r.requestedLeg.departureDate, 'dd MMM')}{' '}
+                      ·{' '}
+                      {formatLocalTime(r.requestedLeg.departureDate)} on{' '}
                       {r.requestedLeg.schedule.boat.name}
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {r.originalLeg.schedule.originPort} →{" "}
+                    {r.originalLeg.schedule.originPort} →{' '}
                     {r.originalLeg.schedule.destinationPort}
                   </div>
                   {r.customerNote ? (
@@ -267,13 +267,13 @@ export default async function AdminReschedulesPage({
                     </TableCell>
                     <TableCell>{r.booking.customerName}</TableCell>
                     <TableCell>
-                      {formatLocalDate(r.requestedLeg.departureDate, "dd MMM")}{" "}
+                      {formatLocalDate(r.requestedLeg.departureDate, 'dd MMM')}{' '}
                       · {formatLocalTime(r.requestedLeg.departureDate)}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          r.status === "APPROVED" ? "success" : "destructive"
+                          r.status === 'APPROVED' ? 'success' : 'destructive'
                         }
                       >
                         {r.status}
@@ -281,8 +281,8 @@ export default async function AdminReschedulesPage({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {r.processedAt
-                        ? formatLocalDate(r.processedAt, "dd MMM HH:mm")
-                        : "-"}
+                        ? formatLocalDate(r.processedAt, 'dd MMM HH:mm')
+                        : '-'}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import Link from "next/link";
+import Link from 'next/link';
 
 // Customer-route error boundary. Less drastic than global-error.tsx —
 // renders inside the customer layout (so header/footer still work).

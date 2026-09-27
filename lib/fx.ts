@@ -1,11 +1,11 @@
-import { prisma } from "./db";
+import { prisma } from './db';
 
 export type FxSnapshot = {
   currency: string;
   rate: number;
 };
 
-const SUPPORTED_CURRENCIES = ["USD", "EUR", "AUD", "SGD", "MYR", "THB", "CNY", "JPY", "KRW"] as const;
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'AUD', 'SGD', 'MYR', 'THB', 'CNY', 'JPY', 'KRW'] as const;
 
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
@@ -20,7 +20,7 @@ export async function getLatestRates(): Promise<Map<string, number>> {
       where: {
         currency: { in: [...SUPPORTED_CURRENCIES] },
       },
-      orderBy: { fetchedAt: "desc" },
+      orderBy: { fetchedAt: 'desc' },
       take: SUPPORTED_CURRENCIES.length * 2,
     });
     const seen = new Set<string>();
@@ -31,7 +31,7 @@ export async function getLatestRates(): Promise<Map<string, number>> {
       }
     }
   } catch (err) {
-    console.error("[fx] getLatestRates failed:", err);
+    console.error('[fx] getLatestRates failed:', err);
   }
   return rates;
 }
@@ -41,15 +41,15 @@ export function convertIdr(idr: number, rate: number): number {
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: "$",
-  EUR: "€",
-  AUD: "A$",
-  SGD: "S$",
-  MYR: "RM",
-  THB: "฿",
-  CNY: "¥",
-  JPY: "¥",
-  KRW: "₩",
+  USD: '$',
+  EUR: '€',
+  AUD: 'A$',
+  SGD: 'S$',
+  MYR: 'RM',
+  THB: '฿',
+  CNY: '¥',
+  JPY: '¥',
+  KRW: '₩',
 };
 
 export function formatWithDisplay(
@@ -57,14 +57,14 @@ export function formatWithDisplay(
   currency: string,
   rates: Map<string, number>,
 ): { primary: string; secondary: string | null } {
-  const primary = "Rp " + idr.toLocaleString("id-ID", { maximumFractionDigits: 0 });
+  const primary = 'Rp ' + idr.toLocaleString('id-ID', { maximumFractionDigits: 0 });
   const rate = rates.get(currency);
   if (!rate || !isSupportedCurrency(currency)) {
     return { primary, secondary: null };
   }
   const converted = convertIdr(idr, rate);
-  const symbol = CURRENCY_SYMBOLS[currency] ?? "";
-  const secondary = `~${symbol}${converted.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency}`;
+  const symbol = CURRENCY_SYMBOLS[currency] ?? '';
+  const secondary = `~${symbol}${converted.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${currency}`;
   return { primary, secondary };
 }
 
@@ -103,7 +103,7 @@ const PROVIDER_TIMEOUT_MS = 3_000;
  * on every foreign charge. Dividing two full-precision USD-based numbers keeps
  * all of it.
  */
-const PROVIDER_URL = "https://open.er-api.com/v6/latest/USD";
+const PROVIDER_URL = 'https://open.er-api.com/v6/latest/USD';
 
 /**
  * Fetch today's rates and store them as IDR per one unit of each currency,
@@ -131,20 +131,20 @@ export async function refreshRatesFromProvider(): Promise<number> {
   // provider, started answering 200 with {"success":false,"error":...} once it
   // required an API key, and the cron stored nothing for months without ever
   // failing loudly. Check the body, not just the status.
-  if (data.result && data.result !== "success") {
+  if (data.result && data.result !== 'success') {
     throw new Error(`FX provider reported ${data.result}`);
   }
   const rates = data.rates;
   const idrPerUsd = rates?.IDR;
-  if (!rates || typeof idrPerUsd !== "number" || idrPerUsd <= 0) {
-    throw new Error("FX provider returned no usable IDR rate");
+  if (!rates || typeof idrPerUsd !== 'number' || idrPerUsd <= 0) {
+    throw new Error('FX provider returned no usable IDR rate');
   }
 
   let stored = 0;
   const fetchedAt = new Date();
   for (const currency of SUPPORTED_CURRENCIES) {
     const perUsd = rates[currency];
-    if (typeof perUsd !== "number" || perUsd <= 0) continue;
+    if (typeof perUsd !== 'number' || perUsd <= 0) continue;
     try {
       await prisma.fxRate.create({
         data: { currency, rate: idrPerUsd / perUsd, fetchedAt },
@@ -154,7 +154,7 @@ export async function refreshRatesFromProvider(): Promise<number> {
       console.error(`[fx] could not store ${currency}:`, err);
     }
   }
-  if (stored === 0) throw new Error("FX provider returned no supported currencies");
+  if (stored === 0) throw new Error('FX provider returned no supported currencies');
   return stored;
 }
 
@@ -177,7 +177,7 @@ export type ForeignChargeQuote = {
 export class FxRateUnavailableError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "FxRateUnavailableError";
+    this.name = 'FxRateUnavailableError';
   }
 }
 
@@ -205,7 +205,7 @@ export async function quoteForeignCharge(
   const readLatest = () =>
     prisma.fxRate.findFirst({
       where: { currency },
-      orderBy: { fetchedAt: "desc" },
+      orderBy: { fetchedAt: 'desc' },
     });
 
   let row = await readLatest();
@@ -223,7 +223,7 @@ export async function quoteForeignCharge(
       row = await readLatest();
     } catch (err) {
       lastInlineFailureAt = Date.now();
-      console.warn("[fx] inline rate refresh failed:", err);
+      console.warn('[fx] inline rate refresh failed:', err);
     }
   }
 

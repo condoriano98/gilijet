@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomInt } from 'node:crypto';
 
 /**
  * Generates human-readable booking & ticket references.
@@ -11,11 +11,11 @@ import { randomInt } from "node:crypto";
  * already do for safety.
  */
 
-const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I, O, 0, 1
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1
 const SUFFIX_LEN = 6;
 
 function randomSuffix(): string {
-  let out = "";
+  let out = '';
   for (let i = 0; i < SUFFIX_LEN; i++) {
     out += ALPHABET[randomInt(0, ALPHABET.length)];
   }
@@ -24,7 +24,7 @@ function randomSuffix(): string {
 
 function yearMonth(d: Date = new Date()): string {
   const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
   return `${y}-${m}`;
 }
 
@@ -34,7 +34,7 @@ export function newBookingReference(at: Date = new Date()): string {
 
 export function newTicketCode(bookingReference: string, index: number): string {
   // Replace the BK- prefix with TK- and append passenger index.
-  const tail = bookingReference.startsWith("BK-")
+  const tail = bookingReference.startsWith('BK-')
     ? bookingReference.slice(3)
     : bookingReference;
   return `TK-${tail}-${index}`;

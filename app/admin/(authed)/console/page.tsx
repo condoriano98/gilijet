@@ -1,14 +1,14 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
-import { KpiCard } from "@/components/ui/kpi-card";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
+import { KpiCard } from '@/components/ui/kpi-card';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -16,10 +16,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatIDR } from "@/lib/utils";
+} from '@/components/ui/table';
+import { formatIDR } from '@/lib/utils';
 
-export const metadata = { title: "Overview · Owner Console" };
+export const metadata = { title: 'Overview · Owner Console' };
 
 export default async function ConsoleOverviewPage() {
   await requireSuperAdmin();
@@ -27,21 +27,21 @@ export default async function ConsoleOverviewPage() {
   const [gmvAgg, commissionAgg, discountAgg, redemptionCount, activeCoupons, topSpend] =
     await Promise.all([
       prisma.booking.aggregate({
-        where: { status: "CONFIRMED" },
+        where: { status: 'CONFIRMED' },
         _sum: { totalAmount: true },
       }),
       prisma.booking.aggregate({
-        where: { status: "CONFIRMED" },
+        where: { status: 'CONFIRMED' },
         _sum: { commissionAmount: true },
       }),
       prisma.promotionRedemption.aggregate({ _sum: { amount: true } }),
       prisma.promotionRedemption.count(),
       prisma.promotion.count({ where: { isActive: true, archivedAt: null } }),
       prisma.promotionRedemption.groupBy({
-        by: ["promotionId"],
+        by: ['promotionId'],
         _sum: { amount: true },
         _count: { _all: true },
-        orderBy: { _sum: { amount: "desc" } },
+        orderBy: { _sum: { amount: 'desc' } },
         take: 5,
       }),
     ]);

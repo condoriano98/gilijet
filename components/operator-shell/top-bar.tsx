@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Bell, Grid3x3, Search, ChevronRight, LogOut, User } from "lucide-react";
-import { MODULES, getActiveModule } from "./sidebar";
-import { Button } from "@/components/ui/button";
-import { useState, useRef, useEffect } from "react";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Bell, Grid3x3, Search, ChevronRight, LogOut, User } from 'lucide-react';
+import { MODULES, getActiveModule } from './sidebar';
+import { Button } from '@/components/ui/button';
+import { useState, useRef, useEffect } from 'react';
 
 function Breadcrumbs() {
   const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean);
+  const segments = pathname.split('/').filter(Boolean);
   const activeModule = getActiveModule(pathname);
 
   const crumbs = [{ label: activeModule.label, href: activeModule.href }];
   if (segments.length > 2) {
-    const sub = segments.slice(2).join("/");
-    crumbs.push({ label: sub.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), href: pathname });
+    const sub = segments.slice(2).join('/');
+    crumbs.push({ label: sub.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()), href: pathname });
   }
 
   return (
@@ -44,8 +44,8 @@ function AppSwitcher() {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
   return (

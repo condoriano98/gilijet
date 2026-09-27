@@ -1,14 +1,14 @@
-import type { PostMeta } from "../index";
+import type { PostMeta } from '../index';
 
 export const meta: PostMeta = {
-  slug: "choosing-fast-boat-bali-gili",
-  title: "How to choose a fast boat from Bali to Gili Islands",
+  slug: 'choosing-fast-boat-bali-gili',
+  title: 'How to choose a fast boat from Bali to Gili Islands',
   description:
-    "Speedboat vs. cabin catamaran, departure port trade-offs, and the questions every traveler should ask before booking the Bali → Gili crossing.",
-  publishedAt: "2026-06-18",
-  author: "Tim Gilifast",
+    'Speedboat vs. cabin catamaran, departure port trade-offs, and the questions every traveler should ask before booking the Bali → Gili crossing.',
+  publishedAt: '2026-06-18',
+  author: 'Tim Gilifast',
   readingMinutes: 6,
-  tags: ["Bali", "Gili", "Fast boat", "Travel guide"],
+  tags: ['Bali', 'Gili', 'Fast boat', 'Travel guide'],
 };
 
 export default function ChoosingFastBoatBaliGili() {

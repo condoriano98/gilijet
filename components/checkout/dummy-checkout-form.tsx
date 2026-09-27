@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useTransition } from "react";
-import { formatIDR } from "@/lib/utils";
+import { useState, useEffect, useTransition } from 'react';
+import { formatIDR } from '@/lib/utils';
 
-type Tab = "card" | "qris" | "bank";
+type Tab = 'card' | 'qris' | 'bank';
 
 export function DummyCheckoutForm({
   reference,
@@ -18,9 +18,9 @@ export function DummyCheckoutForm({
   expiresAtIso: string;
   simulateAction: (fd: FormData) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<Tab>("card");
+  const [tab, setTab] = useState<Tab>('card');
   const [isPending, startTransition] = useTransition();
-  const [timeLeft, setTimeLeft] = useState("");
+  const [timeLeft, setTimeLeft] = useState('');
   const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
@@ -29,26 +29,26 @@ export function DummyCheckoutForm({
       const ms = Math.max(0, expires - Date.now());
       const m = Math.floor(ms / 60_000);
       const s = Math.floor((ms % 60_000) / 1000);
-      setTimeLeft(`${m}:${s.toString().padStart(2, "0")}`);
+      setTimeLeft(`${m}:${s.toString().padStart(2, '0')}`);
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [expiresAtIso]);
 
-  function handleSubmit(outcome: "success" | "fail") {
-    if (outcome === "success" && !agreed) return;
+  function handleSubmit(outcome: 'success' | 'fail') {
+    if (outcome === 'success' && !agreed) return;
     const fd = new FormData();
-    fd.set("reference", reference);
-    fd.set("outcome", outcome);
-    fd.set("method", tab);
+    fd.set('reference', reference);
+    fd.set('outcome', outcome);
+    fd.set('method', tab);
     startTransition(() => simulateAction(fd));
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "card", label: "Card" },
-    { id: "qris", label: "QRIS" },
-    { id: "bank", label: "Bank Transfer" },
+    { id: 'card', label: 'Card' },
+    { id: 'qris', label: 'QRIS' },
+    { id: 'bank', label: 'Bank Transfer' },
   ];
 
   return (
@@ -61,11 +61,11 @@ export function DummyCheckoutForm({
             type="button"
             onClick={() => setTab(t.id)}
             className={[
-              "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
+              'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
               tab === t.id
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700",
-            ].join(" ")}
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700',
+            ].join(' ')}
           >
             {t.label}
           </button>
@@ -73,7 +73,7 @@ export function DummyCheckoutForm({
       </div>
 
       {/* Card tab */}
-      {tab === "card" && (
+      {tab === 'card' && (
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
@@ -124,7 +124,7 @@ export function DummyCheckoutForm({
       )}
 
       {/* QRIS tab */}
-      {tab === "qris" && (
+      {tab === 'qris' && (
         <div className="flex flex-col items-center gap-3 py-2">
           <QrisDummy amount={amount} />
           <p className="text-xs text-slate-500">
@@ -134,7 +134,7 @@ export function DummyCheckoutForm({
       )}
 
       {/* Bank transfer tab */}
-      {tab === "bank" && (
+      {tab === 'bank' && (
         <div className="space-y-3">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs font-medium text-slate-500">
@@ -160,7 +160,7 @@ export function DummyCheckoutForm({
 
       {/* Timer */}
       <div className="text-center text-xs text-slate-400">
-        Expires in{" "}
+        Expires in{' '}
         <span className="font-mono font-medium text-slate-600">
           {timeLeft}
         </span>
@@ -175,7 +175,7 @@ export function DummyCheckoutForm({
           className="mt-0.5 h-4 w-4 flex-shrink-0"
         />
         <span>
-          I have read and agree to the{" "}
+          I have read and agree to the{' '}
           <a
             href="/terms"
             target="_blank"
@@ -193,19 +193,19 @@ export function DummyCheckoutForm({
       <button
         type="button"
         disabled={isPending || !agreed}
-        onClick={() => handleSubmit("success")}
+        onClick={() => handleSubmit('success')}
         className="w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending
-          ? "Processing..."
+          ? 'Processing...'
           : agreed
             ? `Pay ${formatIDR(amount)}`
-            : "Accept the terms to pay"}
+            : 'Accept the terms to pay'}
       </button>
       <button
         type="button"
         disabled={isPending}
-        onClick={() => handleSubmit("fail")}
+        onClick={() => handleSubmit('fail')}
         className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-50"
       >
         Cancel payment
@@ -233,7 +233,7 @@ function QrisDummy({ amount }: { amount: number }) {
         {cells.map((on, i) => (
           <div
             key={i}
-            className={on ? "bg-slate-900 rounded-[1px]" : "bg-transparent"}
+            className={on ? 'bg-slate-900 rounded-[1px]' : 'bg-transparent'}
           />
         ))}
       </div>

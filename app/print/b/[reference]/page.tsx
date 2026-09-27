@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { renderQrSvgDataUrl } from "@/lib/qr-render";
-import { buildQrPayload } from "@/lib/qr";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
-import { getPortInfo } from "@/lib/port-info";
-import { PrintButton } from "./print-button";
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { renderQrSvgDataUrl } from '@/lib/qr-render';
+import { buildQrPayload } from '@/lib/qr';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
+import { getPortInfo } from '@/lib/port-info';
+import { PrintButton } from './print-button';
 
 /**
  * Print-optimised ticket page. The customer opens this in a new tab and
@@ -28,10 +28,10 @@ export default async function PrintTicketPage({
           schedule: { include: { boat: { include: { operator: true } } } },
         },
       },
-      tickets: { orderBy: { ticketCode: "asc" } },
+      tickets: { orderBy: { ticketCode: 'asc' } },
     },
   });
-  if (!booking || booking.status !== "CONFIRMED") notFound();
+  if (!booking || booking.status !== 'CONFIRMED') notFound();
 
   const ticketSvgs: Array<{
     ticketCode: string;
@@ -52,7 +52,7 @@ export default async function PrintTicketPage({
   const portInfo = getPortInfo(booking.leg.schedule.originPort);
 
   return (
-    <div style={{ background: "white", padding: 24, fontFamily: "system-ui, -apple-system, sans-serif", color: "#0f172a" }}>
+    <div style={{ background: 'white', padding: 24, fontFamily: 'system-ui, -apple-system, sans-serif', color: '#0f172a' }}>
       <style>{`
         @page { margin: 12mm; size: A4; }
         .print-page * { box-sizing: border-box; }
@@ -102,14 +102,14 @@ export default async function PrintTicketPage({
           <div>
             <div className="print-label">Route</div>
             <div className="print-value">
-              {booking.leg.schedule.originPort} →{" "}
+              {booking.leg.schedule.originPort} →{' '}
               {booking.leg.schedule.destinationPort}
             </div>
           </div>
           <div>
             <div className="print-label">Departure</div>
             <div className="print-value">
-              {formatLocalDate(booking.leg.departureDate, "EEE, dd MMM yyyy")} ·{" "}
+              {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
               {formatLocalTime(booking.leg.departureDate)} WITA
             </div>
           </div>
@@ -148,7 +148,7 @@ export default async function PrintTicketPage({
             <div>
               <div className="print-passenger">{t.passengerName}</div>
               <div className="print-ticket-code">{t.ticketCode}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
                 Show this QR at the dock. Arrive {portInfo.arrivalBuffer} minutes
                 before departure with a matching government ID.
               </div>

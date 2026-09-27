@@ -1,33 +1,33 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { expireStalePendingBookings } from "@/lib/booking-expiry";
-import { releaseBookingSeats } from "@/lib/booking-engine";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { expireStalePendingBookings } from '@/lib/booking-expiry';
+import { releaseBookingSeats } from '@/lib/booking-engine';
 import {
   refundAmountForCustomer,
   refundTierForCustomer,
-} from "@/lib/refunds";
-import { audit } from "@/lib/audit";
-import { refundViaGateway, isAnyRefundGatewayConfigured } from "@/lib/refund-gateway";
-import { renderQrSvgDataUrl } from "@/lib/qr-render";
-import { buildQrPayload } from "@/lib/qr";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
+} from '@/lib/refunds';
+import { audit } from '@/lib/audit';
+import { refundViaGateway, isAnyRefundGatewayConfigured } from '@/lib/refund-gateway';
+import { renderQrSvgDataUrl } from '@/lib/qr-render';
+import { buildQrPayload } from '@/lib/qr';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BookingProgress } from "@/components/customer/booking-progress";
-import { CopyButton } from "@/components/customer/payment-countdown";
-import { ShareButtons } from "@/components/customer/share-buttons";
-import { getPortInfo } from "@/lib/port-info";
-import { env } from "@/lib/env";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { BookingProgress } from '@/components/customer/booking-progress';
+import { CopyButton } from '@/components/customer/payment-countdown';
+import { ShareButtons } from '@/components/customer/share-buttons';
+import { getPortInfo } from '@/lib/port-info';
+import { env } from '@/lib/env';
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -39,14 +39,14 @@ const cancelInput = z.object({
  * a light authorization check (a stronger flow ships in §9.1 expansion).
  */
 async function cancelAction(formData: FormData) {
-  "use server";
+  'use server';
   const parsed = cancelInput.safeParse({
-    reference: formData.get("reference"),
-    confirmEmail: formData.get("confirmEmail"),
+    reference: formData.get('reference'),
+    confirmEmail: formData.get('confirmEmail'),
   });
   if (!parsed.success) {
     redirect(
-      `/b/${formData.get("reference")}?error=email_required`,
+      `/b/${formData.get('reference')}?error=email_required`,
     );
   }
   const ref = parsed.data.reference;
@@ -55,7 +55,7 @@ async function cancelAction(formData: FormData) {
     where: { bookingReference: ref },
     include: { leg: true, payment: true, refund: true },
   });
-  if (!booking) redirect("/b?error=missing");
+  if (!booking) redirect('/b?error=missing');
 
   if (
     booking.customerEmail.toLowerCase() !==
@@ -66,9 +66,9 @@ async function cancelAction(formData: FormData) {
   // A booking still waiting on the operator call is cancellable too — the
   // customer has paid and is entitled to back out on the normal refund tiers.
   if (
-    booking.status !== "CONFIRMED" &&
-    booking.status !== "PENDING_PAYMENT" &&
-    booking.status !== "AWAITING_CONFIRMATION"
+    booking.status !== 'CONFIRMED' &&
+    booking.status !== 'PENDING_PAYMENT' &&
+    booking.status !== 'AWAITING_CONFIRMATION'
   ) {
     redirect(`/b/${ref}?error=not_cancellable`);
   }
@@ -85,11 +85,11 @@ async function cancelAction(formData: FormData) {
   await prisma.$transaction(async (tx) => {
     await tx.booking.update({
       where: { id: booking.id },
-      data: { status: "CANCELLED_BY_CUSTOMER" },
+      data: { status: 'CANCELLED_BY_CUSTOMER' },
     });
     await tx.ticket.updateMany({
-      where: { bookingId: booking.id, status: { in: ["ISSUED"] } },
-      data: { status: "REFUNDED" },
+      where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
+      data: { status: 'REFUNDED' },
     });
     if (!booking.refund && amount.gt(0)) {
       await tx.refund.create({
@@ -97,13 +97,13 @@ async function cancelAction(formData: FormData) {
           bookingId: booking.id,
           originalAmount: booking.totalAmount,
           refundAmount: amount,
-          reason: "CUSTOMER_REQUEST",
-          status: "PENDING",
+          reason: 'CUSTOMER_REQUEST',
+          status: 'PENDING',
         },
       });
     }
   });
-  await releaseBookingSeats(booking.id, "cancelled_by_customer").catch(
+  await releaseBookingSeats(booking.id, 'cancelled_by_customer').catch(
     () => {},
   );
 
@@ -111,7 +111,7 @@ async function cancelAction(formData: FormData) {
   if (
     amount.gt(0) &&
     isAnyRefundGatewayConfigured() &&
-    booking.payment?.status === "SUCCESSFUL" &&
+    booking.payment?.status === 'SUCCESSFUL' &&
     booking.payment.gatewayReference
   ) {
     try {
@@ -125,23 +125,23 @@ async function cancelAction(formData: FormData) {
         await prisma.refund.update({
           where: { bookingId: booking.id },
           data: {
-            status: "PROCESSING",
+            status: 'PROCESSING',
             gatewayReference: r.id,
             processedAt: new Date(),
           },
         });
       }
     } catch (err) {
-      console.error("[cancel] gateway refund failed:", err);
+      console.error('[cancel] gateway refund failed:', err);
       // Admin will pick it up from the pending queue.
     }
   }
 
   await audit({
-    entityType: "BOOKING",
+    entityType: 'BOOKING',
     entityId: booking.id,
-    action: "cancelled_by_customer",
-    userRole: "CUSTOMER",
+    action: 'cancelled_by_customer',
+    userRole: 'CUSTOMER',
     newState: { tier, refundAmount: amount.toString() },
   });
 
@@ -150,17 +150,17 @@ async function cancelAction(formData: FormData) {
 
 function statusBadge(status: string) {
   switch (status) {
-    case "CONFIRMED":
-      return "success" as const;
-    case "PENDING_PAYMENT":
-    case "AWAITING_CONFIRMATION":
-      return "warning" as const;
-    case "EXPIRED":
-    case "CANCELLED_BY_CUSTOMER":
-    case "CANCELLED_BY_OPERATOR":
-      return "destructive" as const;
+    case 'CONFIRMED':
+      return 'success' as const;
+    case 'PENDING_PAYMENT':
+    case 'AWAITING_CONFIRMATION':
+      return 'warning' as const;
+    case 'EXPIRED':
+    case 'CANCELLED_BY_CUSTOMER':
+    case 'CANCELLED_BY_OPERATOR':
+      return 'destructive' as const;
     default:
-      return "outline" as const;
+      return 'outline' as const;
   }
 }
 
@@ -184,7 +184,7 @@ export default async function BookingLookupPage({
           schedule: { include: { boat: { include: { operator: true } } } },
         },
       },
-      tickets: { orderBy: { ticketCode: "asc" } },
+      tickets: { orderBy: { ticketCode: 'asc' } },
       refund: true,
       payment: true,
       rescheduleRequest: true,
@@ -200,31 +200,31 @@ export default async function BookingLookupPage({
     basePrice: unknown;
     schedule: { originPort: string; destinationPort: string; durationMinutes: number; boat: { name: string } };
   }> = [];
-  if (booking.status === "CONFIRMED" && booking.leg.departureDate.getTime() > Date.now()) {
+  if (booking.status === 'CONFIRMED' && booking.leg.departureDate.getTime() > Date.now()) {
     try {
       returnLegs = await prisma.leg.findMany({
         where: {
-          status: "OPEN",
+          status: 'OPEN',
           departureDate: { gt: booking.leg.departureDate },
           schedule: {
             originPort: booking.leg.schedule.destinationPort,
             destinationPort: booking.leg.schedule.originPort,
-            status: "ACTIVE",
+            status: 'ACTIVE',
             deletedAt: null,
             boat: { deletedAt: null },
           },
         },
         include: { schedule: { include: { boat: true } } },
-        orderBy: { departureDate: "asc" },
+        orderBy: { departureDate: 'asc' },
         take: 3,
       });
     } catch (err) {
-      console.error("[booking] return leg query failed:", err);
+      console.error('[booking] return leg query failed:', err);
     }
   }
 
   const portInfo = getPortInfo(booking.leg.schedule.originPort);
-  const lookupUrl = `${env.APP_BASE_URL ?? ""}/b/${booking.bookingReference}`;
+  const lookupUrl = `${env.APP_BASE_URL ?? ''}/b/${booking.bookingReference}`;
 
   // Pre-render QR data URLs for the confirmed-ticket case. Rendering to a
   // data URL + <img> avoids dangerouslySetInnerHTML; the QR library output
@@ -232,7 +232,7 @@ export default async function BookingLookupPage({
   // to the renderer.
   const ticketSvgs: Array<{ ticketCode: string; passengerName: string; qrDataUrl: string }> =
     [];
-  if (booking.status === "CONFIRMED") {
+  if (booking.status === 'CONFIRMED') {
     for (const t of booking.tickets) {
       const qrDataUrl = await renderQrSvgDataUrl(
         buildQrPayload(t.ticketCode, booking.leg.departureDate),
@@ -247,19 +247,19 @@ export default async function BookingLookupPage({
 
   const departureFuture = booking.leg.departureDate.getTime() > Date.now();
   const refundPreview =
-    booking.status === "CONFIRMED" && departureFuture
+    booking.status === 'CONFIRMED' && departureFuture
       ? refundTierForCustomer(new Date(), booking.leg.departureDate)
       : null;
   const canCancel =
     departureFuture &&
-    (booking.status === "CONFIRMED" ||
-      booking.status === "PENDING_PAYMENT" ||
-      booking.status === "AWAITING_CONFIRMATION");
+    (booking.status === 'CONFIRMED' ||
+      booking.status === 'PENDING_PAYMENT' ||
+      booking.status === 'AWAITING_CONFIRMATION');
 
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-2xl space-y-6">
-        {booking.status === "CONFIRMED" && <BookingProgress currentStep={4} />}
+        {booking.status === 'CONFIRMED' && <BookingProgress currentStep={4} />}
         <div>
           <Link
             href="/"
@@ -276,12 +276,12 @@ export default async function BookingLookupPage({
               </p>
             </div>
             <Badge variant={statusBadge(booking.status)} className="text-sm">
-              {booking.status.replace(/_/g, " ")}
+              {booking.status.replace(/_/g, ' ')}
             </Badge>
           </div>
         </div>
 
-        {ok === "cancelled" ? (
+        {ok === 'cancelled' ? (
           <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Booking cancelled. If a refund is due it will appear in your
             payment method within 1-3 business days.
@@ -289,22 +289,22 @@ export default async function BookingLookupPage({
         ) : null}
         {error ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error.replace(/_/g, " ")}
+            {error.replace(/_/g, ' ')}
           </p>
         ) : null}
 
         <Card>
           <CardHeader>
             <CardTitle>
-              {booking.leg.schedule.originPort} →{" "}
+              {booking.leg.schedule.originPort} →{' '}
               {booking.leg.schedule.destinationPort}
             </CardTitle>
             <CardDescription>
-              {formatLocalDate(booking.leg.departureDate, "EEEE, dd MMM yyyy")}{" "}
-              ·{" "}
+              {formatLocalDate(booking.leg.departureDate, 'EEEE, dd MMM yyyy')}{' '}
+              ·{' '}
               <span className="font-mono">
                 {formatLocalTime(booking.leg.departureDate)}
-              </span>{" "}
+              </span>{' '}
               WITA · {booking.leg.schedule.boat.name}
             </CardDescription>
           </CardHeader>
@@ -327,7 +327,7 @@ export default async function BookingLookupPage({
           </CardContent>
         </Card>
 
-        {booking.status === "PENDING_PAYMENT" ? (
+        {booking.status === 'PENDING_PAYMENT' ? (
           <Card>
             <CardContent className="space-y-3 pt-6">
               <p className="text-sm">
@@ -343,7 +343,7 @@ export default async function BookingLookupPage({
           </Card>
         ) : null}
 
-        {booking.status === "AWAITING_CONFIRMATION" ? (
+        {booking.status === 'AWAITING_CONFIRMATION' ? (
           <Card className="border-amber-200 bg-amber-50">
             <CardContent className="space-y-2 pt-6">
               <p className="text-sm font-medium text-amber-900">
@@ -363,7 +363,7 @@ export default async function BookingLookupPage({
           </Card>
         ) : null}
 
-        {booking.status === "CONFIRMED" && ticketSvgs.length > 0 ? (
+        {booking.status === 'CONFIRMED' && ticketSvgs.length > 0 ? (
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -413,13 +413,13 @@ export default async function BookingLookupPage({
           </Card>
         ) : null}
 
-        {booking.status === "CONFIRMED" ? (
+        {booking.status === 'CONFIRMED' ? (
           <>
             <Card>
               <CardHeader>
                 <CardTitle>Before you board</CardTitle>
                 <CardDescription>
-                  Arrive at {booking.leg.schedule.originPort} dock at least{" "}
+                  Arrive at {booking.leg.schedule.originPort} dock at least{' '}
                   <strong>{portInfo.arrivalBuffer} minutes</strong> before
                   departure.
                 </CardDescription>
@@ -476,7 +476,7 @@ export default async function BookingLookupPage({
                   bookingReference={booking.bookingReference}
                   origin={booking.leg.schedule.originPort}
                   destination={booking.leg.schedule.destinationPort}
-                  date={formatLocalDate(booking.leg.departureDate, "dd MMM yyyy")}
+                  date={formatLocalDate(booking.leg.departureDate, 'dd MMM yyyy')}
                   lookupUrl={lookupUrl}
                 />
               </CardContent>
@@ -486,7 +486,7 @@ export default async function BookingLookupPage({
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    Book your return: {booking.leg.schedule.destinationPort} →{" "}
+                    Book your return: {booking.leg.schedule.destinationPort} →{' '}
                     {booking.leg.schedule.originPort}
                   </CardTitle>
                   <CardDescription>
@@ -501,14 +501,14 @@ export default async function BookingLookupPage({
                     >
                       <div>
                         <div className="font-medium">
-                          {formatLocalDate(rl.departureDate, "EEE, dd MMM")} ·{" "}
+                          {formatLocalDate(rl.departureDate, 'EEE, dd MMM')} ·{' '}
                           <span className="font-mono">
                             {formatLocalTime(rl.departureDate)}
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {rl.schedule.boat.name} ·{" "}
-                          {rl.schedule.durationMinutes} min ·{" "}
+                          {rl.schedule.boat.name} ·{' '}
+                          {rl.schedule.durationMinutes} min ·{' '}
                           {formatIDR(Number(rl.basePrice))}
                         </div>
                       </div>
@@ -527,7 +527,7 @@ export default async function BookingLookupPage({
           </>
         ) : null}
 
-        {booking.status === "CONFIRMED" &&
+        {booking.status === 'CONFIRMED' &&
         departureFuture &&
         booking.leg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000 ? (
           <Card>
@@ -539,7 +539,7 @@ export default async function BookingLookupPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {booking.rescheduleRequest?.status === "PENDING" ? (
+              {booking.rescheduleRequest?.status === 'PENDING' ? (
                 <p className="text-sm text-amber-900">
                   Reschedule request pending operator review.
                 </p>
@@ -559,13 +559,13 @@ export default async function BookingLookupPage({
             <CardHeader>
               <CardTitle>Cancel booking</CardTitle>
               <CardDescription>
-                {refundPreview === "FULL"
-                  ? "More than 7 days out — eligible for a 100% refund."
-                  : refundPreview === "PARTIAL"
-                    ? "3-6 days out — eligible for a 50% refund."
-                    : booking.status === "CONFIRMED"
-                      ? "Less than 3 days out — no refund per the policy you agreed to."
-                      : "Confirm to release these seats."}
+                {refundPreview === 'FULL'
+                  ? 'More than 7 days out — eligible for a 100% refund.'
+                  : refundPreview === 'PARTIAL'
+                    ? '3-6 days out — eligible for a 50% refund.'
+                    : booking.status === 'CONFIRMED'
+                      ? 'Less than 3 days out — no refund per the policy you agreed to.'
+                      : 'Confirm to release these seats.'}
               </CardDescription>
             </CardHeader>
             <form action={cancelAction}>

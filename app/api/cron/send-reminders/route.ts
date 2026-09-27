@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
-import { sendDepartureReminder } from "@/lib/email";
-import { buildQrPayload } from "@/lib/qr";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { env } from '@/lib/env';
+import { sendDepartureReminder } from '@/lib/email';
+import { buildQrPayload } from '@/lib/qr';
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
+  const authHeader = req.headers.get('authorization');
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const now = new Date();
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const bookings = await prisma.booking.findMany({
     where: {
-      status: "CONFIRMED",
+      status: 'CONFIRMED',
       reminderSentAt: null,
       leg: {
         departureDate: { gte: windowStart, lte: windowEnd },
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
-      tickets: { where: { status: { in: ["ISSUED", "CHECKED_IN"] } } },
+      tickets: { where: { status: { in: ['ISSUED', 'CHECKED_IN'] } } },
     },
     take: 50,
   });
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       });
 
       // Mark reminded whether sent or console-logged (dev mode)
-      if (result.delivered || result.provider === "console") {
+      if (result.delivered || result.provider === 'console') {
         await prisma.booking.update({
           where: { id: booking.id },
           data: { reminderSentAt: new Date() },
@@ -74,4 +74,4 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, sent, failed, total: bookings.length });
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';

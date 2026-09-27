@@ -1,9 +1,9 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export const metadata = {
-  title: "Refund & Reschedule Policy · Gilifast",
+  title: 'Refund & Reschedule Policy · Gilifast',
   description:
-    "Gilifast refund and reschedule policy — cancellation schedule, processing times, reschedule credits, no-shows, and disputes.",
+    'Gilifast refund and reschedule policy — cancellation schedule, processing times, reschedule credits, no-shows, and disputes.',
 };
 
 function Th({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function RefundsPage() {
         <p className="rounded-md bg-sky-50 px-4 py-3 not-prose text-sm text-sky-900">
           By completing a booking on gilifast.com or balinusafast.com, you
           confirm that you have read and agree to this policy. It forms part of
-          our{" "}
+          our{' '}
           <Link href="/terms" className="underline">
             Terms &amp; Conditions
           </Link>
@@ -130,7 +130,7 @@ export default function RefundsPage() {
         <h3 className="mt-6 text-lg font-semibold">How to request a refund</h3>
         <p>
           All refund requests must be submitted by email. We do not accept
-          requests via WhatsApp, social media, or verbally. Email{" "}
+          requests via WhatsApp, social media, or verbally. Email{' '}
           <a href="mailto:info@balinusafast.com">info@balinusafast.com</a> with
           subject <strong>REFUND REQUEST [your booking code]</strong> and
           include your full name, booking code, departure date, and reason. We
@@ -161,7 +161,7 @@ export default function RefundsPage() {
           International card refunds pass through several layers — our payment
           gateway, the acquiring bank, the card network, and finally your own
           bank abroad. Once we initiate the refund, the remaining timeline is
-          outside our direct control. To track a refund, email us with subject{" "}
+          outside our direct control. To track a refund, email us with subject{' '}
           <strong>TRACKING REFUND [your RRN number]</strong>.
         </p>
 
@@ -199,7 +199,7 @@ export default function RefundsPage() {
           </li>
         </ul>
         <p>
-          Email <a href="mailto:info@balinusafast.com">info@balinusafast.com</a>{" "}
+          Email <a href="mailto:info@balinusafast.com">info@balinusafast.com</a>{' '}
           with subject <strong>RESCHEDULE [your booking code]</strong>. Once
           approved, we send a cancellation confirmation, a Reschedule Credit
           Code equal to the full amount paid, and instructions for using it at
@@ -250,7 +250,7 @@ export default function RefundsPage() {
         <h2 className="mt-8 text-xl font-semibold">7. Payment disputes</h2>
         <p>
           If you believe a refund was processed incorrectly, or have a concern
-          about a charge, please contact us first at{" "}
+          about a charge, please contact us first at{' '}
           <a href="mailto:info@balinusafast.com">info@balinusafast.com</a> with
           subject <strong>DISPUTE [booking code or description]</strong>. We
           respond within five business days.
@@ -266,7 +266,7 @@ export default function RefundsPage() {
 
         <h2 className="mt-8 text-xl font-semibold">8. Contact us</h2>
         <p>
-          Our team handles all refund, reschedule, and dispute enquiries{" "}
+          Our team handles all refund, reschedule, and dispute enquiries{' '}
           <strong>Monday to Sunday, 07:00 – 20:00 WITA (GMT+8)</strong>, replying
           within one business day.
         </p>
@@ -279,7 +279,7 @@ export default function RefundsPage() {
         </ul>
 
         <p className="mt-8 border-t pt-4 text-xs text-slate-500">
-          Not sure which option is best? See our{" "}
+          Not sure which option is best? See our{' '}
           <Link href="/change-plans" className="underline">
             &quot;change my plans&quot; guide
           </Link>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { PassengerType } from "@/lib/pricing";
+import * as React from 'react';
+import type { PassengerType } from '@/lib/pricing';
 
 type BookingPriceContextValue = {
   types: PassengerType[];
@@ -21,7 +21,7 @@ const BookingPriceContext = React.createContext<BookingPriceContextValue | null>
 export function useBookingPrice() {
   const ctx = React.useContext(BookingPriceContext);
   if (!ctx) {
-    throw new Error("useBookingPrice must be used within BookingPriceProvider");
+    throw new Error('useBookingPrice must be used within BookingPriceProvider');
   }
   return ctx;
 }
@@ -44,14 +44,14 @@ export function BookingPriceProvider({
   const [types, setTypes] = React.useState<PassengerType[]>(() =>
     Array.from(
       { length: Math.max(1, Math.min(max, initialCount)) },
-      () => "ADULT" as PassengerType,
+      () => 'ADULT' as PassengerType,
     ),
   );
 
   const unitPriceFor = React.useCallback(
     (type: PassengerType) => {
-      if (type === "ADULT") return adultPrice;
-      if (type === "CHILD") return childPrice;
+      if (type === 'ADULT') return adultPrice;
+      if (type === 'CHILD') return childPrice;
       return infantPrice;
     },
     [adultPrice, childPrice, infantPrice],
@@ -62,7 +62,7 @@ export function BookingPriceProvider({
   }, []);
 
   const addPassenger = React.useCallback(() => {
-    setTypes((prev) => (prev.length >= max ? prev : [...prev, "ADULT"]));
+    setTypes((prev) => (prev.length >= max ? prev : [...prev, 'ADULT']));
   }, [max]);
 
   const removePassenger = React.useCallback(() => {

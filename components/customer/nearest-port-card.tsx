@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { nearestPorts, type NearestPortResult } from "@/lib/geo";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { nearestPorts, type NearestPortResult } from '@/lib/geo';
 
 export function NearestPortCard() {
   const [ports, setPorts] = useState<NearestPortResult[] | null>(null);

@@ -1,4 +1,4 @@
-import { getAllPorts } from "./port-info";
+import { getAllPorts } from './port-info';
 
 const R = 6371;
 

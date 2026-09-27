@@ -1,6 +1,6 @@
-import createNextIntlPlugin from "next-intl/plugin";
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,28 +10,28 @@ const nextConfig = {
   // output:"standalone" is also set (upstream vercel/next.js#96646). Standalone
   // is only needed for the self-hosted Docker droplet, so disable it on Vercel
   // and keep it everywhere else.
-  output: process.env.VERCEL ? undefined : "standalone",
+  output: process.env.VERCEL ? undefined : 'standalone',
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**.supabase.co" },
-      { protocol: "https", hostname: "res.cloudinary.com" },
-      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
   // Stable since Next 15; was experimental.serverComponentsExternalPackages.
-  serverExternalPackages: ["@prisma/client"],
+  serverExternalPackages: ['@prisma/client'],
   experimental: {
     serverActions: {
-      bodySizeLimit: "2mb",
+      bodySizeLimit: '2mb',
     },
     optimizePackageImports: [
-      "lucide-react",
-      "date-fns",
-      "@radix-ui/react-checkbox",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-label",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-select",
+      'lucide-react',
+      'date-fns',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
     ],
   },
   // No operator redirects here on purpose. These used to point the English

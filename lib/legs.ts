@@ -1,12 +1,12 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./db";
-import { audit } from "./audit";
+import { Prisma } from '@prisma/client';
+import { prisma } from './db';
+import { audit } from './audit';
 import {
   OPERATOR_TIMEZONE,
   isoDayOfWeek,
   localDateTimeToUtc,
   ymdInZone,
-} from "./datetime";
+} from './datetime';
 
 const DEFAULT_DAYS_AHEAD = 14;
 
@@ -39,8 +39,8 @@ export function demoSeasonWindow(ref: Date = new Date()): {
 } {
   const year = Number(ymdInZone(ref).slice(0, 4));
   return {
-    start: localDateTimeToUtc(`${year}-07-01`, "00:00"),
-    end: localDateTimeToUtc(`${year}-08-31`, "23:59"),
+    start: localDateTimeToUtc(`${year}-07-01`, '00:00'),
+    end: localDateTimeToUtc(`${year}-08-31`, '23:59'),
   };
 }
 
@@ -88,8 +88,8 @@ export async function generateLegsForSchedule(
     include: { boat: true },
   });
   if (!schedule) throw new Error(`Schedule ${scheduleId} not found`);
-  if (schedule.status !== "ACTIVE") return 0;
-  if (schedule.boat.status !== "ACTIVE") return 0;
+  if (schedule.status !== 'ACTIVE') return 0;
+  if (schedule.boat.status !== 'ACTIVE') return 0;
 
   const now = startAt ?? new Date();
   const todayLocalYmd = ymdInZone(now);
@@ -112,7 +112,7 @@ export async function generateLegsForSchedule(
       operatorId: schedule.boat.operatorId,
       departureDate: departureUtc,
       basePrice: schedule.basePrice,
-      status: "OPEN",
+      status: 'OPEN',
     });
   }
 
@@ -148,38 +148,38 @@ export async function cancelLeg(args: {
     const leg = await tx.leg.findUnique({
       where: { id: legId },
     });
-    if (!leg) throw new Error("Leg not found");
+    if (!leg) throw new Error('Leg not found');
     if (leg.operatorId !== operatorId) {
-      throw new Error("Not authorised for this leg");
+      throw new Error('Not authorised for this leg');
     }
-    if (leg.status === "CANCELLED") {
+    if (leg.status === 'CANCELLED') {
       return { cancelledBookings: 0, pendingRefunds: 0 };
     }
-    if (leg.status === "SAILED") {
-      throw new Error("Cannot cancel a leg that has already sailed");
+    if (leg.status === 'SAILED') {
+      throw new Error('Cannot cancel a leg that has already sailed');
     }
 
     await tx.leg.update({
       where: { id: legId },
       data: {
-        status: "CANCELLED",
+        status: 'CANCELLED',
         cancellationReason: reason,
       },
     });
 
     const bookings = await tx.booking.findMany({
-      where: { legId, status: "CONFIRMED" },
+      where: { legId, status: 'CONFIRMED' },
       include: { tickets: true, payment: true, refund: true },
     });
 
     for (const booking of bookings) {
       await tx.booking.update({
         where: { id: booking.id },
-        data: { status: "CANCELLED_BY_OPERATOR" },
+        data: { status: 'CANCELLED_BY_OPERATOR' },
       });
       await tx.ticket.updateMany({
-        where: { bookingId: booking.id, status: { in: ["ISSUED"] } },
-        data: { status: "REFUNDED" },
+        where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
+        data: { status: 'REFUNDED' },
       });
       if (!booking.refund) {
         await tx.refund.create({
@@ -187,8 +187,8 @@ export async function cancelLeg(args: {
             bookingId: booking.id,
             originalAmount: booking.totalAmount,
             refundAmount: booking.totalAmount, // 100% per §6.4
-            reason: "OPERATOR_CANCELLATION",
-            status: "PENDING",
+            reason: 'OPERATOR_CANCELLATION',
+            status: 'PENDING',
           },
         });
       }
@@ -196,13 +196,13 @@ export async function cancelLeg(args: {
 
     await tx.auditLog.create({
       data: {
-        entityType: "LEG",
+        entityType: 'LEG',
         entityId: legId,
-        action: "cancelled",
+        action: 'cancelled',
         userId: operatorId,
-        userRole: "OPERATOR",
+        userRole: 'OPERATOR',
         previousState: { status: leg.status },
-        newState: { status: "CANCELLED", reason },
+        newState: { status: 'CANCELLED', reason },
       },
     });
 

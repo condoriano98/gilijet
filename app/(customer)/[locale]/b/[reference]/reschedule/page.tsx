@@ -1,41 +1,41 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { audit } from "@/lib/audit";
-import { formatLocalDate, formatLocalTime, localDateTimeToUtc } from "@/lib/datetime";
-import { formatIDR } from "@/lib/utils";
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
+import { formatLocalDate, formatLocalTime, localDateTimeToUtc } from '@/lib/datetime';
+import { formatIDR } from '@/lib/utils';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export const metadata = { title: "Request date change · Gilifast" };
+export const metadata = { title: 'Request date change · Gilifast' };
 
 const submitSchema = z.object({
   reference: z.string().min(1),
   requestedLegId: z.string().min(1),
-  customerNote: z.string().max(500).optional().or(z.literal("")),
+  customerNote: z.string().max(500).optional().or(z.literal('')),
   confirmEmail: z.string().email(),
 });
 
 async function submitRescheduleAction(formData: FormData) {
-  "use server";
+  'use server';
   const parsed = submitSchema.safeParse({
-    reference: formData.get("reference"),
-    requestedLegId: formData.get("requestedLegId"),
-    customerNote: formData.get("customerNote"),
-    confirmEmail: formData.get("confirmEmail"),
+    reference: formData.get('reference'),
+    requestedLegId: formData.get('requestedLegId'),
+    customerNote: formData.get('customerNote'),
+    confirmEmail: formData.get('confirmEmail'),
   });
   if (!parsed.success) {
     redirect(
-      `/b/${formData.get("reference")}/reschedule?error=${encodeURIComponent(parsed.error.issues[0].message)}`,
+      `/b/${formData.get('reference')}/reschedule?error=${encodeURIComponent(parsed.error.issues[0].message)}`,
     );
   }
 
@@ -43,36 +43,36 @@ async function submitRescheduleAction(formData: FormData) {
     where: { bookingReference: parsed.data.reference },
     include: { leg: true, rescheduleRequest: true },
   });
-  if (!booking) redirect("/b?error=missing");
+  if (!booking) redirect('/b?error=missing');
   if (
     booking.customerEmail.toLowerCase() !==
     parsed.data.confirmEmail.toLowerCase()
   ) {
     redirect(
-      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent("Email does not match booking")}`,
+      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent('Email does not match booking')}`,
     );
   }
-  if (booking.status !== "CONFIRMED") {
+  if (booking.status !== 'CONFIRMED') {
     redirect(
-      `/b/${parsed.data.reference}?error=${encodeURIComponent("Only confirmed bookings can be rescheduled")}`,
+      `/b/${parsed.data.reference}?error=${encodeURIComponent('Only confirmed bookings can be rescheduled')}`,
     );
   }
   if (booking.leg.departureDate.getTime() <= Date.now()) {
     redirect(
-      `/b/${parsed.data.reference}?error=${encodeURIComponent("Departure has already passed")}`,
+      `/b/${parsed.data.reference}?error=${encodeURIComponent('Departure has already passed')}`,
     );
   }
   if (
     booking.rescheduleRequest &&
-    booking.rescheduleRequest.status === "PENDING"
+    booking.rescheduleRequest.status === 'PENDING'
   ) {
     redirect(
-      `/b/${parsed.data.reference}?error=${encodeURIComponent("A reschedule request is already pending")}`,
+      `/b/${parsed.data.reference}?error=${encodeURIComponent('A reschedule request is already pending')}`,
     );
   }
   if (parsed.data.requestedLegId === booking.legId) {
     redirect(
-      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent("Pick a different departure")}`,
+      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent('Pick a different departure')}`,
     );
   }
 
@@ -90,12 +90,12 @@ async function submitRescheduleAction(formData: FormData) {
   if (
     !target ||
     !original ||
-    target.status !== "OPEN" ||
+    target.status !== 'OPEN' ||
     target.schedule.originPort !== original.schedule.originPort ||
     target.schedule.destinationPort !== original.schedule.destinationPort
   ) {
     redirect(
-      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent("Selected departure is unavailable")}`,
+      `/b/${parsed.data.reference}/reschedule?error=${encodeURIComponent('Selected departure is unavailable')}`,
     );
   }
 
@@ -107,12 +107,12 @@ async function submitRescheduleAction(formData: FormData) {
       originalLegId: booking.legId,
       requestedLegId: parsed.data.requestedLegId,
       customerNote: parsed.data.customerNote?.trim() || null,
-      status: "PENDING",
+      status: 'PENDING',
     },
     update: {
       requestedLegId: parsed.data.requestedLegId,
       customerNote: parsed.data.customerNote?.trim() || null,
-      status: "PENDING",
+      status: 'PENDING',
       processedBy: null,
       processedAt: null,
       adminNote: null,
@@ -120,10 +120,10 @@ async function submitRescheduleAction(formData: FormData) {
   });
 
   await audit({
-    entityType: "BOOKING",
+    entityType: 'BOOKING',
     entityId: booking.id,
-    action: "reschedule_requested",
-    userRole: "CUSTOMER",
+    action: 'reschedule_requested',
+    userRole: 'CUSTOMER',
     newState: {
       originalLegId: booking.legId,
       requestedLegId: parsed.data.requestedLegId,
@@ -151,7 +151,7 @@ export default async function ReschedulePage({
     },
   });
   if (!booking) notFound();
-  if (booking.status !== "CONFIRMED") {
+  if (booking.status !== 'CONFIRMED') {
     redirect(`/b/${reference}`);
   }
 
@@ -162,7 +162,7 @@ export default async function ReschedulePage({
           try {
             const parsed = JSON.parse(booking.notes) as { passengers?: Array<{ type?: string }> };
             return Array.isArray(parsed.passengers)
-              ? parsed.passengers.filter((p) => p.type !== "INFANT").length
+              ? parsed.passengers.filter((p) => p.type !== 'INFANT').length
               : 1;
           } catch {
             return 1;
@@ -175,24 +175,24 @@ export default async function ReschedulePage({
   const today = new Date();
   const defaultDate =
     date ?? new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const startUtc = localDateTimeToUtc(defaultDate, "00:00");
-  const endUtc = localDateTimeToUtc(defaultDate, "23:59");
+  const startUtc = localDateTimeToUtc(defaultDate, '00:00');
+  const endUtc = localDateTimeToUtc(defaultDate, '23:59');
 
   const candidateLegs = await prisma.leg.findMany({
     where: {
-      status: "OPEN",
+      status: 'OPEN',
       departureDate: { gte: startUtc, lte: endUtc },
       schedule: {
         originPort: booking.leg.schedule.originPort,
         destinationPort: booking.leg.schedule.destinationPort,
-        status: "ACTIVE",
+        status: 'ACTIVE',
         deletedAt: null,
         boat: { deletedAt: null },
       },
       NOT: { id: booking.legId },
     },
     include: { schedule: { include: { boat: true } } },
-    orderBy: { departureDate: "asc" },
+    orderBy: { departureDate: 'asc' },
     take: 20,
   });
 
@@ -210,9 +210,9 @@ export default async function ReschedulePage({
           <CardHeader>
             <CardTitle>Request a date change</CardTitle>
             <CardDescription>
-              Currently on{" "}
+              Currently on{' '}
               <strong>
-                {formatLocalDate(booking.leg.departureDate, "EEE, dd MMM yyyy")} ·{" "}
+                {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
                 {formatLocalTime(booking.leg.departureDate)}
               </strong>
               . Pick a new departure on the same route — operators usually
@@ -245,7 +245,7 @@ export default async function ReschedulePage({
           </p>
         ) : null}
 
-        {booking.rescheduleRequest?.status === "PENDING" ? (
+        {booking.rescheduleRequest?.status === 'PENDING' ? (
           <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
             You already have a pending reschedule request. Submitting a new one
             will replace it.
@@ -262,12 +262,12 @@ export default async function ReschedulePage({
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {booking.leg.schedule.originPort} →{" "}
+                {booking.leg.schedule.originPort} →{' '}
                 {booking.leg.schedule.destinationPort}
               </CardTitle>
               <CardDescription>
-                {formatLocalDate(startUtc, "EEEE, dd MMM yyyy")} · {seatCount}{" "}
-                passenger{seatCount === 1 ? "" : "s"}
+                {formatLocalDate(startUtc, 'EEEE, dd MMM yyyy')} · {seatCount}{' '}
+                passenger{seatCount === 1 ? '' : 's'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -288,8 +288,8 @@ export default async function ReschedulePage({
                       {formatLocalTime(leg.departureDate)} WITA
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {leg.schedule.boat.name} ·{" "}
-                      {leg.schedule.durationMinutes} min ·{" "}
+                      {leg.schedule.boat.name} ·{' '}
+                      {leg.schedule.durationMinutes} min ·{' '}
                       {formatIDR(Number(leg.basePrice))}/pax
                     </div>
                   </div>

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { Label } from '@/components/ui/label';
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
 
 export type PickerBoat = {
   id: string;
@@ -39,7 +39,7 @@ export function OperatorBoatPicker({
   defaultBoatId?: string;
   lockOperator?: boolean;
 }) {
-  const [operatorId, setOperatorId] = useState(defaultOperatorId ?? "");
+  const [operatorId, setOperatorId] = useState(defaultOperatorId ?? '');
   const forOperator = boats.filter((b) => b.operatorId === operatorId);
 
   return (
@@ -50,7 +50,7 @@ export function OperatorBoatPicker({
           <>
             <input type="hidden" name="operatorId" value={operatorId} />
             <div className="flex h-10 items-center rounded-md border border-input bg-slate-50 px-3 text-sm text-muted-foreground">
-              {operators.find((o) => o.id === operatorId)?.companyName ?? "—"}
+              {operators.find((o) => o.id === operatorId)?.companyName ?? '—'}
             </div>
           </>
         ) : (
@@ -78,12 +78,12 @@ export function OperatorBoatPicker({
           id="boatId"
           name="boatId"
           className={selectClass}
-          defaultValue={defaultBoatId ?? ""}
+          defaultValue={defaultBoatId ?? ''}
           disabled={!operatorId}
           required
         >
           <option value="">
-            {operatorId ? "Select a boat…" : "Choose an operator first"}
+            {operatorId ? 'Select a boat…' : 'Choose an operator first'}
           </option>
           {forOperator.map((b) => (
             <option key={b.id} value={b.id}>

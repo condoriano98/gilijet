@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { DokuMethodMarks } from "@/components/checkout/payment-marks";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DokuMethodMarks } from '@/components/checkout/payment-marks';
 
 /**
  * Sends the customer to DOKU's hosted checkout page.
@@ -31,7 +31,7 @@ export function DokuRedirect({
       <input type="hidden" name="reference" value={bookingReference} />
       <DokuMethodMarks />
       <Button type="submit" disabled={loading} className="w-full" size="lg">
-        {loading ? "Opening payment…" : `Pay ${amountLabel}`}
+        {loading ? 'Opening payment…' : `Pay ${amountLabel}`}
       </Button>
       <p className="text-center text-xs text-slate-500">
         Choose your method on the secure DOKU payment page.

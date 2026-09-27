@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 /** Redirect the browser to an external payment URL shortly after mount. */
 export function AutoRedirect({

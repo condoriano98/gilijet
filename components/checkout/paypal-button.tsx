@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { PaypalMark } from "@/components/checkout/payment-marks";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { PaypalMark } from '@/components/checkout/payment-marks';
 
 /**
  * PayPal Standard Checkout entry point.
@@ -42,11 +42,11 @@ export function PaypalButton({
         size="lg"
       >
         <PaypalMark className="h-5 w-5 shrink-0" />
-        {loading ? "Opening PayPal…" : `Pay ${presentmentLabel} by card`}
+        {loading ? 'Opening PayPal…' : `Pay ${presentmentLabel} by card`}
       </Button>
       <p className="text-center text-xs text-slate-500">
         Card declined above? This uses a different card network, and needs no
-        PayPal account. Charged in {presentmentLabel}, converted from {idrLabel}{" "}
+        PayPal account. Charged in {presentmentLabel}, converted from {idrLabel}{' '}
         at today&apos;s rate — your bank may add its own conversion fee.
       </p>
     </form>

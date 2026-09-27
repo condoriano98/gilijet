@@ -1,6 +1,6 @@
-import { prisma } from "./db";
-import { env } from "./env";
-import { releaseBookingSeats } from "./booking-engine";
+import { prisma } from './db';
+import { env } from './env';
+import { releaseBookingSeats } from './booking-engine';
 
 /**
  * Expire bookings whose `PENDING_PAYMENT` hold has elapsed. Called lazily
@@ -32,7 +32,7 @@ export async function expireStalePendingBookings(): Promise<number> {
 
   const stale = await prisma.booking.findMany({
     where: {
-      status: "PENDING_PAYMENT",
+      status: 'PENDING_PAYMENT',
       createdAt: { lt: cutoff },
     },
     select: {
@@ -52,9 +52,9 @@ export async function expireStalePendingBookings(): Promise<number> {
     // webhook is still in flight. Expiring it would release seats the customer
     // has already paid for — the one outcome here we cannot undo.
     if (
-      payment?.gatewayProvider === "PAYPAL" &&
+      payment?.gatewayProvider === 'PAYPAL' &&
       payment.gatewayReference &&
-      payment.status === "PENDING" &&
+      payment.status === 'PENDING' &&
       now - createdAt.getTime() < PAYPAL_VERIFY_WINDOW_MS
     ) {
       const settled = await settlePendingPaypalOrder(id, payment.gatewayReference);
@@ -63,10 +63,10 @@ export async function expireStalePendingBookings(): Promise<number> {
 
     try {
       await prisma.booking.update({
-        where: { id, status: "PENDING_PAYMENT" },
-        data: { status: "EXPIRED" },
+        where: { id, status: 'PENDING_PAYMENT' },
+        data: { status: 'EXPIRED' },
       });
-      await releaseBookingSeats(id, "expired");
+      await releaseBookingSeats(id, 'expired');
       expired++;
     } catch {
       // Another request may have raced us — skip.
@@ -88,17 +88,17 @@ async function settlePendingPaypalOrder(
   orderId: string,
 ): Promise<boolean> {
   try {
-    const { getOrder, isPaypalMock } = await import("./paypal");
+    const { getOrder, isPaypalMock } = await import('./paypal');
     if (isPaypalMock()) return false;
 
     const order = await getOrder(orderId);
     if (!order.completed) return false;
 
-    const { recordPaymentAwaitingConfirmation } = await import("./ticket-issuer");
+    const { recordPaymentAwaitingConfirmation } = await import('./ticket-issuer');
     await recordPaymentAwaitingConfirmation({
       bookingId,
       paidAt: new Date(),
-      method: "PAYPAL",
+      method: 'PAYPAL',
       gatewayReference: orderId,
     });
     console.warn(

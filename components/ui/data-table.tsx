@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import * as React from 'react';
+import { cn } from '@/lib/utils';
 
 type DataTableColumn<T> = {
   key: string;
   header: string;
   render?: (row: T) => React.ReactNode;
   className?: string;
-  align?: "left" | "right" | "center";
+  align?: 'left' | 'right' | 'center';
 };
 
 type DataTableProps<T> = {
@@ -32,7 +32,7 @@ export function DataTable<T extends { id?: string }>({
   data,
   onRowClick,
   rowHrefBase,
-  emptyMessage = "Tidak ada data",
+  emptyMessage = 'Tidak ada data',
 }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
@@ -51,9 +51,9 @@ export function DataTable<T extends { id?: string }>({
               <th
                 key={col.key}
                 className={cn(
-                  "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-mekari-neutral-500",
-                  col.align === "right" && "text-right",
-                  col.align === "center" && "text-center",
+                  'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-mekari-neutral-500',
+                  col.align === 'right' && 'text-right',
+                  col.align === 'center' && 'text-center',
                   col.className,
                 )}
               >
@@ -66,15 +66,15 @@ export function DataTable<T extends { id?: string }>({
           {data.map((row, i) => {
             const href =
               rowHrefBase && row.id
-                ? `${rowHrefBase.replace(/\/$/, "")}/${row.id}`
+                ? `${rowHrefBase.replace(/\/$/, '')}/${row.id}`
                 : undefined;
             const clickable = Boolean(onRowClick || href);
             return (
               <tr
                 key={row.id ?? i}
                 className={cn(
-                  "bg-mekari-surface transition-colors",
-                  clickable && "cursor-pointer hover:bg-mekari-primary-50",
+                  'bg-mekari-surface transition-colors',
+                  clickable && 'cursor-pointer hover:bg-mekari-primary-50',
                 )}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
@@ -82,9 +82,9 @@ export function DataTable<T extends { id?: string }>({
                   <td
                     key={col.key}
                     className={cn(
-                      "px-4 py-3 text-mekari-neutral-700",
-                      col.align === "right" && "text-right tabular-nums",
-                      col.align === "center" && "text-center",
+                      'px-4 py-3 text-mekari-neutral-700',
+                      col.align === 'right' && 'text-right tabular-nums',
+                      col.align === 'center' && 'text-center',
                       col.className,
                     )}
                   >
@@ -92,7 +92,7 @@ export function DataTable<T extends { id?: string }>({
                       ? col.render(row)
                       : (React.isValidElement((row as Record<string, unknown>)[col.key])
                         ? (row as Record<string, unknown>)[col.key]
-                        : String((row as Record<string, unknown>)[col.key] ?? "")) as React.ReactNode}
+                        : String((row as Record<string, unknown>)[col.key] ?? '')) as React.ReactNode}
                   </td>
                 ))}
               </tr>

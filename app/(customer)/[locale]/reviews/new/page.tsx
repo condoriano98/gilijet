@@ -1,41 +1,41 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { requireCustomer } from "@/lib/auth";
-import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { requireCustomer } from '@/lib/auth';
+import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { StarRating } from "@/components/customer/star-rating";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { StarRating } from '@/components/customer/star-rating';
 
-export const metadata = { title: "Rate your trip · Gilifast" };
+export const metadata = { title: 'Rate your trip · Gilifast' };
 
 const reviewSchema = z.object({
   bookingId: z.string().min(1),
   rating: z.coerce.number().int().min(1).max(5),
-  text: z.string().max(2000).optional().or(z.literal("")),
+  text: z.string().max(2000).optional().or(z.literal('')),
 });
 
 async function submitReviewAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireCustomer();
 
   const parsed = reviewSchema.safeParse({
-    bookingId: formData.get("bookingId"),
-    rating: formData.get("rating"),
-    text: formData.get("text"),
+    bookingId: formData.get('bookingId'),
+    rating: formData.get('rating'),
+    text: formData.get('text'),
   });
   if (!parsed.success) {
     redirect(
-      `/reviews/new?bookingId=${formData.get("bookingId")}&error=${encodeURIComponent(
+      `/reviews/new?bookingId=${formData.get('bookingId')}&error=${encodeURIComponent(
         parsed.error.issues[0].message,
       )}`,
     );
@@ -45,22 +45,22 @@ async function submitReviewAction(formData: FormData) {
     where: { id: parsed.data.bookingId },
     include: { leg: true, review: true },
   });
-  if (!booking) redirect("/account?error=booking_missing");
+  if (!booking) redirect('/account?error=booking_missing');
   // Ownership check
   if (
     booking.customerId !== session.sub &&
     booking.customerEmail.toLowerCase() !== session.email.toLowerCase()
   ) {
-    redirect("/account?error=not_your_booking");
+    redirect('/account?error=not_your_booking');
   }
-  if (booking.status !== "CONFIRMED") {
-    redirect("/account?error=not_confirmed");
+  if (booking.status !== 'CONFIRMED') {
+    redirect('/account?error=not_confirmed');
   }
   if (booking.leg.departureDate.getTime() > Date.now() - 2 * 60 * 60 * 1000) {
-    redirect("/account?error=trip_not_finished");
+    redirect('/account?error=trip_not_finished');
   }
   if (booking.review) {
-    redirect("/account?error=already_reviewed");
+    redirect('/account?error=already_reviewed');
   }
 
   await prisma.review.create({
@@ -73,7 +73,7 @@ async function submitReviewAction(formData: FormData) {
     },
   });
 
-  redirect("/account?ok=review_submitted");
+  redirect('/account?ok=review_submitted');
 }
 
 export default async function NewReviewPage({
@@ -84,7 +84,7 @@ export default async function NewReviewPage({
   const { bookingId, error } = await searchParams;
   const session = await requireCustomer();
 
-  if (!bookingId) redirect("/account");
+  if (!bookingId) redirect('/account');
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -93,12 +93,12 @@ export default async function NewReviewPage({
       review: true,
     },
   });
-  if (!booking) redirect("/account?error=booking_missing");
+  if (!booking) redirect('/account?error=booking_missing');
   if (
     booking.customerId !== session.sub &&
     booking.customerEmail.toLowerCase() !== session.email.toLowerCase()
   ) {
-    redirect("/account?error=not_your_booking");
+    redirect('/account?error=not_your_booking');
   }
   if (booking.review) {
     redirect(`/b/${booking.bookingReference}`);
@@ -118,10 +118,10 @@ export default async function NewReviewPage({
           <CardHeader>
             <CardTitle>Rate your trip</CardTitle>
             <CardDescription>
-              {booking.leg.schedule.originPort} →{" "}
-              {booking.leg.schedule.destinationPort} ·{" "}
-              {formatLocalDate(booking.leg.departureDate, "dd MMM yyyy")} ·{" "}
-              {formatLocalTime(booking.leg.departureDate)} ·{" "}
+              {booking.leg.schedule.originPort} →{' '}
+              {booking.leg.schedule.destinationPort} ·{' '}
+              {formatLocalDate(booking.leg.departureDate, 'dd MMM yyyy')} ·{' '}
+              {formatLocalTime(booking.leg.departureDate)} ·{' '}
               {booking.leg.schedule.boat.name}
             </CardDescription>
           </CardHeader>

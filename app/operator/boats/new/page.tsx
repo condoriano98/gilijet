@@ -1,11 +1,11 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
-import { DEFAULT_BOAT_CAPACITY } from "@/lib/legs";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { DEFAULT_BOAT_CAPACITY } from '@/lib/legs';
 import {
   Card,
   CardContent,
@@ -13,19 +13,19 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const newBoatSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   registrationNumber: z
     .string()
-    .min(2, "Registration number is required")
+    .min(2, 'Registration number is required')
     .max(40),
-  description: z.string().max(1000).optional().or(z.literal("")),
+  description: z.string().max(1000).optional().or(z.literal('')),
 });
 
 function parsePhotoUrls(raw: string): string[] {
@@ -37,12 +37,12 @@ function parsePhotoUrls(raw: string): string[] {
 }
 
 async function createBoatAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
   const parsed = newBoatSchema.safeParse({
-    name: formData.get("name"),
-    registrationNumber: formData.get("registrationNumber"),
-    description: formData.get("description"),
+    name: formData.get('name'),
+    registrationNumber: formData.get('registrationNumber'),
+    description: formData.get('description'),
   });
   if (!parsed.success) {
     redirect(
@@ -50,7 +50,7 @@ async function createBoatAction(formData: FormData) {
     );
   }
 
-  const photos = parsePhotoUrls(String(formData.get("photos") ?? ""));
+  const photos = parsePhotoUrls(String(formData.get('photos') ?? ''));
 
   try {
     const boat = await prisma.boat.create({
@@ -61,28 +61,28 @@ async function createBoatAction(formData: FormData) {
         capacity: DEFAULT_BOAT_CAPACITY,
         description: parsed.data.description || null,
         photos,
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
     });
 
     await audit({
-      entityType: "BOAT",
+      entityType: 'BOAT',
       entityId: boat.id,
-      action: "created",
+      action: 'created',
       userId: session.sub,
-      userRole: "OPERATOR",
+      userRole: 'OPERATOR',
       newState: { name: boat.name },
     });
 
-    redirect("/operator/boats");
+    redirect('/operator/boats');
   } catch (err) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2002"
+      err.code === 'P2002'
     ) {
       redirect(
-        "/operator/boats/new?error=" +
-          encodeURIComponent("Registration number already in use"),
+        '/operator/boats/new?error=' +
+          encodeURIComponent('Registration number already in use'),
       );
     }
     throw err;
@@ -154,7 +154,7 @@ export default async function NewBoatPage({
                 id="photos"
                 name="photos"
                 rows={3}
-                placeholder={"One URL per line, e.g.\nhttps://example.com/boat-1.jpg"}
+                placeholder={'One URL per line, e.g.\nhttps://example.com/boat-1.jpg'}
               />
               <p className="text-xs text-muted-foreground">
                 Paste up to 8 image links. They appear on search results and

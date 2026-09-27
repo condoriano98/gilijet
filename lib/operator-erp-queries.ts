@@ -1,15 +1,15 @@
-import { prisma } from "./db";
-import { computeErpFee } from "./erp-pricing";
-import { DIRECT_SALES_CHANNELS } from "./sales-channel";
+import { prisma } from './db';
+import { computeErpFee } from './erp-pricing';
+import { DIRECT_SALES_CHANNELS } from './sales-channel';
 
 export async function agentCommissionYtd(operatorId: string): Promise<number> {
   const yearStart = new Date(new Date().getFullYear(), 0, 1);
   const result = await prisma.booking.aggregate({
     where: {
       operatorId,
-      status: "CONFIRMED",
+      status: 'CONFIRMED',
       createdAt: { gte: yearStart },
-      salesChannel: "TRAVEL_AGENT",
+      salesChannel: 'TRAVEL_AGENT',
     },
     _sum: { agentCommissionAmount: true },
   });
@@ -29,12 +29,12 @@ export async function erpFeeYtd(operatorId: string): Promise<number> {
     const batch = await prisma.booking.findMany({
       where: {
         operatorId,
-        status: "CONFIRMED",
+        status: 'CONFIRMED',
         createdAt: { gte: yearStart },
         salesChannel: { notIn: DIRECT_SALES_CHANNELS },
       },
       select: { id: true, totalAmount: true, tickets: { select: { id: true } } },
-      orderBy: { id: "asc" },
+      orderBy: { id: 'asc' },
       take: 1000,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
@@ -59,8 +59,8 @@ export async function revenueByChannel(
   to: Date,
 ): Promise<Record<string, number>> {
   const rows = await prisma.booking.groupBy({
-    by: ["salesChannel"],
-    where: { operatorId, status: "CONFIRMED", createdAt: { gte: from, lte: to } },
+    by: ['salesChannel'],
+    where: { operatorId, status: 'CONFIRMED', createdAt: { gte: from, lte: to } },
     _sum: { totalAmount: true },
   });
   const result: Record<string, number> = {};

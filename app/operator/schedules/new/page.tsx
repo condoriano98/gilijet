@@ -1,11 +1,11 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth";
-import { audit } from "@/lib/audit";
-import { getOperatorBoats } from "@/lib/operator-data";
-import { generateLegsForSchedule } from "@/lib/legs";
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { requireOperator } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { getOperatorBoats } from '@/lib/operator-data';
+import { generateLegsForSchedule } from '@/lib/legs';
 import {
   Card,
   CardContent,
@@ -13,47 +13,47 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DaysOfWeekPicker } from "@/components/operator/days-picker";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { DaysOfWeekPicker } from '@/components/operator/days-picker';
 
 const daysCsv = z
   .string()
-  .min(1, "Pick at least one day")
-  .transform((v) => v.split(",").map((n) => Number(n)).filter(Number.isInteger))
-  .refine((v) => v.length > 0, "Pick at least one day")
+  .min(1, 'Pick at least one day')
+  .transform((v) => v.split(',').map((n) => Number(n)).filter(Number.isInteger))
+  .refine((v) => v.length > 0, 'Pick at least one day')
   .refine(
     (v) => v.every((d) => d >= 1 && d <= 7),
-    "Day values must be 1-7",
+    'Day values must be 1-7',
   );
 
 const newScheduleSchema = z.object({
   boatId: z.string().min(1),
   originPort: z.string().min(2).max(80),
   destinationPort: z.string().min(2).max(80),
-  departureTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:MM"),
+  departureTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM'),
   durationMinutes: z.coerce.number().int().min(5).max(720),
   basePrice: z.coerce.number().int().min(1000).max(50_000_000),
   daysOfWeek: daysCsv,
 });
 
 async function createScheduleAction(formData: FormData) {
-  "use server";
+  'use server';
   const session = await requireOperator();
   const parsed = newScheduleSchema.safeParse({
-    boatId: formData.get("boatId"),
-    originPort: formData.get("originPort"),
-    destinationPort: formData.get("destinationPort"),
-    departureTime: formData.get("departureTime"),
-    durationMinutes: formData.get("durationMinutes"),
-    basePrice: formData.get("basePrice"),
-    daysOfWeek: formData.get("daysOfWeek"),
+    boatId: formData.get('boatId'),
+    originPort: formData.get('originPort'),
+    destinationPort: formData.get('destinationPort'),
+    departureTime: formData.get('departureTime'),
+    durationMinutes: formData.get('durationMinutes'),
+    basePrice: formData.get('basePrice'),
+    daysOfWeek: formData.get('daysOfWeek'),
   });
   if (!parsed.success) {
     redirect(
-      "/operator/schedules/new?error=" +
+      '/operator/schedules/new?error=' +
         encodeURIComponent(parsed.error.issues[0].message),
     );
   }
@@ -62,12 +62,12 @@ async function createScheduleAction(formData: FormData) {
   const boat = await prisma.boat.findFirst({
     where: { id: parsed.data.boatId, operatorId: session.sub },
   });
-  if (!boat) redirect("/operator/schedules/new?error=Boat%20not%20found");
+  if (!boat) redirect('/operator/schedules/new?error=Boat%20not%20found');
 
   if (parsed.data.originPort.trim() === parsed.data.destinationPort.trim()) {
     redirect(
-      "/operator/schedules/new?error=" +
-        encodeURIComponent("Origin and destination must differ"),
+      '/operator/schedules/new?error=' +
+        encodeURIComponent('Origin and destination must differ'),
     );
   }
 
@@ -80,16 +80,16 @@ async function createScheduleAction(formData: FormData) {
       durationMinutes: parsed.data.durationMinutes,
       basePrice: parsed.data.basePrice,
       daysOfWeek: parsed.data.daysOfWeek,
-      status: "ACTIVE",
+      status: 'ACTIVE',
     },
   });
 
   await audit({
-    entityType: "SCHEDULE",
+    entityType: 'SCHEDULE',
     entityId: schedule.id,
-    action: "created",
+    action: 'created',
     userId: session.sub,
-    userRole: "OPERATOR",
+    userRole: 'OPERATOR',
     newState: {
       route: `${schedule.originPort} → ${schedule.destinationPort}`,
       time: schedule.departureTime,
@@ -111,7 +111,7 @@ export default async function NewSchedulePage({
   const session = await requireOperator();
   const { error } = await searchParams;
   const boats = await getOperatorBoats(session.sub);
-  const activeBoats = boats.filter((b) => b.status === "ACTIVE");
+  const activeBoats = boats.filter((b) => b.status === 'ACTIVE');
 
   if (activeBoats.length === 0) {
     return (

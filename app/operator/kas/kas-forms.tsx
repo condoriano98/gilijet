@@ -1,43 +1,43 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { MoneyInput } from "@/components/ui/money-input";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { formatIDR } from "@/lib/utils";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { openShift, closeShift } from "./actions";
+} from '@/components/ui/select';
+import { formatIDR } from '@/lib/utils';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { openShift, closeShift } from './actions';
 
 // Server actions redirect() on success; re-throw that signal so Next can
 // perform the client navigation instead of surfacing it as an error.
 function isRedirectError(e: unknown): boolean {
   return (
-    typeof e === "object" &&
+    typeof e === 'object' &&
     e !== null &&
-    "digest" in e &&
-    typeof (e as { digest: unknown }).digest === "string" &&
-    (e as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    'digest' in e &&
+    typeof (e as { digest: unknown }).digest === 'string' &&
+    (e as { digest: string }).digest.startsWith('NEXT_REDIRECT')
   );
 }
 
 type StaffOption = { id: string; fullName: string };
 
 export function OpenShiftForm({ staff }: { staff: StaffOption[] }) {
-  const [staffId, setStaffId] = React.useState(staff[0]?.id ?? "");
+  const [staffId, setStaffId] = React.useState(staff[0]?.id ?? '');
   const [openingBalance, setOpeningBalance] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
@@ -49,7 +49,7 @@ export function OpenShiftForm({ staff }: { staff: StaffOption[] }) {
         await openShift({ staffId, openingBalance });
       } catch (e) {
         if (isRedirectError(e)) throw e;
-        setError(e instanceof Error ? e.message : "Gagal membuka shift");
+        setError(e instanceof Error ? e.message : 'Gagal membuka shift');
       }
     });
   }
@@ -97,7 +97,7 @@ export function OpenShiftForm({ staff }: { staff: StaffOption[] }) {
                 disabled={pending || !staffId}
                 className="bg-mekari-primary hover:bg-mekari-primary-600"
               >
-                {pending ? "Membuka…" : "Buka Shift"}
+                {pending ? 'Membuka…' : 'Buka Shift'}
               </Button>
             </div>
           </>
@@ -130,10 +130,10 @@ export function CloseShiftForm({
   const variance = closingBalanceCounted - expectedCash;
   const varianceClass =
     variance === 0
-      ? "text-mekari-neutral-900"
+      ? 'text-mekari-neutral-900'
       : variance > 0
-        ? "text-amber-700"
-        : "text-red-700";
+        ? 'text-amber-700'
+        : 'text-red-700';
 
   function handleSubmit() {
     setError(null);
@@ -142,7 +142,7 @@ export function CloseShiftForm({
         await closeShift({ sessionId, closingBalanceCounted });
       } catch (e) {
         if (isRedirectError(e)) throw e;
-        setError(e instanceof Error ? e.message : "Gagal menutup shift");
+        setError(e instanceof Error ? e.message : 'Gagal menutup shift');
       }
     });
   }
@@ -211,7 +211,7 @@ export function CloseShiftForm({
             disabled={pending}
             className="bg-mekari-primary hover:bg-mekari-primary-600"
           >
-            {pending ? "Menutup…" : "Tutup Shift"}
+            {pending ? 'Menutup…' : 'Tutup Shift'}
           </Button>
         </div>
       </CardContent>

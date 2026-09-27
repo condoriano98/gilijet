@@ -1,17 +1,17 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import { prisma } from "@/lib/db";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
 import {
   getAdminSession,
   setAdminSession,
   verifyPassword,
   type AdminSession,
-} from "@/lib/auth";
-import { loginGate, recordLoginAttempt } from "@/lib/login-throttle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/lib/auth';
+import { loginGate, recordLoginAttempt } from '@/lib/login-throttle';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -27,40 +27,40 @@ const credentialsSchema = z.object({
 });
 
 async function loginAction(formData: FormData) {
-  "use server";
+  'use server';
 
   const parsed = credentialsSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
+    email: formData.get('email'),
+    password: formData.get('password'),
   });
-  if (!parsed.success) redirect("/admin/login?error=invalid");
+  if (!parsed.success) redirect('/admin/login?error=invalid');
 
   const email = parsed.data.email.toLowerCase();
-  const gate = await loginGate("ADMIN", email);
-  if (!gate.allowed) redirect("/admin/login?error=locked");
+  const gate = await loginGate('ADMIN', email);
+  if (!gate.allowed) redirect('/admin/login?error=locked');
 
   const admin = await prisma.admin.findUnique({
     where: { email },
   });
   if (!admin) {
-    await recordLoginAttempt("ADMIN", email, false);
-    redirect("/admin/login?error=credentials");
+    await recordLoginAttempt('ADMIN', email, false);
+    redirect('/admin/login?error=credentials');
   }
   const ok = await verifyPassword(parsed.data.password, admin.passwordHash);
   if (!ok) {
-    await recordLoginAttempt("ADMIN", email, false);
-    redirect("/admin/login?error=credentials");
+    await recordLoginAttempt('ADMIN', email, false);
+    redirect('/admin/login?error=credentials');
   }
 
-  await recordLoginAttempt("ADMIN", email, true);
+  await recordLoginAttempt('ADMIN', email, true);
   const session: AdminSession = {
     sub: admin.id,
-    role: "admin",
+    role: 'admin',
     email: admin.email,
     adminRole: admin.role,
   };
   await setAdminSession(session);
-  redirect("/admin");
+  redirect('/admin');
 }
 
 export default async function AdminLoginPage({
@@ -69,7 +69,7 @@ export default async function AdminLoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const existing = await getAdminSession();
-  if (existing) redirect("/admin");
+  if (existing) redirect('/admin');
   const { error } = await searchParams;
 
   return (
@@ -78,7 +78,7 @@ export default async function AdminLoginPage({
         <CardHeader>
           <CardTitle>Admin sign in</CardTitle>
           <CardDescription>
-            Internal Gilifast staff only. Operators sign in{" "}
+            Internal Gilifast staff only. Operators sign in{' '}
             <Link href="/operator/login" className="underline">
               here
             </Link>
@@ -89,11 +89,11 @@ export default async function AdminLoginPage({
           <CardContent className="space-y-4">
             {error ? (
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error === "credentials"
-                  ? "Invalid email or password."
-                  : error === "locked"
-                    ? "Too many failed attempts. Please wait 15 minutes before trying again."
-                    : "Please check your details."}
+                {error === 'credentials'
+                  ? 'Invalid email or password.'
+                  : error === 'locked'
+                    ? 'Too many failed attempts. Please wait 15 minutes before trying again.'
+                    : 'Please check your details.'}
               </p>
             ) : null}
             <div className="space-y-2">

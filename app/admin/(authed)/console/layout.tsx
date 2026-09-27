@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { requireSuperAdmin } from '@/lib/auth';
 
 const tabs = [
-  { href: "/admin/console", label: "Overview" },
-  { href: "/admin/console/coupons", label: "Coupons" },
-  { href: "/admin/console/pricing", label: "Pricing" },
-  { href: "/admin/console/payments", label: "Payments" },
-  { href: "/admin/console/alerts", label: "Alerts" },
+  { href: '/admin/console', label: 'Overview' },
+  { href: '/admin/console/coupons', label: 'Coupons' },
+  { href: '/admin/console/pricing', label: 'Pricing' },
+  { href: '/admin/console/payments', label: 'Payments' },
+  { href: '/admin/console/alerts', label: 'Alerts' },
 ];
 
 export default async function ConsoleLayout({

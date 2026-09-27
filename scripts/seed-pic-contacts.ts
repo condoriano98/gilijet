@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-import * as fs from "fs";
-import * as path from "path";
-import * as readline from "readline";
+import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as readline from 'readline';
 
 const prisma = new PrismaClient();
 
@@ -11,10 +11,10 @@ const prisma = new PrismaClient();
 // (e.g. "GILIFAST", which is the platform itself, not a boat operator) is
 // seeded with operatorId = null rather than skipped.
 async function seedPicContacts() {
-  const csvPath = path.join(process.cwd(), "trigger_tiket.csv");
+  const csvPath = path.join(process.cwd(), 'trigger_tiket.csv');
 
   if (!fs.existsSync(csvPath)) {
-    console.error("❌ trigger_tiket.csv not found");
+    console.error('❌ trigger_tiket.csv not found');
     process.exit(1);
   }
 
@@ -37,7 +37,7 @@ async function seedPicContacts() {
     if (!line.trim()) continue;
 
     const [companyName, nohpNotifikasi, emailNotifikasi, nohpKonfirmasiTrigger, emailKonfirmasiTrigger] =
-      line.split(",").map((s) => s.trim());
+      line.split(',').map((s) => s.trim());
 
     if (!companyName) {
       console.warn(`⚠️  Skipping line ${lineNumber}: missing companyname`);

@@ -1,25 +1,25 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { POSTS } from "@/content/blog";
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { POSTS } from '@/content/blog';
 
 export const metadata: Metadata = {
-  title: "Blog — Boat travel guides for Indonesia",
+  title: 'Blog — Boat travel guides for Indonesia',
   description:
-    "Practical guides for boat travel across Indonesia: choosing operators, reading sea conditions, avoiding seasickness, and timing your crossing.",
-  alternates: { canonical: "/blog" },
+    'Practical guides for boat travel across Indonesia: choosing operators, reading sea conditions, avoiding seasickness, and timing your crossing.',
+  alternates: { canonical: '/blog' },
   openGraph: {
-    title: "Gilifast Blog — Boat travel guides for Indonesia",
+    title: 'Gilifast Blog — Boat travel guides for Indonesia',
     description:
-      "Practical guides for boat travel across Indonesia: operators, sea conditions, seasonality, and trip planning.",
-    type: "website",
+      'Practical guides for boat travel across Indonesia: operators, sea conditions, seasonality, and trip planning.',
+    type: 'website',
   },
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   });
 }
 

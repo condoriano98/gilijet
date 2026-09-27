@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { requireSuperAdmin } from "@/lib/auth";
+import Link from 'next/link';
+import { prisma } from '@/lib/db';
+import { requireSuperAdmin } from '@/lib/auth';
 import {
   Card,
   CardContent,
@@ -8,12 +8,12 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { createSchedule } from "../../actions";
-import { ScheduleFields } from "../../schedule-fields";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { createSchedule } from '../../actions';
+import { ScheduleFields } from '../../schedule-fields';
 
-export const metadata = { title: "New schedule · Operations" };
+export const metadata = { title: 'New schedule · Operations' };
 
 export default async function NewSchedulePage({
   searchParams,
@@ -25,13 +25,13 @@ export default async function NewSchedulePage({
 
   const [operators, boats] = await Promise.all([
     prisma.operator.findMany({
-      where: { deletedAt: null, status: "ACTIVE" },
-      orderBy: { companyName: "asc" },
+      where: { deletedAt: null, status: 'ACTIVE' },
+      orderBy: { companyName: 'asc' },
       select: { id: true, companyName: true },
     }),
     prisma.boat.findMany({
-      where: { deletedAt: null, status: "ACTIVE" },
-      orderBy: { name: "asc" },
+      where: { deletedAt: null, status: 'ACTIVE' },
+      orderBy: { name: 'asc' },
       select: { id: true, name: true, operatorId: true },
     }),
   ]);

@@ -1,26 +1,26 @@
-import { requireSuperAdmin } from "@/lib/auth";
-import { pingDoku, isDokuLive, NOTIFICATION_PATH } from "@/lib/doku";
+import { requireSuperAdmin } from '@/lib/auth';
+import { pingDoku, isDokuLive, NOTIFICATION_PATH } from '@/lib/doku';
 import {
   pingPaypal,
   isPaypalLive,
   paypalCredentialsWork,
   paypalPresentmentCurrency,
-} from "@/lib/paypal";
-import { quoteForeignCharge, MAX_RATE_AGE_MS } from "@/lib/fx";
-import { applyGatewayModeOverrides } from "@/lib/payment-mode";
-import { formatLocalDateTime } from "@/lib/datetime";
-import { env } from "@/lib/env";
+} from '@/lib/paypal';
+import { quoteForeignCharge, MAX_RATE_AGE_MS } from '@/lib/fx';
+import { applyGatewayModeOverrides } from '@/lib/payment-mode';
+import { formatLocalDateTime } from '@/lib/datetime';
+import { env } from '@/lib/env';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-export const metadata = { title: "Diagnostics · Admin" };
-export const dynamic = "force-dynamic";
+export const metadata = { title: 'Diagnostics · Admin' };
+export const dynamic = 'force-dynamic';
 
 /**
  * Read-only gateway status. Exists because "why is checkout falling back to the
@@ -38,8 +38,8 @@ function StatusRow({ row }: { row: Row }) {
       <span className="text-sm text-slate-600">{row.label}</span>
       <span className="flex items-center gap-2 text-right">
         <span className="text-xs text-slate-500">{row.detail}</span>
-        <Badge variant={row.ok ? "default" : "outline"}>
-          {row.ok ? "ok" : "off"}
+        <Badge variant={row.ok ? 'default' : 'outline'}>
+          {row.ok ? 'ok' : 'off'}
         </Badge>
       </span>
     </div>
@@ -78,67 +78,67 @@ export default async function DiagnosticsPage() {
 
   // Sandbox PayPal alongside live DOKU means a booking can be "paid" in test
   // money and still get a real ticket. That is worse than PayPal being off.
-  const paypalTestModeOnLiveSite = paypal.mode === "sandbox" && isDokuLive();
+  const paypalTestModeOnLiveSite = paypal.mode === 'sandbox' && isDokuLive();
 
   const paypalRows: Row[] = [
     {
-      label: "Credentials",
+      label: 'Credentials',
       ok: paypalAuthenticates,
       detail: !paypal.ok
-        ? "not set"
+        ? 'not set'
         : paypalAuthenticates
           ? `authenticate against the ${paypal.mode} host`
-          : "set, but neither the live nor the sandbox host accepts them — the client id or secret is wrong or revoked. Run pnpm paypal:selftest",
+          : 'set, but neither the live nor the sandbox host accepts them — the client id or secret is wrong or revoked. Run pnpm paypal:selftest',
     },
     {
-      label: "Webhook ID",
+      label: 'Webhook ID',
       ok: paypal.webhookConfigured,
-      detail: paypal.webhookConfigured ? "set" : "not set — webhooks are rejected",
+      detail: paypal.webhookConfigured ? 'set' : 'not set — webhooks are rejected',
     },
     {
-      label: "Mode",
-      ok: paypal.mode === "live",
+      label: 'Mode',
+      ok: paypal.mode === 'live',
       detail: !paypal.modeProven
-        ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`
+        ? `${paypal.mode} (from PAYPAL_IS_PRODUCTION — unconfirmed)${paypal.override !== 'ENV' ? `; console override: ${paypal.override}` : ''}`
         : paypalTestModeOnLiveSite
-          ? "sandbox — takes NO real money, but DOKU is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing."
-          : `${paypal.mode} (confirmed by PayPal)${paypal.override !== "ENV" ? `; console override: ${paypal.override}` : ""}`,
+          ? 'sandbox — takes NO real money, but DOKU is live. Customers see a test-mode warning and PayPal bookings issue real tickets for nothing.'
+          : `${paypal.mode} (confirmed by PayPal)${paypal.override !== 'ENV' ? `; console override: ${paypal.override}` : ''}`,
     },
     { label: `FX rate (${currency})`, ok: fxOk, detail: fxDetail },
     {
-      label: "Offered at checkout",
+      label: 'Offered at checkout',
       ok: paypalAuthenticates && fxOk,
       detail:
         paypalAuthenticates && fxOk
-          ? "yes"
+          ? 'yes'
           : !isPaypalLive()
-            ? "no — credentials missing"
+            ? 'no — credentials missing'
             : !paypalAuthenticates
-              ? "no — credentials rejected by PayPal"
-              : "no — no usable FX rate",
+              ? 'no — credentials rejected by PayPal'
+              : 'no — no usable FX rate',
     },
   ];
 
   const rows: Row[] = [
     {
-      label: "Client ID",
+      label: 'Client ID',
       ok: Boolean(doku.clientIdPrefix),
-      detail: doku.clientIdPrefix || "not set",
+      detail: doku.clientIdPrefix || 'not set',
     },
     {
-      label: "Secret key",
+      label: 'Secret key',
       ok: doku.secretPresent,
       detail: doku.secretPresent
-        ? "set"
-        : "not set — requests cannot be signed",
+        ? 'set'
+        : 'not set — requests cannot be signed',
     },
-    { label: "Mode", ok: doku.mode === "live", detail: doku.mode === "mock" ? "mock (no keys set)" : `${doku.mode}${doku.override !== "ENV" ? ` (console override: ${doku.override})` : " (from DOKU_IS_PRODUCTION)"}` },
+    { label: 'Mode', ok: doku.mode === 'live', detail: doku.mode === 'mock' ? 'mock (no keys set)' : `${doku.mode}${doku.override !== 'ENV' ? ` (console override: ${doku.override})` : ' (from DOKU_IS_PRODUCTION)'}` },
     {
-      label: "Takes real payments",
+      label: 'Takes real payments',
       ok: isDokuLive(),
       detail: isDokuLive()
-        ? "yes"
-        : "no — checkout falls back to the dummy flow",
+        ? 'yes'
+        : 'no — checkout falls back to the dummy flow',
     },
   ];
 
@@ -195,9 +195,9 @@ export default async function DiagnosticsPage() {
         <CardContent>
           <StatusRow
             row={{
-              label: "URL",
-              ok: env.APP_BASE_URL.startsWith("https://"),
-              detail: env.APP_BASE_URL.startsWith("https://")
+              label: 'URL',
+              ok: env.APP_BASE_URL.startsWith('https://'),
+              detail: env.APP_BASE_URL.startsWith('https://')
                 ? notificationUrl
                 : `${notificationUrl} — HTTPS strongly recommended`,
             }}

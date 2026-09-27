@@ -1,4 +1,4 @@
-import { prisma } from "../db";
+import { prisma } from '../db';
 
 /**
  * A read-only view of the Prisma client for the review MCP.
@@ -29,23 +29,23 @@ import { prisma } from "../db";
 
 /** Operations that only read. Everything else is refused. */
 const READ_OPERATIONS = new Set([
-  "findUnique",
-  "findUniqueOrThrow",
-  "findFirst",
-  "findFirstOrThrow",
-  "findMany",
-  "count",
-  "aggregate",
-  "groupBy",
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'count',
+  'aggregate',
+  'groupBy',
 ]);
 
 export class ReadOnlyViolationError extends Error {
   constructor(operation: string, model?: string) {
     super(
-      `Read-only MCP client refused "${operation}"${model ? ` on ${model}` : ""}. ` +
-        `Allowed: ${[...READ_OPERATIONS].join(", ")}.`,
+      `Read-only MCP client refused "${operation}"${model ? ` on ${model}` : ''}. ` +
+        `Allowed: ${[...READ_OPERATIONS].join(', ')}.`,
     );
-    this.name = "ReadOnlyViolationError";
+    this.name = 'ReadOnlyViolationError';
   }
 }
 
@@ -55,7 +55,7 @@ export function isReadOperation(operation: string): boolean {
 }
 
 export const readonlyPrisma = prisma.$extends({
-  name: "mcp-readonly",
+  name: 'mcp-readonly',
   query: {
     $allModels: {
       async $allOperations({ model, operation, args, query }) {
