@@ -37,6 +37,7 @@ function buildWhere(q?: string, status?: string, paymentMethod?: string): Prisma
   if (paymentMethod) {
     where.payment = {
       method: paymentMethod as PaymentMethod,
+      status: 'SUCCESSFUL',
     };
   }
   if (q && q.trim()) {
