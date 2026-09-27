@@ -141,7 +141,7 @@ export default async function AdminBookingsPage({
                   active={!paymentMethod}
                   href={q ? `/admin/bookings?q=${encodeURIComponent(q)}${status ? `&status=${status}` : ''}` : `/admin/bookings${status ? `?status=${status}` : ''}`}
                 />
-                {(['DOKU', 'PAYPAL', 'QRIS', 'CREDIT_CARD', 'BANK_TRANSFER'] as const).map((method) => {
+                {(['PAYPAL', 'QRIS', 'CREDIT_CARD', 'BANK_TRANSFER', 'GOPAY'] as const).map((method) => {
                   const params = new URLSearchParams();
                   if (q) params.set('q', q);
                   if (status) params.set('status', status);
@@ -149,7 +149,7 @@ export default async function AdminBookingsPage({
                   return (
                     <FilterChip
                       key={method}
-                      label={method === 'DOKU' ? 'DOKU' : method === 'PAYPAL' ? 'PayPal' : method}
+                      label={method === 'PAYPAL' ? 'PayPal' : method}
                       active={paymentMethod === method}
                       href={`/admin/bookings?${params}`}
                     />
