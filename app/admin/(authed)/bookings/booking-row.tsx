@@ -79,10 +79,10 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
           {formatIDR(Number(booking.totalAmount))}
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
-          {booking.payment?.status === 'SUCCESSFUL' ? booking.payment.method : '-'}
+          {booking.payment?.method ?? '-'}
         </TableCell>
         <TableCell className="whitespace-nowrap">
-          {booking.payment?.status === 'SUCCESSFUL' ? formatIDR(Number(booking.payment.amount)) : '-'}
+          {booking.payment?.amount ? formatIDR(Number(booking.payment.amount)) : '-'}
         </TableCell>
         <TableCell className="whitespace-nowrap">
           <Badge variant="outline" className="px-3 py-1">
