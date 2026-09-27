@@ -9,10 +9,9 @@ import { formatLocalDateTime } from '@/lib/datetime';
 import {
   parsePassengersFromNotes,
   calculateArrivalTime,
-  type PassengerDetail,
 } from '@/lib/booking-display';
 import { PassengerDetailsModal } from './passenger-details-modal';
-import type { Prisma, BookingStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 type BookingWithDetails = Prisma.BookingGetPayload<{
   include: {
