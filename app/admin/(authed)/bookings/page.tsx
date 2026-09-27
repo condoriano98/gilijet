@@ -141,15 +141,16 @@ export default async function AdminBookingsPage({
                   active={!paymentMethod}
                   href={q ? `/admin/bookings?q=${encodeURIComponent(q)}${status ? `&status=${status}` : ''}` : `/admin/bookings${status ? `?status=${status}` : ''}`}
                 />
-                {(['PAYPAL', 'QRIS', 'CREDIT_CARD', 'BANK_TRANSFER', 'GOPAY'] as const).map((method) => {
+                {Object.values(PaymentMethod).map((method) => {
                   const params = new URLSearchParams();
                   if (q) params.set('q', q);
                   if (status) params.set('status', status);
                   params.set('paymentMethod', method);
+                  const label = method === 'PAYPAL' ? 'PayPal' : method.replace(/_/g, ' ');
                   return (
                     <FilterChip
                       key={method}
-                      label={method === 'PAYPAL' ? 'PayPal' : method}
+                      label={label}
                       active={paymentMethod === method}
                       href={`/admin/bookings?${params}`}
                     />
