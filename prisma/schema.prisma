@@ -233,13 +233,15 @@ model Leg {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  schedule               Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
-  operator               Operator            @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  bookings               Booking[]
-  reschedulesAsOriginal  RescheduleRequest[] @relation("OriginalLeg")
-  reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
-  seatHolds              SeatHold[]
-  weatherSnapshots       WeatherSnapshot[]
+  schedule                     Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  operator                     Operator            @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  bookings                     Booking[]           @relation("OneWayBooking")
+  outboundBookings             Booking[]           @relation("OutboundBooking")
+  returnBookings               Booking[]           @relation("ReturnBooking")
+  reschedulesAsOriginal        RescheduleRequest[] @relation("OriginalLeg")
+  reschedulesAsRequested       RescheduleRequest[] @relation("RequestedLeg")
+  seatHolds                    SeatHold[]
+  weatherSnapshots             WeatherSnapshot[]
 
   @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
@@ -258,7 +260,13 @@ enum LegStatus {
 model Booking {
   id                   String        @id @default(cuid())
   bookingReference     String        @unique
-  legId                String
+  legId                String?       // ONE_WAY: references outbound leg; ROUND_TRIP: NULL (use outboundLegId + returnLegId)
+
+  // ROUND_TRIP specific fields
+  outboundLegId        String?       // ROUND_TRIP: reference to outbound leg
+  returnLegId          String?       // ROUND_TRIP: reference to return leg
+  tripType             TripType      @default(ONE_WAY)
+
   customerId           String?
   operatorId           String
   agentId              String?
@@ -299,24 +307,29 @@ model Booking {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-  leg               Leg                @relation(fields: [legId], references: [id], onDelete: Restrict)
-  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  agent             Agent?             @relation(fields: [agentId], references: [id])
-  salesStaff        OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
-  salesAgent        TravelAgent?       @relation(fields: [salesAgentId], references: [id])
-  promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  leg                Leg?               @relation("OneWayBooking", fields: [legId], references: [id], onDelete: Restrict)
+  outboundLeg        Leg?               @relation("OutboundBooking", fields: [outboundLegId], references: [id], onDelete: Restrict)
+  returnLeg          Leg?               @relation("ReturnBooking", fields: [returnLegId], references: [id], onDelete: Restrict)
+  customer           Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  operator           Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  agent              Agent?             @relation(fields: [agentId], references: [id])
+  salesStaff         OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
+  salesAgent         TravelAgent?       @relation(fields: [salesAgentId], references: [id])
+  promotion          Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
   promotionRedemption PromotionRedemption?
-  tickets           Ticket[]
-  payment           Payment?
-  refund            Refund?
-  review            Review?
-  rescheduleRequest RescheduleRequest?
-  addons            BookingAddon[]
-  seatHold          SeatHold?
+  tickets            Ticket[]
+  payment            Payment?
+  refund             Refund?
+  review             Review?
+  rescheduleRequest  RescheduleRequest?
+  addons             BookingAddon[]
+  seatHold           SeatHold?
   loyaltyTransactions LoyaltyTransaction[]
 
   @@index([legId])
+  @@index([outboundLegId])
+  @@index([returnLegId])
+  @@index([tripType])
   @@index([status])
   @@index([customerEmail])
   @@index([customerId])
@@ -338,6 +351,11 @@ enum BookingStatus {
   CANCELLED_BY_CUSTOMER
   CANCELLED_BY_OPERATOR
   EXPIRED
+}
+
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
 }
 
 model Ticket {
