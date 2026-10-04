@@ -23,10 +23,11 @@
 - `booking-engine-edge-cases.test.ts`: 6 tests require complete Prisma transaction mock refactoring
 - `hero-contrast.test.ts`: 1 test (regex pattern doesn't match current component structure)
 
-**E2E Tests (3 skipped):**
+**E2E Tests (4 skipped):**
 - `admin-refund.spec.ts`: Admin login flow issue (tidak masuk ke halaman refund)
 - `customer-booking.spec.ts`: Button click timeout ("Book" link tidak ketemu)
 - `mobile-layout.spec.ts`: Port field width too narrow on mobile (44px vs 100px)
+- `round-trip-booking.spec.ts`: Search page UI not implemented yet (no trip type selector)
 
 **Summary:** Testing infrastructure is solid at 99.2% unit + 70% E2E. Remaining failures are in edge-case testing, data-driven tests requiring mocking refactoring, and UI timing/rendering issues that would need component adjustments.
 
