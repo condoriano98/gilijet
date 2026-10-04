@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import type { TripType } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import {
   requireCustomer,
@@ -229,11 +230,12 @@ export default async function AccountPage({
             <div className="space-y-3">
               {past.map((b) => {
                 const mainLeg = getMainLeg(b);
-                const canReview =
+                const canReview = Boolean(
                   b.status === 'CONFIRMED' &&
                   !b.review &&
                   mainLeg &&
-                  mainLeg.departureDate.getTime() < now - REVIEW_WINDOW_MS;
+                  mainLeg.departureDate.getTime() < now - REVIEW_WINDOW_MS,
+                );
                 return (
                   <BookingCard
                     key={b.id}
@@ -373,7 +375,7 @@ type BookingWithLeg = {
       boat: { name: string };
     };
   } | null;
-  tripType?: string;
+  tripType: TripType;
 };
 
 function BookingCard({

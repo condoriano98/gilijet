@@ -24,6 +24,13 @@ type BookingConfirmationArgs = {
   lookupUrl: string;
   tickets: IssuedTicket[];
   attachments?: EmailAttachment[];
+  // Round-trip: optional return leg
+  isRoundTrip?: boolean;
+  returnRoute?: { originPort: string; destinationPort: string };
+  returnBoatName?: string;
+  returnDepartureDate?: Date;
+  outboundPrice?: number;
+  returnPrice?: number;
 };
 
 export async function sendBookingConfirmation(
@@ -92,17 +99,49 @@ async function renderBookingConfirmationHtml(
     }),
   );
 
+  const outboundSection = `
+    <h2 style="font-size:14px;margin:24px 0 12px 0;color:#0369a1;">Outbound</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+      <tr><td style="padding:6px 0;color:#475569;">Boat</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.boatName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
+      ${args.outboundPrice !== undefined ? `<tr><td style="padding:6px 0;color:#475569;">Price</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.outboundPrice)}</td></tr>` : ''}
+    </table>
+  `;
+
+  const returnSection = args.isRoundTrip && args.returnRoute && args.returnBoatName && args.returnDepartureDate
+    ? `
+      <h2 style="font-size:14px;margin:24px 0 12px 0;color:#0369a1;">Return</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.returnRoute.originPort)} → ${escapeHtml(args.returnRoute.destinationPort)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Boat</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.returnBoatName)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatLocalDateTime(args.returnDepartureDate)} WITA</td></tr>
+        ${args.returnPrice !== undefined ? `<tr><td style="padding:6px 0;color:#475569;">Price</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.returnPrice)}</td></tr>` : ''}
+      </table>
+    `
+    : '';
+
+  const summary = args.isRoundTrip
+    ? `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;border-top:2px solid #e2e8f0;padding-top:12px;">
+        <tr style="font-weight:600;"><td style="padding:12px 0 6px 0;color:#475569;">Total paid</td><td style="padding:12px 0 6px 0;text-align:right;color:#0f172a;">${formatIDR(args.totalAmount)}</td></tr>
+      </table>
+    `
+    : `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Boat</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.boatName)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.totalAmount)}</td></tr>
+      </table>
+    `;
+
   return `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h1 style="margin:0 0 4px 0;font-size:22px;">Booking confirmed</h1>
   <p style="margin:0 0 24px 0;color:#475569;">Reference <strong>${args.bookingReference}</strong></p>
 
-  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-    <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
-    <tr><td style="padding:6px 0;color:#475569;">Boat</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.boatName)}</td></tr>
-    <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
-    <tr><td style="padding:6px 0;color:#475569;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.totalAmount)}</td></tr>
-  </table>
+  ${args.isRoundTrip ? outboundSection + returnSection + summary : summary}
 
   <h2 style="font-size:16px;margin:0 0 12px 0;">Boarding passes</h2>
   ${ticketBlocks.join('')}
@@ -128,6 +167,11 @@ type PaymentReceivedArgs = {
   departureDate: Date;
   totalAmount: number;
   lookupUrl: string;
+  // Round-trip support
+  isRoundTrip?: boolean;
+  returnRoute?: { originPort: string; destinationPort: string };
+  returnBoatName?: string;
+  returnDepartureDate?: Date;
 };
 
 /**
@@ -140,6 +184,40 @@ export async function sendPaymentReceivedEmail(
   args: PaymentReceivedArgs,
 ): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
   const subject = `Payment received for ${args.bookingReference} — confirming your seat`;
+
+  const outboundSection = `
+    <h3 style="font-size:13px;margin:16px 0 8px 0;color:#0369a1;">Outbound</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.boatName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)}</td></tr>
+    </table>
+  `;
+
+  const returnSection = args.isRoundTrip && args.returnRoute && args.returnBoatName && args.returnDepartureDate
+    ? `
+      <h3 style="font-size:13px;margin:16px 0 8px 0;color:#0369a1;">Return</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.returnRoute.originPort)} → ${escapeHtml(args.returnRoute.destinationPort)}</td></tr>
+        <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.returnBoatName)}</td></tr>
+        <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.returnDepartureDate)}</td></tr>
+      </table>
+    `
+    : '';
+
+  const summary = args.isRoundTrip
+    ? `${outboundSection}${returnSection}<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:16px;">
+      <tr><td style="padding:6px 0;color:#64748b;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
+    </table>`
+    : `
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.boatName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;">Paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
+    </table>
+  `;
+
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h2 style="margin:0 0 4px;">Payment received</h2>
@@ -148,12 +226,7 @@ export async function sendPaymentReceivedEmail(
     <div style="font-weight:600;margin-bottom:4px;">Your seat is being confirmed</div>
     <div style="color:#7c2d12;font-size:14px;">We are checking this departure directly with the boat operator. Your boarding pass will arrive by email and WhatsApp once that is done — usually within a few hours. Please do not travel to the harbour until you have it.</div>
   </div>
-  <table style="width:100%;border-collapse:collapse;font-size:14px;">
-    <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
-    <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.boatName)}</td></tr>
-    <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)}</td></tr>
-    <tr><td style="padding:6px 0;color:#64748b;">Paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
-  </table>
+  ${summary}
   <p style="margin-top:16px;font-size:13px;color:#64748b;">
     If the operator cannot take this departure we will cancel and refund you in full. Track your booking at
     <a href="${args.lookupUrl}">${args.lookupUrl}</a>.
@@ -352,6 +425,11 @@ type CancellationEmailArgs = {
   refundAmount: number;
   refundTier: 'FULL' | 'PARTIAL' | 'NONE';
   lookupUrl: string;
+  // Round-trip support
+  isRoundTrip?: boolean;
+  returnRoute?: { originPort: string; destinationPort: string };
+  returnDepartureDate?: Date;
+  returnBoatName?: string;
 };
 
 export async function sendCancellationEmail(
@@ -364,14 +442,38 @@ export async function sendCancellationEmail(
       ? 'No refund is due based on the cancellation window.'
       : `Refund of <strong>${formatIDR(args.refundAmount)}</strong> will be processed within 5–14 business days.`;
 
+  const outboundSection = `
+    <h2 style="font-size:14px;margin:24px 0 12px 0;color:#0369a1;">Outbound</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+      <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
+    </table>
+  `;
+
+  const returnSection = args.isRoundTrip && args.returnRoute && args.returnDepartureDate
+    ? `
+      <h2 style="font-size:14px;margin:24px 0 12px 0;color:#0369a1;">Return</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.returnRoute.originPort)} → ${escapeHtml(args.returnRoute.destinationPort)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.returnDepartureDate)} WITA</td></tr>
+      </table>
+    `
+    : '';
+
+  const summary = args.isRoundTrip
+    ? outboundSection + returnSection
+    : `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
+        <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
+      </table>
+    `;
+
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h1 style="margin:0 0 4px 0;font-size:22px;">Booking cancelled</h1>
   <p style="margin:0 0 24px 0;color:#475569;">Reference <strong>${args.bookingReference}</strong></p>
-  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-    <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
-    <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
-  </table>
+  ${summary}
   <p style="color:#475569;">${refundLine}</p>
   <p style="margin-top:16px;color:#475569;font-size:14px;">
     View your booking at <a href="${args.lookupUrl}">${args.lookupUrl}</a>.

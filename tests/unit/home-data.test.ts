@@ -171,7 +171,7 @@ describe('getDepartingSoon', () => {
 
     await getDepartingSoon({ hoursAhead: 24 });
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     const where = call.where as any;
     const end = where.departureDate.lte;
     const start = where.departureDate.gte;
@@ -185,7 +185,7 @@ describe('getDepartingSoon', () => {
 
     await getDepartingSoon({ limit: 10 });
 
-    expect(vi.mocked(prisma.leg.findMany).mock.calls[0][0].take).toBe(10);
+    expect(vi.mocked(prisma.leg.findMany).mock.calls[0][0]!.take).toBe(10);
   });
 
   it('filters for OPEN status and non-deleted schedule/boat', async () => {
@@ -193,7 +193,7 @@ describe('getDepartingSoon', () => {
 
     await getDepartingSoon();
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     const where = call.where as any;
     expect(where.status).toBe('OPEN');
     expect(where.schedule.deletedAt).toBe(null);
@@ -351,7 +351,7 @@ describe('getPopularRoutes', () => {
 
     await getPopularRoutes();
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     const where = call.where as any;
     expect(where.status).toBe('OPEN');
     expect(where.schedule.deletedAt).toBe(null);
@@ -419,7 +419,7 @@ describe('getRecentReviews', () => {
 
     await getRecentReviews(12);
 
-    expect(vi.mocked(prisma.review.findMany).mock.calls[0][0].take).toBe(12);
+    expect(vi.mocked(prisma.review.findMany).mock.calls[0][0]!.take).toBe(12);
   });
 
   it('returns empty array when no recent reviews', async () => {

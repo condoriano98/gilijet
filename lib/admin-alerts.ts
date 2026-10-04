@@ -3,6 +3,7 @@ import { env } from './env';
 import { formatLocalDateTime } from './datetime';
 import { formatIDR } from './utils';
 import { sendTemplateMessage } from './whatsapp';
+import { getMainLeg } from './booking-helpers';
 
 /**
  * WhatsApp alerts to whoever is on call for bookings.
@@ -52,24 +53,27 @@ async function resolveConfig(): Promise<AlertConfig | null> {
   };
 }
 
+const legAlertSelect = {
+  departureDate: true,
+  schedule: {
+    select: {
+      originPort: true,
+      destinationPort: true,
+      boat: { select: { name: true } },
+    },
+  },
+} as const;
+
 const bookingForAlert = {
   bookingReference: true,
   customerName: true,
   customerPhone: true,
   totalAmount: true,
   notes: true,
-  leg: {
-    select: {
-      departureDate: true,
-      schedule: {
-        select: {
-          originPort: true,
-          destinationPort: true,
-          boat: { select: { name: true } },
-        },
-      },
-    },
-  },
+  tripType: true,
+  leg: { select: legAlertSelect },
+  outboundLeg: { select: legAlertSelect },
+  returnLeg: { select: legAlertSelect },
 } as const;
 
 function passengerCount(notes: string | null): number {
@@ -100,6 +104,9 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
     });
     if (!booking) return;
 
+    const leg = getMainLeg(booking);
+    if (!leg) return;
+
     const paid = event === 'booking_paid';
     await sendTemplateMessage({
       to: config.number,
@@ -108,9 +115,9 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
       params: {
         event: paid ? 'PAID — confirm with operator' : 'New booking (unpaid)',
         reference: booking.bookingReference,
-        route: `${booking.leg.schedule.originPort} → ${booking.leg.schedule.destinationPort}`,
-        departure: `${formatLocalDateTime(booking.leg.departureDate)} WITA`,
-        boat: booking.leg.schedule.boat.name,
+        route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
+        departure: `${formatLocalDateTime(leg.departureDate)} WITA`,
+        boat: leg.schedule.boat.name,
         customer: `${booking.customerName} (${booking.customerPhone})`,
         pax: String(passengerCount(booking.notes)),
         amount: formatIDR(Number(booking.totalAmount)),

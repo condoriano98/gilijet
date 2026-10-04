@@ -10,6 +10,7 @@ import { agentCommissionYtd, erpFeeYtd } from '@/lib/operator-erp-queries';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
 import { salesChannelLabel, normalizeSalesChannel } from '@/lib/sales-channel';
+import { getMainLeg } from '@/lib/booking-helpers';
 
 function channelVariant(ch: string): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
   const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
@@ -47,6 +48,8 @@ export default async function PenjualanPage({
       },
       include: {
         leg: { include: { schedule: { include: { boat: true } } } },
+        outboundLeg: { include: { schedule: { include: { boat: true } } } },
+        returnLeg: { include: { schedule: { include: { boat: true } } } },
         salesAgent: true,
         tickets: true,
       },
@@ -84,17 +87,24 @@ export default async function PenjualanPage({
     {
       key: 'departure',
       header: 'Keberangkatan',
-      render: (row: BookingRow) => (
-        <span>
-          {formatLocalDate(row.leg.departureDate, 'dd MMM')}{' '}
-          <span className="font-mono text-xs">{formatLocalTime(row.leg.departureDate)}</span>
-        </span>
-      ),
+      render: (row: BookingRow) => {
+        const leg = getMainLeg(row);
+        if (!leg) return '-';
+        return (
+          <span>
+            {formatLocalDate(leg.departureDate, 'dd MMM')}{' '}
+            <span className="font-mono text-xs">{formatLocalTime(leg.departureDate)}</span>
+          </span>
+        );
+      },
     },
     {
       key: 'route',
       header: 'Rute',
-      render: (row: BookingRow) => `${row.leg.schedule.originPort} → ${row.leg.schedule.destinationPort}`,
+      render: (row: BookingRow) => {
+        const leg = getMainLeg(row);
+        return leg ? `${leg.schedule.originPort} → ${leg.schedule.destinationPort}` : '-';
+      },
     },
     {
       key: 'passengers',

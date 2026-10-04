@@ -81,7 +81,15 @@ vi.mock('@/lib/pricing', () => ({
   }),
 }));
 
-function createMockTx(overrides = {}) {
+type MockTxOverrides = {
+  booking?: Record<string, unknown>;
+  leg?: Record<string, unknown>;
+  seatReserve?: Record<string, unknown>;
+  platformConfig?: Record<string, unknown>;
+  payment?: Record<string, unknown>;
+};
+
+function createMockTx(overrides: MockTxOverrides = {}) {
   return {
     booking: {
       findUnique: vi.fn(),
@@ -108,7 +116,6 @@ function createMockTx(overrides = {}) {
       create: vi.fn(),
       ...overrides.payment,
     },
-    ...overrides,
   };
 }
 

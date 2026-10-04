@@ -58,6 +58,11 @@ async function submitRescheduleAction(formData: FormData) {
       `/b/${parsed.data.reference}?error=${encodeURIComponent('Only confirmed bookings can be rescheduled')}`,
     );
   }
+  if (!booking.legId) {
+    redirect(
+      `/b/${parsed.data.reference}?error=${encodeURIComponent('Round-trip bookings cannot be rescheduled yet')}`,
+    );
+  }
   const mainLeg = getMainLeg(booking)!;
   if (mainLeg.departureDate.getTime() <= Date.now()) {
     redirect(
@@ -156,6 +161,9 @@ export default async function ReschedulePage({
   });
   if (!booking) notFound();
   if (booking.status !== 'CONFIRMED') {
+    redirect(`/b/${reference}`);
+  }
+  if (!booking.legId) {
     redirect(`/b/${reference}`);
   }
 

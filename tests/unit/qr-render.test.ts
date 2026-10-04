@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
+import type { QRCodeToStringOptions, QRCodeToBufferOptions } from 'qrcode';
 import { renderQrSvg, renderQrSvgDataUrl, renderQrPng } from '@/lib/qr-render';
 
 /**
@@ -21,6 +23,17 @@ vi.mock('qrcode', () => ({
 
 import QRCode from 'qrcode';
 
+// `qrcode`'s `toString`/`toBuffer` are overloaded with a callback-style, void
+// -returning variant; the library always calls the promise-style overload, so
+// the mock is cast to that specific signature rather than the ambiguous one
+// `vi.mocked` would otherwise infer.
+const mockToString = QRCode.toString as unknown as Mock<
+  (text: string, options: QRCodeToStringOptions) => Promise<string>
+>;
+const mockToBuffer = QRCode.toBuffer as unknown as Mock<
+  (text: string, options: QRCodeToBufferOptions) => Promise<Buffer>
+>;
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -32,7 +45,7 @@ afterEach(() => {
 describe('renderQrSvg', () => {
   it('renders QR code as SVG string', async () => {
     const mockSvg = '<svg>...</svg>';
-    vi.mocked(QRCode.toString).mockResolvedValue(mockSvg);
+    mockToString.mockResolvedValue(mockSvg);
 
     const result = await renderQrSvg('test-payload');
 
@@ -46,45 +59,45 @@ describe('renderQrSvg', () => {
   });
 
   it('handles different payloads', async () => {
-    vi.mocked(QRCode.toString).mockResolvedValue('<svg>...</svg>');
+    mockToString.mockResolvedValue('<svg>...</svg>');
 
     await renderQrSvg('payload-1');
     await renderQrSvg('payload-2');
 
-    const calls = vi.mocked(QRCode.toString).mock.calls;
+    const calls = mockToString.mock.calls;
     expect(calls[0][0]).toBe('payload-1');
     expect(calls[1][0]).toBe('payload-2');
   });
 
   it('uses error correction level M', async () => {
-    vi.mocked(QRCode.toString).mockResolvedValue('<svg>...</svg>');
+    mockToString.mockResolvedValue('<svg>...</svg>');
 
     await renderQrSvg('test');
 
-    expect(vi.mocked(QRCode.toString).mock.calls[0][1].errorCorrectionLevel).toBe('M');
+    expect(mockToString.mock.calls[0][1].errorCorrectionLevel).toBe('M');
   });
 
   it('sets width to 240px for web display', async () => {
-    vi.mocked(QRCode.toString).mockResolvedValue('<svg>...</svg>');
+    mockToString.mockResolvedValue('<svg>...</svg>');
 
     await renderQrSvg('test');
 
-    expect(vi.mocked(QRCode.toString).mock.calls[0][1].width).toBe(240);
+    expect(mockToString.mock.calls[0][1].width).toBe(240);
   });
 
   it('sets margin to 1', async () => {
-    vi.mocked(QRCode.toString).mockResolvedValue('<svg>...</svg>');
+    mockToString.mockResolvedValue('<svg>...</svg>');
 
     await renderQrSvg('test');
 
-    expect(vi.mocked(QRCode.toString).mock.calls[0][1].margin).toBe(1);
+    expect(mockToString.mock.calls[0][1].margin).toBe(1);
   });
 });
 
 describe('renderQrSvgDataUrl', () => {
   it('converts SVG to base64 data URL', async () => {
     const mockSvg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
-    vi.mocked(QRCode.toString).mockResolvedValue(mockSvg);
+    mockToString.mockResolvedValue(mockSvg);
 
     const result = await renderQrSvgDataUrl('test-payload');
 
@@ -94,7 +107,7 @@ describe('renderQrSvgDataUrl', () => {
 
   it('encodes SVG correctly to base64', async () => {
     const mockSvg = '<svg></svg>';
-    vi.mocked(QRCode.toString).mockResolvedValue(mockSvg);
+    mockToString.mockResolvedValue(mockSvg);
 
     const result = await renderQrSvgDataUrl('test');
 
@@ -105,7 +118,7 @@ describe('renderQrSvgDataUrl', () => {
   });
 
   it('uses SVG mime type', async () => {
-    vi.mocked(QRCode.toString).mockResolvedValue('<svg></svg>');
+    mockToString.mockResolvedValue('<svg></svg>');
 
     const result = await renderQrSvgDataUrl('test');
 
@@ -116,7 +129,7 @@ describe('renderQrSvgDataUrl', () => {
 describe('renderQrPng', () => {
   it('renders QR code as PNG buffer', async () => {
     const mockBuffer = Buffer.from('PNG_DATA');
-    vi.mocked(QRCode.toBuffer).mockResolvedValue(mockBuffer);
+    mockToBuffer.mockResolvedValue(mockBuffer);
 
     const result = await renderQrPng('test-payload');
 
@@ -130,24 +143,24 @@ describe('renderQrPng', () => {
   });
 
   it('sets width to 600px for PDF printing', async () => {
-    vi.mocked(QRCode.toBuffer).mockResolvedValue(Buffer.from('PNG_DATA'));
+    mockToBuffer.mockResolvedValue(Buffer.from('PNG_DATA'));
 
     await renderQrPng('test');
 
-    expect(vi.mocked(QRCode.toBuffer).mock.calls[0][1].width).toBe(600);
+    expect(mockToBuffer.mock.calls[0][1].width).toBe(600);
   });
 
   it('uses error correction level M', async () => {
-    vi.mocked(QRCode.toBuffer).mockResolvedValue(Buffer.from('PNG_DATA'));
+    mockToBuffer.mockResolvedValue(Buffer.from('PNG_DATA'));
 
     await renderQrPng('test');
 
-    expect(vi.mocked(QRCode.toBuffer).mock.calls[0][1].errorCorrectionLevel).toBe('M');
+    expect(mockToBuffer.mock.calls[0][1].errorCorrectionLevel).toBe('M');
   });
 
   it('returns buffer that can be used for PDFs', async () => {
     const mockBuffer = Buffer.from('PNG_IMAGE_DATA');
-    vi.mocked(QRCode.toBuffer).mockResolvedValue(mockBuffer);
+    mockToBuffer.mockResolvedValue(mockBuffer);
 
     const result = await renderQrPng('test');
 

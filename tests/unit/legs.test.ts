@@ -56,6 +56,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// Test doubles only implement the handful of tx methods each test exercises;
+// the real Prisma.TransactionClient type is too large to mock in full here.
+function asTx(mockTx: Record<string, unknown>): Prisma.TransactionClient {
+  return mockTx as unknown as Prisma.TransactionClient;
+}
+
 describe('demoSeasonWindow', () => {
   it('returns July 1 to August 31 in WITA timezone', () => {
     const ref = new Date('2026-06-15');
@@ -375,7 +381,7 @@ describe('cancelLeg', () => {
       },
     };
 
-    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(mockTx));
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
 
     const result = await cancelLeg({
       legId: 'leg-1',
@@ -398,7 +404,7 @@ describe('cancelLeg', () => {
       },
     };
 
-    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(mockTx));
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
 
     await expect(
       cancelLeg({
@@ -420,7 +426,7 @@ describe('cancelLeg', () => {
       },
     };
 
-    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(mockTx));
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
 
     await expect(
       cancelLeg({
@@ -442,7 +448,7 @@ describe('cancelLeg', () => {
       },
     };
 
-    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(mockTx));
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
 
     const result = await cancelLeg({
       legId: 'leg-1',

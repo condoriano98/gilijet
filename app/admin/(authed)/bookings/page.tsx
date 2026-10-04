@@ -65,6 +65,8 @@ export default async function AdminBookingsPage({
     take: 200,
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       promotion: true,
       tickets: true,
       payment: true,

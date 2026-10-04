@@ -14,6 +14,7 @@ import { renderQrPng } from './qr-render';
 import { formatLocalDate, formatLocalTime } from './datetime';
 import { getPortInfo } from './port-info';
 import { formatIDR } from './utils';
+import { getMainLeg } from './booking-helpers';
 
 /**
  * The boarding pass PDF, generated once a booking reaches CONFIRMED.
@@ -314,13 +315,24 @@ export async function generateBoardingPassPdf(
           schedule: { include: { boat: { include: { operator: true } } } },
         },
       },
+      outboundLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      returnLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
       tickets: true,
     },
   });
   if (!booking || booking.status !== 'CONFIRMED') return null;
   if (booking.tickets.length === 0) return null;
 
-  const { leg } = booking;
+  const leg = getMainLeg(booking);
+  if (!leg) return null;
   const port = getPortInfo(leg.schedule.originPort);
 
   const ordered = orderPassengerTickets(booking.tickets);
@@ -361,4 +373,98 @@ export async function generateBoardingPassPdf(
 /** Filename used for the attachment, the download and the WhatsApp document. */
 export function boardingPassFilename(bookingReference: string): string {
   return `Gilifast-${bookingReference}.pdf`;
+}
+
+/** Filename for a leg in a round-trip booking. */
+export function boardingPassFilenameForLeg(
+  bookingReference: string,
+  legType: 'outbound' | 'return',
+): string {
+  return `Gilifast-${bookingReference}-${legType}.pdf`;
+}
+
+/** Generate PDFs for round-trip bookings (outbound + return), or single PDF for one-way. */
+export async function generateBoardingPassPdfsForBooking(
+  bookingReference: string,
+): Promise<{ filename: string; content: Buffer }[]> {
+  const booking = await prisma.booking.findUnique({
+    where: { bookingReference },
+    include: {
+      leg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      outboundLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      returnLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      tickets: true,
+    },
+  });
+  if (!booking || booking.status !== 'CONFIRMED') return [];
+  if (booking.tickets.length === 0) return [];
+
+  const isRoundTrip = booking.tripType === 'ROUND_TRIP';
+  const legs = isRoundTrip
+    ? [
+        { leg: booking.outboundLeg, type: 'outbound' as const },
+        { leg: booking.returnLeg, type: 'return' as const },
+      ]
+    : [{ leg: booking.leg, type: 'single' as const }];
+
+  const pdfs: { filename: string; content: Buffer }[] = [];
+
+  for (const { leg, type } of legs) {
+    if (!leg) continue;
+    const port = getPortInfo(leg.schedule.originPort);
+    const ordered = orderPassengerTickets(booking.tickets);
+
+    const passengers = await Promise.all(
+      ordered.map(async (t) => ({
+        name: t.passengerName,
+        ticketCode: t.ticketCode,
+        qr: await renderQrPng(buildQrPayload(t.ticketCode, leg.departureDate)),
+      })),
+    );
+
+    const buffer = await renderToBuffer(
+      <BoardingPassDocument
+        data={{
+          bookingReference: booking.bookingReference,
+          customerName: booking.customerName,
+          originPort: leg.schedule.originPort,
+          destinationPort: leg.schedule.destinationPort,
+          departureDate: leg.departureDate,
+          arrivalDate: new Date(
+            leg.departureDate.getTime() + leg.schedule.durationMinutes * 60_000,
+          ),
+          durationMinutes: leg.schedule.durationMinutes,
+          boatName: leg.schedule.boat.name,
+          operatorName: leg.schedule.boat.operator.companyName,
+          operatorPhone: leg.schedule.boat.operator.phoneNumber,
+          totalAmount: Number(booking.totalAmount),
+          dockAddress: port.address,
+          dockTip: port.dockTip,
+          arrivalBuffer: port.arrivalBuffer,
+          passengers,
+        }}
+      />,
+    );
+
+    const filename =
+      type === 'single'
+        ? boardingPassFilename(booking.bookingReference)
+        : boardingPassFilenameForLeg(booking.bookingReference, type);
+
+    pdfs.push({ filename, content: buffer });
+  }
+
+  return pdfs;
 }

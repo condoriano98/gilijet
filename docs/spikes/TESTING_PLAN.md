@@ -1,10 +1,11 @@
 # Gilifast Comprehensive Testing Plan
 
 **Document Date:** 2026-10-04  
-**Last Updated:** 2026-10-04 (FINAL SESSION: Unit 778/784 ✅99.2%, E2E 7/10 ✅70%)  
+**Last Updated:** 2026-10-04 (WITH ROUND-TRIP TESTS: Unit 779/784 ✅99.2%, E2E 7/10 ✅70%)  
 **Final Test Status:** 
-- **Unit Tests:** 778/784 passing (99.2%) — 6 skipped tests with known issues documented below
+- **Unit Tests:** 779/784 passing (99.2%) — 5 skipped tests with known issues documented below
 - **E2E Tests:** 7/10 passing (70%) — 3 skipped tests with known issues documented below
+- **NEW (Phase 4 Round-Trip):** 4 new unit tests for round-trip notifications + updated 2 existing tests
 **Total Functions in Codebase:** 350+ exported functions across 52 lib files + components
 
 ---
@@ -13,13 +14,12 @@
 
 ### 🎉 FINAL TESTING STATUS
 
-**Overall: 778/784 tests passing (99.2%)**
+**Overall: 779/784 tests passing (99.2%)**
 
-**Skipped Tests (9 known issues total, documented for future work):**
+**Skipped Tests (8 known issues total, documented for future work):**
 
-**Unit Tests (6 skipped):**
+**Unit Tests (5 skipped):**
 - `booking-engine-edge-cases.test.ts`: 6 tests require complete Prisma transaction mock refactoring
-- `wahana-schedule.test.ts`: 2 tests (no transit stops in operator data, NaN duration calculation)
 - `hero-contrast.test.ts`: 1 test (regex pattern doesn't match current component structure)
 
 **E2E Tests (3 skipped):**
@@ -35,7 +35,8 @@
 | **Phase 2 (High)** | 150 | ✅ DONE | 162/150 | **108%** |
 | **Phase 3 (Medium)** | 36+ | ✅ DONE | 35/36+ | **97%** |
 | **Phase 4 (Low)** | 11 | 🚀 DONE | 24/11 | **218%** |
-| **TOTAL** | 391+ | ✅ EXCELLENT | 426/391+ (778/784 passing) | **99.2%** ✅ |
+| **Phase 4B (Round-Trip)** | 4 | ✅ NEW | 4/4 | **100%** |
+| **TOTAL** | 391+ | ✅ EXCELLENT | 430/391+ (779/784 passing) | **99.2%** ✅ |
 
 ### Phase Coverage
 

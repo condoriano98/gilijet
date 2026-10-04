@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { markAgentPayoutPaid } from './actions';
+import { getMainLeg } from '@/lib/booking-helpers';
 
 function bookingStatusVariant(s: string): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
   const map: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
@@ -40,6 +41,8 @@ export default async function TravelAgentDetailPage({
     where: { salesAgentId: id, operatorId },
     include: {
       leg: { include: { schedule: true } },
+      outboundLeg: { include: { schedule: true } },
+      returnLeg: { include: { schedule: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -67,8 +70,10 @@ export default async function TravelAgentDetailPage({
     {
       key: 'route',
       header: 'Rute',
-      render: (row: BookingRow) =>
-        `${row.leg.schedule.originPort} → ${row.leg.schedule.destinationPort}`,
+      render: (row: BookingRow) => {
+        const leg = getMainLeg(row);
+        return leg ? `${leg.schedule.originPort} → ${leg.schedule.destinationPort}` : '-';
+      },
     },
     {
       key: 'totalAmount',

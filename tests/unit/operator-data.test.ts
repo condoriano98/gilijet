@@ -102,7 +102,7 @@ describe('getOperatorBoats', () => {
 
     await getOperatorBoats('op-1');
 
-    const call = vi.mocked(prisma.boat.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.boat.findMany).mock.calls[0][0]!;
     expect(call.where).toEqual({ operatorId: 'op-1', deletedAt: null });
   });
 
@@ -119,7 +119,7 @@ describe('getOperatorBoats', () => {
 
     await getOperatorBoats('op-1');
 
-    const call = vi.mocked(prisma.boat.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.boat.findMany).mock.calls[0][0]!;
     expect(call.where).toHaveProperty('operatorId', 'op-1');
   });
 });
@@ -163,7 +163,7 @@ describe('getOperatorBoat', () => {
 
     await getOperatorBoat('op-1', 'boat-1');
 
-    const call = vi.mocked(prisma.boat.findFirst).mock.calls[0][0];
+    const call = vi.mocked(prisma.boat.findFirst).mock.calls[0][0]!;
     expect(call.where).toHaveProperty('operatorId', 'op-1');
   });
 
@@ -172,7 +172,7 @@ describe('getOperatorBoat', () => {
 
     await getOperatorBoat('op-1', 'boat-1');
 
-    const call = vi.mocked(prisma.boat.findFirst).mock.calls[0][0];
+    const call = vi.mocked(prisma.boat.findFirst).mock.calls[0][0]!;
     expect(call.where).toHaveProperty('deletedAt', null);
   });
 });
@@ -218,7 +218,7 @@ describe('getOperatorSchedules', () => {
 
     await getOperatorSchedules('op-1', { originPort: 'BLI' });
 
-    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0]!;
     expect(call.where).toHaveProperty('originPort', 'BLI');
     expect(call.where).toHaveProperty('boat');
     expect(call.where).toHaveProperty('deletedAt', null);
@@ -229,7 +229,7 @@ describe('getOperatorSchedules', () => {
 
     await getOperatorSchedules('op-1');
 
-    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0]!;
     expect(call.where).toHaveProperty('deletedAt', null);
     expect((call.where as any).boat).toHaveProperty('deletedAt', null);
   });
@@ -239,7 +239,7 @@ describe('getOperatorSchedules', () => {
 
     await getOperatorSchedules('op-1');
 
-    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.schedule.findMany).mock.calls[0][0]!;
     expect(call.orderBy).toEqual([
       { originPort: 'asc' },
       { departureTime: 'asc' },
@@ -285,7 +285,7 @@ describe('getOperatorSchedule', () => {
 
     await getOperatorSchedule('op-1', 'sched-1');
 
-    const call = vi.mocked(prisma.schedule.findFirst).mock.calls[0][0];
+    const call = vi.mocked(prisma.schedule.findFirst).mock.calls[0][0]!;
     expect((call.where as any).boat).toHaveProperty('operatorId', 'op-1');
   });
 });
@@ -346,7 +346,7 @@ describe('getOperatorLeg', () => {
 
     await getOperatorLeg('op-1', 'leg-1');
 
-    const call = vi.mocked(prisma.leg.findFirst).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findFirst).mock.calls[0][0]!;
     expect((call.include as any).bookings.where).toEqual({ status: 'CONFIRMED' });
   });
 
@@ -355,7 +355,7 @@ describe('getOperatorLeg', () => {
 
     await getOperatorLeg('op-1', 'leg-1');
 
-    const call = vi.mocked(prisma.leg.findFirst).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findFirst).mock.calls[0][0]!;
     const where = call.where as any;
     expect(where.schedule.deletedAt).toBe(null);
     expect(where.schedule.boat.deletedAt).toBe(null);
@@ -402,7 +402,7 @@ describe('getOperatorLegs', () => {
 
     await getOperatorLegs('op-1', { fromUtc: fromDate, toUtc: toDate });
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     const where = call.where as any;
     expect(where.departureDate).toEqual({
       gte: fromDate,
@@ -415,7 +415,7 @@ describe('getOperatorLegs', () => {
 
     await getOperatorLegs('op-1', { status: 'SAILED' });
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     expect((call.where as any).status).toBe('SAILED');
   });
 
@@ -424,7 +424,7 @@ describe('getOperatorLegs', () => {
 
     await getOperatorLegs('op-1', { take: 50 });
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     expect(call.take).toBe(50);
   });
 
@@ -433,7 +433,7 @@ describe('getOperatorLegs', () => {
 
     await getOperatorLegs('op-1');
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     expect(call.take).toBe(200);
   });
 
@@ -442,7 +442,7 @@ describe('getOperatorLegs', () => {
 
     await getOperatorLegs('op-1');
 
-    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0];
+    const call = vi.mocked(prisma.leg.findMany).mock.calls[0][0]!;
     expect((call.where as any).operatorId).toBe('op-1');
   });
 });

@@ -1,6 +1,6 @@
 import { prisma } from './db';
 import { env } from './env';
-import { getMainLeg } from './booking-helpers';
+import { getMainLeg, getReturnLeg } from './booking-helpers';
 import {
   sendBookingConfirmation,
   sendCancellationEmail,
@@ -15,6 +15,7 @@ import {
 import {
   boardingPassFilename,
   generateBoardingPassPdf,
+  generateBoardingPassPdfsForBooking,
 } from './boarding-pass';
 import { alertAdminBookingPaid } from './admin-alerts';
 import type { IssuedTicket } from './ticket-issuer';
@@ -37,8 +38,10 @@ const bookingForNotify = {
   customerEmail: true,
   customerPhone: true,
   totalAmount: true,
+  tickets: { select: { id: true } },
   leg: {
     select: {
+      basePrice: true,
       departureDate: true,
       schedule: {
         select: {
@@ -51,6 +54,7 @@ const bookingForNotify = {
   },
   outboundLeg: {
     select: {
+      basePrice: true,
       departureDate: true,
       schedule: {
         select: {
@@ -63,6 +67,7 @@ const bookingForNotify = {
   },
   returnLeg: {
     select: {
+      basePrice: true,
       departureDate: true,
       schedule: {
         select: {
@@ -91,6 +96,7 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
   const booking = await load(bookingId);
   if (!booking) return;
   const mainLeg = getMainLeg(booking)!;
+  const returnLeg = getReturnLeg(booking);
   const url = lookupUrl(booking.bookingReference);
 
   await Promise.allSettled([
@@ -106,6 +112,16 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
       departureDate: mainLeg.departureDate,
       totalAmount: Number(booking.totalAmount),
       lookupUrl: url,
+      // Round-trip support
+      isRoundTrip: booking.tripType === 'ROUND_TRIP',
+      returnRoute: returnLeg
+        ? {
+            originPort: returnLeg.schedule.originPort,
+            destinationPort: returnLeg.schedule.destinationPort,
+          }
+        : undefined,
+      returnBoatName: returnLeg ? returnLeg.schedule.boat.name : undefined,
+      returnDepartureDate: returnLeg ? returnLeg.departureDate : undefined,
     }),
     sendPaymentReceivedWhatsapp({
       to: booking.customerPhone,
@@ -128,23 +144,31 @@ export async function notifyBoardingPassIssued(
   const booking = await load(bookingId);
   if (!booking) return;
   const mainLeg = getMainLeg(booking)!;
+  const returnLeg = getReturnLeg(booking);
   const url = lookupUrl(booking.bookingReference);
   const route = {
     originPort: mainLeg.schedule.originPort,
     destinationPort: mainLeg.schedule.destinationPort,
   };
 
-  // Rendered once and shared by both channels — it is the same document, and
-  // generating it twice would double the work on the admin's approve click.
-  // A failure here must not cost the customer their confirmation, so it falls
-  // back to the link-only WhatsApp message rather than sending nothing.
-  let pdf: Buffer | null = null;
+  // Generate PDFs (1 for one-way, 2 for round-trip)
+  let attachments: { filename: string; content: Buffer }[] = [];
   try {
-    pdf = await generateBoardingPassPdf(booking.bookingReference);
+    attachments = await generateBoardingPassPdfsForBooking(booking.bookingReference);
   } catch (err) {
     console.error('[notify:boarding-pass] PDF generation failed:', err);
   }
-  const filename = boardingPassFilename(booking.bookingReference);
+
+  // Calculate individual leg prices for round-trip display
+  let outboundPrice: number | undefined;
+  let returnPrice: number | undefined;
+  if (booking.tripType === 'ROUND_TRIP') {
+    const passengerCount = booking.tickets.length;
+    outboundPrice = Number(mainLeg.basePrice) * passengerCount;
+    if (returnLeg) {
+      returnPrice = Number(returnLeg.basePrice) * passengerCount;
+    }
+  }
 
   await Promise.allSettled([
     sendBookingConfirmation({
@@ -157,17 +181,29 @@ export async function notifyBoardingPassIssued(
       totalAmount: Number(booking.totalAmount),
       lookupUrl: url,
       tickets,
-      attachments: pdf ? [{ filename, content: pdf }] : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
+      // Round-trip support
+      isRoundTrip: booking.tripType === 'ROUND_TRIP',
+      returnRoute: returnLeg
+        ? {
+            originPort: returnLeg.schedule.originPort,
+            destinationPort: returnLeg.schedule.destinationPort,
+          }
+        : undefined,
+      returnBoatName: returnLeg ? returnLeg.schedule.boat.name : undefined,
+      returnDepartureDate: returnLeg ? returnLeg.departureDate : undefined,
+      outboundPrice,
+      returnPrice,
     }),
-    pdf
+    attachments.length > 0
       ? sendBoardingPassDocument({
           to: booking.customerPhone,
           customerName: booking.customerName,
           bookingReference: booking.bookingReference,
           route,
           departureDate: mainLeg.departureDate,
-          pdf,
-          filename,
+          pdf: attachments[0]!.content,
+          filename: attachments[0]!.filename,
         })
       : sendBoardingPassWhatsapp({
           to: booking.customerPhone,
@@ -190,6 +226,7 @@ export async function notifyOperatorUnavailable(
   const booking = await load(bookingId);
   if (!booking) return;
   const mainLeg = getMainLeg(booking)!;
+  const returnLeg = getReturnLeg(booking);
   const url = lookupUrl(booking.bookingReference);
 
   await Promise.allSettled([
@@ -206,6 +243,16 @@ export async function notifyOperatorUnavailable(
       // The customer did not cancel, so the time-tier table never applies.
       refundTier: 'FULL',
       lookupUrl: url,
+      // Round-trip support (show both legs in cancellation notice)
+      isRoundTrip: booking.tripType === 'ROUND_TRIP',
+      returnRoute: returnLeg
+        ? {
+            originPort: returnLeg.schedule.originPort,
+            destinationPort: returnLeg.schedule.destinationPort,
+          }
+        : undefined,
+      returnBoatName: returnLeg ? returnLeg.schedule.boat.name : undefined,
+      returnDepartureDate: returnLeg ? returnLeg.departureDate : undefined,
     }),
     sendOperatorUnavailableWhatsapp({
       to: booking.customerPhone,

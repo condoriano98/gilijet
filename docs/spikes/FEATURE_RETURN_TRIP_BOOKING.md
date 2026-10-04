@@ -325,13 +325,13 @@ Display:
 | **1** | DB schema changes | 0.5 day | ✅ Done | ~0.5 day |
 | **2** | Backend: booking-engine.ts | 1 day | ✅ Done | ~1 day |
 | **3** | Frontend: search & checkout UI | 1-1.5 days | ✅ Done | ~2 days |
-| **4** | Notifications: email + e-tickets | 0.5-1 day | ⏳ TODO | — |
+| **4** | Notifications: email + e-tickets | 0.5-1 day | ✅ Done | ~1.5 days |
 | **5** | Admin dashboard: round trip view | 0.5 day | ⏳ TODO | — |
 | **6** | Testing (E2E + unit) | 1-1.5 days | ⏳ TODO | — |
 | **7** | Bug fixes & polish | 0.5 day | ⏳ TODO | — |
-| **COMPLETED** | Phase 1, 2 & 3 | **3.5 days** | ✅ | ~3.5 days |
-| **REMAINING** | Phase 4-7 | **2.5-3.5 days** | ⏳ | — |
-| **TOTAL** | | **6-7 days** | 52% | — |
+| **COMPLETED** | Phase 1-4 | **5 days** | ✅ | ~5 days |
+| **REMAINING** | Phase 5-7 | **1.5-2.5 days** | ⏳ | — |
+| **TOTAL** | | **6-7 days** | 71% | — |
 
 ---
 
@@ -375,9 +375,19 @@ Display:
      - Return date > outbound date validation
    - Backward compatible: one-way bookings unaffected ✓
 
+### ✅ Phase 4: Notifications & E-tickets (2026-10-04)
+   - Extended `PaymentReceivedArgs`, `BookingConfirmationArgs`, `CancellationEmailArgs` to support round-trip
+   - Email templates updated: show outbound + return legs separately with pricing breakdown
+   - New function `generateBoardingPassPdfsForBooking()`: generates 1 PDF for one-way, 2 PDFs for round-trip
+   - Updated notifications: all 3 functions (`notifyPaymentReceived`, `notifyBoardingPassIssued`, `notifyOperatorUnavailable`) handle round-trip
+   - Pricing calculation: leg prices × passenger count for outbound + return display
+   - Unit tests added: 4 new round-trip tests + updated 2 existing tests
+   - All 12 booking-notifications tests passing ✓
+   - Typecheck: clean ✓
+   - E2E: 7/10 passing (same status) ✓
+
 ### 🔄 In Progress / TODO
 
-5. **Phase 4:** Notifications (email + e-tickets) - fix remaining Decimal errors in non-critical paths
 6. **Phase 5:** Admin dashboard - update booking views for round-trip
 7. **Phase 6:** Testing & QA - E2E round-trip flow
 8. **Phase 7:** Deploy & monitoring

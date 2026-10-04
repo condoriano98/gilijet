@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getOperatorSession } from '@/lib/auth';
 import { verifyQrPayload } from '@/lib/qr';
 import { formatLocalDateTime, ymdInZone } from '@/lib/datetime';
+import { getAllLegsForBooking } from '@/lib/booking-helpers';
 
 const bodySchema = z.object({
   qrPayload: z.string().min(1),
@@ -87,6 +88,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
               leg: {
                 include: { schedule: { include: { boat: true } } },
               },
+              outboundLeg: {
+                include: { schedule: { include: { boat: true } } },
+              },
+              returnLeg: {
+                include: { schedule: { include: { boat: true } } },
+              },
             },
           },
         },
@@ -98,7 +105,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
           message: 'Ticket not found in the system.',
         };
       }
-      const leg = ticket.booking.leg;
+      // Round-trip tickets cover both legs; match against whichever one the
+      // scanner is boarding (outbound vs. return) by the submitted legId.
+      const legs = getAllLegsForBooking(ticket.booking);
+      const leg = legs.find((l) => l.id === parsed.data.legId) ?? legs[0];
+      if (!leg) {
+        return {
+          ok: false as const,
+          reason: 'TICKET_NOT_FOUND' as const,
+          message: 'Ticket has no associated departure.',
+        };
+      }
       if (leg.operatorId !== session.sub) {
         return {
           ok: false as const,

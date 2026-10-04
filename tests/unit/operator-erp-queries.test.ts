@@ -78,8 +78,8 @@ describe('agentCommissionYtd', () => {
 
   it('handles multiple operators independently', async () => {
     vi.mocked(prisma.booking.aggregate)
-      .mockResolvedValueOnce({ _sum: { agentCommissionAmount: new Prisma.Decimal('1000000') } })
-      .mockResolvedValueOnce({ _sum: { agentCommissionAmount: new Prisma.Decimal('2000000') } });
+      .mockResolvedValueOnce({ _sum: { agentCommissionAmount: new Prisma.Decimal('1000000') } } as any)
+      .mockResolvedValueOnce({ _sum: { agentCommissionAmount: new Prisma.Decimal('2000000') } } as any);
 
     const result1 = await agentCommissionYtd('op-1');
     const result2 = await agentCommissionYtd('op-2');
@@ -188,7 +188,7 @@ describe('erpFeeYtd', () => {
     expect(calls).toHaveLength(2);
     // Second call should include cursor from last booking of first batch
     expect(calls[1][0]).toHaveProperty('cursor');
-    expect(calls[1][0].cursor!.id).toBe('b-999');
+    expect(calls[1][0]!.cursor!.id).toBe('b-999');
   });
 });
 
