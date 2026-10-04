@@ -178,13 +178,13 @@ export async function sendTemplateMessage(args: {
     return { delivered: false, provider: 'console' };
   }
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, '');
+  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
   const res = await fetch(
     `${base}/api/v1/sendTemplateMessage?whatsappNumber=${number}`,
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.WATI_API_KEY}`,
+        Authorization: `Bearer ${process.env.WATI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

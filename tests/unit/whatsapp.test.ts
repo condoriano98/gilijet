@@ -134,13 +134,6 @@ describe('WhatsApp messaging - Mock Fallback', () => {
 });
 
 describe('WhatsApp messaging - WATI API', () => {
-  beforeEach(() => {
-    // Ensure WATI is configured for these tests
-    vi.doMock('@/lib/whatsapp', () => ({
-      isWhatsappConfigured: vi.fn(() => true),
-    }), { virtual: true });
-  });
-
   it('sends boarding pass text message when WATI configured', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
