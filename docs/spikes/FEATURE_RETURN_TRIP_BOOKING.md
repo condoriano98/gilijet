@@ -326,12 +326,12 @@ Display:
 | **2** | Backend: booking-engine.ts | 1 day | ✅ Done | ~1 day |
 | **3** | Frontend: search & checkout UI | 1-1.5 days | ✅ Done | ~2 days |
 | **4** | Notifications: email + e-tickets | 0.5-1 day | ✅ Done | ~1.5 days |
-| **5** | Admin dashboard: round trip view | 0.5 day | ⏳ TODO | — |
+| **5** | Admin dashboard: round trip view | 0.5 day | ✅ Done | ~0.5 days |
 | **6** | Testing (E2E + unit) | 1-1.5 days | ⏳ TODO | — |
 | **7** | Bug fixes & polish | 0.5 day | ⏳ TODO | — |
-| **COMPLETED** | Phase 1-4 | **5 days** | ✅ | ~5 days |
-| **REMAINING** | Phase 5-7 | **1.5-2.5 days** | ⏳ | — |
-| **TOTAL** | | **6-7 days** | 71% | — |
+| **COMPLETED** | Phase 1-5 | **5.5 days** | ✅ | ~5.5 days |
+| **REMAINING** | Phase 6-7 | **1-2 days** | ⏳ | — |
+| **TOTAL** | | **6-7 days** | 79% | — |
 
 ---
 
@@ -386,9 +386,18 @@ Display:
    - Typecheck: clean ✓
    - E2E: 7/10 passing (same status) ✓
 
+### ✅ Phase 5: Admin Dashboard (2026-10-04)
+   - Updated BookingRow component to display round-trip bookings
+   - Added trip type badge (ONE_WAY vs ROUND_TRIP) for quick identification
+   - Return leg details shown in expandable format within table cells (ports, times, boats)
+   - Outbound + return info side-by-side display for compactness
+   - Admin confirmations page already compatible (uses getMainLeg correctly)
+   - Unit tests: 3 new tests for round-trip row rendering
+   - All tests passing ✓
+   - E2E: 7/10 passing (no regressions) ✓
+
 ### 🔄 In Progress / TODO
 
-6. **Phase 5:** Admin dashboard - update booking views for round-trip
 7. **Phase 6:** Testing & QA - E2E round-trip flow
 8. **Phase 7:** Deploy & monitoring
 

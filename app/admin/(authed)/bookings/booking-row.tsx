@@ -11,7 +11,7 @@ import {
   calculateArrivalTime,
 } from '@/lib/booking-display';
 import { PassengerDetailsModal } from './passenger-details-modal';
-import { getMainLeg } from '@/lib/booking-helpers';
+import { getMainLeg, getReturnLeg } from '@/lib/booking-helpers';
 import type { Prisma } from '@prisma/client';
 
 type BookingWithDetails = Prisma.BookingGetPayload<{
@@ -28,31 +28,64 @@ type BookingWithDetails = Prisma.BookingGetPayload<{
 export function BookingRow({ booking }: { booking: BookingWithDetails }) {
   const [modalOpen, setModalOpen] = useState(false);
   const mainLeg = getMainLeg(booking)!;
+  const returnLeg = getReturnLeg(booking);
+  const isRoundTrip = booking.tripType === 'ROUND_TRIP';
   const passengers = parsePassengersFromNotes(booking.notes);
   const arrivalTime = calculateArrivalTime(
     mainLeg.departureDate,
     mainLeg.schedule.durationMinutes,
   );
+  const returnArrivalTime = returnLeg
+    ? calculateArrivalTime(returnLeg.departureDate, returnLeg.schedule.durationMinutes)
+    : null;
 
   return (
     <>
       <TableRow>
         <TableCell className="whitespace-nowrap font-mono text-xs">
-          <Link
-            href={`/b/${booking.bookingReference}`}
-            className="hover:underline"
-            target="_blank"
-          >
-            {booking.bookingReference}
-          </Link>
+          <div className="flex flex-col gap-1">
+            <Link
+              href={`/b/${booking.bookingReference}`}
+              className="hover:underline"
+              target="_blank"
+            >
+              {booking.bookingReference}
+            </Link>
+            {isRoundTrip && (
+              <Badge variant="secondary" className="w-fit text-xs">
+                Round Trip
+              </Badge>
+            )}
+          </div>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
-          <div>{mainLeg.schedule.originPort} - {formatLocalDateTime(mainLeg.departureDate)}</div>
-          <div className="text-xs text-muted-foreground">{mainLeg.schedule.boat.name}</div>
+          <div className="space-y-2">
+            <div>
+              <div className="font-medium">{mainLeg.schedule.originPort} - {formatLocalDateTime(mainLeg.departureDate)}</div>
+              <div className="text-xs text-muted-foreground">{mainLeg.schedule.boat.name}</div>
+            </div>
+            {isRoundTrip && returnLeg && (
+              <div className="border-t pt-2 text-xs">
+                <div className="text-muted-foreground">Return:</div>
+                <div className="font-medium">{returnLeg.schedule.originPort} - {formatLocalDateTime(returnLeg.departureDate)}</div>
+                <div className="text-muted-foreground">{returnLeg.schedule.boat.name}</div>
+              </div>
+            )}
+          </div>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
-          <div>{mainLeg.schedule.destinationPort} - {formatLocalDateTime(arrivalTime)}</div>
-          <div className="text-xs text-muted-foreground">Arrival</div>
+          <div className="space-y-2">
+            <div>
+              <div>{mainLeg.schedule.destinationPort} - {formatLocalDateTime(arrivalTime)}</div>
+              <div className="text-xs text-muted-foreground">Arrival</div>
+            </div>
+            {isRoundTrip && returnLeg && returnArrivalTime && (
+              <div className="border-t pt-2 text-xs">
+                <div className="text-muted-foreground">Return arrival:</div>
+                <div>{returnLeg.schedule.destinationPort} - {formatLocalDateTime(returnArrivalTime)}</div>
+              </div>
+            )}
+          </div>
         </TableCell>
         <TableCell className="max-w-[160px]">
           <div className="truncate text-sm" title={booking.customerName}>
