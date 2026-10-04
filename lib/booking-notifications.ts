@@ -1,5 +1,6 @@
 import { prisma } from './db';
 import { env } from './env';
+import { getMainLeg } from './booking-helpers';
 import {
   sendBookingConfirmation,
   sendCancellationEmail,
@@ -30,12 +31,37 @@ import type { IssuedTicket } from './ticket-issuer';
 
 const bookingForNotify = {
   id: true,
+  tripType: true,
   bookingReference: true,
   customerName: true,
   customerEmail: true,
   customerPhone: true,
   totalAmount: true,
   leg: {
+    select: {
+      departureDate: true,
+      schedule: {
+        select: {
+          originPort: true,
+          destinationPort: true,
+          boat: { select: { name: true } },
+        },
+      },
+    },
+  },
+  outboundLeg: {
+    select: {
+      departureDate: true,
+      schedule: {
+        select: {
+          originPort: true,
+          destinationPort: true,
+          boat: { select: { name: true } },
+        },
+      },
+    },
+  },
+  returnLeg: {
     select: {
       departureDate: true,
       schedule: {
@@ -64,6 +90,7 @@ function lookupUrl(reference: string): string {
 export async function notifyPaymentReceived(bookingId: string): Promise<void> {
   const booking = await load(bookingId);
   if (!booking) return;
+  const mainLeg = getMainLeg(booking)!;
   const url = lookupUrl(booking.bookingReference);
 
   await Promise.allSettled([
@@ -72,11 +99,11 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
       route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
+        originPort: mainLeg.schedule.originPort,
+        destinationPort: mainLeg.schedule.destinationPort,
       },
-      boatName: booking.leg.schedule.boat.name,
-      departureDate: booking.leg.departureDate,
+      boatName: mainLeg.schedule.boat.name,
+      departureDate: mainLeg.departureDate,
       totalAmount: Number(booking.totalAmount),
       lookupUrl: url,
     }),
@@ -100,10 +127,11 @@ export async function notifyBoardingPassIssued(
 ): Promise<void> {
   const booking = await load(bookingId);
   if (!booking) return;
+  const mainLeg = getMainLeg(booking)!;
   const url = lookupUrl(booking.bookingReference);
   const route = {
-    originPort: booking.leg.schedule.originPort,
-    destinationPort: booking.leg.schedule.destinationPort,
+    originPort: mainLeg.schedule.originPort,
+    destinationPort: mainLeg.schedule.destinationPort,
   };
 
   // Rendered once and shared by both channels — it is the same document, and
@@ -124,8 +152,8 @@ export async function notifyBoardingPassIssued(
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
       route,
-      boatName: booking.leg.schedule.boat.name,
-      departureDate: booking.leg.departureDate,
+      boatName: mainLeg.schedule.boat.name,
+      departureDate: mainLeg.departureDate,
       totalAmount: Number(booking.totalAmount),
       lookupUrl: url,
       tickets,
@@ -137,7 +165,7 @@ export async function notifyBoardingPassIssued(
           customerName: booking.customerName,
           bookingReference: booking.bookingReference,
           route,
-          departureDate: booking.leg.departureDate,
+          departureDate: mainLeg.departureDate,
           pdf,
           filename,
         })
@@ -146,8 +174,8 @@ export async function notifyBoardingPassIssued(
           customerName: booking.customerName,
           bookingReference: booking.bookingReference,
           route,
-          boatName: booking.leg.schedule.boat.name,
-          departureDate: booking.leg.departureDate,
+          boatName: mainLeg.schedule.boat.name,
+          departureDate: mainLeg.departureDate,
           ticketCodes: tickets.map((t) => t.ticketCode),
           lookupUrl: url,
         }),
@@ -161,6 +189,7 @@ export async function notifyOperatorUnavailable(
 ): Promise<void> {
   const booking = await load(bookingId);
   if (!booking) return;
+  const mainLeg = getMainLeg(booking)!;
   const url = lookupUrl(booking.bookingReference);
 
   await Promise.allSettled([
@@ -169,10 +198,10 @@ export async function notifyOperatorUnavailable(
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
       route: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
+        originPort: mainLeg.schedule.originPort,
+        destinationPort: mainLeg.schedule.destinationPort,
       },
-      departureDate: booking.leg.departureDate,
+      departureDate: mainLeg.departureDate,
       refundAmount,
       // The customer did not cancel, so the time-tier table never applies.
       refundTier: 'FULL',

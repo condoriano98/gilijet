@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { formatLocalDate, formatLocalTime, localDateTimeToUtc } from '@/lib/datetime';
 import { formatIDR } from '@/lib/utils';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -41,7 +42,7 @@ async function submitRescheduleAction(formData: FormData) {
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: parsed.data.reference },
-    include: { leg: true, rescheduleRequest: true },
+    include: { leg: true, outboundLeg: true, returnLeg: true, rescheduleRequest: true },
   });
   if (!booking) redirect('/b?error=missing');
   if (
@@ -57,7 +58,8 @@ async function submitRescheduleAction(formData: FormData) {
       `/b/${parsed.data.reference}?error=${encodeURIComponent('Only confirmed bookings can be rescheduled')}`,
     );
   }
-  if (booking.leg.departureDate.getTime() <= Date.now()) {
+  const mainLeg = getMainLeg(booking)!;
+  if (mainLeg.departureDate.getTime() <= Date.now()) {
     redirect(
       `/b/${parsed.data.reference}?error=${encodeURIComponent('Departure has already passed')}`,
     );
@@ -147,6 +149,8 @@ export default async function ReschedulePage({
     where: { bookingReference: reference },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       rescheduleRequest: true,
     },
   });
@@ -154,6 +158,8 @@ export default async function ReschedulePage({
   if (booking.status !== 'CONFIRMED') {
     redirect(`/b/${reference}`);
   }
+
+  const mainLeg = getMainLeg(booking)!;
 
   const seatCount = Math.max(
     1,
@@ -183,8 +189,8 @@ export default async function ReschedulePage({
       status: 'OPEN',
       departureDate: { gte: startUtc, lte: endUtc },
       schedule: {
-        originPort: booking.leg.schedule.originPort,
-        destinationPort: booking.leg.schedule.destinationPort,
+        originPort: mainLeg.schedule.originPort,
+        destinationPort: mainLeg.schedule.destinationPort,
         status: 'ACTIVE',
         deletedAt: null,
         boat: { deletedAt: null },
@@ -212,8 +218,8 @@ export default async function ReschedulePage({
             <CardDescription>
               Currently on{' '}
               <strong>
-                {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
-                {formatLocalTime(booking.leg.departureDate)}
+                {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
+                {formatLocalTime(mainLeg.departureDate)}
               </strong>
               . Pick a new departure on the same route — operators usually
               approve within a few hours.
@@ -262,8 +268,8 @@ export default async function ReschedulePage({
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {booking.leg.schedule.originPort} →{' '}
-                {booking.leg.schedule.destinationPort}
+                {mainLeg.schedule.originPort} →{' '}
+                {mainLeg.schedule.destinationPort}
               </CardTitle>
               <CardDescription>
                 {formatLocalDate(startUtc, 'EEEE, dd MMM yyyy')} · {seatCount}{' '}

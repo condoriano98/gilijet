@@ -10,6 +10,7 @@ import {
   notifyBoardingPassIssued,
   notifyOperatorUnavailable,
 } from '@/lib/booking-notifications';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -105,10 +106,35 @@ export default async function AdminConfirmationsPage({
       totalAmount: true,
       createdAt: true,
       notes: true,
+      tripType: true,
       operator: {
         select: { companyName: true, contactPerson: true, phoneNumber: true },
       },
       leg: {
+        select: {
+          departureDate: true,
+          schedule: {
+            select: {
+              originPort: true,
+              destinationPort: true,
+              boat: { select: { name: true } },
+            },
+          },
+        },
+      },
+      outboundLeg: {
+        select: {
+          departureDate: true,
+          schedule: {
+            select: {
+              originPort: true,
+              destinationPort: true,
+              boat: { select: { name: true } },
+            },
+          },
+        },
+      },
+      returnLeg: {
         select: {
           departureDate: true,
           schedule: {
@@ -205,6 +231,7 @@ export default async function AdminConfirmationsPage({
                   const operatorWa = normalizeWhatsappNumber(
                     b.operator.phoneNumber,
                   );
+                  const mainLeg = getMainLeg(b)!;
                   return (
                     <TableRow key={b.id}>
                       <TableCell className="align-top">
@@ -222,13 +249,13 @@ export default async function AdminConfirmationsPage({
                         </div>
                       </TableCell>
                       <TableCell className="align-top text-sm">
-                        <div>{formatLocalDateTime(b.leg.departureDate)}</div>
+                        <div>{formatLocalDateTime(mainLeg.departureDate)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {b.leg.schedule.originPort} →{' '}
-                          {b.leg.schedule.destinationPort}
+                          {mainLeg.schedule.originPort} →{' '}
+                          {mainLeg.schedule.destinationPort}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {b.leg.schedule.boat.name}
+                          {mainLeg.schedule.boat.name}
                         </div>
                       </TableCell>
                       <TableCell className="align-top text-sm">

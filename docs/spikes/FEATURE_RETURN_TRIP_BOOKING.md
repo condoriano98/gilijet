@@ -324,21 +324,23 @@ Display:
 |-------|------|----------|--------|--------|
 | **1** | DB schema changes | 0.5 day | ✅ Done | ~0.5 day |
 | **2** | Backend: booking-engine.ts | 1 day | ✅ Done | ~1 day |
-| **3** | Frontend: search & checkout UI | 1-1.5 days | ⏳ TODO | — |
+| **3** | Frontend: search & checkout UI | 1-1.5 days | ✅ Done | ~2 days |
 | **4** | Notifications: email + e-tickets | 0.5-1 day | ⏳ TODO | — |
 | **5** | Admin dashboard: round trip view | 0.5 day | ⏳ TODO | — |
 | **6** | Testing (E2E + unit) | 1-1.5 days | ⏳ TODO | — |
 | **7** | Bug fixes & polish | 0.5 day | ⏳ TODO | — |
-| **COMPLETED** | Phase 1 & 2 | **1.5 days** | ✅ | ~1.5 days |
-| **REMAINING** | Phase 3-7 | **4-5 days** | ⏳ | — |
-| **TOTAL** | | **5.5-6.5 days** | 23% | — |
+| **COMPLETED** | Phase 1, 2 & 3 | **3.5 days** | ✅ | ~3.5 days |
+| **REMAINING** | Phase 4-7 | **2.5-3.5 days** | ⏳ | — |
+| **TOTAL** | | **6-7 days** | 52% | — |
 
 ---
 
 ## 🚀 Implementation Progress
 
 ### ✅ Completed
+
 1. **Requirement aligned** (2026-10-03)
+
 2. **Phase 1: DB Schema** (2026-10-03)
    - Added `TripType` enum (ONE_WAY | ROUND_TRIP)
    - Added `outboundLegId`, `returnLegId`, `tripType` to Booking
@@ -352,16 +354,32 @@ Display:
    - Implemented `createRoundTripBooking()` function with:
      - Same operator validation
      - Both legs OPEN & future validation
+     - Return date > outbound date validation
      - Combined pricing from both legs
-     - Promo code support
+     - Promo code support with split discount
    - Refactored common logic to `createBookingRow()`
    - All TypeScript errors resolved ✓
 
+4. **Phase 3: Frontend - Search & Booking** (2026-10-04)
+   - Created `RoundTripLegSelector` component (side-by-side leg selection)
+   - Search page queries both outbound and return legs for round-trip
+   - Book page supports dual-leg form submission with combined pricing
+   - Fixed all `booking.leg` null-safety across 17+ files
+   - Created `booking-helpers.ts` utility (`getMainLeg`, `getReturnLeg`)
+   - Created `serialize-decimals.ts` for Server→Client serialization
+   - Critical path (search → book → confirmation) fully typed and clean ✓
+   - All validations in place:
+     - Same operator enforcement
+     - Both legs OPEN validation
+     - Both legs in future validation
+     - Return date > outbound date validation
+   - Backward compatible: one-way bookings unaffected ✓
+
 ### 🔄 In Progress / TODO
-4. **Phase 3:** Frontend (search form + checkout)
-5. **Phase 4:** Notifications (email + e-tickets)
-6. **Phase 5:** Admin dashboard
-7. **Phase 6:** Testing & QA
+
+5. **Phase 4:** Notifications (email + e-tickets) - fix remaining Decimal errors in non-critical paths
+6. **Phase 5:** Admin dashboard - update booking views for round-trip
+7. **Phase 6:** Testing & QA - E2E round-trip flow
 8. **Phase 7:** Deploy & monitoring
 
 ---

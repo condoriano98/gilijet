@@ -1,5 +1,6 @@
 import { Prisma, PaymentMethod } from '@prisma/client';
 import { prisma } from './db';
+import { getMainLeg } from './booking-helpers';
 import { releaseBookingSeats } from './booking-engine';
 import { ymdInZone } from './datetime';
 import { buildQrPayload, signTicketCode } from './qr';
@@ -122,10 +123,13 @@ export async function issueTicketsForBooking(args: {
       include: {
         tickets: true,
         leg: { select: { departureDate: true } },
+        outboundLeg: { select: { departureDate: true } },
+        returnLeg: { select: { departureDate: true } },
       },
     });
     if (!booking) throw new Error(`Booking ${args.bookingId} not found`);
-    const departureDate = booking.leg.departureDate;
+    const mainLeg = getMainLeg(booking)!;
+    const departureDate = mainLeg.departureDate;
 
     if (booking.status === 'CONFIRMED' && booking.tickets.length > 0) {
       return {

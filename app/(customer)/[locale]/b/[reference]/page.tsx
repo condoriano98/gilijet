@@ -14,6 +14,7 @@ import { renderQrSvgDataUrl } from '@/lib/qr-render';
 import { buildQrPayload } from '@/lib/qr';
 import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import { formatIDR } from '@/lib/utils';
+import { getMainLeg, getReturnLeg, getAllLegsForBooking } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -53,7 +54,7 @@ async function cancelAction(formData: FormData) {
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: ref },
-    include: { leg: true, payment: true, refund: true },
+    include: { leg: true, outboundLeg: true, returnLeg: true, payment: true, refund: true },
   });
   if (!booking) redirect('/b?error=missing');
 
@@ -72,13 +73,14 @@ async function cancelAction(formData: FormData) {
   ) {
     redirect(`/b/${ref}?error=not_cancellable`);
   }
-  if (booking.leg.departureDate.getTime() <= Date.now()) {
+  const mainLeg = getMainLeg(booking)!;
+  if (mainLeg.departureDate.getTime() <= Date.now()) {
     redirect(`/b/${ref}?error=departure_past`);
   }
 
   const { tier, amount } = refundAmountForCustomer({
     now: new Date(),
-    departure: booking.leg.departureDate,
+    departure: mainLeg.departureDate,
     paidAmount: booking.totalAmount,
   });
 
@@ -184,6 +186,16 @@ export default async function BookingLookupPage({
           schedule: { include: { boat: { include: { operator: true } } } },
         },
       },
+      outboundLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      returnLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
       tickets: { orderBy: { ticketCode: 'asc' } },
       refund: true,
       payment: true,
@@ -194,21 +206,22 @@ export default async function BookingLookupPage({
   if (!booking) notFound();
 
   // Look up return-leg suggestions for future confirmed bookings.
+  const mainLeg = getMainLeg(booking)!;
   let returnLegs: Array<{
     id: string;
     departureDate: Date;
     basePrice: unknown;
     schedule: { originPort: string; destinationPort: string; durationMinutes: number; boat: { name: string } };
   }> = [];
-  if (booking.status === 'CONFIRMED' && booking.leg.departureDate.getTime() > Date.now()) {
+  if (booking.status === 'CONFIRMED' && mainLeg.departureDate.getTime() > Date.now()) {
     try {
       returnLegs = await prisma.leg.findMany({
         where: {
           status: 'OPEN',
-          departureDate: { gt: booking.leg.departureDate },
+          departureDate: { gt: mainLeg.departureDate },
           schedule: {
-            originPort: booking.leg.schedule.destinationPort,
-            destinationPort: booking.leg.schedule.originPort,
+            originPort: mainLeg.schedule.destinationPort,
+            destinationPort: mainLeg.schedule.originPort,
             status: 'ACTIVE',
             deletedAt: null,
             boat: { deletedAt: null },
@@ -223,7 +236,7 @@ export default async function BookingLookupPage({
     }
   }
 
-  const portInfo = getPortInfo(booking.leg.schedule.originPort);
+  const portInfo = getPortInfo(mainLeg.schedule.originPort);
   const lookupUrl = `${env.APP_BASE_URL ?? ''}/b/${booking.bookingReference}`;
 
   // Pre-render QR data URLs for the confirmed-ticket case. Rendering to a
@@ -235,7 +248,7 @@ export default async function BookingLookupPage({
   if (booking.status === 'CONFIRMED') {
     for (const t of booking.tickets) {
       const qrDataUrl = await renderQrSvgDataUrl(
-        buildQrPayload(t.ticketCode, booking.leg.departureDate),
+        buildQrPayload(t.ticketCode, mainLeg.departureDate),
       );
       ticketSvgs.push({
         ticketCode: t.ticketCode,
@@ -245,10 +258,10 @@ export default async function BookingLookupPage({
     }
   }
 
-  const departureFuture = booking.leg.departureDate.getTime() > Date.now();
+  const departureFuture = mainLeg.departureDate.getTime() > Date.now();
   const refundPreview =
     booking.status === 'CONFIRMED' && departureFuture
-      ? refundTierForCustomer(new Date(), booking.leg.departureDate)
+      ? refundTierForCustomer(new Date(), mainLeg.departureDate)
       : null;
   const canCancel =
     departureFuture &&
@@ -296,16 +309,16 @@ export default async function BookingLookupPage({
         <Card>
           <CardHeader>
             <CardTitle>
-              {booking.leg.schedule.originPort} →{' '}
-              {booking.leg.schedule.destinationPort}
+              {mainLeg.schedule.originPort} →{' '}
+              {mainLeg.schedule.destinationPort}
             </CardTitle>
             <CardDescription>
-              {formatLocalDate(booking.leg.departureDate, 'EEEE, dd MMM yyyy')}{' '}
+              {formatLocalDate(mainLeg.departureDate, 'EEEE, dd MMM yyyy')}{' '}
               ·{' '}
               <span className="font-mono">
-                {formatLocalTime(booking.leg.departureDate)}
+                {formatLocalTime(mainLeg.departureDate)}
               </span>{' '}
-              WITA · {booking.leg.schedule.boat.name}
+              WITA · {mainLeg.schedule.boat.name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -419,20 +432,20 @@ export default async function BookingLookupPage({
               <CardHeader>
                 <CardTitle>Before you board</CardTitle>
                 <CardDescription>
-                  Arrive at {booking.leg.schedule.originPort} dock at least{' '}
+                  Arrive at {mainLeg.schedule.originPort} dock at least{' '}
                   <strong>{portInfo.arrivalBuffer} minutes</strong> before
                   departure.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                {booking.leg.schedule.boat.photos.length > 0 ? (
+                {mainLeg.schedule.boat.photos.length > 0 ? (
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {booking.leg.schedule.boat.photos.map((url) => (
+                    {mainLeg.schedule.boat.photos.map((url) => (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         key={url}
                         src={url}
-                        alt={booking.leg.schedule.boat.name}
+                        alt={mainLeg.schedule.boat.name}
                         className="h-28 w-44 flex-shrink-0 rounded-md border object-cover"
                       />
                     ))}
@@ -450,11 +463,11 @@ export default async function BookingLookupPage({
                 <p className="text-xs text-muted-foreground">{portInfo.dockTip}</p>
                 <KV
                   label="Operator"
-                  value={booking.leg.schedule.boat.operator.companyName}
+                  value={mainLeg.schedule.boat.operator.companyName}
                 />
                 <KV
                   label="Contact"
-                  value={booking.leg.schedule.boat.operator.phoneNumber}
+                  value={mainLeg.schedule.boat.operator.phoneNumber}
                 />
                 <p className="pt-2 text-xs text-muted-foreground">
                   Bring: a government ID matching each passenger name, motion
@@ -474,9 +487,9 @@ export default async function BookingLookupPage({
               <CardContent>
                 <ShareButtons
                   bookingReference={booking.bookingReference}
-                  origin={booking.leg.schedule.originPort}
-                  destination={booking.leg.schedule.destinationPort}
-                  date={formatLocalDate(booking.leg.departureDate, 'dd MMM yyyy')}
+                  origin={mainLeg.schedule.originPort}
+                  destination={mainLeg.schedule.destinationPort}
+                  date={formatLocalDate(mainLeg.departureDate, 'dd MMM yyyy')}
                   lookupUrl={lookupUrl}
                 />
               </CardContent>
@@ -486,8 +499,8 @@ export default async function BookingLookupPage({
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    Book your return: {booking.leg.schedule.destinationPort} →{' '}
-                    {booking.leg.schedule.originPort}
+                    Book your return: {mainLeg.schedule.destinationPort} →{' '}
+                    {mainLeg.schedule.originPort}
                   </CardTitle>
                   <CardDescription>
                     Available departures after your outbound trip.
@@ -529,7 +542,7 @@ export default async function BookingLookupPage({
 
         {booking.status === 'CONFIRMED' &&
         departureFuture &&
-        booking.leg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000 ? (
+        mainLeg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000 ? (
           <Card>
             <CardHeader>
               <CardTitle>Change of plans?</CardTitle>

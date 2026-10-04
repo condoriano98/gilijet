@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireCustomer } from '@/lib/auth';
 import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -43,7 +44,7 @@ async function submitReviewAction(formData: FormData) {
 
   const booking = await prisma.booking.findUnique({
     where: { id: parsed.data.bookingId },
-    include: { leg: true, review: true },
+    include: { leg: true, outboundLeg: true, returnLeg: true, review: true },
   });
   if (!booking) redirect('/account?error=booking_missing');
   // Ownership check
@@ -56,7 +57,8 @@ async function submitReviewAction(formData: FormData) {
   if (booking.status !== 'CONFIRMED') {
     redirect('/account?error=not_confirmed');
   }
-  if (booking.leg.departureDate.getTime() > Date.now() - 2 * 60 * 60 * 1000) {
+  const mainLeg = getMainLeg(booking)!;
+  if (mainLeg.departureDate.getTime() > Date.now() - 2 * 60 * 60 * 1000) {
     redirect('/account?error=trip_not_finished');
   }
   if (booking.review) {
@@ -67,7 +69,7 @@ async function submitReviewAction(formData: FormData) {
     data: {
       customerId: session.sub,
       bookingId: booking.id,
-      scheduleId: booking.leg.scheduleId,
+      scheduleId: mainLeg.scheduleId,
       rating: parsed.data.rating,
       text: parsed.data.text?.trim() || null,
     },
@@ -90,6 +92,8 @@ export default async function NewReviewPage({
     where: { id: bookingId },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       review: true,
     },
   });
@@ -103,6 +107,8 @@ export default async function NewReviewPage({
   if (booking.review) {
     redirect(`/b/${booking.bookingReference}`);
   }
+
+  const mainLeg = getMainLeg(booking)!;
 
   return (
     <div className="container py-10">
@@ -118,11 +124,11 @@ export default async function NewReviewPage({
           <CardHeader>
             <CardTitle>Rate your trip</CardTitle>
             <CardDescription>
-              {booking.leg.schedule.originPort} →{' '}
-              {booking.leg.schedule.destinationPort} ·{' '}
-              {formatLocalDate(booking.leg.departureDate, 'dd MMM yyyy')} ·{' '}
-              {formatLocalTime(booking.leg.departureDate)} ·{' '}
-              {booking.leg.schedule.boat.name}
+              {mainLeg.schedule.originPort} →{' '}
+              {mainLeg.schedule.destinationPort} ·{' '}
+              {formatLocalDate(mainLeg.departureDate, 'dd MMM yyyy')} ·{' '}
+              {formatLocalTime(mainLeg.departureDate)} ·{' '}
+              {mainLeg.schedule.boat.name}
             </CardDescription>
           </CardHeader>
           <form action={submitReviewAction}>

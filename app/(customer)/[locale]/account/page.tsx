@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth';
 import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import { formatIDR } from '@/lib/utils';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -132,6 +133,8 @@ export default async function AccountPage({
     },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       review: true,
     },
     orderBy: { createdAt: 'desc' },
@@ -140,9 +143,10 @@ export default async function AccountPage({
 
   const now = Date.now();
   const REVIEW_WINDOW_MS = 2 * 60 * 60 * 1000;
-  const upcoming = bookings.filter(
-    (b) => b.status === 'CONFIRMED' && b.leg.departureDate.getTime() > now,
-  );
+  const upcoming = bookings.filter((b) => {
+    const mainLeg = getMainLeg(b);
+    return b.status === 'CONFIRMED' && mainLeg && mainLeg.departureDate.getTime() > now;
+  });
   const past = bookings.filter((b) => !upcoming.includes(b));
 
   return (
@@ -224,10 +228,12 @@ export default async function AccountPage({
             </h2>
             <div className="space-y-3">
               {past.map((b) => {
+                const mainLeg = getMainLeg(b);
                 const canReview =
                   b.status === 'CONFIRMED' &&
                   !b.review &&
-                  b.leg.departureDate.getTime() < now - REVIEW_WINDOW_MS;
+                  mainLeg &&
+                  mainLeg.departureDate.getTime() < now - REVIEW_WINDOW_MS;
                 return (
                   <BookingCard
                     key={b.id}
@@ -343,14 +349,31 @@ type BookingWithLeg = {
   bookingReference: string;
   status: string;
   totalAmount: unknown;
-  leg: {
+  leg?: {
     departureDate: Date;
     schedule: {
       originPort: string;
       destinationPort: string;
       boat: { name: string };
     };
-  };
+  } | null;
+  outboundLeg?: {
+    departureDate: Date;
+    schedule: {
+      originPort: string;
+      destinationPort: string;
+      boat: { name: string };
+    };
+  } | null;
+  returnLeg?: {
+    departureDate: Date;
+    schedule: {
+      originPort: string;
+      destinationPort: string;
+      boat: { name: string };
+    };
+  } | null;
+  tripType?: string;
 };
 
 function BookingCard({
@@ -364,14 +387,15 @@ function BookingCard({
   canReview?: boolean;
   hasReview?: boolean;
 }) {
+  const mainLeg = getMainLeg(booking)!;
   return (
     <Card className={muted ? 'opacity-90' : ''}>
       <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">
-              {booking.leg.schedule.originPort} →{' '}
-              {booking.leg.schedule.destinationPort}
+              {mainLeg.schedule.originPort} →{' '}
+              {mainLeg.schedule.destinationPort}
             </span>
             <Badge variant={statusVariant(booking.status)} className="text-xs">
               {booking.status.replace(/_/g, ' ')}
@@ -383,12 +407,12 @@ function BookingCard({
             ) : null}
           </div>
           <div className="mt-1 text-sm text-slate-600">
-            {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')}{' '}
+            {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')}{' '}
             ·{' '}
             <span className="font-mono">
-              {formatLocalTime(booking.leg.departureDate)}
+              {formatLocalTime(mainLeg.departureDate)}
             </span>{' '}
-            WITA · {booking.leg.schedule.boat.name}
+            WITA · {mainLeg.schedule.boat.name}
           </div>
           <div className="mt-1 font-mono text-xs text-slate-500">
             {booking.bookingReference}

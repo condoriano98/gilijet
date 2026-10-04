@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { readonlyPrisma as db } from './readonly-client';
+import { getMainLeg } from '../booking-helpers';
 import {
   FEATURES,
   featureById,
@@ -344,6 +345,7 @@ export async function getBooking(args: { reference?: string }) {
     where: { bookingReference: args.reference.trim().toUpperCase() },
     select: {
       bookingReference: true,
+      tripType: true,
       status: true,
       customerName: true,
       customerEmail: true,
@@ -374,9 +376,25 @@ export async function getBooking(args: { reference?: string }) {
           schedule: { select: { originPort: true, destinationPort: true } },
         },
       },
+      outboundLeg: {
+        select: {
+          departureDate: true,
+          status: true,
+          schedule: { select: { originPort: true, destinationPort: true } },
+        },
+      },
+      returnLeg: {
+        select: {
+          departureDate: true,
+          status: true,
+          schedule: { select: { originPort: true, destinationPort: true } },
+        },
+      },
     },
   });
   if (!b) return { error: `No booking with reference "${args.reference}".` };
+
+  const mainLeg = getMainLeg(b)!;
 
   return {
     reference: b.bookingReference,
@@ -388,9 +406,9 @@ export async function getBooking(args: { reference?: string }) {
       nationality: b.customerNationality,
     },
     journey: {
-      route: `${b.leg.schedule.originPort} → ${b.leg.schedule.destinationPort}`,
-      departure: witaTime(b.leg.departureDate),
-      legStatus: b.leg.status,
+      route: `${mainLeg.schedule.originPort} → ${mainLeg.schedule.destinationPort}`,
+      departure: witaTime(mainLeg.departureDate),
+      legStatus: mainLeg.status,
     },
     money: {
       total: money(b.totalAmount),
@@ -448,10 +466,13 @@ export async function findCustomer(args: { email?: string; limit?: number }) {
       orderBy: { createdAt: 'desc' },
       select: {
         bookingReference: true,
+        tripType: true,
         status: true,
         totalAmount: true,
         createdAt: true,
         leg: { select: { schedule: { select: { originPort: true, destinationPort: true } } } },
+        outboundLeg: { select: { schedule: { select: { originPort: true, destinationPort: true } } } },
+        returnLeg: { select: { schedule: { select: { originPort: true, destinationPort: true } } } },
       },
     }),
     db.booking.count({ where: { customerEmail: email } }),
@@ -471,13 +492,16 @@ export async function findCustomer(args: { email?: string; limit?: number }) {
       ? undefined
       : 'No registered account with that email. Bookings below, if any, were made as a guest.',
     bookings: page(
-      bookings.map((b) => ({
-        reference: b.bookingReference,
-        status: b.status,
-        total: money(b.totalAmount),
-        route: `${b.leg.schedule.originPort} → ${b.leg.schedule.destinationPort}`,
-        booked: witaTime(b.createdAt),
-      })),
+      bookings.map((b) => {
+        const mainLeg = getMainLeg(b)!;
+        return {
+          reference: b.bookingReference,
+          status: b.status,
+          total: money(b.totalAmount),
+          route: `${mainLeg.schedule.originPort} → ${mainLeg.schedule.destinationPort}`,
+          booked: witaTime(b.createdAt),
+        };
+      }),
       total,
       MAX_LIMIT,
     ),

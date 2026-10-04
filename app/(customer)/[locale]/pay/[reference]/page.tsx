@@ -13,6 +13,7 @@ import { applyGatewayModeOverrides } from '@/lib/payment-mode';
 import { env } from '@/lib/env';
 import { formatLocalDateTime } from '@/lib/datetime';
 import { formatIDR } from '@/lib/utils';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -90,10 +91,13 @@ export default async function PayPage({
     where: { bookingReference: reference },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       payment: true,
     },
   });
   if (!booking) notFound();
+  const mainLeg = getMainLeg(booking)!;
 
   if (booking.status === 'CONFIRMED') redirect(`/b/${reference}`);
   if (
@@ -159,12 +163,12 @@ export default async function PayPage({
             />
             <div className="rounded-md bg-slate-50 p-3">
               <div className="font-medium">
-                {booking.leg.schedule.originPort} →{' '}
-                {booking.leg.schedule.destinationPort}
+                {mainLeg.schedule.originPort} →{' '}
+                {mainLeg.schedule.destinationPort}
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatLocalDateTime(booking.leg.departureDate)} WITA ·{' '}
-                {booking.leg.schedule.boat.name}
+                {formatLocalDateTime(mainLeg.departureDate)} WITA ·{' '}
+                {mainLeg.schedule.boat.name}
               </div>
             </div>
             <div className="flex justify-between border-t pt-3">

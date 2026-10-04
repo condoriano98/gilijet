@@ -11,6 +11,7 @@ import { isDokuMock } from '@/lib/doku';
 import { PaymentMethod } from '@prisma/client';
 import { BookingProgress } from '@/components/customer/booking-progress';
 import { DummyCheckoutForm } from '@/components/checkout/dummy-checkout-form';
+import { getMainLeg } from '@/lib/booking-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ async function simulatePayment(formData: FormData) {
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
-    include: { leg: { include: { schedule: { include: { boat: true } } } } },
+    include: { leg: { include: { schedule: { include: { boat: true } } } }, outboundLeg: { include: { schedule: { include: { boat: true } } } }, returnLeg: { include: { schedule: { include: { boat: true } } } } },
   });
   if (!booking) redirect('/');
   if (booking.status !== 'PENDING_PAYMENT') {
@@ -78,10 +79,13 @@ export default async function CheckoutPage({
     where: { bookingReference: reference },
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
       payment: true,
     },
   });
   if (!booking) notFound();
+  const mainLeg = getMainLeg(booking)!;
 
   // Anything past PENDING_PAYMENT — already paid, expired or cancelled — has
   // nothing left to pay for here.
@@ -107,12 +111,12 @@ export default async function CheckoutPage({
           <div className="mb-5 flex items-start justify-between">
             <div>
               <h1 className="text-lg font-semibold text-slate-900">
-                {booking.leg.schedule.originPort} →{' '}
-                {booking.leg.schedule.destinationPort}
+                {mainLeg.schedule.originPort} →{' '}
+                {mainLeg.schedule.destinationPort}
               </h1>
               <p className="mt-0.5 text-xs text-slate-500">
-                {formatLocalDateTime(booking.leg.departureDate)} WITA ·{' '}
-                {booking.leg.schedule.boat.name}
+                {formatLocalDateTime(mainLeg.departureDate)} WITA ·{' '}
+                {mainLeg.schedule.boat.name}
               </p>
               <p className="mt-0.5 text-xs text-slate-400">
                 Ref{' '}

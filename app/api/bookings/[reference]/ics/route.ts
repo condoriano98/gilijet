@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getMainLeg } from '@/lib/booking-helpers';
 
 function icsEscape(s: string): string {
   return s
@@ -24,6 +25,8 @@ export async function GET(
     where: { bookingReference: reference },
     include: {
       leg: { include: { schedule: { include: { boat: { include: { operator: true } } } } } },
+      outboundLeg: { include: { schedule: { include: { boat: { include: { operator: true } } } } } },
+      returnLeg: { include: { schedule: { include: { boat: { include: { operator: true } } } } } },
     },
   });
 
@@ -31,7 +34,8 @@ export async function GET(
     return new Response('Not found', { status: 404 });
   }
 
-  const { schedule, departureDate } = booking.leg;
+  const mainLeg = getMainLeg(booking)!;
+  const { schedule, departureDate } = mainLeg;
   const arrival = new Date(
     departureDate.getTime() + schedule.durationMinutes * 60 * 1000,
   );

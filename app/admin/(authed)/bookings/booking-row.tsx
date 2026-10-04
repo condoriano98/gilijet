@@ -11,11 +11,14 @@ import {
   calculateArrivalTime,
 } from '@/lib/booking-display';
 import { PassengerDetailsModal } from './passenger-details-modal';
+import { getMainLeg } from '@/lib/booking-helpers';
 import type { Prisma } from '@prisma/client';
 
 type BookingWithDetails = Prisma.BookingGetPayload<{
   include: {
     leg: { include: { schedule: { include: { boat: true } } } };
+    outboundLeg: { include: { schedule: { include: { boat: true } } } };
+    returnLeg: { include: { schedule: { include: { boat: true } } } };
     promotion: true;
     tickets: true;
     payment: true;
@@ -24,10 +27,11 @@ type BookingWithDetails = Prisma.BookingGetPayload<{
 
 export function BookingRow({ booking }: { booking: BookingWithDetails }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const mainLeg = getMainLeg(booking)!;
   const passengers = parsePassengersFromNotes(booking.notes);
   const arrivalTime = calculateArrivalTime(
-    booking.leg.departureDate,
-    booking.leg.schedule.durationMinutes,
+    mainLeg.departureDate,
+    mainLeg.schedule.durationMinutes,
   );
 
   return (
@@ -43,11 +47,11 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
           </Link>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
-          <div>{booking.leg.schedule.originPort} - {formatLocalDateTime(booking.leg.departureDate)}</div>
-          <div className="text-xs text-muted-foreground">{booking.leg.schedule.boat.name}</div>
+          <div>{mainLeg.schedule.originPort} - {formatLocalDateTime(mainLeg.departureDate)}</div>
+          <div className="text-xs text-muted-foreground">{mainLeg.schedule.boat.name}</div>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
-          <div>{booking.leg.schedule.destinationPort} - {formatLocalDateTime(arrivalTime)}</div>
+          <div>{mainLeg.schedule.destinationPort} - {formatLocalDateTime(arrivalTime)}</div>
           <div className="text-xs text-muted-foreground">Arrival</div>
         </TableCell>
         <TableCell className="max-w-[160px]">

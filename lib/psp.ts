@@ -16,6 +16,7 @@
 import { PaymentMethod, PaymentProvider } from '@prisma/client';
 import { prisma } from './db';
 import { env } from './env';
+import { getMainLeg } from './booking-helpers';
 import {
   createCheckout,
   isDokuConfigured,
@@ -114,6 +115,8 @@ export async function startPaypalOrder(
     include: {
       payment: true,
       leg: { include: { schedule: true } },
+      outboundLeg: { include: { schedule: true } },
+      returnLeg: { include: { schedule: true } },
     },
   });
   if (!booking) throw new Error('Booking not found');
@@ -121,6 +124,7 @@ export async function startPaypalOrder(
     throw new Error('Booking is no longer awaiting payment');
   }
 
+  const mainLeg = getMainLeg(booking)!;
   const currency = paypalPresentmentCurrency();
   const quote = await quoteForeignCharge(Number(booking.totalAmount), currency);
 
@@ -128,7 +132,7 @@ export async function startPaypalOrder(
     orderId: booking.bookingReference,
     amount: quote.amount,
     currency: quote.currency,
-    description: `Gilifast ${booking.leg.schedule.originPort} → ${booking.leg.schedule.destinationPort}`,
+    description: `Gilifast ${mainLeg.schedule.originPort} → ${mainLeg.schedule.destinationPort}`,
     returnUrl: `${env.APP_BASE_URL}/pay/${booking.bookingReference}?paypal=return`,
     cancelUrl: `${env.APP_BASE_URL}/pay/${booking.bookingReference}?paypal=cancel`,
   });

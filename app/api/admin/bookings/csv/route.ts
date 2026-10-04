@@ -3,6 +3,7 @@ import { Prisma, BookingStatus } from '@prisma/client';
 import { getAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { formatLocalDateTime } from '@/lib/datetime';
+import { getMainLeg } from '@/lib/booking-helpers';
 
 const STATUS_FILTERS: BookingStatus[] = [
   'PENDING_PAYMENT',
@@ -46,6 +47,8 @@ export async function GET(req: NextRequest) {
     take: 5000,
     include: {
       leg: { include: { schedule: { include: { boat: true } } } },
+      outboundLeg: { include: { schedule: { include: { boat: true } } } },
+      returnLeg: { include: { schedule: { include: { boat: true } } } },
     },
   });
 
@@ -63,19 +66,22 @@ export async function GET(req: NextRequest) {
     'Created',
   ];
 
-  const rows = bookings.map((b) => [
-    b.bookingReference,
-    b.status,
-    b.leg.schedule.originPort,
-    b.leg.schedule.destinationPort,
-    b.leg.schedule.boat.name,
-    formatLocalDateTime(b.leg.departureDate),
-    b.customerName,
-    b.customerEmail,
-    b.customerPhone,
-    String(Number(b.totalAmount)),
-    formatLocalDateTime(b.createdAt),
-  ]);
+  const rows = bookings.map((b) => {
+    const mainLeg = getMainLeg(b)!;
+    return [
+      b.bookingReference,
+      b.status,
+      mainLeg.schedule.originPort,
+      mainLeg.schedule.destinationPort,
+      mainLeg.schedule.boat.name,
+      formatLocalDateTime(mainLeg.departureDate),
+      b.customerName,
+      b.customerEmail,
+      b.customerPhone,
+      String(Number(b.totalAmount)),
+      formatLocalDateTime(b.createdAt),
+    ];
+  });
 
   const csv = [header, ...rows]
     .map((row) => row.map(csvEscape).join(','))

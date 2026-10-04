@@ -5,6 +5,7 @@ import { buildQrPayload } from '@/lib/qr';
 import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import { formatIDR } from '@/lib/utils';
 import { getPortInfo } from '@/lib/port-info';
+import { getMainLeg } from '@/lib/booking-helpers';
 import { PrintButton } from './print-button';
 
 /**
@@ -28,10 +29,21 @@ export default async function PrintTicketPage({
           schedule: { include: { boat: { include: { operator: true } } } },
         },
       },
+      outboundLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
+      returnLeg: {
+        include: {
+          schedule: { include: { boat: { include: { operator: true } } } },
+        },
+      },
       tickets: { orderBy: { ticketCode: 'asc' } },
     },
   });
   if (!booking || booking.status !== 'CONFIRMED') notFound();
+  const mainLeg = getMainLeg(booking)!;
 
   const ticketSvgs: Array<{
     ticketCode: string;
@@ -40,7 +52,7 @@ export default async function PrintTicketPage({
   }> = [];
   for (const t of booking.tickets) {
     const qrDataUrl = await renderQrSvgDataUrl(
-      buildQrPayload(t.ticketCode, booking.leg.departureDate),
+      buildQrPayload(t.ticketCode, mainLeg.departureDate),
     );
     ticketSvgs.push({
       ticketCode: t.ticketCode,
@@ -49,7 +61,7 @@ export default async function PrintTicketPage({
     });
   }
 
-  const portInfo = getPortInfo(booking.leg.schedule.originPort);
+  const portInfo = getPortInfo(mainLeg.schedule.originPort);
 
   return (
     <div style={{ background: 'white', padding: 24, fontFamily: 'system-ui, -apple-system, sans-serif', color: '#0f172a' }}>
@@ -102,26 +114,26 @@ export default async function PrintTicketPage({
           <div>
             <div className="print-label">Route</div>
             <div className="print-value">
-              {booking.leg.schedule.originPort} →{' '}
-              {booking.leg.schedule.destinationPort}
+              {mainLeg.schedule.originPort} →{' '}
+              {mainLeg.schedule.destinationPort}
             </div>
           </div>
           <div>
             <div className="print-label">Departure</div>
             <div className="print-value">
-              {formatLocalDate(booking.leg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
-              {formatLocalTime(booking.leg.departureDate)} WITA
+              {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
+              {formatLocalTime(mainLeg.departureDate)} WITA
             </div>
           </div>
           <div>
             <div className="print-label">Operator</div>
             <div className="print-value">
-              {booking.leg.schedule.boat.operator.companyName}
+              {mainLeg.schedule.boat.operator.companyName}
             </div>
           </div>
           <div>
             <div className="print-label">Boat</div>
-            <div className="print-value">{booking.leg.schedule.boat.name}</div>
+            <div className="print-value">{mainLeg.schedule.boat.name}</div>
           </div>
           <div>
             <div className="print-label">Dock</div>
@@ -157,7 +169,7 @@ export default async function PrintTicketPage({
         ))}
 
         <div className="print-footer">
-          Operator contact: {booking.leg.schedule.boat.operator.phoneNumber} ·
+          Operator contact: {mainLeg.schedule.boat.operator.phoneNumber} ·
           Refund policy: 7+ days = full · 48h-7 days = 50% · under 48h = none. This
           ticket is valid only for the date, time, and route printed above.
         </div>

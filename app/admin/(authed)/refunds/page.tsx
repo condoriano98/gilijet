@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { refundViaGateway, isAnyRefundGatewayConfigured } from '@/lib/refund-gateway';
+import { getMainLeg } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -42,6 +43,8 @@ async function autoApproveEligibleRefunds() {
         include: {
           payment: true,
           leg: true,
+          outboundLeg: true,
+          returnLeg: true,
         },
       },
     },
@@ -50,7 +53,8 @@ async function autoApproveEligibleRefunds() {
 
   let approved = 0;
   for (const refund of pending) {
-    const tier = refundTierForCustomer(new Date(), refund.booking.leg.departureDate);
+    const mainLeg = getMainLeg(refund.booking)!;
+    const tier = refundTierForCustomer(new Date(), mainLeg.departureDate);
     if (tier !== 'FULL') continue;
 
     let gatewayReference = refund.gatewayReference ?? null;
@@ -251,6 +255,8 @@ export default async function AdminRefundsPage({
         include: {
           payment: true,
           leg: { include: { schedule: true } },
+          outboundLeg: { include: { schedule: true } },
+          returnLeg: { include: { schedule: true } },
         },
       },
     },
@@ -344,14 +350,16 @@ export default async function AdminRefundsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {refunds.map((r) => (
+                {refunds.map((r) => {
+                  const mainLeg = getMainLeg(r.booking)!;
+                  return (
                   <TableRow key={r.id}>
                     <TableCell className="font-mono text-xs">
                       {r.booking.bookingReference}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {r.booking.leg.schedule.originPort} →{' '}
-                      {r.booking.leg.schedule.destinationPort}
+                      {mainLeg.schedule.originPort} →{' '}
+                      {mainLeg.schedule.destinationPort}
                     </TableCell>
                     <TableCell className="text-sm">{r.reason}</TableCell>
                     <TableCell className="font-medium">
@@ -384,7 +392,8 @@ export default async function AdminRefundsPage({
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
