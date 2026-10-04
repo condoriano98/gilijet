@@ -13,10 +13,11 @@ import { test, expect } from '@playwright/test';
 test('anonymous customer can book a QA schedule end-to-end', async ({
   page,
 }) => {
-  const tomorrow = new Date(Date.now() + 86_400_000);
-  const y = tomorrow.getFullYear();
-  const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const d = String(tomorrow.getDate()).padStart(2, '0');
+  // Search 7 days ahead to ensure legs exist (seed generates 60-day rolling window)
+  const searchDate = new Date(Date.now() + 7 * 86_400_000);
+  const y = searchDate.getFullYear();
+  const m = String(searchDate.getMonth() + 1).padStart(2, '0');
+  const d = String(searchDate.getDate()).padStart(2, '0');
   const date = `${y}-${m}-${d}`;
 
   await page.goto(`/search?origin=Sanur&destination=Nusa+Penida&date=${date}&passengers=1`);

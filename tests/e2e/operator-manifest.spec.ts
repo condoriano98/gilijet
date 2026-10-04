@@ -8,7 +8,8 @@ test('operator can log in and view a leg manifest', async ({ page }) => {
   await page.getByRole('button', { name: /log ?in|sign ?in/i }).click();
 
   await page.waitForURL(/\/operator(\/|$)/, { timeout: 15_000 });
-  await expect(page.locator('body')).toContainText(/leg|schedule|manifest/i);
+  // Page shows Indonesian content after login
+  await expect(page.locator('body')).toContainText(/jadwal|kapal|dashboard|belanda/i);
 
   await page.goto('/operator/legs');
   const firstLeg = page.getByRole('link', { name: /qa|sched|view|manifest/i }).first();

@@ -20,8 +20,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/db', () => ({
   prisma: {
     $transaction: mocks.prismaTransaction,
-    booking: { findUnique: vi.fn() },
-    leg: { findUnique: vi.fn() },
+    booking: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    leg: { findUnique: vi.fn(), update: vi.fn() },
+    seatReserve: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
   },
 }));
 
@@ -79,6 +80,37 @@ vi.mock('@/lib/pricing', () => ({
     };
   }),
 }));
+
+function createMockTx(overrides = {}) {
+  return {
+    booking: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      ...overrides.booking,
+    },
+    leg: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      ...overrides.leg,
+    },
+    seatReserve: {
+      findMany: vi.fn(),
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
+      ...overrides.seatReserve,
+    },
+    platformConfig: {
+      findUnique: vi.fn(),
+      ...overrides.platformConfig,
+    },
+    payment: {
+      create: vi.fn(),
+      ...overrides.payment,
+    },
+    ...overrides,
+  };
+}
 
 async function loadBookingEngine() {
   vi.resetModules();
@@ -300,13 +332,13 @@ describe('Idempotency & Replay', () => {
       bookingReference: 'BK-2026-10-REPLAY',
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(existingBooking),
-      },
-    };
-
-    mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
+    mocks.prismaTransaction.mockImplementation(async (fn) =>
+      fn({
+        booking: { findUnique: vi.fn().mockResolvedValue(existingBooking), create: vi.fn(), update: vi.fn() },
+        leg: { findUnique: vi.fn(), update: vi.fn() },
+        seatReserve: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+      })
+    );
 
     const result = await engine.reserveSeatsAndCreateBooking({
       legId: 'leg-1',
@@ -345,24 +377,15 @@ describe('Idempotency & Replay', () => {
       bookingReference: 'BK-2026-10-NEW',
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(null), // No prior booking
-        create: vi.fn().mockResolvedValue(newBooking),
-      },
-      leg: {
-        findUnique: vi.fn().mockResolvedValue(leg),
-      },
-      platformConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          commissionRate: 0.08,
-          multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-        }),
-      },
-      payment: {
-        create: vi.fn().mockResolvedValue({}),
-      },
-    };
+    const tx = createMockTx();
+    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
+    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
+    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
+    } as any);
+    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
 
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
@@ -400,27 +423,18 @@ describe('Passenger Validation & Defaults', () => {
       },
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockResolvedValue({
-          id: 'bk-1',
-          bookingReference: 'BK-2026-10-DEFAULT',
-        }),
-      },
-      leg: {
-        findUnique: vi.fn().mockResolvedValue(leg),
-      },
-      platformConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          commissionRate: 0.08,
-          multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-        }),
-      },
-      payment: {
-        create: vi.fn().mockResolvedValue({}),
-      },
-    };
+    const tx = createMockTx();
+    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
+    vi.mocked(tx.booking.create).mockResolvedValueOnce({
+      id: 'bk-1',
+      bookingReference: 'BK-2026-10-DEFAULT',
+    } as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
+    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
+    } as any);
+    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
 
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
@@ -437,7 +451,7 @@ describe('Passenger Validation & Defaults', () => {
     });
 
     // The booking should be created successfully with default type
-    expect(tx.booking.create).toHaveBeenCalled();
+    expect(vi.mocked(tx.booking.create)).toHaveBeenCalled();
   });
 
   it('counts non-infant passengers for seat calculation', async () => {
@@ -455,27 +469,18 @@ describe('Passenger Validation & Defaults', () => {
       },
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockResolvedValue({
-          id: 'bk-mix',
-          bookingReference: 'BK-2026-10-MIX',
-        }),
-      },
-      leg: {
-        findUnique: vi.fn().mockResolvedValue(leg),
-      },
-      platformConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          commissionRate: 0.08,
-          multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-        }),
-      },
-      payment: {
-        create: vi.fn().mockResolvedValue({}),
-      },
-    };
+    const tx = createMockTx();
+    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
+    vi.mocked(tx.booking.create).mockResolvedValueOnce({
+      id: 'bk-mix',
+      bookingReference: 'BK-2026-10-MIX',
+    } as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
+    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
+    } as any);
+    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
 
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
@@ -495,7 +500,7 @@ describe('Passenger Validation & Defaults', () => {
       ],
     });
 
-    expect(tx.booking.create).toHaveBeenCalled();
+    expect(vi.mocked(tx.booking.create)).toHaveBeenCalled();
   });
 });
 
@@ -663,24 +668,15 @@ describe('Admin Alert Behavior', () => {
       bookingReference: 'BK-2026-10-ALERT',
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockResolvedValue(newBooking),
-      },
-      leg: {
-        findUnique: vi.fn().mockResolvedValue(leg),
-      },
-      platformConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          commissionRate: 0.08,
-          multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-        }),
-      },
-      payment: {
-        create: vi.fn().mockResolvedValue({}),
-      },
-    };
+    const tx = createMockTx();
+    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
+    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
+    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
+    } as any);
+    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
 
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
@@ -714,27 +710,18 @@ describe('Price Calculation Scenarios', () => {
       },
     };
 
-    const tx = {
-      booking: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockResolvedValue({
-          id: 'bk-price-test',
-          bookingReference: 'BK-2026-10-PRICE',
-        }),
-      },
-      leg: {
-        findUnique: vi.fn().mockResolvedValue(leg),
-      },
-      platformConfig: {
-        findUnique: vi.fn().mockResolvedValue({
-          commissionRate: 0.08,
-          multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-        }),
-      },
-      payment: {
-        create: vi.fn().mockResolvedValue({}),
-      },
-    };
+    const tx = createMockTx();
+    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
+    vi.mocked(tx.booking.create).mockResolvedValueOnce({
+      id: 'bk-price-test',
+      bookingReference: 'BK-2026-10-PRICE',
+    } as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
+    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
+      commissionRate: 0.08,
+      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
+    } as any);
+    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
 
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
@@ -753,6 +740,6 @@ describe('Price Calculation Scenarios', () => {
       ],
     });
 
-    expect(tx.booking.create).toHaveBeenCalled();
+    expect(vi.mocked(tx.booking.create)).toHaveBeenCalled();
   });
 });
