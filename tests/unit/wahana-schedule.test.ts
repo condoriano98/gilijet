@@ -9,12 +9,12 @@ import { canonicalPortName, getAllPorts } from '@/lib/port-info';
  * A bad regeneration is a wrong price on a live booking.
  */
 describe('Wahana price sheet', () => {
-  it('collapses the 432 price rows into 24 physical departures', () => {
-    expect(WAHANA_DEPARTURES).toHaveLength(24);
+  it('collapses the 522 price rows into 29 physical departures', () => {
+    expect(WAHANA_DEPARTURES).toHaveLength(29);
     const keys = WAHANA_DEPARTURES.map(
       (d) => `${d.boat}|${d.origin}|${d.destination}|${d.departureTime}`,
     );
-    expect(new Set(keys).size).toBe(24);
+    expect(new Set(keys).size).toBe(29);
   });
 
   it('names only ports the app can describe, in canonical form', () => {

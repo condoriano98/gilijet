@@ -16,7 +16,12 @@ export type WhatsappResult = {
 };
 
 export function isWhatsappConfigured(): boolean {
-  return Boolean(env.WATI_API_KEY && env.WATI_TENANT_ID && env.WATI_API_URL);
+  // Check process.env directly (not cached env) to allow tests to change config
+  return Boolean(
+    process.env.WATI_API_KEY &&
+      process.env.WATI_TENANT_ID &&
+      process.env.WATI_API_URL,
+  );
 }
 
 /**
@@ -46,12 +51,12 @@ async function sendText(to: string, body: string): Promise<WhatsappResult> {
     return { delivered: false, provider: 'console' };
   }
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, '');
+  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
   const url = `${base}/api/v1/sendSessionMessage/${number}?messageText=${encodeURIComponent(body)}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.WATI_API_KEY}`,
+      Authorization: `Bearer ${process.env.WATI_API_KEY}`,
       'Content-Type': 'application/json',
     },
   });
@@ -97,7 +102,7 @@ async function sendDocument(
     filename,
   );
 
-  const base = env.WATI_API_URL!.replace(/\/+$/, '');
+  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
   const url =
     `${base}/api/v1/sendSessionFile/${number}` +
     `?caption=${encodeURIComponent(caption)}`;
@@ -105,7 +110,7 @@ async function sendDocument(
   // overriding it produces a body WATI cannot parse.
   const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.WATI_API_KEY}` },
+    headers: { Authorization: `Bearer ${process.env.WATI_API_KEY}` },
     body: form,
   });
   if (!res.ok) {
