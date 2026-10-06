@@ -87,6 +87,7 @@ type MockTxOverrides = {
   seatReserve?: Record<string, unknown>;
   platformConfig?: Record<string, unknown>;
   payment?: Record<string, unknown>;
+  auditLog?: Record<string, unknown>;
 };
 
 function createMockTx(overrides: MockTxOverrides = {}) {
@@ -115,6 +116,10 @@ function createMockTx(overrides: MockTxOverrides = {}) {
     payment: {
       create: vi.fn(),
       ...overrides.payment,
+    },
+    auditLog: {
+      create: vi.fn(),
+      ...overrides.auditLog,
     },
   };
 }
@@ -331,21 +336,17 @@ describe('BookingError codes', () => {
 });
 
 describe('Idempotency & Replay', () => {
-  it.skip('returns existing booking when idempotencyKey is replayed (transaction mock issues)', async () => {
+  it('returns existing booking when idempotencyKey is replayed', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const existingBooking = {
       id: 'bk-existing',
       bookingReference: 'BK-2026-10-REPLAY',
     };
 
-    mocks.prismaTransaction.mockImplementation(async (fn) =>
-      fn({
-        booking: { findUnique: vi.fn().mockResolvedValue(existingBooking), create: vi.fn(), update: vi.fn() },
-        leg: { findUnique: vi.fn(), update: vi.fn() },
-        seatReserve: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-      })
-    );
+    // Mock the top-level idempotency check
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(existingBooking as any);
 
     const result = await engine.reserveSeatsAndCreateBooking({
       legId: 'leg-1',
@@ -364,8 +365,9 @@ describe('Idempotency & Replay', () => {
     });
   });
 
-  it.skip('creates new booking when idempotencyKey is first use (transaction mock issues', async () => {
+  it('creates new booking when idempotencyKey is first use', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const leg = {
       id: 'leg-1',
@@ -384,16 +386,13 @@ describe('Idempotency & Replay', () => {
       bookingReference: 'BK-2026-10-NEW',
     };
 
-    const tx = createMockTx();
-    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
-    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
-    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
-    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
-      commissionRate: 0.08,
-      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-    } as any);
-    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
+    // Mock top-level idempotency check (not found)
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(null);
 
+    // Mock transaction
+    const tx = createMockTx();
+    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValue(leg as any);
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
     const result = await engine.reserveSeatsAndCreateBooking({
@@ -415,8 +414,9 @@ describe('Idempotency & Replay', () => {
 });
 
 describe('Passenger Validation & Defaults', () => {
-  it.skip('defaults passenger type to ADULT when not specified (transaction mock issues', async () => {
+  it('defaults passenger type to ADULT when not specified', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const leg = {
       id: 'leg-1',
@@ -430,19 +430,15 @@ describe('Passenger Validation & Defaults', () => {
       },
     };
 
+    // Mock top-level idempotency check
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(null);
+
     const tx = createMockTx();
-    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
     vi.mocked(tx.booking.create).mockResolvedValueOnce({
       id: 'bk-1',
       bookingReference: 'BK-2026-10-DEFAULT',
     } as any);
-    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
-    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
-      commissionRate: 0.08,
-      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-    } as any);
-    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
-
+    vi.mocked(tx.leg.findUnique).mockResolvedValue(leg as any);
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
     await engine.reserveSeatsAndCreateBooking({
@@ -461,8 +457,9 @@ describe('Passenger Validation & Defaults', () => {
     expect(vi.mocked(tx.booking.create)).toHaveBeenCalled();
   });
 
-  it.skip('counts non-infant passengers for seat calculation (transaction mock issues', async () => {
+  it('counts non-infant passengers for seat calculation', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const leg = {
       id: 'leg-1',
@@ -476,19 +473,15 @@ describe('Passenger Validation & Defaults', () => {
       },
     };
 
+    // Mock top-level idempotency check
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(null);
+
     const tx = createMockTx();
-    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
     vi.mocked(tx.booking.create).mockResolvedValueOnce({
       id: 'bk-mix',
       bookingReference: 'BK-2026-10-MIX',
     } as any);
-    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
-    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
-      commissionRate: 0.08,
-      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-    } as any);
-    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
-
+    vi.mocked(tx.leg.findUnique).mockResolvedValue(leg as any);
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
     // 2 adults + 1 child + 1 infant = 4 passengers, but only 3 seats
@@ -655,8 +648,9 @@ describe('Round-Trip Validation', () => {
 });
 
 describe('Admin Alert Behavior', () => {
-  it.skip('fires alert notification after successful booking (transaction mock issues', async () => {
+  it('fires alert notification after successful booking', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const leg = {
       id: 'leg-1',
@@ -675,16 +669,12 @@ describe('Admin Alert Behavior', () => {
       bookingReference: 'BK-2026-10-ALERT',
     };
 
-    const tx = createMockTx();
-    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
-    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
-    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
-    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
-      commissionRate: 0.08,
-      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-    } as any);
-    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
+    // Mock top-level idempotency check
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(null);
 
+    const tx = createMockTx();
+    vi.mocked(tx.booking.create).mockResolvedValueOnce(newBooking as any);
+    vi.mocked(tx.leg.findUnique).mockResolvedValue(leg as any);
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
     await engine.reserveSeatsAndCreateBooking({
@@ -702,8 +692,9 @@ describe('Admin Alert Behavior', () => {
 });
 
 describe('Price Calculation Scenarios', () => {
-  it.skip('correctly prices mixed passenger types (transaction mock issues', async () => {
+  it('correctly prices mixed passenger types', async () => {
     const engine = await loadBookingEngine();
+    const { prisma } = await import('@/lib/db');
 
     const leg = {
       id: 'leg-1',
@@ -717,19 +708,15 @@ describe('Price Calculation Scenarios', () => {
       },
     };
 
+    // Mock top-level idempotency check
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(null);
+
     const tx = createMockTx();
-    vi.mocked(tx.booking.findUnique).mockResolvedValueOnce(null);
     vi.mocked(tx.booking.create).mockResolvedValueOnce({
       id: 'bk-price-test',
       bookingReference: 'BK-2026-10-PRICE',
     } as any);
-    vi.mocked(tx.leg.findUnique).mockResolvedValueOnce(leg as any);
-    vi.mocked(tx.platformConfig.findUnique).mockResolvedValueOnce({
-      commissionRate: 0.08,
-      multipliers: { ADULT: 1, CHILD: 0.5, INFANT: 0 },
-    } as any);
-    vi.mocked(tx.payment.create).mockResolvedValueOnce({} as any);
-
+    vi.mocked(tx.leg.findUnique).mockResolvedValue(leg as any);
     mocks.prismaTransaction.mockImplementation((fn) => fn(tx));
 
     // 2 adults (400k) + 1 child (100k) = 500k
