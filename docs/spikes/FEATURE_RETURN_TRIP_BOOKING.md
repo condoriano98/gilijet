@@ -328,10 +328,12 @@ Display:
 | **4** | Notifications: email + e-tickets | 0.5-1 day | ✅ Done | ~1.5 days |
 | **5** | Admin dashboard: round trip view | 0.5 day | ✅ Done | ~0.5 days |
 | **6** | Testing (E2E + unit) + TypeScript fix | 1-2 days | ✅ Done | ~2 days |
-| **7** | E2E QA & final polish | 0.5-1 day | ⏳ TODO | — |
+| **7** | Staging QA & readiness | 0.5-1 day | ⏳ TODO | — |
+| **8** | Manual merge to main (developer decision) | 0.25 day | ⏳ AFTER Phase 7 | — |
 | **COMPLETED** | Phase 1-6 | **6.5 days** | ✅ | ~7 days |
-| **REMAINING** | Phase 7 | **0.5-1 day** | ⏳ | — |
-| **TOTAL** | | **6-7 days** | 96% | — |
+| **REMAINING** | Phase 7 → Staging | **0.5-1 day** | ⏳ | — |
+| **FUTURE** | Phase 8 → Main (manual) | **0.25 day** | ⏳ On-demand | — |
+| **TOTAL** | **To Staging** | **7-8 days** | 96% | — |
 
 ---
 
@@ -415,9 +417,89 @@ Display:
    - E2E test can be tuned later (selector refinement, not UI changes needed)
    - **Status: READY FOR PHASE 7** ✅
 
-### 🔄 TODO
+### 🔄 Phase 7: Staging Readiness & Final QA (TODO - 0.5-1 day)
 
-8. **Phase 7:** Deploy & monitoring
+**Target:** Get feature stable on staging branch for user testing
+
+**Scope:** Verify round-trip feature works end-to-end on staging branch (no main merge)
+
+#### Tasks:
+1. **E2E Test Verification**
+   - Run `pnpm test:e2e` to confirm 7/10 passing
+   - Verify no regressions in existing flows
+   - Document 3 known skipped test issues (deferred for future)
+
+2. **Manual Testing on Staging**
+   - Test round-trip search flow (one-way vs return toggle)
+   - Test passenger data entry (once, applies to both legs)
+   - Test payment flow (single transaction for both legs)
+   - Verify booking confirmation email shows both legs
+   - Check admin dashboard displays round-trip bookings correctly
+   - Test booking cancellation (full cancel, both legs)
+
+3. **Visual & UX Polish**
+   - Check mobile responsiveness (both search & checkout)
+   - Verify all error messages are clear
+   - Test accessibility (keyboard navigation, screen readers)
+   - Cross-browser spot check (Chrome, Safari)
+
+4. **Documentation & Rollout**
+   - Mark feature as "Ready on Staging" in feature flags/docs
+   - Document known E2E limitations (3 skipped tests)
+   - Create user-facing feature announcement if needed
+   - Staging deployment ready ✅
+
+#### Definition of Done (Staging):
+- ✅ All unit tests passing (798/798)
+- ✅ TypeScript compilation clean
+- ✅ E2E tests running (7/10 passing documented)
+- ✅ Manual end-to-end flow verified
+- ✅ No regressions in one-way bookings
+- ✅ Staging branch updated with feature
+- ✅ Ready for user testing on staging environment
+
+---
+
+### 🚀 Phase 8: Manual Merge to Main (Developer Decision)
+
+**Scope:** When ready, developer manually merges staging → main branch
+
+#### Prerequisites (Before Merge):
+- ✅ Phase 7 complete (staging verified)
+- ✅ User acceptance testing done on staging
+- ✅ No critical bugs discovered
+- ✅ Business stakeholder sign-off (optional)
+
+#### Merge Steps (Manual by Developer):
+```bash
+# 1. Ensure everything is committed on staging
+git status  # Should be clean
+
+# 2. Switch to main branch
+git checkout claude/boat-ticketing-mvp-YAGl9
+
+# 3. Merge staging into main
+git merge staging
+
+# 4. Push to remote
+git push origin claude/boat-ticketing-mvp-YAGl9
+
+# 5. Create PR if needed (GitHub flow)
+gh pr create --title "feat: round-trip booking - production ready" \
+  --body "Merges staging to main after successful staging QA"
+```
+
+#### Post-Merge Verification:
+- [ ] CI/CD pipeline passes on main
+- [ ] Staging & main branches in sync
+- [ ] No merge conflicts
+- [ ] Feature deployable to production when ready
+
+#### Notes:
+- **Developer-driven:** Not automated, manual decision
+- **Staging verification required:** Phase 7 must be complete
+- **No rollback:** Once merged to main, follow normal git revert if issues found
+- **Communication:** Notify team of merge via PR/Slack
 
 ---
 
