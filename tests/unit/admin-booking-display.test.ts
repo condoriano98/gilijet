@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
+import type { Booking, Leg } from '@prisma/client';
 import { getMainLeg, getReturnLeg } from '@/lib/booking-helpers';
 
 /**
@@ -8,7 +9,23 @@ import { getMainLeg, getReturnLeg } from '@/lib/booking-helpers';
  * Tests that admin dashboard correctly displays one-way and round-trip bookings
  */
 
-const mockOneWayBooking = {
+// Type for Leg with schedule relation included
+type LegWithSchedule = Leg & {
+  schedule: {
+    originPort: string;
+    destinationPort: string;
+    boat: { name: string };
+  };
+};
+
+// Type for Booking with leg relations included
+type BookingWithLegs = Pick<Booking, 'id' | 'tripType' | 'bookingReference' | 'customerName' | 'customerEmail' | 'customerPhone' | 'totalAmount'> & {
+  leg: LegWithSchedule | null;
+  outboundLeg: LegWithSchedule | null;
+  returnLeg: LegWithSchedule | null;
+};
+
+const mockOneWayBooking: BookingWithLegs = {
   id: 'booking-ow-1',
   tripType: 'ONE_WAY' as const,
   bookingReference: 'GILI-OW001',
@@ -18,19 +35,25 @@ const mockOneWayBooking = {
   totalAmount: new Prisma.Decimal('500000'),
   leg: {
     id: 'leg-1',
+    operatorId: 'op-1',
+    scheduleId: 'sch-1',
+    status: 'OPEN',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     basePrice: new Prisma.Decimal('500000'),
     departureDate: new Date('2026-10-25T08:00:00Z'),
+    cancellationReason: null,
     schedule: {
       originPort: 'BLI',
       destinationPort: 'SBY',
       boat: { name: 'Fast Boat A' },
     },
-  },
+  } as any,
   outboundLeg: null,
   returnLeg: null,
 };
 
-const mockRoundTripBooking = {
+const mockRoundTripBooking: BookingWithLegs = {
   id: 'booking-rt-1',
   tripType: 'ROUND_TRIP' as const,
   bookingReference: 'GILI-RT001',
@@ -41,30 +64,42 @@ const mockRoundTripBooking = {
   leg: null,
   outboundLeg: {
     id: 'leg-rt-1',
+    operatorId: 'op-1',
+    scheduleId: 'sch-1',
+    status: 'OPEN',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     basePrice: new Prisma.Decimal('500000'),
     departureDate: new Date('2026-10-25T08:00:00Z'),
+    cancellationReason: null,
     schedule: {
       originPort: 'BLI',
       destinationPort: 'SBY',
       boat: { name: 'Fast Boat A' },
     },
-  },
+  } as any,
   returnLeg: {
     id: 'leg-rt-2',
+    operatorId: 'op-1',
+    scheduleId: 'sch-2',
+    status: 'OPEN',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     basePrice: new Prisma.Decimal('500000'),
     departureDate: new Date('2026-10-27T15:00:00Z'),
+    cancellationReason: null,
     schedule: {
       originPort: 'SBY',
       destinationPort: 'BLI',
       boat: { name: 'Fast Boat B' },
     },
-  },
+  } as any,
 };
 
 describe('Admin booking display - round-trip support', () => {
   describe('One-way booking display', () => {
     it('correctly identifies one-way booking', () => {
-      const booking = mockOneWayBooking as any;
+      const booking = mockOneWayBooking;
       expect(booking.tripType).toBe('ONE_WAY');
       expect(booking.leg).not.toBeNull();
       expect(booking.outboundLeg).toBeNull();
@@ -72,7 +107,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('getMainLeg returns the single leg for one-way', () => {
-      const booking = mockOneWayBooking as any;
+      const booking = mockOneWayBooking;
       const mainLeg = getMainLeg(booking);
       expect(mainLeg).not.toBeNull();
       expect(mainLeg?.id).toBe('leg-1');
@@ -81,7 +116,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('getReturnLeg returns null for one-way', () => {
-      const booking = mockOneWayBooking as any;
+      const booking = mockOneWayBooking;
       const returnLeg = getReturnLeg(booking);
       expect(returnLeg).toBeNull();
     });
@@ -89,7 +124,7 @@ describe('Admin booking display - round-trip support', () => {
 
   describe('Round-trip booking display', () => {
     it('correctly identifies round-trip booking', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       expect(booking.tripType).toBe('ROUND_TRIP');
       expect(booking.leg).toBeNull();
       expect(booking.outboundLeg).not.toBeNull();
@@ -97,7 +132,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('getMainLeg returns outbound leg for round-trip', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       const mainLeg = getMainLeg(booking);
       expect(mainLeg).not.toBeNull();
       expect(mainLeg?.id).toBe('leg-rt-1');
@@ -106,7 +141,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('getReturnLeg returns return leg for round-trip', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       const returnLeg = getReturnLeg(booking);
       expect(returnLeg).not.toBeNull();
       expect(returnLeg?.id).toBe('leg-rt-2');
@@ -116,7 +151,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('returns correct departure sequence for round-trip', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       const mainLeg = getMainLeg(booking)!;
       const returnLeg = getReturnLeg(booking)!;
 
@@ -135,14 +170,14 @@ describe('Admin booking display - round-trip support', () => {
 
   describe('Booking row data for admin display', () => {
     it('provides booking reference for one-way', () => {
-      const booking = mockOneWayBooking as any;
+      const booking = mockOneWayBooking;
       expect(booking.bookingReference).toBe('GILI-OW001');
       expect(booking.customerName).toBe('John Doe');
       expect(booking.totalAmount).toEqual(new Prisma.Decimal('500000'));
     });
 
     it('provides all required fields for round-trip row', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       expect(booking.bookingReference).toBe('GILI-RT001');
       expect(booking.tripType).toBe('ROUND_TRIP');
       expect(booking.customerName).toBe('Jane Doe');
@@ -152,7 +187,7 @@ describe('Admin booking display - round-trip support', () => {
     });
 
     it('calculates correct pricing for round-trip display', () => {
-      const booking = mockRoundTripBooking as any;
+      const booking = mockRoundTripBooking;
       const mainLeg = getMainLeg(booking)!;
       const returnLeg = getReturnLeg(booking)!;
 
