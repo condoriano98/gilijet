@@ -1,8 +1,8 @@
 # Feature: Return Trip Booking (Round Trip) End-to-End
 
-**Status:** ✅ Approved (Requirement: 2026-10-03)  
+**Status:** ✅ Implementation Complete - Ready for Testing (2026-10-07)  
 **Created:** 2026-09-28  
-**Updated:** 2026-10-03  
+**Updated:** 2026-10-07 (Synced staging ↔ main, Phase 7 ready)  
 **Owner:** Product Team
 
 ---
@@ -417,7 +417,7 @@ Display:
    - E2E test can be tuned later (selector refinement, not UI changes needed)
    - **Status: READY FOR PHASE 7** ✅
 
-### 🔄 Phase 7: Staging Readiness & Final QA (IN PROGRESS)
+### 🔄 Phase 7: Staging Readiness & Final QA (READY FOR TESTING)
 
 **Target:** Get feature stable on staging branch for developer testing
 
@@ -431,7 +431,13 @@ Display:
    - ✅ No regressions in existing flows
    - ✅ Known skipped test issues documented
 
-2. **Manual Testing on Staging** ⏳ WILL VERIFY BY DEV
+2. **Branch Sync & Cleanup** ✅ DONE (2026-10-07)
+   - ✅ Synced staging with main (rebased 26 commits)
+   - ✅ Removed incomplete UI from main (one-way only)
+   - ✅ Restored full UI to staging (both options)
+   - ✅ Branches diverged correctly for safety
+
+3. **Manual Testing on Staging** ⏳ WILL VERIFY BY DEV
    - Round-trip search flow (one-way vs return toggle)
    - Passenger data entry (once, applies to both legs)
    - Payment flow (single transaction for both legs)
@@ -439,13 +445,13 @@ Display:
    - Admin dashboard (round-trip display)
    - Booking cancellation (full cancel, both legs)
 
-3. **Visual & UX Polish** ⏳ WILL VERIFY BY DEV
+4. **Visual & UX Polish** ⏳ WILL VERIFY BY DEV
    - Mobile responsiveness (search & checkout)
    - Error messaging clarity
    - Accessibility (keyboard, screen readers)
    - Cross-browser spot check (Chrome, Safari)
 
-4. **Documentation & Rollout** ✅ IN PROGRESS
+5. **Documentation & Rollout** ✅ COMPLETE
    - Feature marked as "Ready on Staging"
    - E2E limitations documented
    - Staging deployment ready
