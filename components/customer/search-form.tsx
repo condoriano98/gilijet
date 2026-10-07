@@ -81,7 +81,7 @@ export function SearchForm(props: SearchFormProps) {
     <form onSubmit={submit} className="p-4 sm:p-6">
       {/* Trip type */}
       <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-sm">
-        {(['one_way', 'round_trip'] as const).map((tt) => (
+        {(['one_way'] as const).map((tt) => (
           <button
             key={tt}
             type="button"
