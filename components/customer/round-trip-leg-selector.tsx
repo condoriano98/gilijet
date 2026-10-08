@@ -17,8 +17,8 @@ interface RoundTripLegSelectorProps {
   outboundLegs: LegForClient[];
   returnLegs: LegForClient[];
   passengers: number;
-  ratingsByScheduleId: Map<string, { avg: number; count: number }>;
-  fxRates: any;
+  ratingsByScheduleId: Record<string, { avg: number; count: number }>;
+  fxRates: Map<string, number>;
 }
 
 export function RoundTripLegSelector({
@@ -47,7 +47,7 @@ export function RoundTripLegSelector({
     isSelected: boolean;
     onSelect: () => void;
   }) => {
-    const rating = ratingsByScheduleId.get(leg.scheduleId);
+    const rating = ratingsByScheduleId[leg.scheduleId];
     const priceIdr = Number(leg.basePrice);
     const fxDisplay = formatWithDisplay(priceIdr, 'USD', fxRates);
 

@@ -2,18 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
 import { serializeDecimals } from '@/lib/serialize-decimals';
 
-// Create a mock Decimal object that has the proper constructor.name
-function createMockDecimal(value: string | number): any {
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  const DecimalClass = function () {};
-  Object.defineProperty(DecimalClass, 'name', { value: 'Decimal' });
-
-  const obj = Object.create(DecimalClass.prototype);
-  obj.constructor = DecimalClass;
-  obj[Symbol.toPrimitive] = () => numValue;
-  obj.toString = () => String(numValue);
-  obj.toNumber = () => numValue;
-  return obj;
+function createMockDecimal(value: string | number): Prisma.Decimal {
+  return new Prisma.Decimal(value);
 }
 
 describe('serializeDecimals', () => {
@@ -118,14 +108,12 @@ describe('serializeDecimals', () => {
       expect(typeof result).toBe('boolean');
     });
 
-    it('preserves Date objects (returns empty object due to no enumerable properties)', () => {
+    it('preserves Date objects', () => {
       const date = new Date('2026-10-15T08:00:00Z');
       const result = serializeDecimals(date);
 
-      // Date objects have no enumerable properties, so they become {}
-      expect(typeof result).toBe('object');
-      expect(Array.isArray(result)).toBe(false);
-      expect(result instanceof Date).toBe(false); // It's a plain object, not a Date
+      expect(result instanceof Date).toBe(true);
+      expect(result.getTime()).toBe(date.getTime());
     });
   });
 
@@ -392,7 +380,7 @@ describe('serializeDecimals', () => {
       const result = serializeDecimals(original);
 
       // Check that original still has the mock Decimal (not mutated)
-      expect(original.amount.constructor.name).toBe('Decimal');
+      expect(Prisma.Decimal.isDecimal(original.amount)).toBe(true);
       expect(typeof result.amount).toBe('number');
       expect(result !== original).toBe(true);
     });

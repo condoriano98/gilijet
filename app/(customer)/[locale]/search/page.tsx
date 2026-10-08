@@ -232,8 +232,10 @@ export default async function SearchPage({
   let visibleReturnLegs = isRoundTrip ? applyFiltersAndSort(returnLegs) : [];
 
   // Batch-fetch review aggregates for displayed schedules
+  // For round-trip, include schedule IDs from both outbound and return legs
+  const allVisibleLegs = isRoundTrip ? [...visibleLegs, ...visibleReturnLegs] : visibleLegs;
   const scheduleIds = Array.from(
-    new Set(visibleLegs.map((l) => l.scheduleId)),
+    new Set(allVisibleLegs.map((l) => l.scheduleId)),
   );
   let ratingsByScheduleId: Map<
     string,
@@ -358,7 +360,7 @@ export default async function SearchPage({
           outboundLegs={serializeDecimals(visibleLegs)}
           returnLegs={serializeDecimals(visibleReturnLegs)}
           passengers={passengers}
-          ratingsByScheduleId={ratingsByScheduleId}
+          ratingsByScheduleId={Object.fromEntries(ratingsByScheduleId)}
           fxRates={fxRates}
         />
       ) : legs.length === 0 ? (
