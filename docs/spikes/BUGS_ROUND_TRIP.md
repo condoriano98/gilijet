@@ -9,9 +9,9 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 | # | Bug | Severity | Status |
 |---|-----|----------|--------|
 | 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
-| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | 🔴 Open, belum dikerjakan |
+| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | 🟡 Fixed di working tree; tabel baru ter-apply saat deploy (`db push`) |
 | 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | 🟡 Fixed di working tree |
-| 4 | Cancel leg tidak membatalkan/refund booking Return | Blocker | 🟡 Fixed bareng #3 |
+| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | 🟡 Sebagian: cancel/refund/guard fixed (`fece18d`), notifikasi belum |
 
 ---
 
@@ -44,20 +44,25 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 - `app/api/operator/checkin/route.ts`: menolak jika `ticket.status === 'CHECKED_IN'` di level tiket.
 - QR sudah per-leg lewat tanggal (HMAC `ticketCode + tanggal`; PDF return memakai tanggal leg return). Jadi QR outbound tidak bisa dipakai di leg return dan sebaliknya; yang rusak hanya status check-in.
 
-**Rekomendasi:** tabel `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` dengan unique `(ticketId, legId)`.
-- `ticketCode`, PDF, dan jumlah tiket tidak berubah; tidak perlu backfill.
-- Refund tetap satu `REFUNDED` per tiket, otomatis kena kedua leg.
-- Perlu dicek: pembaca `ticket.status` / `checkedInAt` (manifest, no-show) harus per leg.
-- Menyentuh schema, perlu migrasi.
+**Fix (working tree, belum commit):** tabel `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` dengan unique `(ticketId, legId)`.
+- `lib/leg-checkin.ts`: `boardedLegIds`, `ticketStatusOnLeg`, `checkedInAtOnLeg`, `recordLegCheckin`. Gate-nya `createMany(skipDuplicates)` pada unique row (aman dari race antar scanner, tidak meng-abort transaksi Postgres).
+- `checkin/route.ts`: "already checked in" dicek per leg. `Ticket.status` jadi `CHECKED_IN` hanya setelah semua leg boarded (1 untuk one-way, 2 untuk round-trip), jadi refund (yang menyasar `ISSUED`) tetap benar untuk tiket yang baru separuh dipakai.
+- Manifest JSON/CSV/print dan halaman leg operator membaca status per leg. Manual check-in diaktifkan lagi untuk round-trip (memakai helper yang sama).
+- Tiket lama yang sudah `CHECKED_IN` tanpa row dianggap sudah boarding leg pertama (outbound); tidak perlu backfill.
+- `ticketCode`, QR, dan PDF tidak berubah. QR sudah per-leg lewat tanggal.
+- Tes: helper, alur route dua leg (in-memory), manifest per leg. Total 831 unit test lolos.
+
+**Deploy:** repo ini tanpa migration file; setiap build Vercel menjalankan `prisma db push` (tanpa `--accept-data-loss`) ke Supabase yang terkonfigurasi. Tabel baru bersifat additive, jadi ter-apply otomatis saat branch di-push. `.env` lokal menunjuk ke Supabase remote, jadi `db push` tidak dijalankan dari lokal.
 
 **Acceptance Criteria:**
-- [ ] Check-in outbound lalu return berhasil
-- [ ] Scan dua kali di leg yang sama tetap ditolak
-- [ ] QR outbound tidak bisa boarding leg return, dan sebaliknya
-- [ ] Unit test check-in dua leg
-- [ ] One-way tidak terdampak
+- [x] Check-in outbound lalu return berhasil (unit test route)
+- [x] Scan dua kali di leg yang sama tetap ditolak
+- [x] QR outbound tidak bisa boarding leg return, dan sebaliknya
+- [x] Unit test check-in dua leg
+- [x] One-way tidak terdampak (test one-way)
+- [ ] Uji nyata di staging (butuh `QR_HMAC_SECRET` terisi di environment staging dan tabel `TicketCheckin` sudah ter-apply; terbitkan tiket baru setelahnya)
 
-**Catatan:** `QR_HMAC_SECRET` belum di-set di env staging; harus diisi manual di Vercel sebelum uji check-in QR.
+**Catatan:** `QR_HMAC_SECRET` hanya ada di target `production` di Vercel (dicek 2026-10-09: tidak ada entri untuk custom environment "staging"). Harus ditambahkan untuk environment staging sebelum uji check-in QR.
 
 ---
 
@@ -81,13 +86,30 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 ---
 
-## 4. Cancel leg tidak menangani booking Return
+## 4. Pembatalan departure tidak membatalkan / refund / notifikasi booking Return
 
-**Gejala:** `cancelLeg` (`lib/legs.ts`) memakai `where: { legId, status: 'CONFIRMED' }`, jadi booking round-trip tidak ikut dibatalkan dan tidak di-refund; tiketnya tetap `ISSUED`.
+**Gejala:** Operator/admin membatalkan leg A atau B, booking Return tetap `CONFIRMED`: tidak dibatalkan, tidak ada Refund, tiket tidak di-void, customer tidak diberi tahu. `cancelLeg` (`lib/legs.ts`) mencari `where: { legId, status: 'CONFIRMED' }`, padahal round-trip menyimpan `legId = null`.
 
-**Fix (working tree, bareng #3):** pakai `bookingsOnLegWhere`. Mengikuti aturan MVP: leg mana pun dibatalkan, booking round-trip batal penuh dengan refund 100%. Ada unit test lookup `cancelLeg`.
+**Sudah (`fece18d`, belum di-push):**
+- `cancelLeg` memakai `bookingsOnLegWhere`: leg mana pun dibatalkan, booking round-trip jadi `CANCELLED_BY_OPERATOR`, tiket `REFUNDED`, 1 Refund 100% `totalAmount`, semua dalam satu `$transaction` (atomik).
+- Guard hapus/nonaktifkan schedule (`actions.ts`) ikut menghitung booking round-trip.
+- Filter di jalur weather halaman operator diganti ke helper (jalurnya sendiri sudah mati, lihat follow-up 3).
+- Unit test: lookup `cancelLeg` mencakup one-way + outbound + return.
 
-**Belum teruji:** alur penuh cancel → refund untuk round-trip di DB nyata.
+**Belum:**
+- **Notifikasi email + WhatsApp ke customer.** Tidak ada pemanggil `cancelLeg` (admin `cancelDeparture`, halaman operator) yang mengirim notifikasi. Ini gap lama, berlaku juga untuk one-way. `notifyOperatorUnavailable` (`lib/booking-notifications.ts`) sudah mendukung round-trip (menyebut kedua leg) dan bisa dipakai; perlu dipanggil per booking setelah transaksi commit.
+- **Leg pulang yang sudah lewat:** booking Return yang salah satu legnya sudah SAILED tidak boleh terdampak secara salah. Perilaku `cancelLeg` untuk kasus ini belum didefinisikan/diuji.
+- **Unit test skenario lengkap:** cancel leg dengan booking one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), cancel via leg outbound dan via leg return.
+
+**Keputusan pending (bisnis):** usulan: jika salah satu leg booking Return sudah `SAILED`, `cancelLeg` tidak membatalkan booking tsb dan diserahkan ke penanganan manual admin (refund 100% atas perjalanan yang sebagian sudah dipakai bisa salah). Belum dikonfirmasi.
+
+**Acceptance Criteria:**
+- [x] Cancel leg outbound / return → booking Return batal penuh, refund 100% (secara kode; belum diuji DB nyata)
+- [ ] Notifikasi terkirim (email + WhatsApp, menyebut kedua leg)
+- [ ] Booking Return yang leg pulangnya sudah lewat tidak terdampak secara salah
+- [x] Guard nonaktifkan jadwal memblokir jika ada booking round-trip aktif
+- [ ] Unit test cancel leg one-way + round-trip (baru sebagian)
+- [x] Alur one-way tidak berubah
 
 ---
 
@@ -97,4 +119,5 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 2. ⚠️ **Manual check-in** di `app/operator/legs/[id]/page.tsx` nyaring `booking.legId`, jadi gagal untuk round-trip. Tombolnya disembunyikan untuk baris round-trip sampai #2 selesai.
 3. ⚠️ **Jalur cuaca** di halaman yang sama (cari booking `CONFIRMED` setelah `cancelLeg`) tampaknya sudah tidak pernah menemukan apa pun karena `cancelLeg` sudah mengubah statusnya. Pre-existing; perilaku tidak diubah.
 4. ⚠️ **E2E round-trip** (`round-trip-booking.spec.ts`) di-skip, jadi regresi alur search → booking tidak tertangkap otomatis.
-5. ⚠️ **`QR_HMAC_SECRET`** tidak ada di env test dan staging (lihat #2).
+5. ⚠️ **`QR_HMAC_SECRET`** tidak ada di environment staging (hanya production) maupun env test (test me-mock `lib/qr`).
+6. ⚠️ **`CRON_SECRET`** tidak muncul di daftar env Vercel (dicek 2026-10-09). README mewajibkan ada di staging supaya cron tidak 401. Belum diperiksa lebih jauh; di luar scope bug round-trip.
