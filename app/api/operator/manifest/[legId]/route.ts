@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 import { buildQrPayload } from '@/lib/qr';
+import { bookingsOnLegWhere, legRoleForBooking } from '@/lib/booking-helpers';
 
 /**
  * Returns a manifest of all ISSUED tickets for a leg.
@@ -26,10 +27,6 @@ export async function GET(
     where: { id: legId, operatorId: session.sub },
     include: {
       schedule: { include: { boat: true } },
-      bookings: {
-        where: { status: 'CONFIRMED' },
-        include: { tickets: { where: { status: { in: ['ISSUED', 'CHECKED_IN'] } } } },
-      },
     },
   });
 
@@ -37,13 +34,24 @@ export async function GET(
     return NextResponse.json({ ok: false, error: 'Leg not found' }, { status: 404 });
   }
 
-  const tickets = leg.bookings.flatMap((b) =>
+  const bookings = await prisma.booking.findMany({
+    where: {
+      ...bookingsOnLegWhere(legId),
+      operatorId: session.sub,
+      status: 'CONFIRMED',
+    },
+    include: { tickets: { where: { status: { in: ['ISSUED', 'CHECKED_IN'] } } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const tickets = bookings.flatMap((b) =>
     b.tickets.map((t) => ({
       ticketCode: t.ticketCode,
       qrPayload: buildQrPayload(t.ticketCode, leg.departureDate),
       passengerName: t.passengerName,
       status: t.status,
       bookingReference: b.bookingReference,
+      trip: legRoleForBooking(b, legId),
       checkedInAt: t.checkedInAt?.toISOString() ?? null,
     })),
   );

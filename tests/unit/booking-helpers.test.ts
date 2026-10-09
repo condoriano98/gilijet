@@ -5,6 +5,9 @@ import {
   getMainLeg,
   getReturnLeg,
   getAllLegsForBooking,
+  bookingsOnLegWhere,
+  legRoleForBooking,
+  LEG_ROLE_LABEL,
 } from '@/lib/booking-helpers';
 
 describe('booking-helpers', () => {
@@ -355,5 +358,33 @@ describe('booking-helpers', () => {
       expect(allLegsArrays[0]).toHaveLength(1);
       expect(allLegsArrays[1]).toHaveLength(2);
     });
+  });
+});
+
+describe('bookingsOnLegWhere', () => {
+  it('matches one-way, outbound and return bookings for the leg', () => {
+    expect(bookingsOnLegWhere('leg-9')).toEqual({
+      OR: [{ legId: 'leg-9' }, { outboundLegId: 'leg-9' }, { returnLegId: 'leg-9' }],
+    });
+  });
+});
+
+describe('legRoleForBooking', () => {
+  it('is ONE_WAY for one-way bookings', () => {
+    expect(legRoleForBooking({ tripType: 'ONE_WAY', returnLegId: null }, 'leg-1')).toBe('ONE_WAY');
+  });
+
+  it('is OUTBOUND on the outbound leg of a round trip', () => {
+    expect(legRoleForBooking({ tripType: 'ROUND_TRIP', returnLegId: 'leg-2' }, 'leg-1')).toBe('OUTBOUND');
+  });
+
+  it('is RETURN on the return leg of a round trip', () => {
+    expect(legRoleForBooking({ tripType: 'ROUND_TRIP', returnLegId: 'leg-2' }, 'leg-2')).toBe('RETURN');
+  });
+
+  it('has a label for every role', () => {
+    expect(LEG_ROLE_LABEL.ONE_WAY).toBe('One-way');
+    expect(LEG_ROLE_LABEL.OUTBOUND).toMatch(/outbound/);
+    expect(LEG_ROLE_LABEL.RETURN).toMatch(/return/);
   });
 });

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { audit } from './audit';
+import { bookingsOnLegWhere } from './booking-helpers';
 import {
   OPERATOR_TIMEZONE,
   isoDayOfWeek,
@@ -168,7 +169,7 @@ export async function cancelLeg(args: {
     });
 
     const bookings = await tx.booking.findMany({
-      where: { legId, status: 'CONFIRMED' },
+      where: { ...bookingsOnLegWhere(legId), status: 'CONFIRMED' },
       include: { tickets: true, payment: true, refund: true },
     });
 

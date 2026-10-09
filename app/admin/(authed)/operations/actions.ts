@@ -479,12 +479,17 @@ export async function deleteSchedule(formData: FormData) {
   // strand them: they keep a ticket for a departure the operator can no longer
   // see. Cancelling a departure already refunds correctly, so send the admin
   // through that path rather than growing a second, weaker one here.
+  const holdingSeats = { status: { in: ['CONFIRMED' as const, 'AWAITING_CONFIRMATION' as const, 'PENDING_PAYMENT' as const] } };
   const bookedLegs = await prisma.leg.count({
     where: {
       scheduleId: id,
       departureDate: { gte: now },
       status: { not: 'CANCELLED' },
-      bookings: { some: { status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] } } },
+      OR: [
+        { bookings: { some: holdingSeats } },
+        { outboundBookings: { some: holdingSeats } },
+        { returnBookings: { some: holdingSeats } },
+      ],
     },
   });
   if (bookedLegs > 0) {

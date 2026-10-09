@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/auth';
 import { formatLocalDateTime } from '@/lib/datetime';
+import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
 import {
   Card,
   CardContent,
@@ -53,23 +54,29 @@ export default async function DepartureDetailPage({
           boat: { select: { name: true } },
         },
       },
-      bookings: {
-        where: { status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] } },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          id: true,
-          bookingReference: true,
-          customerName: true,
-          customerPhone: true,
-          status: true,
-          tickets: { select: { passengerName: true, status: true } },
-        },
-      },
     },
   });
   if (!leg) notFound();
 
-  const passengers = leg.bookings.flatMap((b) => b.tickets);
+  const bookings = await prisma.booking.findMany({
+    where: {
+      ...bookingsOnLegWhere(legId),
+      status: { in: ['CONFIRMED', 'AWAITING_CONFIRMATION', 'PENDING_PAYMENT'] },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      bookingReference: true,
+      customerName: true,
+      customerPhone: true,
+      status: true,
+      tripType: true,
+      returnLegId: true,
+      tickets: { select: { passengerName: true, status: true } },
+    },
+  });
+
+  const passengers = bookings.flatMap((b) => b.tickets);
   const closed = leg.status === 'CANCELLED' || leg.status === 'SAILED';
 
   return (
@@ -198,7 +205,7 @@ export default async function DepartureDetailPage({
               <Button type="submit" variant="destructive" disabled={closed}>
                 {leg.status === 'CANCELLED'
                   ? 'Already cancelled'
-                  : `Cancel and refund ${leg.bookings.filter((b) => b.status === 'CONFIRMED').length} booking(s)`}
+                  : `Cancel and refund ${bookings.filter((b) => b.status === 'CONFIRMED').length} booking(s)`}
               </Button>
             </CardFooter>
           </form>
@@ -213,7 +220,7 @@ export default async function DepartureDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {leg.bookings.length === 0 ? (
+          {bookings.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No bookings yet.
             </p>
@@ -229,10 +236,15 @@ export default async function DepartureDetailPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leg.bookings.map((b) => (
+                {bookings.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono text-xs">
                       {b.bookingReference}
+                      {b.tripType === 'ROUND_TRIP' ? (
+                        <Badge variant="outline" className="ml-2 font-sans">
+                          {LEG_ROLE_LABEL[legRoleForBooking(b, legId)]}
+                        </Badge>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-sm">{b.customerName}</TableCell>
                     <TableCell className="text-sm">{b.customerPhone}</TableCell>

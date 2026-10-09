@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 import { getOperatorLeg } from '@/lib/operator-data';
+import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
 import { cancelLeg } from '@/lib/legs';
 import { audit } from '@/lib/audit';
 import {
@@ -56,7 +57,7 @@ async function cancelLegAction(formData: FormData) {
 
     if (parsed.data.cancellationType === 'WEATHER') {
       const bookings = await prisma.booking.findMany({
-        where: { legId: parsed.data.id, status: 'CONFIRMED' },
+        where: { ...bookingsOnLegWhere(parsed.data.id), status: 'CONFIRMED' },
         include: { payment: true },
       });
       for (const booking of bookings) {
@@ -310,6 +311,11 @@ export default async function LegManifestPage({
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {b.bookingReference}
+                        {b.tripType === 'ROUND_TRIP' ? (
+                          <Badge variant="outline" className="ml-2 font-sans">
+                            {LEG_ROLE_LABEL[legRoleForBooking(b, leg.id)]}
+                          </Badge>
+                        ) : null}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -327,7 +333,7 @@ export default async function LegManifestPage({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {t.status === 'ISSUED' && !cancelled ? (
+                        {t.status === 'ISSUED' && !cancelled && b.tripType !== 'ROUND_TRIP' ? (
                           <form action={manualCheckinAction}>
                             <input type="hidden" name="ticketId" value={t.id} />
                             <input type="hidden" name="legId" value={leg.id} />

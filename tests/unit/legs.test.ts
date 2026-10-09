@@ -393,6 +393,26 @@ describe('cancelLeg', () => {
     expect(result.pendingRefunds).toBe(2);
   });
 
+  it('looks up one-way and round-trip bookings on the leg', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const mockTx = {
+      leg: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'leg-1', operatorId: 'op-1', status: 'OPEN' }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      booking: { findMany },
+      auditLog: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
+
+    await cancelLeg({ legId: 'leg-1', reason: 'Engine failure', operatorId: 'op-1' });
+
+    expect(findMany.mock.calls[0][0].where).toMatchObject({
+      OR: [{ legId: 'leg-1' }, { outboundLegId: 'leg-1' }, { returnLegId: 'leg-1' }],
+      status: 'CONFIRMED',
+    });
+  });
+
   it('throws error when not authorised for leg', async () => {
     const mockTx = {
       leg: {

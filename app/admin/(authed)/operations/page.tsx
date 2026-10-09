@@ -68,7 +68,7 @@ export default async function OperationsDeparturesPage({
         schedule: {
           select: { originPort: true, destinationPort: true, boat: { select: { name: true } } },
         },
-        _count: { select: { bookings: true } },
+        _count: { select: { bookings: true, outboundBookings: true, returnBookings: true } },
       },
     }),
   ]);
@@ -167,7 +167,7 @@ export default async function OperationsDeparturesPage({
                       {l.schedule.boat.name}
                     </TableCell>
                     <TableCell className="text-right text-sm">
-                      {l._count.bookings}
+                      {l._count.bookings + l._count.outboundBookings + l._count.returnBookings}
                     </TableCell>
                     <TableCell>
                       <Badge

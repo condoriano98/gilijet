@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
+import { bookingsOnLegWhere } from './booking-helpers';
 
 /**
  * Operator-scoped data helpers. Every query enforces operatorId so a
@@ -46,21 +47,22 @@ export async function getOperatorSchedule(operatorId: string, scheduleId: string
 }
 
 export async function getOperatorLeg(operatorId: string, legId: string) {
-  return prisma.leg.findFirst({
+  const leg = await prisma.leg.findFirst({
     where: {
       id: legId,
       operatorId,
       schedule: { deletedAt: null, boat: { deletedAt: null } },
     },
-    include: {
-      schedule: { include: { boat: true } },
-      bookings: {
-        where: { status: 'CONFIRMED' },
-        include: { tickets: true },
-        orderBy: { createdAt: 'asc' },
-      },
-    },
+    include: { schedule: { include: { boat: true } } },
   });
+  if (!leg) return null;
+
+  const bookings = await prisma.booking.findMany({
+    where: { ...bookingsOnLegWhere(legId), operatorId, status: 'CONFIRMED' },
+    include: { tickets: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  return { ...leg, bookings };
 }
 
 export async function getOperatorLegs(

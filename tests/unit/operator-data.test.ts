@@ -35,6 +35,9 @@ vi.mock('@/lib/db', () => ({
       findMany: vi.fn(),
       findFirst: vi.fn(),
     },
+    booking: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -307,19 +310,16 @@ describe('getOperatorLeg', () => {
         id: 'sched-1',
         boat: { id: 'boat-1', name: 'Boat' },
       },
-      bookings: [
-        {
-          id: 'booking-1',
-          status: 'CONFIRMED',
-          tickets: [{ id: 'ticket-1' }],
-        },
-      ],
       cancellationReason: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    const mockBookings = [
+      { id: 'booking-1', status: 'CONFIRMED', tickets: [{ id: 'ticket-1' }] },
+    ];
 
     vi.mocked(prisma.leg.findFirst).mockResolvedValueOnce(mockLeg as any);
+    vi.mocked(prisma.booking.findMany).mockResolvedValueOnce(mockBookings as any);
 
     const result = await getOperatorLeg('op-1', 'leg-1');
 
@@ -329,25 +329,42 @@ describe('getOperatorLeg', () => {
         operatorId: 'op-1',
         schedule: { deletedAt: null, boat: { deletedAt: null } },
       },
-      include: {
-        schedule: { include: { boat: true } },
-        bookings: {
-          where: { status: 'CONFIRMED' },
-          include: { tickets: true },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+      include: { schedule: { include: { boat: true } } },
     });
-    expect(result).toEqual(mockLeg);
+    expect(result).toEqual({ ...mockLeg, bookings: mockBookings });
   });
 
-  it('only includes CONFIRMED bookings', async () => {
-    vi.mocked(prisma.leg.findFirst).mockResolvedValueOnce(null);
+  it('only includes CONFIRMED bookings for this operator', async () => {
+    vi.mocked(prisma.leg.findFirst).mockResolvedValueOnce({ id: 'leg-1' } as any);
+    vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([]);
 
     await getOperatorLeg('op-1', 'leg-1');
 
-    const call = vi.mocked(prisma.leg.findFirst).mock.calls[0][0]!;
-    expect((call.include as any).bookings.where).toEqual({ status: 'CONFIRMED' });
+    const call = vi.mocked(prisma.booking.findMany).mock.calls[0][0]!;
+    expect(call.where).toMatchObject({ status: 'CONFIRMED', operatorId: 'op-1' });
+  });
+
+  it('matches one-way, round-trip outbound and round-trip return bookings', async () => {
+    vi.mocked(prisma.leg.findFirst).mockResolvedValueOnce({ id: 'leg-1' } as any);
+    vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([]);
+
+    await getOperatorLeg('op-1', 'leg-1');
+
+    const call = vi.mocked(prisma.booking.findMany).mock.calls[0][0]!;
+    expect((call.where as any).OR).toEqual([
+      { legId: 'leg-1' },
+      { outboundLegId: 'leg-1' },
+      { returnLegId: 'leg-1' },
+    ]);
+  });
+
+  it('does not query bookings when the leg is not found', async () => {
+    vi.mocked(prisma.leg.findFirst).mockResolvedValueOnce(null);
+
+    const result = await getOperatorLeg('op-1', 'leg-1');
+
+    expect(result).toBeNull();
+    expect(prisma.booking.findMany).not.toHaveBeenCalled();
   });
 
   it('enforces soft-delete on schedule and boat', async () => {

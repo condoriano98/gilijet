@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getOperatorSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
 
 function csvEscape(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
@@ -23,23 +24,30 @@ export async function GET(
     where: { id: legId, operatorId: session.sub },
     include: {
       schedule: { include: { boat: true } },
-      bookings: {
-        where: { status: 'CONFIRMED' },
-        include: { tickets: true },
-      },
     },
   });
 
   if (!leg) return new Response('Not found', { status: 404 });
 
-  const header = ['Ticket Code', 'Passenger Name', 'ID Number', 'Status', 'Booking Reference'];
-  const rows = leg.bookings.flatMap((b) =>
+  const bookings = await prisma.booking.findMany({
+    where: {
+      ...bookingsOnLegWhere(legId),
+      operatorId: session.sub,
+      status: 'CONFIRMED',
+    },
+    include: { tickets: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const header = ['Ticket Code', 'Passenger Name', 'ID Number', 'Status', 'Booking Reference', 'Trip'];
+  const rows = bookings.flatMap((b) =>
     b.tickets.map((t) => [
       t.ticketCode,
       t.passengerName,
       t.passengerIdNumber ?? '',
       t.status,
       b.bookingReference,
+      LEG_ROLE_LABEL[legRoleForBooking(b, legId)],
     ]),
   );
 
