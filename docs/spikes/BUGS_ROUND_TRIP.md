@@ -8,6 +8,12 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 | # | Bug | Severity | Status |
 |---|-----|----------|--------|
+| 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), terverifikasi live lokal; di Vercel staging sudah ke-deploy |
+| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal; belum di-push |
+| 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal; belum di-push |
+| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal; belum di-push |
+
+---|-----|----------|--------|
 | 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
 | 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | 🟡 Fixed di working tree; tabel baru ter-apply saat deploy (`db push`) |
 | 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | 🟡 Fixed di working tree |
@@ -107,6 +113,26 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 **Keputusan pending (bisnis):** aturan "leg satunya sudah lewat → serahkan ke admin" belum dikonfirmasi.
 
 **Belum:** alasan pembatalan yang diisi admin/operator ("Shown to affected customers" di form admin) belum masuk ke email/WhatsApp; `sendCancellationEmail` dan `sendOperatorUnavailableWhatsapp` tidak punya parameter alasan.
+
+---
+
+## Verifikasi live (2026-10-09)
+
+Aplikasi dijalankan lokal (`next dev`, port 3100) terhadap DB Supabase staging (project `asymnwikxyhipoezoggp`, dipakai `.env.staging`; production memakai `viluiajknccclsogyogv`), dengan akun QA yang sudah ada. Email, WhatsApp, dan pembayaran dalam mode mock (kunci dikosongkan). Tabel `TicketCheckin` di-apply ke DB staging lewat `prisma db push` (additive, tanpa `--accept-data-loss`). Data uji memakai prefiks `VERIFY` pada booking dan operator QA Boats (Sanur ↔ Nusa Penida).
+
+**Hasil: 38/38 cek lolos** (Playwright + cek DB langsung):
+- **#1** Search Return: tanpa halaman error, daftar Outbound dan Return tampil dengan jam dan harga.
+- **#3** Manifest JSON/CSV/print dan halaman leg operator di kedua leg memuat penumpang round-trip dengan tag trip; Admin Departure detail di kedua leg memuat booking round-trip; list departure admin render.
+- **#2** Penumpang yang sama check-in di outbound lalu return; scan ulang di tiap leg ditolak `ALREADY_CHECKED_IN`; QR outbound ditolak di leg return dan sebaliknya (`INVALID_QR`); tiket separuh boarding tetap `ISSUED`, penuh jadi `CHECKED_IN` (2 baris `TicketCheckin`); status manifest per leg benar; one-way tidak berubah.
+- **#4** Cancel via leg return membatalkan round-trip (tiket `REFUNDED`, 1 Refund = `totalAmount`) tanpa menyentuh one-way di leg lain; cancel via leg outbound membatalkan one-way; round-trip yang leg outbound-nya `SAILED` tidak dibatalkan dan memunculkan peringatan; email + WhatsApp (mock) tercatat untuk tiap booking yang dibatalkan dan tidak untuk yang dilewati.
+
+**Belum tercakup:**
+- Hanya dijalankan lokal; deployment Vercel staging belum menjalankan commit #2 sampai #4 dan belum punya `QR_HMAC_SECRET`.
+- Notifikasi diuji dalam mode mock (tidak ada pesan nyata terkirim); isi email round-trip (kedua leg) hanya tercakup unit test.
+- Aksi cancel di halaman operator tidak dijalankan (hanya cancel lewat admin); lihat follow-up 7.
+- Tampilan visual tidak diperiksa manual (hanya teks/DOM).
+
+**Data uji tertinggal di DB staging:** 5 booking `VERIFY` (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP) beserta pembayaran, tiket, dan 2 Refund `PENDING`; 3 leg dibatalkan dan 1 leg `SAILED` (leg uji QA Boats 20, 22, 26, 28 Okt); 132 leg QA Boats baru (10 Okt sampai 22 Nov) hasil `generateLegsForSchedule`.
 
 ---
 
