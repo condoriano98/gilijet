@@ -24,12 +24,17 @@ import { GET as manifestCsv } from '@/app/api/operator/manifest/[legId]/csv/rout
 const OUTBOUND = 'leg-out';
 const RETURN = 'leg-ret';
 
-const ticket = (code: string, name: string) => ({
+const ticket = (
+  code: string,
+  name: string,
+  checkins: { legId: string; checkedInAt: Date }[] = [],
+) => ({
   ticketCode: code,
   passengerName: name,
   passengerIdNumber: null,
   status: 'ISSUED',
   checkedInAt: null,
+  checkins,
 });
 
 const oneWay = {
@@ -48,7 +53,10 @@ const roundTrip = {
   legId: null,
   outboundLegId: OUTBOUND,
   returnLegId: RETURN,
-  tickets: [ticket('TK-2', 'Ani'), ticket('TK-3', 'Citra')],
+  tickets: [
+    ticket('TK-2', 'Ani', [{ legId: OUTBOUND, checkedInAt: new Date('2026-10-20T01:00:00Z') }]),
+    ticket('TK-3', 'Citra'),
+  ],
 };
 
 const params = (legId: string) => ({ params: Promise.resolve({ legId }) });
@@ -119,6 +127,19 @@ describe('operator manifest JSON', () => {
   });
 });
 
+describe('operator manifest check-in status per leg', () => {
+  it('shows a passenger who boarded outbound as CHECKED_IN there and ISSUED on return', async () => {
+    const outbound = await (await manifestJson(req, params(OUTBOUND))).json();
+    const ret = await (await manifestJson(req, params(RETURN))).json();
+
+    const status = (body: { tickets: { ticketCode: string; status: string }[] }, code: string) =>
+      body.tickets.find((t) => t.ticketCode === code)?.status;
+    expect(status(outbound, 'TK-2')).toBe('CHECKED_IN');
+    expect(status(ret, 'TK-2')).toBe('ISSUED');
+    expect(status(outbound, 'TK-3')).toBe('ISSUED');
+  });
+});
+
 describe('operator manifest CSV', () => {
   it('includes round-trip passengers with a Trip column on both legs', async () => {
     const outbound = await (await manifestCsv(req, params(OUTBOUND))).text();
@@ -128,7 +149,7 @@ describe('operator manifest CSV', () => {
       'Ticket Code,Passenger Name,ID Number,Status,Booking Reference,Trip',
     );
     expect(outbound).toContain('TK-1,Budi,,ISSUED,GF-ONEWAY,One-way');
-    expect(outbound).toContain('TK-2,Ani,,ISSUED,GF-ROUND,Round trip · outbound');
+    expect(outbound).toContain('TK-2,Ani,,CHECKED_IN,GF-ROUND,Round trip · outbound');
     expect(ret).toContain('TK-3,Citra,,ISSUED,GF-ROUND,Round trip · return');
     expect(ret).not.toContain('GF-ONEWAY');
   });

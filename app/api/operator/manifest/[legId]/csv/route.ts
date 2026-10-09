@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getOperatorSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
+import { ticketStatusOnLeg } from '@/lib/leg-checkin';
 
 function csvEscape(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
@@ -35,7 +36,7 @@ export async function GET(
       operatorId: session.sub,
       status: 'CONFIRMED',
     },
-    include: { tickets: true },
+    include: { tickets: { include: { checkins: true } } },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -45,7 +46,7 @@ export async function GET(
       t.ticketCode,
       t.passengerName,
       t.passengerIdNumber ?? '',
-      t.status,
+      ticketStatusOnLeg(t, b, legId),
       b.bookingReference,
       LEG_ROLE_LABEL[legRoleForBooking(b, legId)],
     ]),

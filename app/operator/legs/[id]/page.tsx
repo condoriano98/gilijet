@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 import { getOperatorLeg } from '@/lib/operator-data';
+import { recordLegCheckin, boardedLegIds, ticketStatusOnLeg } from '@/lib/leg-checkin';
 import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
 import { cancelLeg } from '@/lib/legs';
 import { audit } from '@/lib/audit';
@@ -112,26 +113,32 @@ async function manualCheckinAction(formData: FormData) {
   if (!ticketId || !legId) redirect(`/operator/legs/${legId}`);
 
   const ticket = await prisma.ticket.findFirst({
-    where: { id: ticketId, booking: { legId, operatorId: session.sub } },
+    where: {
+      id: ticketId,
+      booking: { ...bookingsOnLegWhere(legId), operatorId: session.sub },
+    },
+    include: { booking: true, checkins: true },
   });
-  if (!ticket || ticket.status !== 'ISSUED') {
+  const checkinable =
+    ticket &&
+    (ticket.status === 'ISSUED' || ticket.status === 'CHECKED_IN') &&
+    !boardedLegIds(ticket, ticket.booking).has(legId);
+  if (!ticket || !checkinable) {
     redirect(`/operator/legs/${legId}?error=ticket_not_checkinable`);
   }
-  await prisma.ticket.update({
-    where: { id: ticket.id },
-    data: {
-      status: 'CHECKED_IN',
-      checkedInAt: new Date(),
-      checkedInBy: session.sub,
-    },
-  });
+  const recorded = await prisma.$transaction((tx) =>
+    recordLegCheckin(tx, { ticket, booking: ticket.booking, legId, by: session.sub }),
+  );
+  if (!recorded.ok) {
+    redirect(`/operator/legs/${legId}?error=ticket_not_checkinable`);
+  }
   await audit({
     entityType: 'TICKET',
     entityId: ticket.id,
     action: 'checked_in_manual',
     userId: session.sub,
     userRole: 'OPERATOR',
-    newState: { status: 'CHECKED_IN' },
+    newState: { status: 'CHECKED_IN', legId },
   });
   redirect(`/operator/legs/${legId}?ok=checkedin`);
 }
@@ -152,7 +159,10 @@ export default async function LegManifestPage({
   const confirmedBookings = leg.bookings.filter(
     (b) => b.status === 'CONFIRMED',
   );
-  const allTickets = confirmedBookings.flatMap((b) => b.tickets);
+  const rows = confirmedBookings.flatMap((b) =>
+    b.tickets.map((t) => ({ b, t: { ...t, status: ticketStatusOnLeg(t, b, leg.id) } })),
+  );
+  const allTickets = rows.map((r) => r.t);
   const checkedIn = allTickets.filter((t) => t.status === 'CHECKED_IN').length;
   const issued = allTickets.filter((t) => t.status === 'ISSUED').length;
   const cancelled = leg.status === 'CANCELLED';
@@ -300,8 +310,7 @@ export default async function LegManifestPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {confirmedBookings.flatMap((b) =>
-                  b.tickets.map((t) => (
+                {rows.map(({ b, t }) => (
                     <TableRow key={t.id}>
                       <TableCell className="font-medium">
                         {t.passengerName}
@@ -333,7 +342,7 @@ export default async function LegManifestPage({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {t.status === 'ISSUED' && !cancelled && b.tripType !== 'ROUND_TRIP' ? (
+                        {t.status === 'ISSUED' && !cancelled ? (
                           <form action={manualCheckinAction}>
                             <input type="hidden" name="ticketId" value={t.id} />
                             <input type="hidden" name="legId" value={leg.id} />
@@ -344,8 +353,7 @@ export default async function LegManifestPage({
                         ) : null}
                       </TableCell>
                     </TableRow>
-                  )),
-                )}
+                ))}
               </TableBody>
             </Table>
           )}

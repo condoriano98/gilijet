@@ -238,6 +238,7 @@ model Leg {
   bookings                     Booking[]           @relation("OneWayBooking")
   outboundBookings             Booking[]           @relation("OutboundBooking")
   returnBookings               Booking[]           @relation("ReturnBooking")
+  ticketCheckins               TicketCheckin[]
   reschedulesAsOriginal        RescheduleRequest[] @relation("OriginalLeg")
   reschedulesAsRequested       RescheduleRequest[] @relation("RequestedLeg")
   seatHolds                    SeatHold[]
@@ -373,10 +374,27 @@ model Ticket {
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   checkedInByStaff OperatorStaff? @relation("CheckedInBy", fields: [checkedInById], references: [id])
+  checkins TicketCheckin[]
 
   @@index([bookingId])
   @@index([qrHash])
   @@index([checkedInById])
+}
+
+// One row per boarding: a round-trip ticket is scanned once per leg, so
+// Ticket.status alone cannot say which leg a passenger has boarded.
+model TicketCheckin {
+  id          String   @id @default(cuid())
+  ticketId    String
+  legId       String
+  checkedInAt DateTime @default(now())
+  checkedInBy String?
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  leg    Leg    @relation(fields: [legId], references: [id], onDelete: Restrict)
+
+  @@unique([ticketId, legId])
+  @@index([legId])
 }
 
 enum TicketStatus {

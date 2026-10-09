@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireOperator } from '@/lib/auth';
 import { buildQrPayload } from '@/lib/qr';
 import { bookingsOnLegWhere, legRoleForBooking } from '@/lib/booking-helpers';
+import { ticketStatusOnLeg, checkedInAtOnLeg } from '@/lib/leg-checkin';
 
 /**
  * Returns a manifest of all ISSUED tickets for a leg.
@@ -40,7 +41,12 @@ export async function GET(
       operatorId: session.sub,
       status: 'CONFIRMED',
     },
-    include: { tickets: { where: { status: { in: ['ISSUED', 'CHECKED_IN'] } } } },
+    include: {
+      tickets: {
+        where: { status: { in: ['ISSUED', 'CHECKED_IN'] } },
+        include: { checkins: true },
+      },
+    },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -49,10 +55,10 @@ export async function GET(
       ticketCode: t.ticketCode,
       qrPayload: buildQrPayload(t.ticketCode, leg.departureDate),
       passengerName: t.passengerName,
-      status: t.status,
+      status: ticketStatusOnLeg(t, b, legId),
       bookingReference: b.bookingReference,
       trip: legRoleForBooking(b, legId),
-      checkedInAt: t.checkedInAt?.toISOString() ?? null,
+      checkedInAt: checkedInAtOnLeg(t, b, legId)?.toISOString() ?? null,
     })),
   );
 

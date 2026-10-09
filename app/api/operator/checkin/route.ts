@@ -6,6 +6,7 @@ import { getOperatorSession } from '@/lib/auth';
 import { verifyQrPayload } from '@/lib/qr';
 import { formatLocalDateTime, ymdInZone } from '@/lib/datetime';
 import { getAllLegsForBooking } from '@/lib/booking-helpers';
+import { boardedLegIds, checkedInAtOnLeg, recordLegCheckin } from '@/lib/leg-checkin';
 
 const bodySchema = z.object({
   qrPayload: z.string().min(1),
@@ -75,14 +76,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
     );
   }
 
-  // One atomic transaction to flip ISSUED → CHECKED_IN, with row-level
-  // safeguards: filter on status=ISSUED so a race between two scanners
-  // can't double-count.
+  // One atomic transaction: the unique (ticketId, legId) TicketCheckin row is
+  // the gate, so a race between two scanners on the same leg can't double-count.
   try {
     const result = await prisma.$transaction(async (tx) => {
       const ticket = await tx.ticket.findUnique({
         where: { ticketCode: verified.ticketCode },
         include: {
+          checkins: true,
           booking: {
             include: {
               leg: {
@@ -159,34 +160,31 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
           message: 'Ticket was refunded.',
         };
       }
-      if (ticket.status === 'CHECKED_IN') {
-        return {
-          ok: false as const,
-          reason: 'ALREADY_CHECKED_IN' as const,
-          message: ticket.checkedInAt
-            ? `Already checked in at ${formatLocalDateTime(ticket.checkedInAt)}.`
-            : 'Already checked in.',
-        };
-      }
-      if (ticket.status !== 'ISSUED') {
+      if (ticket.status !== 'ISSUED' && ticket.status !== 'CHECKED_IN') {
         return {
           ok: false as const,
           reason: 'LEG_NOT_ACTIVE' as const,
           message: `Ticket is in state ${ticket.status}.`,
         };
       }
+      // Round-trip tickets are scanned once per leg, so "already checked in"
+      // is a property of this leg, not of the whole ticket.
+      if (boardedLegIds(ticket, ticket.booking).has(leg.id)) {
+        const at = checkedInAtOnLeg(ticket, ticket.booking, leg.id);
+        return {
+          ok: false as const,
+          reason: 'ALREADY_CHECKED_IN' as const,
+          message: at ? `Already checked in at ${formatLocalDateTime(at)}.` : 'Already checked in.',
+        };
+      }
 
-      // Atomic flip: updateMany on (id, status='ISSUED') so concurrent
-      // scanners see exactly one success.
-      const update = await tx.ticket.updateMany({
-        where: { id: ticket.id, status: 'ISSUED' },
-        data: {
-          status: 'CHECKED_IN',
-          checkedInAt: new Date(),
-          checkedInBy: session.sub,
-        },
+      const recorded = await recordLegCheckin(tx, {
+        ticket,
+        booking: ticket.booking,
+        legId: leg.id,
+        by: session.sub,
       });
-      if (update.count === 0) {
+      if (!recorded.ok) {
         return {
           ok: false as const,
           reason: 'ALREADY_CHECKED_IN' as const,
@@ -200,7 +198,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<CheckinResult
         action: 'checked_in_qr',
         userId: session.sub,
         userRole: 'OPERATOR',
-          newState: { status: 'CHECKED_IN', method: 'qr' },
+          newState: { status: 'CHECKED_IN', method: 'qr', legId: leg.id },
         },
       });
       return {

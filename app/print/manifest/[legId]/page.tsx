@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireOperator } from '@/lib/auth';
 import { getOperatorLeg } from '@/lib/operator-data';
+import { ticketStatusOnLeg } from '@/lib/leg-checkin';
 import { formatLocalDate, formatLocalTime } from '@/lib/datetime';
 import { PrintButton } from '../../b/[reference]/print-button';
 
@@ -26,7 +27,7 @@ export default async function PrintManifestPage({
       ticketCode: t.ticketCode,
       passengerName: t.passengerName,
       passengerIdNumber: t.passengerIdNumber ?? '—',
-      status: t.status,
+      status: ticketStatusOnLeg(t, b, legId),
       bookingReference: b.bookingReference,
     })),
   );

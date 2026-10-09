@@ -59,7 +59,7 @@ export async function getOperatorLeg(operatorId: string, legId: string) {
 
   const bookings = await prisma.booking.findMany({
     where: { ...bookingsOnLegWhere(legId), operatorId, status: 'CONFIRMED' },
-    include: { tickets: true },
+    include: { tickets: { include: { checkins: true } } },
     orderBy: { createdAt: 'asc' },
   });
   return { ...leg, bookings };
