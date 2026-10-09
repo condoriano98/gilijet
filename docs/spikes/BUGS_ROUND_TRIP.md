@@ -11,7 +11,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 | 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
 | 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | 🟡 Fixed di working tree; tabel baru ter-apply saat deploy (`db push`) |
 | 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | 🟡 Fixed di working tree |
-| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | 🟡 Sebagian: cancel/refund/guard fixed (`fece18d`), notifikasi belum |
+| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | 🟡 Fixed di working tree (cancel/refund/guard di `fece18d`; notifikasi + aturan leg lewat belum commit) |
 
 ---
 
@@ -90,26 +90,23 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 **Gejala:** Operator/admin membatalkan leg A atau B, booking Return tetap `CONFIRMED`: tidak dibatalkan, tidak ada Refund, tiket tidak di-void, customer tidak diberi tahu. `cancelLeg` (`lib/legs.ts`) mencari `where: { legId, status: 'CONFIRMED' }`, padahal round-trip menyimpan `legId = null`.
 
-**Sudah (`fece18d`, belum di-push):**
-- `cancelLeg` memakai `bookingsOnLegWhere`: leg mana pun dibatalkan, booking round-trip jadi `CANCELLED_BY_OPERATOR`, tiket `REFUNDED`, 1 Refund 100% `totalAmount`, semua dalam satu `$transaction` (atomik).
-- Guard hapus/nonaktifkan schedule (`actions.ts`) ikut menghitung booking round-trip.
-- Filter di jalur weather halaman operator diganti ke helper (jalurnya sendiri sudah mati, lihat follow-up 3).
-- Unit test: lookup `cancelLeg` mencakup one-way + outbound + return.
-
-**Belum:**
-- **Notifikasi email + WhatsApp ke customer.** Tidak ada pemanggil `cancelLeg` (admin `cancelDeparture`, halaman operator) yang mengirim notifikasi. Ini gap lama, berlaku juga untuk one-way. `notifyOperatorUnavailable` (`lib/booking-notifications.ts`) sudah mendukung round-trip (menyebut kedua leg) dan bisa dipakai; perlu dipanggil per booking setelah transaksi commit.
-- **Leg pulang yang sudah lewat:** booking Return yang salah satu legnya sudah SAILED tidak boleh terdampak secara salah. Perilaku `cancelLeg` untuk kasus ini belum didefinisikan/diuji.
-- **Unit test skenario lengkap:** cancel leg dengan booking one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), cancel via leg outbound dan via leg return.
-
-**Keputusan pending (bisnis):** usulan: jika salah satu leg booking Return sudah `SAILED`, `cancelLeg` tidak membatalkan booking tsb dan diserahkan ke penanganan manual admin (refund 100% atas perjalanan yang sebagian sudah dipakai bisa salah). Belum dikonfirmasi.
+**Sudah:**
+- (`fece18d`) `cancelLeg` memakai `bookingsOnLegWhere`: leg mana pun dibatalkan, booking round-trip jadi `CANCELLED_BY_OPERATOR`, tiket `REFUNDED`, 1 Refund 100% `totalAmount`, semua dalam satu `$transaction`. Guard hapus/nonaktifkan schedule ikut menghitung booking round-trip.
+- (working tree) **Notifikasi:** `cancelLeg` mengembalikan `cancelled: [{bookingId, refundAmount}]`; admin `cancelDeparture` dan aksi cancel operator memanggil `notifyLegCancelled` (email + WhatsApp via `notifyOperatorUnavailable`, round-trip menyebut kedua leg) setelah transaksi commit. Kegagalan kirim ditelan per booking.
+- (working tree) **Leg lain sudah lewat:** booking round-trip yang leg satunya `SAILED` atau sudah lewat tanggalnya tidak dibatalkan; dikembalikan di `skipped` dan ditampilkan sebagai peringatan di halaman admin dan operator untuk ditangani manual. (Aturan ini usulan, belum dikonfirmasi bisnis.)
+- (working tree) Unit test: cancel via leg outbound dan via leg return dengan one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), skip leg lewat, refund existing, dan `notifyLegCancelled`. Total 839 unit test lolos.
 
 **Acceptance Criteria:**
 - [x] Cancel leg outbound / return → booking Return batal penuh, refund 100% (secara kode; belum diuji DB nyata)
-- [ ] Notifikasi terkirim (email + WhatsApp, menyebut kedua leg)
-- [ ] Booking Return yang leg pulangnya sudah lewat tidak terdampak secara salah
+- [x] Notifikasi email + WhatsApp menyebut kedua leg (unit test; belum diuji kirim nyata)
+- [x] Booking Return yang leg satunya sudah lewat tidak terdampak secara salah
 - [x] Guard nonaktifkan jadwal memblokir jika ada booking round-trip aktif
-- [ ] Unit test cancel leg one-way + round-trip (baru sebagian)
+- [x] Unit test cancel leg one-way + round-trip
 - [x] Alur one-way tidak berubah
+
+**Keputusan pending (bisnis):** aturan "leg satunya sudah lewat → serahkan ke admin" belum dikonfirmasi.
+
+**Belum:** alasan pembatalan yang diisi admin/operator ("Shown to affected customers" di form admin) belum masuk ke email/WhatsApp; `sendCancellationEmail` dan `sendOperatorUnavailableWhatsapp` tidak punya parameter alasan.
 
 ---
 
@@ -121,3 +118,4 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 4. ⚠️ **E2E round-trip** (`round-trip-booking.spec.ts`) di-skip, jadi regresi alur search → booking tidak tertangkap otomatis.
 5. ⚠️ **`QR_HMAC_SECRET`** tidak ada di environment staging (hanya production) maupun env test (test me-mock `lib/qr`).
 6. ⚠️ **`CRON_SECRET`** tidak muncul di daftar env Vercel (dicek 2026-10-09). README mewajibkan ada di staging supaya cron tidak 401. Belum diperiksa lebih jauh; di luar scope bug round-trip.
+7. ⚠️ **Aksi cancel di `app/operator/legs/[id]/page.tsx`** memanggil `redirect()` di dalam `try` yang `catch`-nya ikut menangkap `NEXT_REDIRECT`, sehingga cancel yang sukses kemungkinan besar malah redirect ke `?error=NEXT_REDIRECT`. Belum dicoba di runtime; pre-existing, bertentangan dengan konvensi CLAUDE.md (re-throw `NEXT_REDIRECT`).
