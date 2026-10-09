@@ -130,12 +130,19 @@ export async function sendBoardingPassDocument(args: {
   departureDate: Date;
   pdf: Buffer;
   filename: string;
+  /** Set for round trips, where each leg's pass goes out as its own document. */
+  leg?: { label: 'Berangkat' | 'Pulang'; index: number; total: number };
 }): Promise<WhatsappResult> {
   const caption = [
-    `Halo ${args.customerName}, boarding pass Anda terlampir.`,
+    args.leg
+      ? `Halo ${args.customerName}, boarding pass ${args.leg.label.toLowerCase()} Anda terlampir (${args.leg.index} dari ${args.leg.total}).`
+      : `Halo ${args.customerName}, boarding pass Anda terlampir.`,
     `${args.route.originPort} → ${args.route.destinationPort}`,
     `${formatLocalDateTime(args.departureDate)} WITA`,
     `Kode booking: ${args.bookingReference}`,
+    ...(args.leg
+      ? [`Pemesanan pulang-pergi: ${args.leg.total} boarding pass (berangkat dan pulang), masing-masing dengan QR code sendiri.`]
+      : []),
     `Tunjukkan QR code di dermaga. Selamat jalan! — Gilifast`,
   ].join('\n');
   return sendDocument(args.to, args.pdf, args.filename, caption);
@@ -216,14 +223,33 @@ export async function sendBoardingPassWhatsapp(args: {
   departureDate: Date;
   ticketCodes: string[];
   lookupUrl: string;
+  returnLeg?: {
+    route: { originPort: string; destinationPort: string };
+    boatName: string;
+    departureDate: Date;
+  };
 }): Promise<WhatsappResult> {
   const body = [
-    `Halo ${args.customerName}, tempat duduk Anda sudah dikonfirmasi.`,
+    args.returnLeg
+      ? `Halo ${args.customerName}, tempat duduk pulang-pergi Anda sudah dikonfirmasi (2 boarding pass: berangkat dan pulang).`
+      : `Halo ${args.customerName}, tempat duduk Anda sudah dikonfirmasi.`,
     ``,
     `Kode booking: ${args.bookingReference}`,
-    `Rute: ${args.route.originPort} → ${args.route.destinationPort}`,
-    `Kapal: ${args.boatName}`,
-    `Berangkat: ${formatLocalDateTime(args.departureDate)} WITA`,
+    ...(args.returnLeg
+      ? [
+          `Berangkat: ${args.route.originPort} → ${args.route.destinationPort}`,
+          `Kapal: ${args.boatName}`,
+          `Waktu: ${formatLocalDateTime(args.departureDate)} WITA`,
+          ``,
+          `Pulang: ${args.returnLeg.route.originPort} → ${args.returnLeg.route.destinationPort}`,
+          `Kapal: ${args.returnLeg.boatName}`,
+          `Waktu: ${formatLocalDateTime(args.returnLeg.departureDate)} WITA`,
+        ]
+      : [
+          `Rute: ${args.route.originPort} → ${args.route.destinationPort}`,
+          `Kapal: ${args.boatName}`,
+          `Berangkat: ${formatLocalDateTime(args.departureDate)} WITA`,
+        ]),
     `Tiket: ${args.ticketCodes.join(', ')}`,
     ``,
     `Boarding pass dan QR code: ${args.lookupUrl}`,
@@ -257,11 +283,23 @@ export async function sendOperatorUnavailableWhatsapp(args: {
   customerName: string;
   bookingReference: string;
   lookupUrl: string;
+  /** Round trips are cancelled whole, so say which two sailings are affected. */
+  trip?: {
+    outbound: { route: { originPort: string; destinationPort: string }; departureDate: Date };
+    return: { route: { originPort: string; destinationPort: string }; departureDate: Date };
+  };
 }): Promise<WhatsappResult> {
   const body = [
     `Mohon maaf ${args.customerName}, operator tidak dapat menerima pemesanan ini.`,
     ``,
     `Kode booking: ${args.bookingReference}`,
+    ...(args.trip
+      ? [
+          `Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan):`,
+          `Berangkat: ${args.trip.outbound.route.originPort} → ${args.trip.outbound.route.destinationPort}, ${formatLocalDateTime(args.trip.outbound.departureDate)} WITA`,
+          `Pulang: ${args.trip.return.route.originPort} → ${args.trip.return.route.destinationPort}, ${formatLocalDateTime(args.trip.return.departureDate)} WITA`,
+        ]
+      : []),
     ``,
     `Pemesanan dibatalkan dan dana Anda akan dikembalikan penuh.`,
     `Proses refund memerlukan waktu beberapa hari kerja.`,

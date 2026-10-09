@@ -275,3 +275,121 @@ describe('WhatsApp document (PDF boarding pass)', () => {
     expect(result.provider).toBe('console');
   });
 });
+
+describe('round-trip WhatsApp text (console fallback shows the message)', () => {
+  const route = { originPort: 'Sanur', destinationPort: 'Nusa Penida' };
+  const back = { originPort: 'Nusa Penida', destinationPort: 'Sanur' };
+  const out = new Date('2026-11-04T00:00:00Z');
+  const ret = new Date('2026-11-06T08:00:00Z');
+
+  async function printed(run: () => Promise<unknown>): Promise<string> {
+    delete process.env.WATI_API_KEY;
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await run();
+      return log.mock.calls.map((c) => c.join(' ')).join('\n');
+    } finally {
+      log.mockRestore();
+    }
+  }
+
+  it('boarding pass document: each leg says which pass it is and that there are two', async () => {
+    const text = await printed(() =>
+      sendBoardingPassDocument({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-RT',
+        route: back,
+        departureDate: ret,
+        pdf: Buffer.from('pdf'),
+        filename: 'return.pdf',
+        leg: { label: 'Pulang', index: 2, total: 2 },
+      }),
+    );
+    expect(text).toContain('boarding pass pulang Anda terlampir (2 dari 2)');
+    expect(text).toContain('Nusa Penida → Sanur');
+    expect(text).toContain('2 boarding pass (berangkat dan pulang)');
+  });
+
+  it('boarding pass document: one-way caption is unchanged', async () => {
+    const text = await printed(() =>
+      sendBoardingPassDocument({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-OW',
+        route,
+        departureDate: out,
+        pdf: Buffer.from('pdf'),
+        filename: 'one.pdf',
+      }),
+    );
+    expect(text).toContain('boarding pass Anda terlampir.');
+    expect(text).not.toMatch(/dari \d|pulang-pergi/);
+  });
+
+  it('text fallback lists both sailings for a round trip', async () => {
+    const text = await printed(() =>
+      sendBoardingPassWhatsapp({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-RT',
+        route,
+        boatName: 'Boat A',
+        departureDate: out,
+        ticketCodes: ['TK-1', 'TK-2'],
+        lookupUrl: 'https://example.test/b/BK-RT',
+        returnLeg: { route: back, boatName: 'Boat B', departureDate: ret },
+      }),
+    );
+    expect(text).toContain('pulang-pergi');
+    expect(text).toContain('Berangkat: Sanur → Nusa Penida');
+    expect(text).toContain('Pulang: Nusa Penida → Sanur');
+    expect(text).toContain('Boat B');
+  });
+
+  it('text fallback for one-way keeps the single-trip layout', async () => {
+    const text = await printed(() =>
+      sendBoardingPassWhatsapp({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-OW',
+        route,
+        boatName: 'Boat A',
+        departureDate: out,
+        ticketCodes: ['TK-1'],
+        lookupUrl: 'https://example.test/b/BK-OW',
+      }),
+    );
+    expect(text).toContain('Rute: Sanur → Nusa Penida');
+    expect(text).not.toContain('Pulang:');
+  });
+
+  it('cancellation names both sailings of a round trip', async () => {
+    const text = await printed(() =>
+      sendOperatorUnavailableWhatsapp({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-RT',
+        lookupUrl: 'https://example.test/b/BK-RT',
+        trip: { outbound: { route, departureDate: out }, return: { route: back, departureDate: ret } },
+      }),
+    );
+    expect(text).toContain('dibatalkan seluruhnya (kedua perjalanan)');
+    expect(text).toContain('Berangkat: Sanur → Nusa Penida');
+    expect(text).toContain('Pulang: Nusa Penida → Sanur');
+    expect(text).toContain('dikembalikan penuh');
+  });
+
+  it('cancellation for one-way has no trip block', async () => {
+    const text = await printed(() =>
+      sendOperatorUnavailableWhatsapp({
+        to: '+62812345678',
+        customerName: 'Budi',
+        bookingReference: 'BK-OW',
+        lookupUrl: 'https://example.test/b/BK-OW',
+      }),
+    );
+    expect(text).not.toContain('Pulang:');
+    expect(text).toContain('dikembalikan penuh');
+  });
+});

@@ -687,3 +687,152 @@ describe('notifyLegCancelled', () => {
     expect(prisma.booking.findUnique).not.toHaveBeenCalled();
   });
 });
+
+describe('round-trip boarding pass: two passes over WhatsApp and email', () => {
+  const rtBooking = () => ({
+    id: 'booking-rt-9',
+    bookingReference: 'GILI-RT009',
+    tripType: 'ROUND_TRIP' as const,
+    customerName: 'Jane Doe',
+    customerEmail: 'jane@example.com',
+    customerPhone: '+62812345679',
+    totalAmount: new Prisma.Decimal('1000000'),
+    tickets: [{ id: 't-1' }],
+    leg: null,
+    outboundLeg: {
+      basePrice: new Prisma.Decimal('500000'),
+      departureDate: new Date('2026-10-25T08:00:00Z'),
+      schedule: { originPort: 'BLI', destinationPort: 'SBY', boat: { name: 'Fast Boat A' } },
+    },
+    returnLeg: {
+      basePrice: new Prisma.Decimal('500000'),
+      departureDate: new Date('2026-10-27T15:00:00Z'),
+      schedule: { originPort: 'SBY', destinationPort: 'BLI', boat: { name: 'Fast Boat B' } },
+    },
+  });
+  const pdfs = [
+    { filename: 'pass-outbound.pdf', content: Buffer.from('out') },
+    { filename: 'pass-return.pdf', content: Buffer.from('ret') },
+  ];
+  const tickets = [{ ticketCode: 'TK-1', passengerName: 'Jane', qrPayload: 'qr' }];
+
+  it('sends one WhatsApp document per leg, outbound first, each with its own route and time', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
+    vi.mocked(generateBoardingPassPdfsForBooking).mockResolvedValueOnce(pdfs);
+    vi.mocked(sendBoardingPassDocument).mockResolvedValue(WHATSAPP_RESULT);
+    vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
+
+    await notifyBoardingPassIssued('booking-rt-9', tickets as any);
+
+    expect(sendBoardingPassDocument).toHaveBeenCalledTimes(2);
+    const [first, second] = vi.mocked(sendBoardingPassDocument).mock.calls.map((c) => c[0]);
+    expect(first).toMatchObject({
+      filename: 'pass-outbound.pdf',
+      route: { originPort: 'BLI', destinationPort: 'SBY' },
+      departureDate: new Date('2026-10-25T08:00:00Z'),
+      leg: { label: 'Berangkat', index: 1, total: 2 },
+    });
+    expect(second).toMatchObject({
+      filename: 'pass-return.pdf',
+      route: { originPort: 'SBY', destinationPort: 'BLI' },
+      departureDate: new Date('2026-10-27T15:00:00Z'),
+      leg: { label: 'Pulang', index: 2, total: 2 },
+    });
+  });
+
+  it('keeps sending the email with both PDFs attached', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
+    vi.mocked(generateBoardingPassPdfsForBooking).mockResolvedValueOnce(pdfs);
+    vi.mocked(sendBoardingPassDocument).mockResolvedValue(WHATSAPP_RESULT);
+    vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
+
+    await notifyBoardingPassIssued('booking-rt-9', tickets as any);
+
+    expect(sendBookingConfirmation).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: pdfs, isRoundTrip: true }),
+    );
+  });
+
+  it('still sends the return pass when the outbound WhatsApp send fails', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
+    vi.mocked(generateBoardingPassPdfsForBooking).mockResolvedValueOnce(pdfs);
+    vi.mocked(sendBoardingPassDocument)
+      .mockRejectedValueOnce(new Error('WATI down'))
+      .mockResolvedValueOnce(WHATSAPP_RESULT);
+    vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
+
+    await expect(notifyBoardingPassIssued('booking-rt-9', tickets as any)).resolves.toBeUndefined();
+
+    expect(sendBoardingPassDocument).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(sendBoardingPassDocument).mock.calls[1][0]).toMatchObject({ filename: 'pass-return.pdf' });
+  });
+
+  it('a one-way booking still sends a single, unlabelled document', async () => {
+    const oneWay = {
+      ...rtBooking(),
+      tripType: 'ONE_WAY' as const,
+      leg: rtBooking().outboundLeg,
+      outboundLeg: null,
+      returnLeg: null,
+    };
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(oneWay as any);
+    vi.mocked(generateBoardingPassPdfsForBooking).mockResolvedValueOnce([pdfs[0]]);
+    vi.mocked(sendBoardingPassDocument).mockResolvedValue(WHATSAPP_RESULT);
+    vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
+
+    await notifyBoardingPassIssued('booking-rt-9', tickets as any);
+
+    expect(sendBoardingPassDocument).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(sendBoardingPassDocument).mock.calls[0][0].leg).toBeUndefined();
+  });
+
+  it('falls back to a text message that lists both legs when the PDFs cannot be generated', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
+    vi.mocked(generateBoardingPassPdfsForBooking).mockRejectedValueOnce(new Error('pdf failed'));
+    vi.mocked(sendBoardingPassWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+    vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
+
+    await notifyBoardingPassIssued('booking-rt-9', tickets as any);
+
+    expect(sendBoardingPassDocument).not.toHaveBeenCalled();
+    expect(sendBoardingPassWhatsapp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        returnLeg: expect.objectContaining({
+          route: { originPort: 'SBY', destinationPort: 'BLI' },
+          boatName: 'Fast Boat B',
+        }),
+      }),
+    );
+  });
+
+  it('cancellation WhatsApp carries both sailings for a round trip and none for one-way', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
+    vi.mocked(sendCancellationEmail).mockResolvedValue(EMAIL_RESULT);
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+
+    await notifyOperatorUnavailable('booking-rt-9', 1000000);
+
+    expect(sendOperatorUnavailableWhatsapp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        trip: {
+          outbound: {
+            route: { originPort: 'BLI', destinationPort: 'SBY' },
+            departureDate: new Date('2026-10-25T08:00:00Z'),
+          },
+          return: {
+            route: { originPort: 'SBY', destinationPort: 'BLI' },
+            departureDate: new Date('2026-10-27T15:00:00Z'),
+          },
+        },
+      }),
+    );
+
+    vi.clearAllMocks();
+    const oneWay = { ...rtBooking(), tripType: 'ONE_WAY' as const, leg: rtBooking().outboundLeg, outboundLeg: null, returnLeg: null };
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(oneWay as any);
+    vi.mocked(sendCancellationEmail).mockResolvedValue(EMAIL_RESULT);
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+    await notifyOperatorUnavailable('booking-rt-9', 500000);
+    expect(vi.mocked(sendOperatorUnavailableWhatsapp).mock.calls[0][0].trip).toBeUndefined();
+  });
+});

@@ -170,6 +170,43 @@ export async function notifyBoardingPassIssued(
     }
   }
 
+  const returnRoute = returnLeg
+    ? {
+        originPort: returnLeg.schedule.originPort,
+        destinationPort: returnLeg.schedule.destinationPort,
+      }
+    : undefined;
+
+  // One WhatsApp document per PDF: a round trip is two passes and the
+  // customer has to see both. Sent in order (outbound first), and a failure on
+  // one must not stop the other from going out.
+  const sendPassesOverWhatsapp = async () => {
+    const legs = [
+      { label: 'Berangkat' as const, route, departureDate: mainLeg.departureDate },
+      ...(returnLeg && returnRoute
+        ? [{ label: 'Pulang' as const, route: returnRoute, departureDate: returnLeg.departureDate }]
+        : []),
+    ];
+    const total = attachments.length;
+    for (let i = 0; i < total; i++) {
+      const leg = legs[i] ?? legs[0]!;
+      try {
+        await sendBoardingPassDocument({
+          to: booking.customerPhone,
+          customerName: booking.customerName,
+          bookingReference: booking.bookingReference,
+          route: leg.route,
+          departureDate: leg.departureDate,
+          pdf: attachments[i]!.content,
+          filename: attachments[i]!.filename,
+          leg: total > 1 ? { label: leg.label, index: i + 1, total } : undefined,
+        });
+      } catch (err) {
+        console.error(`[notify:boarding-pass] WhatsApp pass ${i + 1}/${total} failed:`, err);
+      }
+    }
+  };
+
   await Promise.allSettled([
     sendBookingConfirmation({
       to: booking.customerEmail,
@@ -196,15 +233,7 @@ export async function notifyBoardingPassIssued(
       returnPrice,
     }),
     attachments.length > 0
-      ? sendBoardingPassDocument({
-          to: booking.customerPhone,
-          customerName: booking.customerName,
-          bookingReference: booking.bookingReference,
-          route,
-          departureDate: mainLeg.departureDate,
-          pdf: attachments[0]!.content,
-          filename: attachments[0]!.filename,
-        })
+      ? sendPassesOverWhatsapp()
       : sendBoardingPassWhatsapp({
           to: booking.customerPhone,
           customerName: booking.customerName,
@@ -214,6 +243,14 @@ export async function notifyBoardingPassIssued(
           departureDate: mainLeg.departureDate,
           ticketCodes: tickets.map((t) => t.ticketCode),
           lookupUrl: url,
+          returnLeg:
+            returnLeg && returnRoute
+              ? {
+                  route: returnRoute,
+                  boatName: returnLeg.schedule.boat.name,
+                  departureDate: returnLeg.departureDate,
+                }
+              : undefined,
         }),
   ]).then(logFailures('boarding-pass'));
 }
@@ -259,6 +296,24 @@ export async function notifyOperatorUnavailable(
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
       lookupUrl: url,
+      trip: returnLeg
+        ? {
+            outbound: {
+              route: {
+                originPort: mainLeg.schedule.originPort,
+                destinationPort: mainLeg.schedule.destinationPort,
+              },
+              departureDate: mainLeg.departureDate,
+            },
+            return: {
+              route: {
+                originPort: returnLeg.schedule.originPort,
+                destinationPort: returnLeg.schedule.destinationPort,
+              },
+              departureDate: returnLeg.departureDate,
+            },
+          }
+        : undefined,
     }),
   ]).then(logFailures('operator-unavailable'));
 }
