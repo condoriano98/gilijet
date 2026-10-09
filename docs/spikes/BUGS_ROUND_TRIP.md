@@ -12,6 +12,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 | 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal; belum di-push |
 | 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal; belum di-push |
 | 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal; belum di-push |
+| 5 | WhatsApp round-trip hanya mengirim 1 boarding pass (outbound) dan pembatalan tidak menyebut kedua leg | Krusial | 🟡 Fixed di working tree, belum diverifikasi live |
 
 ---|-----|----------|--------|
 | 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
@@ -116,23 +117,60 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 ---
 
+## 5. WhatsApp round-trip: hanya 1 boarding pass, pembatalan tidak menyebut kedua leg
+
+**Ditemukan:** 2026-10-09, dari runtime log Vercel saat verifikasi live (bukan dari tiket QC).
+
+**Gejala:**
+- Booking round-trip menghasilkan 2 PDF boarding pass (outbound dan return, masing-masing QR sendiri). Email melampirkan keduanya, tetapi WhatsApp hanya mengirim `attachments[0]` (outbound) dengan teks rute/tanggal leg berangkat saja. Customer yang mengandalkan WhatsApp tidak menerima pass pulang dan tidak tahu ia membeli 2 tiket.
+- WhatsApp pembatalan (`sendOperatorUnavailableWhatsapp`) bersifat generik dan tidak menyebut kedua leg, padahal acceptance criteria #4 meminta email + WhatsApp menyebut kedua leg.
+
+**Expected (konfirmasi user):** WhatsApp dan email sama-sama menyampaikan 2 tiket untuk round-trip.
+
+**Fix (working tree, belum commit):**
+- `notifyBoardingPassIssued`: satu dokumen WhatsApp per PDF, berurutan (outbound dulu), tiap caption menyebut "boarding pass berangkat/pulang Anda terlampir (1 dari 2)" beserta rute dan waktu leg tersebut dan bahwa pemesanan ini 2 boarding pass. Kegagalan kirim satu pass tidak menghentikan pass lain. Email tetap 1 email dengan 2 PDF.
+- Fallback teks (PDF gagal dibuat) kini menuliskan kedua leg dan menyebut 2 boarding pass.
+- WhatsApp pembatalan: untuk round-trip menyebut "dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang.
+- One-way tidak berubah (caption dan teks identik, satu dokumen). Kedua pesan ini session message biasa (bukan template WATI), jadi tidak butuh persetujuan template.
+- Tes: 12 unit test baru (urutan dan isi dua dokumen, kegagalan parsial, one-way tidak berubah, fallback teks, teks pembatalan). Total 851 unit test lolos.
+
+**Acceptance Criteria:**
+- [x] Round-trip: WhatsApp mengirim 2 boarding pass (berangkat dan pulang), tiap pass menyebut legnya
+- [x] Round-trip: email tetap 1 email dengan 2 PDF dan detail kedua leg
+- [x] WhatsApp pembatalan menyebut kedua leg
+- [x] One-way tidak berubah
+- [x] Unit test
+- [ ] Verifikasi live di staging (mode mock: cek teks di runtime log Vercel)
+
+**Catatan:** session message WhatsApp hanya sampai bila customer menghubungi bisnis dalam 24 jam terakhir (batasan WATI yang sudah ada, tidak diubah di sini); pengiriman nyata belum diuji karena staging tanpa kunci WATI.
+
+---
+
 ## Verifikasi live (2026-10-09)
 
-Aplikasi dijalankan lokal (`next dev`, port 3100) terhadap DB Supabase staging (project `asymnwikxyhipoezoggp`, dipakai `.env.staging`; production memakai `viluiajknccclsogyogv`), dengan akun QA yang sudah ada. Email, WhatsApp, dan pembayaran dalam mode mock (kunci dikosongkan). Tabel `TicketCheckin` di-apply ke DB staging lewat `prisma db push` (additive, tanpa `--accept-data-loss`). Data uji memakai prefiks `VERIFY` pada booking dan operator QA Boats (Sanur ↔ Nusa Penida).
+### Putaran 1: lokal terhadap DB staging
+`next dev` (port 3100) terhadap DB Supabase staging (project `asymnwikxyhipoezoggp`, dipakai `.env.staging`; production memakai `viluiajknccclsogyogv`), akun QA yang sudah ada, email/WhatsApp/pembayaran mock. Tabel `TicketCheckin` di-apply ke DB staging lewat `prisma db push` (additive, tanpa `--accept-data-loss`). **38/38 cek lolos.**
 
-**Hasil: 38/38 cek lolos** (Playwright + cek DB langsung):
-- **#1** Search Return: tanpa halaman error, daftar Outbound dan Return tampil dengan jam dan harga.
-- **#3** Manifest JSON/CSV/print dan halaman leg operator di kedua leg memuat penumpang round-trip dengan tag trip; Admin Departure detail di kedua leg memuat booking round-trip; list departure admin render.
-- **#2** Penumpang yang sama check-in di outbound lalu return; scan ulang di tiap leg ditolak `ALREADY_CHECKED_IN`; QR outbound ditolak di leg return dan sebaliknya (`INVALID_QR`); tiket separuh boarding tetap `ISSUED`, penuh jadi `CHECKED_IN` (2 baris `TicketCheckin`); status manifest per leg benar; one-way tidak berubah.
-- **#4** Cancel via leg return membatalkan round-trip (tiket `REFUNDED`, 1 Refund = `totalAmount`) tanpa menyentuh one-way di leg lain; cancel via leg outbound membatalkan one-way; round-trip yang leg outbound-nya `SAILED` tidak dibatalkan dan memunculkan peringatan; email + WhatsApp (mock) tercatat untuk tiap booking yang dibatalkan dan tidak untuk yang dilewati.
+### Putaran 2: gilijet.vercel.app (Vercel staging, commit `3d2fcac`, redeploy setelah `QR_HMAC_SECRET` staging dibuat)
+Akses lewat share link sementara Vercel (situs di balik Deployment Protection). Booking dibuat lewat jalur aplikasi di DB staging; **tiket diterbitkan lewat UI admin di gilijet**, QR diambil dari endpoint manifest operator di gilijet (ditandatangani secret staging). **39/39 cek lolos**, runtime log Vercel untuk deployment itu: nol error/fatal.
+- **#1** URL repro dari tiket tidak lagi error; route QA menampilkan Outbound + Return dengan jam dan harga.
+- **`QR_HMAC_SECRET` staging** bekerja: konfirmasi admin menerbitkan tiket dan mengirim boarding pass (email mock melampirkan PDF outbound + return untuk round-trip).
+- **#3** Manifest JSON/CSV/print, halaman leg operator, Admin Departure detail di kedua leg memuat penumpang round-trip dengan badge.
+- **#2** Check-in outbound lalu return untuk penumpang yang sama; scan ulang ditolak per leg; QR silang ditolak (`INVALID_QR`); status per leg di manifest benar; one-way tidak berubah.
+- **#4** Cancel via leg return dan via leg outbound dari UI admin: booking dibatalkan, tiket `REFUNDED`, 1 refund 100%; round-trip dengan leg lain `SAILED` tidak dibatalkan dan memunculkan peringatan. Runtime log: email pembatalan + WhatsApp (mock) tercatat untuk booking yang dibatalkan dan tidak untuk yang dilewati.
 
-**Belum tercakup:**
-- Hanya dijalankan lokal; deployment Vercel staging belum menjalankan commit #2 sampai #4 dan belum punya `QR_HMAC_SECRET`.
-- Notifikasi diuji dalam mode mock (tidak ada pesan nyata terkirim); isi email round-trip (kedua leg) hanya tercakup unit test.
+### Temuan dari log putaran 2
+WhatsApp round-trip hanya mengirim 1 boarding pass dan WhatsApp pembatalan tidak menyebut kedua leg: dicatat dan diperbaiki sebagai bug #5.
+
+### Belum tercakup
+- Notifikasi diuji mode mock (staging tidak punya kunci Resend/WATI): tidak ada pesan nyata terkirim.
 - Aksi cancel di halaman operator tidak dijalankan (hanya cancel lewat admin); lihat follow-up 7.
 - Tampilan visual tidak diperiksa manual (hanya teks/DOM).
 
-**Data uji tertinggal di DB staging:** 5 booking `VERIFY` (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP) beserta pembayaran, tiket, dan 2 Refund `PENDING`; 3 leg dibatalkan dan 1 leg `SAILED` (leg uji QA Boats 20, 22, 26, 28 Okt); 132 leg QA Boats baru (10 Okt sampai 22 Nov) hasil `generateLegsForSchedule`.
+### Data uji tertinggal di DB staging
+- Putaran 1: 5 booking `VERIFY` (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP); leg uji QA Boats 14-16, 20-22, 26-28 Okt (3 dibatalkan, 1 `SAILED`).
+- Putaran 2: 5 booking `VERIFY2` (BK-2026-10-GLTZYP, -GJ5WC4, -3LKCU7, -RHCG2E, -FQRW3V); leg uji QA Boats 4-6, 10-12, 16-18 Nov (3 dibatalkan, 1 `SAILED`).
+- Total 4 Refund `PENDING`, dan 132 leg QA Boats baru (10 Okt sampai 22 Nov) hasil `generateLegsForSchedule`.
 
 ---
 
