@@ -4,6 +4,7 @@ import {
   notifyPaymentReceived,
   notifyBoardingPassIssued,
   notifyOperatorUnavailable,
+  notifyLegCancelled,
 } from '@/lib/booking-notifications';
 
 /**
@@ -604,5 +605,85 @@ describe('Round-trip booking notifications', () => {
         returnPrice: 1500000, // 500000 * 3 passengers
       }),
     );
+  });
+});
+
+describe('notifyLegCancelled', () => {
+  const booking = (id: string, reference: string, tripType: 'ONE_WAY' | 'ROUND_TRIP') => ({
+    id,
+    bookingReference: reference,
+    tripType,
+    customerName: 'Jane Doe',
+    customerEmail: `${id}@example.com`,
+    customerPhone: '+62812345679',
+    totalAmount: new Prisma.Decimal('1000000'),
+    tickets: [],
+    leg:
+      tripType === 'ONE_WAY'
+        ? {
+            departureDate: new Date('2026-10-25T08:00:00Z'),
+            schedule: { originPort: 'BLI', destinationPort: 'SBY', boat: { name: 'Fast Boat A' } },
+          }
+        : null,
+    outboundLeg:
+      tripType === 'ROUND_TRIP'
+        ? {
+            departureDate: new Date('2026-10-25T08:00:00Z'),
+            schedule: { originPort: 'BLI', destinationPort: 'SBY', boat: { name: 'Fast Boat A' } },
+          }
+        : null,
+    returnLeg:
+      tripType === 'ROUND_TRIP'
+        ? {
+            departureDate: new Date('2026-10-27T15:00:00Z'),
+            schedule: { originPort: 'SBY', destinationPort: 'BLI', boat: { name: 'Fast Boat B' } },
+          }
+        : null,
+  });
+
+  it('emails and WhatsApps every cancelled booking, naming both legs of a round trip', async () => {
+    vi.mocked(prisma.booking.findUnique)
+      .mockResolvedValueOnce(booking('b-1', 'GILI-ONE', 'ONE_WAY') as any)
+      .mockResolvedValueOnce(booking('b-2', 'GILI-RT', 'ROUND_TRIP') as any);
+    vi.mocked(sendCancellationEmail).mockResolvedValue(EMAIL_RESULT);
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+
+    await notifyLegCancelled([
+      { bookingId: 'b-1', refundAmount: 500000 },
+      { bookingId: 'b-2', refundAmount: 1000000 },
+    ]);
+
+    expect(sendCancellationEmail).toHaveBeenCalledTimes(2);
+    expect(sendOperatorUnavailableWhatsapp).toHaveBeenCalledTimes(2);
+    expect(sendCancellationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookingReference: 'GILI-RT',
+        refundAmount: 1000000,
+        isRoundTrip: true,
+        returnRoute: { originPort: 'SBY', destinationPort: 'BLI' },
+      }),
+    );
+  });
+
+  it('keeps notifying the rest when one booking fails to load', async () => {
+    vi.mocked(prisma.booking.findUnique)
+      .mockRejectedValueOnce(new Error('DB down'))
+      .mockResolvedValueOnce(booking('b-2', 'GILI-RT', 'ROUND_TRIP') as any);
+    vi.mocked(sendCancellationEmail).mockResolvedValue(EMAIL_RESULT);
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+
+    await expect(
+      notifyLegCancelled([
+        { bookingId: 'b-1', refundAmount: 1 },
+        { bookingId: 'b-2', refundAmount: 2 },
+      ]),
+    ).resolves.toBeUndefined();
+
+    expect(sendCancellationEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when no booking was cancelled', async () => {
+    await notifyLegCancelled([]);
+    expect(prisma.booking.findUnique).not.toHaveBeenCalled();
   });
 });

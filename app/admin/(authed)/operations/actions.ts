@@ -7,9 +7,11 @@ import { Prisma } from '@prisma/client';
 import { requireSuperAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
+import { notifyLegCancelled } from '@/lib/booking-notifications';
 import {
   BOOKING_HORIZON_DAYS,
   cancelLeg,
+  type CancelLegResult,
   generateLegsForSchedule,
   DEFAULT_BOAT_CAPACITY,
 } from '@/lib/legs';
@@ -383,7 +385,7 @@ export async function cancelDeparture(formData: FormData) {
   });
   if (!leg) fail(OPS, 'Departure not found');
 
-  let result: { cancelledBookings: number; pendingRefunds: number };
+  let result: CancelLegResult;
   try {
     // cancelLeg enforces its own operator check; passing the leg's own operator
     // keeps that assertion live instead of bypassing it. It also cancels the
@@ -392,6 +394,8 @@ export async function cancelDeparture(formData: FormData) {
   } catch (err) {
     fail(back, err instanceof Error ? err.message : 'Could not cancel this departure');
   }
+
+  await notifyLegCancelled(result.cancelled);
 
   await audit({
     entityType: 'LEG',
@@ -406,11 +410,12 @@ export async function cancelDeparture(formData: FormData) {
       operatorId: leg.operatorId,
       cancelledBookings: result.cancelledBookings,
       pendingRefunds: result.pendingRefunds,
+      skippedBookings: result.skipped.map((s) => s.bookingReference),
     },
   });
 
   revalidatePath(back);
-  redirect(`${back}?ok=1`);
+  redirect(`${back}?ok=1${result.skipped.length ? `&skipped=${result.skipped.length}` : ''}`);
 }
 
 

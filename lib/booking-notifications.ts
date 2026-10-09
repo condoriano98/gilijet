@@ -263,6 +263,16 @@ export async function notifyOperatorUnavailable(
   ]).then(logFailures('operator-unavailable'));
 }
 
+/** Tell every customer whose booking a departure cancellation just cancelled. */
+export async function notifyLegCancelled(
+  cancelled: { bookingId: string; refundAmount: number }[],
+): Promise<void> {
+  const results = await Promise.allSettled(
+    cancelled.map((c) => notifyOperatorUnavailable(c.bookingId, c.refundAmount)),
+  );
+  logFailures('leg-cancelled')(results);
+}
+
 function logFailures(label: string) {
   return (results: PromiseSettledResult<unknown>[]) => {
     for (const r of results) {

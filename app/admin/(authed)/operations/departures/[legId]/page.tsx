@@ -33,11 +33,11 @@ export default async function DepartureDetailPage({
   searchParams,
 }: {
   params: Promise<{ legId: string }>;
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; skipped?: string }>;
 }) {
   await requireSuperAdmin();
   const { legId } = await params;
-  const { error, ok } = await searchParams;
+  const { error, ok, skipped } = await searchParams;
 
   // Deliberately unscoped: admin queries are cross-tenant on purpose, and the
   // operator is read off the leg for the actions rather than supplied by the
@@ -113,6 +113,12 @@ export default async function DepartureDetailPage({
       {ok ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
           Saved.
+        </div>
+      ) : null}
+      {skipped ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          {skipped} round-trip booking(s) were not cancelled because their other leg has
+          already sailed. Handle them manually.
         </div>
       ) : null}
       {error ? (

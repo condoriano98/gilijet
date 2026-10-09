@@ -127,11 +127,25 @@ export async function generateLegsForSchedule(
   return result.count;
 }
 
+export type CancelLegResult = {
+  cancelledBookings: number;
+  pendingRefunds: number;
+  /** Bookings cancelled here; the caller notifies these customers after commit. */
+  cancelled: { bookingId: string; refundAmount: number }[];
+  /** Round trips left CONFIRMED because their other leg already sailed. */
+  skipped: { bookingId: string; bookingReference: string }[];
+};
+
 /**
  * Cancel a leg. Marks the leg CANCELLED, transitions every confirmed booking
  * to CANCELLED_BY_OPERATOR, marks every issued ticket REFUNDED, and stages a
  * Refund row per booking with status=PENDING. Phase 4 picks those up and
  * actually calls the payment gateway.
+ *
+ * A round trip is cancelled whole (full refund) from either of its legs,
+ * unless its other leg has already sailed: refunding 100% for a trip the
+ * passenger partly took would be wrong, so those stay CONFIRMED and are
+ * returned in `skipped` for manual handling.
  *
  * All mutations run inside a transaction so a partial failure rolls back.
  */
@@ -139,10 +153,7 @@ export async function cancelLeg(args: {
   legId: string;
   reason: string;
   operatorId: string;
-}): Promise<{
-  cancelledBookings: number;
-  pendingRefunds: number;
-}> {
+}): Promise<CancelLegResult> {
   const { legId, reason, operatorId } = args;
 
   return prisma.$transaction(async (tx) => {
@@ -154,7 +165,7 @@ export async function cancelLeg(args: {
       throw new Error('Not authorised for this leg');
     }
     if (leg.status === 'CANCELLED') {
-      return { cancelledBookings: 0, pendingRefunds: 0 };
+      return { cancelledBookings: 0, pendingRefunds: 0, cancelled: [], skipped: [] };
     }
     if (leg.status === 'SAILED') {
       throw new Error('Cannot cancel a leg that has already sailed');
@@ -168,10 +179,27 @@ export async function cancelLeg(args: {
       },
     });
 
-    const bookings = await tx.booking.findMany({
+    const found = await tx.booking.findMany({
       where: { ...bookingsOnLegWhere(legId), status: 'CONFIRMED' },
-      include: { tickets: true, payment: true, refund: true },
+      include: {
+        tickets: true,
+        payment: true,
+        refund: true,
+        outboundLeg: { select: { status: true, departureDate: true } },
+        returnLeg: { select: { status: true, departureDate: true } },
+      },
     });
+
+    const now = new Date();
+    const otherLegUsed = (b: (typeof found)[number]) => {
+      if (b.tripType !== 'ROUND_TRIP') return false;
+      const other = b.outboundLegId === legId ? b.returnLeg : b.outboundLeg;
+      return !!other && (other.status === 'SAILED' || other.departureDate < now);
+    };
+    const skipped = found
+      .filter(otherLegUsed)
+      .map((b) => ({ bookingId: b.id, bookingReference: b.bookingReference }));
+    const bookings = found.filter((b) => !otherLegUsed(b));
 
     for (const booking of bookings) {
       await tx.booking.update({
@@ -203,13 +231,22 @@ export async function cancelLeg(args: {
         userId: operatorId,
         userRole: 'OPERATOR',
         previousState: { status: leg.status },
-        newState: { status: 'CANCELLED', reason },
+        newState: {
+          status: 'CANCELLED',
+          reason,
+          skippedBookings: skipped.map((s) => s.bookingReference),
+        },
       },
     });
 
     return {
       cancelledBookings: bookings.length,
       pendingRefunds: bookings.filter((b) => !b.refund).length,
+      cancelled: bookings.map((b) => ({
+        bookingId: b.id,
+        refundAmount: Number(b.refund?.refundAmount ?? b.totalAmount),
+      })),
+      skipped,
     };
   });
 }

@@ -7,6 +7,7 @@ import { getOperatorLeg } from '@/lib/operator-data';
 import { recordLegCheckin, boardedLegIds, ticketStatusOnLeg } from '@/lib/leg-checkin';
 import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/lib/booking-helpers';
 import { cancelLeg } from '@/lib/legs';
+import { notifyLegCancelled } from '@/lib/booking-notifications';
 import { audit } from '@/lib/audit';
 import {
   Card,
@@ -50,11 +51,12 @@ async function cancelLegAction(formData: FormData) {
     );
   }
   try {
-    await cancelLeg({
+    const result = await cancelLeg({
       legId: parsed.data.id,
       reason: parsed.data.reason,
       operatorId: session.sub,
     });
+    await notifyLegCancelled(result.cancelled);
 
     if (parsed.data.cancellationType === 'WEATHER') {
       const bookings = await prisma.booking.findMany({
@@ -96,7 +98,9 @@ async function cancelLegAction(formData: FormData) {
       }
     }
 
-    redirect(`/operator/legs/${parsed.data.id}?ok=cancelled`);
+    redirect(
+      `/operator/legs/${parsed.data.id}?ok=cancelled${result.skipped.length ? `&skipped=${result.skipped.length}` : ''}`,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     redirect(
@@ -148,11 +152,11 @@ export default async function LegManifestPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; skipped?: string }>;
 }) {
   const session = await requireOperator();
   const { id } = await params;
-  const { error, ok } = await searchParams;
+  const { error, ok, skipped } = await searchParams;
   const leg = await getOperatorLeg(session.sub, id);
   if (!leg) notFound();
 
@@ -197,6 +201,12 @@ export default async function LegManifestPage({
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Departure cancelled. Refund records are queued for processing in
           Phase 4.
+        </p>
+      ) : null}
+      {skipped ? (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {skipped} round-trip booking(s) were not cancelled because their other leg has
+          already sailed. Contact Gilifast admin to handle them.
         </p>
       ) : null}
       {ok === 'checkedin' ? (

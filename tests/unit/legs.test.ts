@@ -480,3 +480,162 @@ describe('cancelLeg', () => {
     expect(result.pendingRefunds).toBe(0);
   });
 });
+
+describe('cancelLeg with one-way and round-trip bookings', () => {
+  const future = (days: number) => new Date(Date.now() + days * 86_400_000);
+  const past = (days: number) => new Date(Date.now() - days * 86_400_000);
+
+  type Row = {
+    id: string;
+    bookingReference: string;
+    tripType: 'ONE_WAY' | 'ROUND_TRIP';
+    legId: string | null;
+    outboundLegId: string | null;
+    returnLegId: string | null;
+    status: string;
+    totalAmount: Prisma.Decimal;
+    tickets: unknown[];
+    payment: unknown;
+    refund: { refundAmount: Prisma.Decimal } | null;
+    outboundLeg: { status: string; departureDate: Date } | null;
+    returnLeg: { status: string; departureDate: Date } | null;
+  };
+
+  const base = {
+    tickets: [],
+    payment: { id: 'pay' },
+    refund: null,
+    status: 'CONFIRMED',
+  };
+  const open = (days: number) => ({ status: 'OPEN', departureDate: future(days) });
+
+  const makeRows = (): Row[] => [
+    {
+      ...base,
+      id: 'b-one',
+      bookingReference: 'GF-ONE',
+      tripType: 'ONE_WAY',
+      legId: 'leg-A',
+      outboundLegId: null,
+      returnLegId: null,
+      totalAmount: new Prisma.Decimal('500000'),
+      outboundLeg: null,
+      returnLeg: null,
+    },
+    {
+      ...base,
+      id: 'b-rt',
+      bookingReference: 'GF-RT',
+      tripType: 'ROUND_TRIP',
+      legId: null,
+      outboundLegId: 'leg-A',
+      returnLegId: 'leg-B',
+      totalAmount: new Prisma.Decimal('1000000'),
+      outboundLeg: open(2),
+      returnLeg: open(4),
+    },
+  ];
+
+  function runCancel(rows: Row[], legId: string) {
+    const refundCreate = vi.fn().mockResolvedValue({});
+    const ticketUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const mockTx = {
+      leg: {
+        findUnique: vi.fn().mockResolvedValue({ id: legId, operatorId: 'op-1', status: 'OPEN' }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      booking: {
+        findMany: vi.fn(async ({ where }: { where: { OR: Record<string, string>[]; status: string } }) =>
+          rows.filter(
+            (b) =>
+              b.status === where.status &&
+              where.OR.some(
+                (c) =>
+                  (c.legId && b.legId === c.legId) ||
+                  (c.outboundLegId && b.outboundLegId === c.outboundLegId) ||
+                  (c.returnLegId && b.returnLegId === c.returnLegId),
+              ),
+          ),
+        ),
+        update: vi.fn(async ({ where, data }: { where: { id: string }; data: { status: string } }) => {
+          const row = rows.find((b) => b.id === where.id)!;
+          row.status = data.status;
+          return row;
+        }),
+      },
+      ticket: { updateMany: ticketUpdateMany },
+      refund: { create: refundCreate },
+      auditLog: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
+    const result = cancelLeg({ legId, reason: 'Engine failure', operatorId: 'op-1' });
+    return { result, refundCreate, ticketUpdateMany };
+  }
+
+  it('cancels one-way and round-trip bookings when the outbound leg is cancelled', async () => {
+    const rows = makeRows();
+    const { result, refundCreate, ticketUpdateMany } = runCancel(rows, 'leg-A');
+
+    const res = await result;
+    expect(res.cancelledBookings).toBe(2);
+    expect(res.pendingRefunds).toBe(2);
+    expect(res.skipped).toEqual([]);
+    expect(res.cancelled).toEqual([
+      { bookingId: 'b-one', refundAmount: 500000 },
+      { bookingId: 'b-rt', refundAmount: 1000000 },
+    ]);
+    expect(rows.map((r) => r.status)).toEqual(['CANCELLED_BY_OPERATOR', 'CANCELLED_BY_OPERATOR']);
+    expect(ticketUpdateMany).toHaveBeenCalledTimes(2);
+    expect(refundCreate).toHaveBeenCalledTimes(2);
+    expect(refundCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookingId: 'b-rt',
+        originalAmount: new Prisma.Decimal('1000000'),
+        refundAmount: new Prisma.Decimal('1000000'),
+        reason: 'OPERATOR_CANCELLATION',
+      }),
+    });
+  });
+
+  it('cancels the whole round trip, with one full refund, from the return leg', async () => {
+    const rows = makeRows();
+    const { result, refundCreate } = runCancel(rows, 'leg-B');
+
+    const res = await result;
+    expect(res.cancelled).toEqual([{ bookingId: 'b-rt', refundAmount: 1000000 }]);
+    expect(rows.find((r) => r.id === 'b-rt')!.status).toBe('CANCELLED_BY_OPERATOR');
+    expect(rows.find((r) => r.id === 'b-one')!.status).toBe('CONFIRMED');
+    expect(refundCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a round trip alone when its other leg has already sailed', async () => {
+    const rows = makeRows();
+    rows[1].outboundLeg = { status: 'SAILED', departureDate: past(1) };
+    const { result, refundCreate } = runCancel(rows, 'leg-B');
+
+    const res = await result;
+    expect(res.cancelled).toEqual([]);
+    expect(res.skipped).toEqual([{ bookingId: 'b-rt', bookingReference: 'GF-RT' }]);
+    expect(rows[1].status).toBe('CONFIRMED');
+    expect(refundCreate).not.toHaveBeenCalled();
+  });
+
+  it('also treats an other leg whose departure has passed as used, even if not yet marked SAILED', async () => {
+    const rows = makeRows();
+    rows[1].outboundLeg = { status: 'OPEN', departureDate: past(1) };
+    const { result } = runCancel(rows, 'leg-B');
+
+    expect((await result).skipped).toHaveLength(1);
+  });
+
+  it('does not raise a second refund when the booking already has one', async () => {
+    const rows = makeRows();
+    rows[1].refund = { refundAmount: new Prisma.Decimal('750000') };
+    const { result, refundCreate } = runCancel(rows, 'leg-A');
+
+    const res = await result;
+    expect(res.cancelled.find((c) => c.bookingId === 'b-rt')!.refundAmount).toBe(750000);
+    expect(res.pendingRefunds).toBe(1);
+    expect(refundCreate).toHaveBeenCalledTimes(1);
+  });
+});
