@@ -12,7 +12,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 | 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal; belum di-push |
 | 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal; belum di-push |
 | 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal; belum di-push |
-| 5 | WhatsApp round-trip hanya mengirim 1 boarding pass (outbound) dan pembatalan tidak menyebut kedua leg | Krusial | 🟡 Fixed di working tree, belum diverifikasi live |
+| 5 | WhatsApp round-trip hanya mengirim 1 boarding pass (outbound) dan pembatalan tidak menyebut kedua leg | Krusial | ✅ Fixed (`1d16552`), terverifikasi live di gilijet.vercel.app |
 
 ---|-----|----------|--------|
 | 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
@@ -140,7 +140,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 - [x] WhatsApp pembatalan menyebut kedua leg
 - [x] One-way tidak berubah
 - [x] Unit test
-- [ ] Verifikasi live di staging (mode mock: cek teks di runtime log Vercel)
+- [x] Verifikasi live di staging (mode mock: teks dicek di runtime log Vercel, 2026-10-09)
 
 **Catatan:** session message WhatsApp hanya sampai bila customer menghubungi bisnis dalam 24 jam terakhir (batasan WATI yang sudah ada, tidak diubah di sini); pengiriman nyata belum diuji karena staging tanpa kunci WATI.
 
@@ -162,6 +162,12 @@ Akses lewat share link sementara Vercel (situs di balik Deployment Protection). 
 ### Temuan dari log putaran 2
 WhatsApp round-trip hanya mengirim 1 boarding pass dan WhatsApp pembatalan tidak menyebut kedua leg: dicatat dan diperbaiki sebagai bug #5.
 
+### Putaran 3: verifikasi bug #5 di gilijet.vercel.app (commit `c2b5005`, deployment `dpl_9iEC…`)
+Booking `VERIFY3` dikonfirmasi lewat UI admin gilijet, satu round-trip dibatalkan lewat leg return; isi pesan dibaca dari runtime log Vercel (mode mock), nol error/fatal.
+- **Round-trip, 2 penumpang (P-RT):** WhatsApp mengirim 2 dokumen berurutan: "boarding pass berangkat Anda terlampir (1 dari 2)" (Sanur → Nusa Penida, 15 Nov 08:00) lalu "boarding pass pulang Anda terlampir (2 dari 2)" (Nusa Penida → Sanur, 17 Nov 16:00), keduanya menyebut "Pemesanan pulang-pergi: 2 boarding pass (berangkat dan pulang), masing-masing dengan QR code sendiri". Email: 1 email, 2 tiket, 2 PDF (outbound + return).
+- **One-way (P-OW):** 1 WhatsApp dan 1 PDF, caption lama tanpa penanda leg (tidak berubah).
+- **Pembatalan round-trip (P-CX):** WhatsApp memuat "Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang, plus email pembatalan; booking `CANCELLED_BY_OPERATOR`, 1 refund 500000/500000.
+
 ### Belum tercakup
 - Notifikasi diuji mode mock (staging tidak punya kunci Resend/WATI): tidak ada pesan nyata terkirim.
 - Aksi cancel di halaman operator tidak dijalankan (hanya cancel lewat admin); lihat follow-up 7.
@@ -169,6 +175,7 @@ WhatsApp round-trip hanya mengirim 1 boarding pass dan WhatsApp pembatalan tidak
 
 ### Data uji tertinggal di DB staging
 - Putaran 1: 5 booking `VERIFY` (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP); leg uji QA Boats 14-16, 20-22, 26-28 Okt (3 dibatalkan, 1 `SAILED`).
+- Putaran 3: 3 booking `VERIFY3` (BK-2026-10-J5CZLJ, -PPEBUU, -6BF99S); leg uji QA Boats 15-17 dan 21-23 Nov (2 leg dibatalkan); 1 Refund `PENDING`; leg QA Boats diperpanjang sampai +75 hari.
 - Putaran 2: 5 booking `VERIFY2` (BK-2026-10-GLTZYP, -GJ5WC4, -3LKCU7, -RHCG2E, -FQRW3V); leg uji QA Boats 4-6, 10-12, 16-18 Nov (3 dibatalkan, 1 `SAILED`).
 - Total 4 Refund `PENDING`, dan 132 leg QA Boats baru (10 Okt sampai 22 Nov) hasil `generateLegsForSchedule`.
 
