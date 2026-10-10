@@ -26,9 +26,9 @@
  *   pnpm purge:dummy --confirm
  */
 
-import { prisma } from '../lib/db';
-import { activeOperator } from '../lib/operator-data';
-import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../lib/wahana-schedule';
+import { prisma } from '../src/shared/server/db';
+import { activeOperator } from '../src/features/operators/data';
+import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../src/features/schedules/wahana-schedule';
 import {
   collectBoatSubtree,
   collectOperatorSubtree,
@@ -38,7 +38,7 @@ import {
   subtreeBlockers,
   type PurgeCounts,
   type Subtree,
-} from '../lib/operator-purge';
+} from '../src/features/operators/purge';
 
 const confirm = process.argv.includes('--confirm');
 const retireBlocked = process.argv.includes('--retire-blocked');

@@ -8,7 +8,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
 > run schedules, departures, POS, cash and reporting; admins onboard operators,
 > handle refunds and tune platform economics.
 >
-> `lib/feature-catalog.ts` is the canonical inventory of what exists — 57
+> `src/features/diagnostics/feature-catalog.ts` is the canonical inventory of what exists — 57
 > entries, each with its routes, owning modules and Prisma models, and a status
 > that distinguishes shipped from partial, placeholder and schema-only. Read it
 > before assuming a feature works; a few routes exist without being finished.
@@ -66,7 +66,7 @@ QA seed logins (from `scripts/seed-qa.ts`, all password `qaqaqaqa`):
 `pnpm db:seed` instead loads the fuller demo set, defaulting to
 `admin@gilifast.local` / `changeme123`.
 
-> **Rotate that password before any deploy.** `docker-compose.yml` defaults
+> **Rotate that password before any deploy.** The seed defaults
 > `SEED_ADMIN_PASSWORD` to `changeme123`, so an environment seeded without
 > overriding `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` ships with a publicly
 > documented super-admin credential.
@@ -96,7 +96,7 @@ integration provisions `POSTGRES_*` rather than `DATABASE_URL`:
 | Runtime queries (pooled, `:6543`) | `DATABASE_URL` → `POSTGRES_PRISMA_URL` → `POSTGRES_URL` |
 | DDL / `db push` (direct, `:5432`) | `DIRECT_URL` → `POSTGRES_URL_NON_POOLING` |
 
-Import `prisma` from `lib/db.ts`; do not read those env vars anywhere else.
+Import `prisma` from `src/shared/server/db.ts`; do not read those env vars anywhere else.
 DDL cannot run through the pgBouncer pooler, which is why the direct URL is
 separate. A build that cannot resolve a database now fails rather than
 silently skipping the push — schema drift used to reach production and take
@@ -111,9 +111,7 @@ candidate names above — a much more useful diagnosis than the P1013 Prisma
 throws once a malformed value reaches it. Set `ALLOW_NON_SUPABASE_DB=1` to
 skip the check for the one legitimate exception: pointing a one-off local
 `pnpm build` at a non-Supabase Postgres on purpose. This check applies only
-to this script — `lib/db.ts` stays provider-agnostic because the droplet
-deployment (see below) runs its own, deliberately non-Supabase Postgres and
-shares that file.
+to this script — `src/shared/server/db.ts` stays provider-agnostic.
 
 Soft deletes: `Operator`, `Boat` and `Schedule` carry `deletedAt`, so list
 queries must filter `deletedAt: null`.
@@ -133,28 +131,10 @@ Requires `reportlab` (`pip install reportlab`). Regenerate and commit it with
 any PR that changes the schema; hand-editing the PDF guarantees it disagrees
 with the database on the next push.
 
-### Storage names still say `gilijet`
+### Legacy `GILIJET` sales channel
 
-The brand is Gilifast, but four identifiers in `docker-compose.yml` — the
-compose project `name`, `POSTGRES_DB`, `POSTGRES_USER`, and the credentials in
-`DATABASE_URL` — deliberately still read `gilijet`. They are not branding; they
-are where the production data physically lives. The compose project name
-namespaces the volume, so the live cluster is `gilijet_db-data`, and
-`POSTGRES_DB`/`POSTGRES_USER` do not rename anything on an already-initialised
-volume — changing them just points the app at a role and database that do not
-exist.
-
-Renaming them is a dump-and-restore on the droplet, not an edit:
-
-```bash
-docker compose exec db pg_dump -U gilijet gilijet > /root/gilijet-backup.sql
-# then: bring the stack down, edit the four identifiers, docker compose up -d,
-# and restore into the new database before letting the app start.
-```
-
-`SalesChannel.GILIJET` is retained in `prisma/schema.prisma` for the same
-reason — existing `Booking` rows reference it, and dropping an in-use enum
-value makes `prisma db push` refuse the whole push. `lib/sales-channel.ts`
+`SalesChannel.GILIJET` is retained in `prisma/schema.prisma` because existing `Booking` rows reference it, and dropping an in-use enum
+value makes `prisma db push` refuse the whole push. `src/features/schedules/sales-channel.ts`
 folds it onto `GILIFAST` for every display and grouping.
 
 ## Environments
@@ -194,7 +174,7 @@ and deploys anyway. A separate project gets both behaviours.
 
 The flip side: `VERCEL_ENV` is `"production"` on **both** projects, so it can
 never distinguish them. `APP_BASE_URL` is the only reliable signal, which is
-what `app/robots.ts` keys on to keep staging out of Google.
+what `src/app/robots.ts` keys on to keep staging out of Google.
 
 ### Secrets that must differ
 
@@ -207,7 +187,7 @@ what `app/robots.ts` keys on to keep staging out of Google.
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | shared ⇒ staging reads production's KYB documents. See below |
 | `APP_BASE_URL` | no fallback to `VERCEL_URL`; unset it becomes `http://localhost:3000` and that string lands in PayPal return URLs and every booking link in email and WhatsApp |
 
-`AUTH_SECRET` deserves the sharp version: `requireAdmin()` in `lib/auth.ts`
+`AUTH_SECRET` deserves the sharp version: `requireAdmin()` in `src/shared/server/auth.ts`
 reads `adminRole` straight off the JWT and never re-checks the database. Shared,
 you log into staging as the `qa-admin@gilifast.local` / `qaqaqaqa` account that
 `pnpm seed:qa` creates unconditionally as `SUPER_ADMIN`, paste the
@@ -223,7 +203,7 @@ Different, it returns *"QR code is not a valid Gilifast ticket"* — unambiguous
 
 ### Staging needs its own storage bucket
 
-`app/api/operator/document-upload/route.ts` and `lib/operator-documents.ts`
+`src/app/api/operator/document-upload/route.ts` and `src/features/operators/documents.ts`
 both build a Supabase client from `SUPABASE_URL` + `SUPABASE_ANON_KEY` against a
 hardcoded bucket named `operator-documents`. If staging inherits production's
 pair, the staging admin UI mints signed URLs to real operators' SIUP, NPWP,
@@ -234,8 +214,8 @@ policies; uploads go through the **anon** key, so anon `INSERT` must be allowed.
 
 ### `PAYPAL_IS_PRODUCTION=false` is not a safety guard
 
-Unlike DOKU — where `baseUrl()` in `lib/doku.ts` picks the host with no
-fallback — `accessToken()` in `lib/paypal.ts` retries the *other* host on a
+Unlike DOKU — where `baseUrl()` in `src/features/payments/doku.ts` picks the host with no
+fallback — `accessToken()` in `src/features/payments/paypal.ts` retries the *other* host on a
 `401 invalid_client` and caches whichever one accepts the credentials. So live
 PayPal keys sitting in the staging project charge real customers real money;
 the flag costs one wasted round-trip and logs a warning suggesting you flip it.
@@ -258,11 +238,11 @@ be exercised in production.
 
 | Path | Audience | Guard |
 |---|---|---|
-| `app/(customer)/[locale]/…` | anonymous + logged-in customers | none |
-| `app/operator/…` | operator back office | `requireOperator()`, scoped by `operatorId` |
-| `app/admin/…` | platform admin | `requireAdmin()` |
-| `app/admin/(authed)/console/…` | owner only | `requireSuperAdmin()` |
-| `app/api/…` | REST, webhooks, cron | signature or `CRON_SECRET` |
+| `src/app/(customer)/[locale]/…` | anonymous + logged-in customers | none |
+| `src/app/operator/…` | operator back office | `requireOperator()`, scoped by `operatorId` |
+| `src/app/admin/…` | platform admin | `requireAdmin()` |
+| `src/app/admin/(authed)/console/…` | owner only | `requireSuperAdmin()` |
+| `src/app/api/…` | REST, webhooks, cron | signature or `CRON_SECRET` |
 
 `proxy.ts` (Next 16's renamed middleware) handles locale routing only and
 performs **no** auth, so every page, server action and route handler must call
@@ -274,16 +254,16 @@ Duplicating any of these is a bug:
 
 | Concern | Module |
 |---|---|
-| Booking totals, commission split, service fee | `lib/pricing.ts` |
-| Platform economics resolution | `lib/platform-config.ts` |
-| Refund tiers and deadlines | `lib/refunds.ts` |
-| Seat holds and booking lifecycle | `lib/booking-engine.ts` |
-| Per-departure rows | `lib/legs.ts` |
-| WITA formatting | `lib/datetime.ts` |
-| Port names | `lib/port-info.ts` |
-| QR / ticket codes | `lib/qr.ts`, `lib/references.ts` |
-| Coupon validation and redemption | `lib/promotions.ts` |
-| What the platform does | `lib/feature-catalog.ts` |
+| Booking totals, commission split, service fee | `src/features/pricing/pricing.ts` |
+| Platform economics resolution | `src/shared/server/platform-config.ts` |
+| Refund tiers and deadlines | `src/features/refunds/refunds.ts` |
+| Seat holds and booking lifecycle | `src/features/booking/engine.ts` |
+| Per-departure rows | `src/features/schedules/legs.ts` |
+| WITA formatting | `src/shared/lib/datetime.ts` |
+| Port names | `src/features/ports/port-info.ts` |
+| QR / ticket codes | `src/features/tickets/qr.ts`, `src/features/booking/references.ts` |
+| Coupon validation and redemption | `src/features/pricing/promotions.ts` |
+| What the platform does | `src/features/diagnostics/feature-catalog.ts` |
 
 ## Review MCP
 
@@ -308,10 +288,10 @@ Deliver the token through a password manager, not chat. Revoke by rotating
 database credential. A credential would let them bypass these tools entirely
 with `psql`, which is why the tool surface alone is not a security boundary.
 Two layers keep it read-only: no tool writes, and every query goes through
-`lib/mcp/readonly-client.ts`, a Prisma extension that throws on any mutating
+`src/mcp/readonly-client.ts`, a Prisma extension that throws on any mutating
 operation even though the app's own credential is read-write.
-`tests/unit/mcp-readonly.test.ts` proves the guard refuses writes and that
-nothing under `lib/mcp` imports a module that mutates.
+`tests/unit/mcp/readonly.test.ts` proves the guard refuses writes and that
+nothing under `src/mcp` imports a module that mutates.
 
 Set `MCP_REDACT_PII=1` to mask customer name, email and phone in tool output.
 It is off by default, since the reviewer is authorised to read customer records
@@ -324,25 +304,13 @@ dashboard session.
 Honest state, so nobody plans against features that do not work:
 
 - **Unscheduled cron endpoints.** `send-reminders` and `poll-bmkg` are
-  implemented and callable but scheduled nowhere, so departure reminders and
-  BMKG weather never run on their own. `refresh-fx` is now scheduled hourly by
-  the `cron` service in `docker-compose.yml`; add further routes to the
-  `for route in …` list there. Note `vercel.json` is inert on the droplet — Vercel Cron
-  does not exist there, so anything scheduled only in that file never fires.
-- **No TLS unless `APP_DOMAIN` is set.** DOKU accepts notifications over plain
-  HTTP, so the droplet works on a bare IP — but payment notifications and
-  card-holder traffic then travel in the clear, which is not where you want to
-  be taking real money. Setting `APP_DOMAIN` in `~/.gilifast/.env` to a domain
-  whose A record points at the box makes the `caddy` service issue and renew a
-  Let's Encrypt certificate automatically, and `deploy.sh` rewrites
-  `APP_BASE_URL` to match. Until DNS resolves, Caddy cannot obtain a
-  certificate and the site will not serve, so point the A record first.
-- **Live keys must be present on the server, not just in a dashboard.** Until
-  `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set in `~/.gilifast/.env` the app
+  implemented and callable but absent from `vercel.json`, so departure
+  reminders and BMKG weather never run on their own. Only `retry-webhooks`,
+  `topup-legs` and `refresh-fx` are scheduled there.
+- **Live keys must be set in the hosting environment, not just in a
+  dashboard.** Until `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set the app
   runs in mock mode and takes no real money — checkout falls back to the
-  built-in dummy flow. `deploy.sh` prints which integrations are live at the
-  end of every deploy, and `/admin/diagnostics` shows the same from the
-  browser.
+  built-in dummy flow. `/admin/diagnostics` shows which integrations are live.
 - **`PAYPAL_IS_PRODUCTION` picks the host, and getting it wrong looks like
   nothing.** The same keys are accepted by exactly one of `api-m.paypal.com`
   and `api-m.sandbox.paypal.com`; sent to the other they come back 401
@@ -368,22 +336,28 @@ Honest state, so nobody plans against features that do not work:
 - **No read-only role.** `AdminRole` is `SUPER_ADMIN | STAFF`, and `STAFF` is
   not read-only — a STAFF admin can approve refunds and suspend operators.
 - **`REQUIREMENTS.md` is a stub** pointing at a spec that is not in this repo.
-  Prefer `CLAUDE.md` and `lib/feature-catalog.ts`.
+  Prefer `CLAUDE.md` and `src/features/diagnostics/feature-catalog.ts`.
 
 ## Repository layout
 
 ```
-app/
+src/app/
   (customer)/[locale]/  — search, booking, checkout, tickets, account, blog
   operator/             — back office (Indonesian nav; English canonical routes)
   admin/(authed)/       — operator onboarding, bookings, refunds, reschedules
     console/            — owner-only coupons + platform economics
   api/                  — REST, DOKU/Xendit webhooks, cron
   print/                — printable tickets and manifests
-components/
+src/features/           — domain logic, one folder per domain
+  booking/              — engine, expiry, helpers, notifications, references (+ components/)
+  pricing/              — pricing, fares, fx, promotions
+  payments/             — doku, paypal, psp, webhook-processor
+  refunds/  tickets/  schedules/  operators/  ports/  messaging/  diagnostics/
+src/shared/             — cross-cutting, must not import features/ or app/
+  server/               — db, auth, env, audit, login-throttle, platform-config
+  lib/                  — datetime, utils, serialize-decimals, countries
   ui/                   — shadcn-style primitives
-  operator-shell/       — operator nav, sidebar module tree, page templates
-lib/                    — 42 modules; see "single sources of truth" above
+src/mcp/                — read-only review MCP server
 prisma/
   schema.prisma         — 38 models, 41 enums
   seed.ts               — demo data
@@ -391,21 +365,21 @@ scripts/
   seed-qa.ts            — deterministic QA data
   db-push-if-configured.mjs
 tests/
-  unit/                 — vitest, pure functions only
+  unit/                 — vitest; mirrors src/ (features/<domain>, shared/, app/, mcp/)
   e2e/                  — Playwright golden paths
 docs/                   — phased design notes
-messages/               — en / id / zh / ja translations
+src/messages/               — en / id / zh / ja translations
 ```
 
 ## Conventions
 
 - TypeScript strict, no `any`
-- Server actions live in `app/**/actions.ts`; they `redirect()` on success,
+- Server actions live in `src/app/**/actions.ts`; they `redirect()` on success,
   throw on failure, and re-throw `NEXT_REDIRECT`
 - Forms are React Hook Form + Zod; the same schema re-validates server-side
 - All money is `Prisma.Decimal`, integer rupiah
-- Times stored UTC, rendered through `lib/datetime.ts`
-- Tailwind only; extend `components/ui/*` rather than adding a component library
+- Times stored UTC, rendered through `src/shared/lib/datetime.ts`
+- Tailwind only; extend `src/shared/ui/*` rather than adding a component library
 - Operator queries always include `operatorId`; use `operatorScope(session)`
 - Every state change on booking / payment / refund / leg / operator writes to
   `AuditLog`

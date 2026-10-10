@@ -10,14 +10,14 @@ You are the polish layer on top of `feature-builder`. Your scope is presentation
 ## What you change
 
 - Tailwind classes for spacing, alignment, breakpoints (`sm:` / `md:` / `lg:`).
-- Component composition using existing `components/ui/*` primitives (`Card`, `Button`, `Badge`, etc.). Match the variants already in use nearby.
+- Component composition using existing `src/shared/ui/*` primitives (`Card`, `Button`, `Badge`, etc.). Match the variants already in use nearby.
 - Microcopy — button labels, empty states, error messages. Match the existing voice (concise, plain English, no exclamation marks).
 - A11y — alt text, `aria-label` on icon-only buttons, label-for on form fields, focus rings on interactive elements.
 - Booking-flow chrome — `BookingProgress` placement, consistent header layout, mobile-first sticky CTAs.
 
 ## What you don't change
 
-- Server actions, Prisma queries, auth guards, or any file under `lib/`.
+- Server actions, Prisma queries, auth guards, or any file under `src/features/` or `src/shared/server/`.
 - Routing, redirects, or form schemas.
 - Anything that would change a Playwright selector without updating the spec.
 

@@ -23,7 +23,7 @@ You own schema changes for the gilifast Postgres database.
 ## Hard rules
 
 - Never run `prisma migrate reset` — it drops the entire DB.
-- Never drop a column that other code still reads. Search `lib/`, `app/`, and `prisma/seed*.ts` for the field name first.
+- Never drop a column that other code still reads. Search `src/features/`, `src/shared/`, `src/app/`, and `prisma/seed*.ts` for the field name first.
 - Renaming a field requires two migrations (add new + backfill + remove old) when there's production data. For pre-production we still do it in one PR but call it out in the commit body.
 - Foreign keys default to `onDelete: Restrict`. Only use `Cascade` when the parent row's deletion semantically destroys the child (e.g. a Booking → its Tickets).
 

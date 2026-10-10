@@ -19,12 +19,12 @@
  */
 
 import { Prisma } from '@prisma/client';
-import { prisma } from '../lib/db';
-import { generateLegsForSchedule, BOOKING_HORIZON_DAYS } from '../lib/legs';
-import { canonicalPortName } from '../lib/port-info';
-import { activeBoat, activeOperator, activeSchedule } from '../lib/operator-data';
-import { baseFareOf } from '../lib/fares';
-import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../lib/wahana-schedule';
+import { prisma } from '../src/shared/server/db';
+import { generateLegsForSchedule, BOOKING_HORIZON_DAYS } from '../src/features/schedules/legs';
+import { canonicalPortName } from '../src/features/ports/port-info';
+import { activeBoat, activeOperator, activeSchedule } from '../src/features/operators/data';
+import { baseFareOf } from '../src/features/pricing/fares';
+import { WAHANA_DEPARTURES, WAHANA_OPERATOR } from '../src/features/schedules/wahana-schedule';
 
 const dryRun = process.argv.includes('--dry-run');
 const exclusive = process.argv.includes('--exclusive');

@@ -1,6 +1,6 @@
 ---
 name: feature-builder
-description: Implements a vertical feature slice in gilifast — server action → page → form/client component → route. Reuses existing primitives in lib/ and components/ui/. Use for any "add/change feature" task that does not touch the Prisma schema.
+description: Implements a vertical feature slice in gilifast — server action → page → form/client component → route. Reuses existing primitives in src/features/, src/shared/ and src/shared/ui/. Use for any "add/change feature" task that does not touch the Prisma schema.
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 ---
@@ -10,26 +10,26 @@ You ship feature slices for the gilifast boat-ticketing app.
 ## Before you write any code
 
 1. Identify the persona (customer / operator / admin) and put the route in the matching group:
-   - Customer → `app/(customer)/...`
-   - Operator → `app/operator/...` (gate with `requireOperator()` from `lib/auth.ts`)
-   - Admin → `app/admin/...` (gate with `requireAdmin()` or `requireSuperAdmin()`)
+   - Customer → `src/app/(customer)/...`
+   - Operator → `src/app/operator/...` (gate with `requireOperator()` from `src/shared/server/auth.ts`)
+   - Admin → `src/app/admin/...` (gate with `requireAdmin()` or `requireSuperAdmin()`)
 2. Skim the nearest existing page in that group to match server-action style, form pattern, and component imports. Match, don't invent.
 3. Check whether the logic you need already exists:
-   - Pricing → `lib/pricing.ts`
-   - Seats / holds / confirmations → `lib/booking-engine.ts`
-   - Refund tier math → `lib/refunds.ts`
-   - Time / WITA → `lib/datetime.ts`
-   - Port labels → `lib/port-info.ts`
-   - Email → `lib/email.ts`
-   - QR / ticket codes → `lib/qr.ts`, `lib/references.ts`
-   - DB client → `lib/db.ts` (always `import { prisma } from "@/lib/db"`)
+   - Pricing → `src/features/pricing/pricing.ts`
+   - Seats / holds / confirmations → `src/features/booking/engine.ts`
+   - Refund tier math → `src/features/refunds/refunds.ts`
+   - Time / WITA → `src/shared/lib/datetime.ts`
+   - Port labels → `src/features/ports/port-info.ts`
+   - Email → `src/features/messaging/email.ts`
+   - QR / ticket codes → `src/features/tickets/qr.ts`, `src/features/booking/references.ts`
+   - DB client → `src/shared/server/db.ts` (always `import { prisma } from "@/shared/server/db"`)
 4. Reuse, don't duplicate.
 
 ## Conventions
 
 - Server actions: `"use server"` at the top, throw on failure, `redirect()` on success, re-throw `NEXT_REDIRECT`.
 - Forms: React Hook Form + Zod resolvers. The same Zod schema runs server-side inside the action.
-- UI: `components/ui/*` (shadcn/Radix). Tailwind only. No new component libraries.
+- UI: `src/shared/ui/*` (shadcn/Radix). Tailwind only. No new component libraries.
 - Tenant scoping: every operator-side Prisma call carries `operatorId: session.sub`; every logged-in-customer-side call carries `customerId: session.sub`. Never query without scope on those surfaces.
 - Comments: only WHY when non-obvious. No restating-the-code comments.
 

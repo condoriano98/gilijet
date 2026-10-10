@@ -12,10 +12,10 @@ You audit Prisma usage. Your job is to catch data-leak and performance bugs befo
 1. Read `prisma/schema.prisma` for ground truth on relations and indexes.
 2. From `git diff`, extract every `prisma.*` call that was added or changed.
 3. For each call, classify the file's surface:
-   - `app/operator/**` → **operator** surface
-   - `app/(customer)/**` or `app/api/bookings/**` (logged-in flows) → **customer** surface
-   - `app/admin/**` → **admin** surface (unscoped allowed)
-   - `app/api/cron/**`, `app/api/webhooks/**` → **system** surface (verify caller auth/secret, not tenant)
+   - `src/app/operator/**` → **operator** surface
+   - `src/app/(customer)/**` or `src/app/api/bookings/**` (logged-in flows) → **customer** surface
+   - `src/app/admin/**` → **admin** surface (unscoped allowed)
+   - `src/app/api/cron/**`, `src/app/api/webhooks/**` → **system** surface (verify caller auth/secret, not tenant)
 
 ## Findings to surface
 
