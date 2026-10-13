@@ -11,6 +11,8 @@
  * computes money; this is storage and validation.
  */
 
+import type { SeasonType } from '@prisma/client';
+
 export type PassengerCategory = 'adult' | 'child' | 'infant';
 export type FareSeason = 'low' | 'high' | 'peak';
 export type TripKind = 'oneWay' | 'return';
@@ -66,11 +68,12 @@ export function baseFareOf(matrix: FareMatrix): number {
 }
 
 /**
- * Per-category fares for checkout. Booking is one-way only and there is no
- * season resolver (no date ranges are configured anywhere), so this always
- * reads the one-way/low cell — the same cell `baseFareOf` mirrors into
- * `Schedule.basePrice`, so ADULT here always matches the existing basePrice.
+ * Per-category fares for checkout. Booking is one-way only, so this reads the
+ * `oneWay` row. Without a resolved season (no calendar row, or OFF) it falls
+ * back to the low cell — the one `baseFareOf` mirrors into `Schedule.basePrice`.
  */
-export function categoryFaresFor(matrix: FareMatrix): CategoryFares {
+export function categoryFaresFor(matrix: FareMatrix, season?: SeasonType | null): CategoryFares {
+  if (season === 'HIGH') return matrix.oneWay.high;
+  if (season === 'PEAK') return matrix.oneWay.peak;
   return matrix.oneWay.low;
 }

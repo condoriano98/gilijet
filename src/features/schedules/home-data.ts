@@ -1,4 +1,5 @@
 import { prisma } from '@/shared/server/db';
+import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
 
 // =================== Available ports ===================
 
@@ -51,7 +52,7 @@ export async function getDepartingSoon(
   const now = new Date();
   const end = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
 
-  const legs = await prisma.leg.findMany({
+  const rawLegs = await prisma.leg.findMany({
     where: {
       status: 'OPEN',
       departureDate: { gte: now, lte: end },
@@ -72,6 +73,7 @@ export async function getDepartingSoon(
     orderBy: { departureDate: 'asc' },
     take: limit,
   });
+  const legs = withSeasonPrice(rawLegs, await loadActiveSeasons());
 
   return legs.map((leg) => ({
     legId: leg.id,
@@ -109,7 +111,7 @@ export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
   const now = new Date();
   const end = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-  const legs = await prisma.leg.findMany({
+  const rawLegs = await prisma.leg.findMany({
     where: {
       status: 'OPEN',
       departureDate: { gte: now, lte: end },
@@ -117,8 +119,11 @@ export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
     },
     select: {
       basePrice: true,
+      priceOverridden: true,
+      departureDate: true,
       schedule: {
         select: {
+          fareMatrix: true,
           originPort: true,
           destinationPort: true,
           durationMinutes: true,
@@ -127,6 +132,8 @@ export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
       },
     },
   });
+
+  const legs = withSeasonPrice(rawLegs, await loadActiveSeasons());
 
   if (legs.length === 0) return POPULAR_ROUTES_FALLBACK.slice(0, limit);
 

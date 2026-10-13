@@ -1,3 +1,4 @@
+import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -192,7 +193,7 @@ export default async function ReschedulePage({
   const startUtc = localDateTimeToUtc(defaultDate, '00:00');
   const endUtc = localDateTimeToUtc(defaultDate, '23:59');
 
-  const candidateLegs = await prisma.leg.findMany({
+  const rawCandidateLegs = await prisma.leg.findMany({
     where: {
       status: 'OPEN',
       departureDate: { gte: startUtc, lte: endUtc },
@@ -209,6 +210,7 @@ export default async function ReschedulePage({
     orderBy: { departureDate: 'asc' },
     take: 20,
   });
+  const candidateLegs = withSeasonPrice(rawCandidateLegs, await loadActiveSeasons());
 
   return (
     <div className="container py-8">

@@ -5,6 +5,7 @@ const tabs = [
   { href: '/admin/console', label: 'Overview' },
   { href: '/admin/console/coupons', label: 'Coupons' },
   { href: '/admin/console/pricing', label: 'Pricing' },
+  { href: '/admin/console/seasons', label: 'Seasons' },
   { href: '/admin/console/payments', label: 'Payments' },
   { href: '/admin/console/alerts', label: 'Alerts' },
 ];
@@ -22,7 +23,7 @@ export default async function ConsoleLayout({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Owner Console</h1>
         <p className="text-sm text-muted-foreground">
-          Coupons &amp; platform pricing — visible to super-admins only.
+          Coupons, platform pricing &amp; seasons — visible to super-admins only.
         </p>
       </div>
       <nav className="flex gap-1 border-b">

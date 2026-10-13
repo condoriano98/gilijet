@@ -7,6 +7,7 @@ vi.mock('@/shared/server/db', () => ({
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         leg: { findUnique: findUniqueMock },
+        season: { findMany: async () => [] },
       }),
   },
 }));

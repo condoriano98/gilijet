@@ -18,6 +18,7 @@ describe('booking-helpers', () => {
     status: 'OPEN',
     departureDate: new Date('2026-10-15T08:00:00Z'),
     basePrice: new Prisma.Decimal('250000'),
+    priceOverridden: false,
     cancellationReason: null,
     createdAt: new Date(),
     updatedAt: new Date(),

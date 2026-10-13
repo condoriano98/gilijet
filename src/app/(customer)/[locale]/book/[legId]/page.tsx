@@ -31,7 +31,7 @@ import { BookingPriceProvider } from '@/app/(customer)/[locale]/book/[legId]/_co
 import { BookingPriceSummary } from '@/app/(customer)/[locale]/book/[legId]/_components/booking-price-summary';
 import { getCustomerSession } from '@/shared/server/auth';
 import type { PassengerType } from '@/features/pricing/pricing';
-import { parseFareMatrix, categoryFaresFor } from '@/features/pricing/fares';
+import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
 
 const NAMES_MIN = 2;
@@ -200,6 +200,10 @@ export default async function BookPage({
   if (!isRoundTrip && !leg) notFound();
   if (isRoundTrip && (!outboundLeg || !returnLeg)) notFound();
 
+  const seasons = await loadActiveSeasons();
+  const activeLegPricing = legPricingInputs(isRoundTrip ? outboundLeg! : leg!, seasons);
+  const returnLegPricing = isRoundTrip ? legPricingInputs(returnLeg!, seasons) : null;
+
   // If logged in, pull the customer record for prefill.
   const customer = session
     ? await prisma.customer.findUnique({ where: { id: session.sub } })
@@ -207,7 +211,7 @@ export default async function BookPage({
 
   // Validate leg(s) status
   if (isRoundTrip) {
-    if (outboundLeg!.status !== 'OPEN' || outboundLeg!.departureDate.getTime() <= Date.now()) {
+    if (outboundLeg!.status !== 'OPEN' || activeLegPricing.closed || outboundLeg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
           <Card>
@@ -223,7 +227,7 @@ export default async function BookPage({
         </div>
       );
     }
-    if (returnLeg!.status !== 'OPEN' || returnLeg!.departureDate.getTime() <= Date.now()) {
+    if (returnLeg!.status !== 'OPEN' || returnLegPricing!.closed || returnLeg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
           <Card>
@@ -240,7 +244,7 @@ export default async function BookPage({
       );
     }
   } else {
-    if (leg!.status !== 'OPEN' || leg!.departureDate.getTime() <= Date.now()) {
+    if (leg!.status !== 'OPEN' || activeLegPricing.closed || leg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
           <Card>
@@ -258,30 +262,26 @@ export default async function BookPage({
     }
   }
 
-  // Calculate pricing for one-way or round-trip
+  // Same season-aware resolution the booking engine charges with.
   const activeLeg = isRoundTrip ? outboundLeg! : leg!;
-  const unitPrice = Number(activeLeg.basePrice);
-  const returnUnitPrice = isRoundTrip ? Number(returnLeg!.basePrice) : 0;
-  const totalUnitPrice = unitPrice + returnUnitPrice;
-
-  // Same fareMatrix-first, multiplier-fallback resolution the booking engine
-  // charges with (lib/booking-engine.ts) — ADULT stays leg.basePrice, since
-  // that's what the admin/operator price-override UIs write to.
   const pricing = await resolvePlatformPricing(activeLeg.operatorId);
-  const fareMatrix = parseFareMatrix(activeLeg.schedule.fareMatrix);
-  const fares = fareMatrix ? categoryFaresFor(fareMatrix) : null;
-  const childPrice = fares ? fares.child : unitPrice * (pricing.multipliers?.CHILD ?? 0.5);
-  const infantPrice = fares ? fares.infant : unitPrice * (pricing.multipliers?.INFANT ?? 0);
-
-  // For round-trip, add return leg pricing
-  const returnFareMatrix = isRoundTrip ? parseFareMatrix(returnLeg!.schedule.fareMatrix) : null;
-  const returnFares = returnFareMatrix ? categoryFaresFor(returnFareMatrix) : null;
-  const returnChildPrice = isRoundTrip
-    ? (returnFares ? returnFares.child : returnUnitPrice * (pricing.multipliers?.CHILD ?? 0.5))
-    : 0;
-  const returnInfantPrice = isRoundTrip
-    ? (returnFares ? returnFares.infant : returnUnitPrice * (pricing.multipliers?.INFANT ?? 0))
-    : 0;
+  const priced = (inputs: ReturnType<typeof legPricingInputs>) => {
+    const adult = Number(inputs.unitPrice);
+    return {
+      adult,
+      child: inputs.categoryUnitPrices?.CHILD ?? adult * (pricing.multipliers?.CHILD ?? 0.5),
+      infant: inputs.categoryUnitPrices?.INFANT ?? adult * (pricing.multipliers?.INFANT ?? 0),
+    };
+  };
+  const outboundFare = priced(activeLegPricing);
+  const returnFare = returnLegPricing ? priced(returnLegPricing) : { adult: 0, child: 0, infant: 0 };
+  const unitPrice = outboundFare.adult;
+  const returnUnitPrice = returnFare.adult;
+  const totalUnitPrice = unitPrice + returnUnitPrice;
+  const childPrice = outboundFare.child;
+  const infantPrice = outboundFare.infant;
+  const returnChildPrice = returnFare.child;
+  const returnInfantPrice = returnFare.infant;
 
   // Total pricing for display (outbound + return for round-trip)
   const displayAdultPrice = totalUnitPrice;
@@ -291,7 +291,7 @@ export default async function BookPage({
   const displayLeg = isRoundTrip ? outboundLeg! : leg!;
   const searchOrigin = displayLeg.schedule.originPort;
   const searchDestination = displayLeg.schedule.destinationPort;
-  const roundTripReturnPrice = isRoundTrip ? Number(returnLeg!.basePrice) : 0;
+  const roundTripReturnPrice = returnUnitPrice;
 
   return (
     <div className="container py-8">

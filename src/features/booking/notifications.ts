@@ -1,3 +1,4 @@
+import { adultFareFromSnapshot } from '@/features/pricing/seasons';
 import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { getMainLeg, getReturnLeg } from '@/features/booking/helpers';
@@ -33,6 +34,7 @@ import type { IssuedTicket } from '@/features/tickets/ticket-issuer';
 const bookingForNotify = {
   id: true,
   tripType: true,
+  seasonSnapshot: true,
   bookingReference: true,
   customerName: true,
   customerEmail: true,
@@ -41,12 +43,15 @@ const bookingForNotify = {
   tickets: { select: { id: true } },
   leg: {
     select: {
+      id: true,
       basePrice: true,
+      priceOverridden: true,
       departureDate: true,
       schedule: {
         select: {
           originPort: true,
           destinationPort: true,
+          fareMatrix: true,
           boat: { select: { name: true } },
         },
       },
@@ -54,12 +59,15 @@ const bookingForNotify = {
   },
   outboundLeg: {
     select: {
+      id: true,
       basePrice: true,
+      priceOverridden: true,
       departureDate: true,
       schedule: {
         select: {
           originPort: true,
           destinationPort: true,
+          fareMatrix: true,
           boat: { select: { name: true } },
         },
       },
@@ -67,12 +75,15 @@ const bookingForNotify = {
   },
   returnLeg: {
     select: {
+      id: true,
       basePrice: true,
+      priceOverridden: true,
       departureDate: true,
       schedule: {
         select: {
           originPort: true,
           destinationPort: true,
+          fareMatrix: true,
           boat: { select: { name: true } },
         },
       },
@@ -164,9 +175,9 @@ export async function notifyBoardingPassIssued(
   let returnPrice: number | undefined;
   if (booking.tripType === 'ROUND_TRIP') {
     const passengerCount = booking.tickets.length;
-    outboundPrice = Number(mainLeg.basePrice) * passengerCount;
+    outboundPrice = adultFareFromSnapshot(mainLeg, booking.seasonSnapshot) * passengerCount;
     if (returnLeg) {
-      returnPrice = Number(returnLeg.basePrice) * passengerCount;
+      returnPrice = adultFareFromSnapshot(returnLeg, booking.seasonSnapshot) * passengerCount;
     }
   }
 

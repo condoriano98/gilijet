@@ -5,6 +5,7 @@ const findUniqueMock = vi.fn();
 const createMock = vi.fn();
 const updateMock = vi.fn();
 const createAuditLogMock = vi.fn();
+const seasonFindManyMock = vi.fn();
 
 vi.mock('@/shared/server/db', () => ({
   prisma: {
@@ -14,6 +15,7 @@ vi.mock('@/shared/server/db', () => ({
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         leg: { findUnique: findUniqueMock },
+        season: { findMany: seasonFindManyMock },
         booking: { create: createMock, update: updateMock },
         auditLog: { create: createAuditLogMock },
       }),
@@ -136,6 +138,59 @@ describe('createOneWayBooking', () => {
     updateMock.mockReset();
     createAuditLogMock.mockReset();
     vi.clearAllMocks();
+    seasonFindManyMock.mockReset().mockResolvedValue([]);
+  });
+
+  describe('Seasonal pricing', () => {
+    const range = (type: string, ymd: string) => ({
+      type,
+      startDate: new Date(`${ymd}T00:00:00Z`),
+      endDate: new Date(`${ymd}T00:00:00Z`),
+    });
+    // 08:00 WITA on 25 Dec 2099.
+    const christmasLeg = { ...mockLeg, departureDate: new Date('2099-12-25T00:00:00Z') };
+    const customer = { name: 'John Doe', email: 'john@example.com', phone: '+62812345678' };
+
+    it('refuses to sell an OFF day', async () => {
+      seasonFindManyMock.mockResolvedValue([range('OFF', '2099-12-25')]);
+      findUniqueMock.mockResolvedValueOnce(christmasLeg);
+
+      await expect(
+        reserveSeatsAndCreateBooking({ legId: 'leg-1', customer, passengers: [{ name: 'John', type: 'ADULT' }] }),
+      ).rejects.toMatchObject({ code: 'LEG_CLOSED' });
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it('prices from the season cell and records the season on the booking', async () => {
+      seasonFindManyMock.mockResolvedValue([range('PEAK', '2099-12-25')]);
+      const { parseFareMatrix, categoryFaresFor } = await import('@/features/pricing/fares');
+      const { computeBookingPriceWithTypes } = await import('@/features/pricing/pricing');
+      vi.mocked(parseFareMatrix).mockReturnValue({} as never);
+      vi.mocked(categoryFaresFor).mockReturnValue({ adult: 400_000, child: 200_000, infant: 0 } as never);
+      findUniqueMock.mockResolvedValue({ ...christmasLeg, schedule: { ...christmasLeg.schedule, fareMatrix: {} } });
+      createMock.mockResolvedValue({ id: 'booking-1', bookingReference: 'GILI-ABC123', tripType: 'ONE_WAY' });
+
+      await reserveSeatsAndCreateBooking({ legId: 'leg-1', customer, passengers: [{ name: 'John', type: 'ADULT' }] });
+
+      expect(categoryFaresFor).toHaveBeenCalledWith({}, 'PEAK');
+      expect(computeBookingPriceWithTypes).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          unitPrice: 400_000,
+          categoryUnitPrices: { CHILD: 200_000, INFANT: 0 },
+        }),
+      );
+      expect(createMock.mock.calls[0][0].data.seasonSnapshot).toEqual([{ legId: 'leg-1', season: 'PEAK' }]);
+      vi.mocked(parseFareMatrix).mockReturnValue(null);
+    });
+
+    it('falls back to basePrice with no season data', async () => {
+      findUniqueMock.mockResolvedValue(mockLeg);
+      createMock.mockResolvedValue({ id: 'booking-1', bookingReference: 'GILI-ABC123', tripType: 'ONE_WAY' });
+
+      await reserveSeatsAndCreateBooking({ legId: 'leg-1', customer, passengers: [{ name: 'John', type: 'ADULT' }] });
+
+      expect(createMock.mock.calls[0][0].data.seasonSnapshot).toEqual([{ legId: 'leg-1', season: null }]);
+    });
   });
 
   describe('Valid one-way booking', () => {

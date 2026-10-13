@@ -103,6 +103,7 @@ function createMockTx(overrides: MockTxOverrides = {}) {
       update: vi.fn(),
       ...overrides.leg,
     },
+    season: { findMany: vi.fn().mockResolvedValue([]) },
     seatReserve: {
       findMany: vi.fn(),
       createMany: vi.fn(),

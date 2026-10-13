@@ -68,6 +68,7 @@ enum AuditEntityType {
   PROMOTION
   RESCHEDULE_REQUEST
   PLATFORM_CONFIG
+  SEASON
 }
 
 enum AuditUserRole {
@@ -228,6 +229,8 @@ model Leg {
   operatorId         String
   departureDate      DateTime // UTC instant of this specific departure
   basePrice          Decimal   @db.Decimal(12, 2)
+  // Set by adjustDeparturePrice; the season resolver skips legs with a manual price.
+  priceOverridden    Boolean   @default(false)
   status             LegStatus @default(OPEN)
   cancellationReason String?
   createdAt          DateTime  @default(now())
@@ -249,6 +252,28 @@ model Leg {
   @@index([operatorId, departureDate])
 }
 
+enum SeasonType {
+  LOW
+  HIGH
+  PEAK
+  OFF
+}
+
+// Calendar only: date range -> season type. Prices live in Schedule.fareMatrix.
+model Season {
+  id        String     @id @default(cuid())
+  type      SeasonType
+  startDate DateTime   @db.Date
+  endDate   DateTime   @db.Date
+  note      String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@index([startDate, endDate])
+}
+
 enum LegStatus {
   OPEN
   FULL
@@ -267,6 +292,8 @@ model Booking {
   outboundLegId        String?       // ROUND_TRIP: reference to outbound leg
   returnLegId          String?       // ROUND_TRIP: reference to return leg
   tripType             TripType      @default(ONE_WAY)
+  // Season used to price this booking, for audit. Totals are never recomputed from it.
+  seasonSnapshot       Json?
 
   customerId           String?
   operatorId           String

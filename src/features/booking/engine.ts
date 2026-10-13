@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, type SeasonType } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { audit } from '@/shared/server/audit';
@@ -9,7 +9,7 @@ import {
 } from '@/features/pricing/pricing';
 import { computeRefundDeadline, snapshotCurrentPolicy } from '@/features/refunds/refunds';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
-import { parseFareMatrix, categoryFaresFor } from '@/features/pricing/fares';
+import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
 import { newBookingReference } from '@/features/booking/references';
 import { alertAdminNewBooking } from '@/features/messaging/admin-alerts';
 import { validatePromoCode, applyPromoCode } from '@/features/pricing/promotions';
@@ -156,13 +156,16 @@ async function createOneWayBooking(
   }
 
   const pricing = await resolvePlatformPricing(leg.operatorId, tx);
-  const fareMatrix = parseFareMatrix(leg.schedule.fareMatrix);
-  const categoryUnitPrices = fareMatrix
-    ? { CHILD: categoryFaresFor(fareMatrix).child, INFANT: categoryFaresFor(fareMatrix).infant }
-    : undefined;
+  const { unitPrice, categoryUnitPrices, season, closed } = legPricingInputs(
+    leg,
+    await loadActiveSeasons(tx),
+  );
+  if (closed) {
+    throw new BookingError('LEG_CLOSED', 'Departure is not available on this date');
+  }
 
   const preDiscount = computeBookingPriceWithTypes({
-    unitPrice: leg.basePrice,
+    unitPrice,
     passengerTypes,
     multipliers: pricing.multipliers,
     categoryUnitPrices,
@@ -189,7 +192,7 @@ async function createOneWayBooking(
   }
 
   const price = computeBookingPriceWithTypes({
-    unitPrice: leg.basePrice,
+    unitPrice,
     passengerTypes,
     discountAmount,
     commissionRate: pricing.commissionRate,
@@ -199,7 +202,7 @@ async function createOneWayBooking(
     serviceFee: pricing.serviceFee,
   });
 
-  return await createBookingRow(tx, args, leg.id, null, null, leg.operatorId, 'ONE_WAY', price, promotionId, discountAmount, passengerTypes);
+  return await createBookingRow(tx, args, leg.id, null, null, leg.operatorId, 'ONE_WAY', price, promotionId, discountAmount, passengerTypes, [{ legId: leg.id, season }]);
 }
 
 async function createRoundTripBooking(
@@ -268,30 +271,26 @@ async function createRoundTripBooking(
 
   const pricing = await resolvePlatformPricing(outboundLeg.operatorId, tx);
 
-  // Calculate pricing for both legs
-  const outboundFareMatrix = parseFareMatrix(outboundLeg.schedule.fareMatrix);
-  const outboundCategoryPrices = outboundFareMatrix
-    ? { CHILD: categoryFaresFor(outboundFareMatrix).child, INFANT: categoryFaresFor(outboundFareMatrix).infant }
-    : undefined;
-
-  const returnFareMatrix = parseFareMatrix(returnLeg.schedule.fareMatrix);
-  const returnCategoryPrices = returnFareMatrix
-    ? { CHILD: categoryFaresFor(returnFareMatrix).child, INFANT: categoryFaresFor(returnFareMatrix).infant }
-    : undefined;
+  const seasons = await loadActiveSeasons(tx);
+  const outbound = legPricingInputs(outboundLeg, seasons);
+  const inbound = legPricingInputs(returnLeg, seasons);
+  if (outbound.closed || inbound.closed) {
+    throw new BookingError('LEG_CLOSED', 'Departure is not available on this date');
+  }
 
   // Pre-discount pricing for both legs (for promo validation)
   const outboundPreDiscount = computeBookingPriceWithTypes({
-    unitPrice: outboundLeg.basePrice,
+    unitPrice: outbound.unitPrice,
     passengerTypes,
     multipliers: pricing.multipliers,
-    categoryUnitPrices: outboundCategoryPrices,
+    categoryUnitPrices: outbound.categoryUnitPrices,
   });
 
   const returnPreDiscount = computeBookingPriceWithTypes({
-    unitPrice: returnLeg.basePrice,
+    unitPrice: inbound.unitPrice,
     passengerTypes,
     multipliers: pricing.multipliers,
-    categoryUnitPrices: returnCategoryPrices,
+    categoryUnitPrices: inbound.categoryUnitPrices,
   });
 
   const combinedPreDiscount = {
@@ -321,24 +320,24 @@ async function createRoundTripBooking(
 
   // Calculate final pricing for both legs combined
   const outboundPrice = computeBookingPriceWithTypes({
-    unitPrice: outboundLeg.basePrice,
+    unitPrice: outbound.unitPrice,
     passengerTypes,
     discountAmount: discountAmount / 2, // Split discount
     commissionRate: pricing.commissionRate,
     costBearer,
     multipliers: pricing.multipliers,
-    categoryUnitPrices: outboundCategoryPrices,
+    categoryUnitPrices: outbound.categoryUnitPrices,
     serviceFee: pricing.serviceFee,
   });
 
   const returnPrice = computeBookingPriceWithTypes({
-    unitPrice: returnLeg.basePrice,
+    unitPrice: inbound.unitPrice,
     passengerTypes,
     discountAmount: discountAmount / 2, // Split discount
     commissionRate: pricing.commissionRate,
     costBearer,
     multipliers: pricing.multipliers,
-    categoryUnitPrices: returnCategoryPrices,
+    categoryUnitPrices: inbound.categoryUnitPrices,
     serviceFee: pricing.serviceFee,
   });
 
@@ -365,6 +364,10 @@ async function createRoundTripBooking(
     promotionId,
     discountAmount,
     passengerTypes,
+    [
+      { legId: outboundLeg.id, season: outbound.season },
+      { legId: returnLeg.id, season: inbound.season },
+    ],
   );
 }
 
@@ -380,6 +383,7 @@ async function createBookingRow(
   promotionId: string | null,
   discountAmount: number,
   passengerTypes: PassengerType[],
+  seasonSnapshot: { legId: string; season: SeasonType | null }[],
 ) {
   const seatCount = passengerTypes.filter((t) => t !== 'INFANT').length;
   const refundDeadline = legId
@@ -398,6 +402,7 @@ async function createBookingRow(
           outboundLegId,
           returnLegId,
           tripType,
+          seasonSnapshot,
           operatorId,
           customerId: args.customerId ?? null,
           customerName: args.customer.name,

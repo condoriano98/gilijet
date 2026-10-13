@@ -20,6 +20,11 @@ import {
  * Mocking: Prisma port, leg, review queries
  */
 
+vi.mock('@/features/pricing/seasons', () => ({
+  loadActiveSeasons: async () => [],
+  withSeasonPrice: <T,>(legs: T[]) => legs,
+}));
+
 vi.mock('@/shared/server/db', () => ({
   prisma: {
     port: {

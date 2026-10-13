@@ -452,7 +452,7 @@ export async function adjustDeparturePrice(formData: FormData) {
 
   await prisma.leg.update({
     where: { id: legId },
-    data: { basePrice: newPrice },
+    data: { basePrice: newPrice, priceOverridden: true },
   });
 
   await audit({

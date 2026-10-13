@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, SeasonType } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import {
   formatLocalDate,
@@ -30,6 +30,7 @@ import { getSeaCondition } from '@/features/ports/sea-conditions';
 import { getCustomerSession } from '@/shared/server/auth';
 import { getLatestRates, formatWithDisplay } from '@/features/pricing/fx';
 import { getAvailablePorts } from '@/features/schedules/home-data';
+import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
 
 const querySchema = z.object({
   origin: z.string().min(2).optional(),
@@ -127,15 +128,17 @@ export default async function SearchPage({
 
   type LegWithSchedule = Prisma.LegGetPayload<{
     include: { schedule: { include: { boat: { include: { operator: true } } } } };
-  }>;
+  }> & { season: SeasonType | null };
   let legs: LegWithSchedule[] = [];
   let returnLegs: LegWithSchedule[] = [];
   let legsError = false;
   let legsErrorDetail: string | null = null;
 
   try {
+    const seasons = await loadActiveSeasons();
+
     // Outbound legs: origin → destination
-    legs = await prisma.leg.findMany({
+    const rawLegs = await prisma.leg.findMany({
       where: {
         departureDate: { gte: startUtc, lte: endUtc },
         status: { in: ['OPEN'] },
@@ -157,12 +160,13 @@ export default async function SearchPage({
       orderBy: { departureDate: 'asc' },
       take: 50,
     });
+    legs = withSeasonPrice(rawLegs, seasons);
 
     // Return legs: destination → origin (if round trip)
     if (isRoundTrip && origin) {
       const returnStartUtc = localDateTimeToUtc(returnDate, '00:00');
       const returnEndUtc = localDateTimeToUtc(returnDate, '23:59');
-      returnLegs = await prisma.leg.findMany({
+      const rawReturnLegs = await prisma.leg.findMany({
         where: {
           departureDate: { gte: returnStartUtc, lte: returnEndUtc },
           status: { in: ['OPEN'] },
@@ -182,6 +186,7 @@ export default async function SearchPage({
         orderBy: { departureDate: 'asc' },
         take: 50,
       });
+      returnLegs = withSeasonPrice(rawReturnLegs, seasons);
     }
   } catch (err) {
     console.error('[search] legs query failed:', err);
@@ -448,6 +453,11 @@ export default async function SearchPage({
                     <Badge variant="success">
                       Direct · {leg.schedule.durationMinutes}m
                     </Badge>
+                    {leg.season === 'HIGH' || leg.season === 'PEAK' ? (
+                      <Badge variant="warning">
+                        {leg.season === 'PEAK' ? 'Peak season' : 'High season'}
+                      </Badge>
+                    ) : null}
                     <Badge variant="outline">
                       {leg.schedule.boat.category}
                     </Badge>

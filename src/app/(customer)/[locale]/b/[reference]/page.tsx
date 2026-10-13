@@ -10,6 +10,7 @@ import {
 } from '@/features/refunds/refunds';
 import { audit } from '@/shared/server/audit';
 import { refundViaGateway, isAnyRefundGatewayConfigured } from '@/features/refunds/refund-gateway';
+import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
 import { renderQrSvgDataUrl } from '@/features/tickets/qr-render';
 import { buildQrPayload } from '@/features/tickets/qr';
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/datetime';
@@ -215,7 +216,7 @@ export default async function BookingLookupPage({
   }> = [];
   if (booking.status === 'CONFIRMED' && mainLeg.departureDate.getTime() > Date.now()) {
     try {
-      returnLegs = await prisma.leg.findMany({
+      const rawReturnLegs = await prisma.leg.findMany({
         where: {
           status: 'OPEN',
           departureDate: { gt: mainLeg.departureDate },
@@ -231,6 +232,7 @@ export default async function BookingLookupPage({
         orderBy: { departureDate: 'asc' },
         take: 3,
       });
+      returnLegs = withSeasonPrice(rawReturnLegs, await loadActiveSeasons());
     } catch (err) {
       console.error('[booking] return leg query failed:', err);
     }

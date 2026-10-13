@@ -1,7 +1,7 @@
 import { requireOperator } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import { formatLocalTime } from '@/shared/lib/datetime';
-import { parseFareMatrix, categoryFaresFor } from '@/features/pricing/fares';
+import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
 import { PosClient } from './pos-client';
 
@@ -27,24 +27,26 @@ export default async function PosPage() {
     resolvePlatformPricing(operatorId),
   ]);
 
-  // Same fareMatrix-first, multiplier-fallback resolution the booking engine
-  // charges with (lib/booking-engine.ts), so this preview never disagrees
-  // with what the customer is actually charged.
-  const legOptions = legs.map((leg) => {
-    const basePrice = Number(leg.basePrice);
-    const fareMatrix = parseFareMatrix(leg.schedule.fareMatrix);
-    const fares = fareMatrix ? categoryFaresFor(fareMatrix) : null;
-    const childPrice = fares ? fares.child : basePrice * (pricing.multipliers?.CHILD ?? 0.5);
-    const infantPrice = fares ? fares.infant : basePrice * (pricing.multipliers?.INFANT ?? 0);
-    return {
-      id: leg.id,
-      route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
-      boatName: leg.schedule.boat.name,
-      departureTime: formatLocalTime(leg.departureDate),
-      basePrice,
-      childPrice,
-      infantPrice,
-    };
+  // Same season-aware resolution the booking engine charges with, so this
+  // preview never disagrees with what the customer is actually charged.
+  const seasons = await loadActiveSeasons();
+  const legOptions = legs.flatMap((leg) => {
+    const inputs = legPricingInputs(leg, seasons);
+    if (inputs.closed) return [];
+    const basePrice = Number(inputs.unitPrice);
+    const childPrice = inputs.categoryUnitPrices?.CHILD ?? basePrice * (pricing.multipliers?.CHILD ?? 0.5);
+    const infantPrice = inputs.categoryUnitPrices?.INFANT ?? basePrice * (pricing.multipliers?.INFANT ?? 0);
+    return [
+      {
+        id: leg.id,
+        route: `${leg.schedule.originPort} → ${leg.schedule.destinationPort}`,
+        boatName: leg.schedule.boat.name,
+        departureTime: formatLocalTime(leg.departureDate),
+        basePrice,
+        childPrice,
+        infantPrice,
+      },
+    ];
   });
 
   return (

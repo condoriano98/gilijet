@@ -15,6 +15,11 @@ import { findConnections } from '@/features/schedules/connection-search';
  * Mocking: Prisma leg queries (2 calls per findConnections)
  */
 
+vi.mock('@/features/pricing/seasons', () => ({
+  loadActiveSeasons: async () => [],
+  withSeasonPrice: <T,>(legs: T[]) => legs,
+}));
+
 vi.mock('@/shared/server/db', () => ({
   prisma: {
     leg: {

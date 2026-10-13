@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
+import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
 
 const MIN_TRANSFER_MINUTES = 45;
 
@@ -26,7 +27,8 @@ export async function findConnections(
   startUtc: Date,
   endUtc: Date,
 ): Promise<ConnectionPair[]> {
-  const leg1Candidates = await prisma.leg.findMany({
+  const seasons = await loadActiveSeasons();
+  const rawLeg1Candidates = await prisma.leg.findMany({
     where: {
       departureDate: { gte: startUtc, lte: endUtc },
       status: 'OPEN',
@@ -43,6 +45,7 @@ export async function findConnections(
     include: { schedule: { include: { boat: true } } },
     take: 20,
   });
+  const leg1Candidates = withSeasonPrice(rawLeg1Candidates, seasons);
 
   if (leg1Candidates.length === 0) return [];
 
@@ -60,7 +63,7 @@ export async function findConnections(
       arrivalAtTransfer.getTime() + MIN_TRANSFER_MINUTES * 60 * 1000,
     );
 
-    const leg2Candidates = await prisma.leg.findMany({
+    const rawLeg2Candidates = await prisma.leg.findMany({
       where: {
         departureDate: { gte: earliestDeparture, lte: leg2EndUtc },
         status: 'OPEN',
@@ -77,6 +80,7 @@ export async function findConnections(
       include: { schedule: { include: { boat: true } } },
       take: 3,
     });
+    const leg2Candidates = withSeasonPrice(rawLeg2Candidates, seasons);
 
     for (const leg2 of leg2Candidates) {
       const transferWaitMinutes = Math.round(
