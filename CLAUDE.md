@@ -55,6 +55,16 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 - `pnpm test:e2e` runs the Playwright golden-path suite (customer booking, operator manifest, admin refund).
 - `pnpm seed:qa` loads deterministic QA data with fixed IDs (see `scripts/seed-qa.ts`).
 
+## Workflow rules
+
+1. **Never touch `.env.prod`** (read, edit, `source`, or run any command with it) unless the user explicitly asks. Anything that talks to production — its DB, Vercel prod, Supabase prod — is off limits by default; staging only (`.env.staging`).
+2. **Every finished task ships with tests**: a unit test under `tests/unit/` and an e2e test under `tests/e2e/` covering the change. E2E specs build and delete their own fixtures; they never depend on data that can age out.
+3. **After the tests, QC by running the dev server** (`pnpm dev`) and exercising the change in the running app. Report what was checked and what was not.
+4. **Confirm before anything that touches the DB or schema**: `prisma db push` / `migrate` / `db execute`, seeds, manual SQL, and any script that writes data. Name the target (project ref) when asking. Reads are fine.
+5. **Confirm before `git commit` and `git push`.** Never run either without the user's go-ahead for that specific action.
+6. **QC is documented, and honest.** Record it in the task's spike doc under `docs/spikes/`: what was tested, how, the result, and what was skipped or could not be verified (and why). Never claim a check that was not run.
+7. **Docs follow every state change.** When a task moves forward (planned → implemented → verified → deployed), update its spike doc, and `CLAUDE.md` / `STRUCTURE.md` where they are affected, in the same step.
+
 ## Don't
 
 - Don't introduce new top-level libraries when shadcn/Tailwind/Radix already cover the need.
