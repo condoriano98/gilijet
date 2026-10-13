@@ -2,13 +2,13 @@
 
 Boat-ticketing MVP: Next.js (App Router) + Prisma/Postgres + `next-intl`, deployed on Vercel. Behavioural rules (auth guards, tenant scoping, single sources of truth) live in [`CLAUDE.md`](./CLAUDE.md) — read it first. This file only maps *where things are* and *why*.
 
-Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm db:push` / `db:migrate`.
+Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm seed:seasons`, `pnpm db:push` / `db:migrate`.
 
 ## Top level
 
 ```
 src/            All application code (alias: @/* -> ./src/*)
-prisma/         schema.prisma, seed.ts, seed-small-boats.ts
+prisma/         schema.prisma, seed.ts, seed-small-boats.ts, sql/ (hand-applied SQL such as RLS)
 scripts/        One-off scripts (seed-qa, Wahana import/generate, doku/paypal selftests, purge-dummy-data)
 tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright), support/
 docs/           Design docs; docs/spikes/ = in progress, docs/spikes/done/ = finished
@@ -56,7 +56,7 @@ Route-private components live in `_components/` beside the route that uses them 
 | Domain | Contents |
 |---|---|
 | `booking/` | `engine` (seat hold/confirm race), `expiry`, `helpers`, `display`, `notifications`, `references`, `components/` (booking-progress, payment-countdown) |
-| `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `erp-pricing`, `fx`, `promotions` |
+| `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
 | `payments/` | `doku`, `paypal`, `psp`, `webhook-processor`, `payment-mode`, `components/` |
 | `refunds/` | `refunds` (tier math), `refund-gateway` |
 | `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin` |

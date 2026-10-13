@@ -23,6 +23,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 
 - **Refund tiers** → `src/features/refunds/refunds.ts` (`computeRefundDeadline`, refund-fraction table). Do not duplicate the tier math anywhere else.
 - **Pricing** → `src/features/pricing/pricing.ts` (`computeBookingPrice`). All booking totals go through this.
+- **Seasonal fares** → `src/features/pricing/seasons.ts`. The adult/child/infant fare for a leg is `legPricingInputs` (booking engine, book page, POS) or `withSeasonPrice` (lists). Never read `leg.basePrice` for a customer-facing price; OFF days are closed there.
 - **Seat reservation / booking lifecycle** → `src/features/booking/engine.ts`. The hold-vs-confirm race is here; new code that touches seats must reuse the engine, not re-implement it.
 - **Legs (per-port-stop rows)** → generated from a Schedule via `src/features/schedules/legs.ts` `generateLegsForSchedule`. Operator manifests query Legs, not Schedules.
 - **Time formatting** → `src/shared/lib/datetime.ts`. Never `new Date().toLocaleString()` without going through it (WITA correctness).
