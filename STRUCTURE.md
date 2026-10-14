@@ -8,10 +8,11 @@ Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint
 
 ```
 src/            All application code (alias: @/* -> ./src/*)
+CHANGELOG.md    Release notes per version (see docs/RELEASING.md)
 prisma/         schema.prisma, seed.ts, seed-small-boats.ts, sql/ (hand-applied SQL such as RLS)
 scripts/        One-off scripts (seed-qa, Wahana import/generate, doku/paypal selftests, purge-dummy-data)
 tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright), support/
-docs/           Design docs; docs/spikes/ = in progress, docs/spikes/done/ = finished
+docs/           Design docs; RELEASING.md = versioning & releases; docs/spikes/ = in progress, docs/spikes/done/ = finished
 public/         Static assets
 vercel.json     Vercel cron schedule (must stay at repo root)
 .github/        CI (pnpm install --frozen-lockfile, lint, typecheck, unit)
@@ -68,7 +69,7 @@ Route-private components live in `_components/` beside the route that uses them 
 
 ### `src/shared/`
 
-- `server/` — `db` (the only Prisma client), `auth`, `env`, `audit`, `login-throttle`, `platform-config`, `google-oauth`
+- `server/` — `db` (the only Prisma client), `auth`, `env`, `audit`, `login-throttle`, `platform-config`, `google-oauth`, `build-info` (running version + commit)
 - `lib/` — `datetime` (WITA), `utils`, `serialize-decimals`, `countries`
 - `ui/` — shadcn-style primitives
 

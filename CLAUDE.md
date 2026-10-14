@@ -64,6 +64,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 5. **Confirm before `git commit` and `git push`.** Never run either without the user's go-ahead for that specific action.
 6. **QC is documented, and honest.** Record it in the task's spike doc under `docs/spikes/`: what was tested, how, the result, and what was skipped or could not be verified (and why). Never claim a check that was not run.
 7. **Docs follow every state change.** When a task moves forward (planned → implemented → verified → deployed), update its spike doc, and `CLAUDE.md` / `STRUCTURE.md` where they are affected, in the same step.
+8. **Every feature or bug fix updates the version**, in the task's own commit: bump `package.json` (feature → MINOR, fix → PATCH) and add a dated section to `CHANGELOG.md`; docs/tests/refactors with no user-visible effect go under `[Unreleased]`. Tag `vX.Y.Z` after the commit (with confirmation, rule 5). Full process: `docs/RELEASING.md`.
 
 ## Don't
 

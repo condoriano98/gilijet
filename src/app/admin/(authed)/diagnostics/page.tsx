@@ -10,6 +10,7 @@ import { quoteForeignCharge, MAX_RATE_AGE_MS } from '@/features/pricing/fx';
 import { applyGatewayModeOverrides } from '@/features/payments/payment-mode';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 import { env } from '@/shared/server/env';
+import { getBuildInfo } from '@/shared/server/build-info';
 import {
   Card,
   CardContent,
@@ -52,6 +53,14 @@ export default async function DiagnosticsPage() {
   // Reflect any console sandbox/live override before pinging, so this page
   // reports the host checkout will actually use (see lib/payment-mode.ts).
   await applyGatewayModeOverrides();
+
+  const build = getBuildInfo();
+  const buildRows = [
+    { label: 'Version', detail: `v${build.version}` },
+    { label: 'Commit', detail: build.commit ?? 'local build' },
+    { label: 'Branch', detail: build.branch ?? '—' },
+    { label: 'Site', detail: env.APP_BASE_URL },
+  ];
 
   const doku = pingDoku();
   const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
@@ -151,6 +160,29 @@ export default async function DiagnosticsPage() {
           secrets are displayed.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Build</CardTitle>
+          <CardDescription>
+            Which version is running and the commit it was built from. A
+            version is in production once its tag is merged into main.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl>
+            {buildRows.map((r) => (
+              <div
+                key={r.label}
+                className="flex items-start justify-between gap-4 border-b py-2 last:border-0"
+              >
+                <dt className="text-sm text-slate-600">{r.label}</dt>
+                <dd className="font-mono text-xs text-slate-700">{r.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

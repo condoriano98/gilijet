@@ -57,5 +57,4 @@ scripts/prod/
 
 # local agent files
 .codegraph/
-AGENTS.md
 docs/database.pdf
