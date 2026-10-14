@@ -472,12 +472,12 @@ Display:
 
 Production is the `main` branch (Vercel project `gilifast`); the old branch name
 `claude/boat-ticketing-mvp-YAGl9` and the commands that were here are obsolete.
-Round trip reaches production with **v1.1.0**, together with seasonal pricing.
+Round trip reaches production with **v1.1.x** (v1.1.0 plus the v1.1.1 fixes), together with seasonal pricing.
 Process and the per-version steps: `docs/RELEASING.md`.
 
 - [ ] PR `staging` → `main`, merge (the production build runs `prisma db push` against the production database)
 - [ ] Post-deploy steps for 1.1.0 (`season-rls.sql`, `pnpm seed:seasons`)
-- [ ] `/admin/diagnostics` on gilifast.com shows `v1.1.0`
+- [ ] `/admin/diagnostics` on gilifast.com shows the released version (currently v1.1.1)
 - [ ] Move this spike and `BUGS_ROUND_TRIP.md` to `docs/spikes/done/` once the open checks in `BUGS_ROUND_TRIP.md` are closed
 
 ---

@@ -123,8 +123,8 @@ Notes and gaps:
 
 ## Next steps
 
-1. With the user's confirmation: tag `v1.0.0` on `88d0781` (retroactive) and
-   `v1.1.0` on `f918963`, then push the tags.
+1. With the user's confirmation: tag `v1.0.0` on `88d0781` (retroactive),
+   `v1.1.0` on `f918963` and `v1.1.1` on `ed5393c`, then push the tags.
 2. Once the staging deploy is up, open staging.gilifast.com
    `/admin/diagnostics` and confirm version, commit and branch; record it here.
 3. Phase 2 (database migrations) as a separate task after v1.1.0 is in
