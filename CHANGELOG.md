@@ -15,6 +15,7 @@ bump. A version is live in production once its tag is merged into `main`.
 ### Changed
 
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
+- Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
 ## [1.2.0] - 2026-10-14
 

@@ -50,7 +50,7 @@ Staging is the `staging` branch: a custom Vercel environment named `staging` of 
    the ones you mean to ship.
 2. Read the `CHANGELOG.md` sections between the version on `main` and the one
    on `staging`, and do the release steps any of them calls for (below).
-3. PR `staging` → `main`, merge. **The production build runs `prisma migrate
+3. PR `staging` → `main`, merge. (A direct push to `main` is not the normal route and needs two separate warnings and confirmations, `CLAUDE.md` rule 9.) **The production build runs `prisma migrate
    deploy` against the production database**
    (`scripts/db-migrate-if-configured.mjs`), so every migration in the range goes
    live with the merge. **Until production has been baselined (see "Production
