@@ -1,3 +1,5 @@
+> **Status note (2026-10-14):** historical plan, not rewritten. File paths below (`app/…`, `lib/…`, `components/…`) predate the `src/` restructure; see `STRUCTURE.md` for current locations. Verified present in code: `getPopularRoutes`, `getDepartingSoon`, `getRecentReviews` (`src/features/schedules/home-data.ts`), `photoForPort` (`src/features/ports/destination-photos.ts`), `days-picker.tsx` (`src/features/schedules/components/`), `wave-divider.tsx` (`src/shared/ui/`). Other items were not checked one by one.
+
 # Home Page Revamp — Plan & Requirements
 
 **Audience:** an LLM implementing this without prior context from the planning conversation.

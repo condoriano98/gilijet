@@ -143,7 +143,7 @@ Staging database: `asymnwikxyhipoezoggp` only. Payment and messaging keys blanke
 | `migrate deploy` on an empty Postgres | First attempt **failed**: `role "anon" does not exist` (the Season RLS policy named Supabase roles). Fixed in `1_…` by creating the policy for whichever of `anon`/`authenticated` exist, else `public`; second attempt applied both migrations |
 | Drift, empty scratch DB after `migrate deploy` vs `schema.prisma` | Empty |
 | RLS on scratch | `OperatorPicContact` and `Season` enabled, policy present: same as staging |
-| `seed:qa` and the full Playwright suite against the migrated scratch DB | Seed ok. First run 1 failure (see below); after the fix 24 passed, 4 skipped at 2 and at 4 workers |
+| `seed:qa` and the full Playwright suite against the migrated scratch DB | Seed ok. First run 1 failure (see below); after the fix 24 passed, 4 skipped at 2 and at 4 workers (the 4 skips were restored on 2026-10-14, see TESTING_PLAN) |
 | Build script, 5 cases | Up-to-date DB → "No pending migrations"; non-Supabase host refused; Vercel preview with a bogus URL → skipped, exit 0; production with no URL → fails; DB with tables and no history → P3005 with instructions, and the tables were unchanged |
 | Staging before: drift vs `schema.prisma`, `_prisma_migrations` | Empty / absent; 41 tables |
 | Staging `migrate resolve --applied 0_init` and `1_…` | Both marked applied |

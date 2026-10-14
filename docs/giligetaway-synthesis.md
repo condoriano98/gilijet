@@ -1,3 +1,5 @@
+> **Status note (2026-10-14):** historical plan, not rewritten. File paths below (`app/…`, `lib/…`, `components/…`) predate the `src/` restructure; see `STRUCTURE.md` for current locations. This is market research and a seed plan, not a feature spec; whether each action was carried out was not checked.
+
 # Giligetaway Data Synthesis — Action Plan
 
 ## Context

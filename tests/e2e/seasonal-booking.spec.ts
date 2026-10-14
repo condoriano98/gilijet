@@ -1,14 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
+import { requireMockPayments } from './support/mock-payments';
 
 loadEnvConfig(process.cwd());
+requireMockPayments();
 
 /**
  * Booking through the real form, in each season, stopping at the payment page.
  * It never pays: the booking must exist as PENDING_PAYMENT with the season's
- * price and the season recorded on it. Run with all payment and messaging keys
- * blanked (mock mode) — local env files can hold production keys.
+ * price and the season recorded on it. `requireMockPayments()` skips the whole
+ * file when any payment or messaging key is live — local env files can hold
+ * production keys; blank them to run this.
  *
  * `QC_SHOTS=1` saves screenshots to test-results/qc/ for a manual look.
  * Own fixtures in 2096, removed afterwards. Relies on `pnpm seed:qa` (QA boat).
