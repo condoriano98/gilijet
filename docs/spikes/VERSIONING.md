@@ -1,6 +1,6 @@
 # Versioning — app now, database planned
 
-**Status:** Implemented, verified locally, committed (`f918963`) and pushed to `origin/staging` (2026-10-14). Tags `v1.0.0` / `v1.1.0` not created yet; deployed Build card on staging not checked yet.
+**Status:** Phase 1 implemented, committed (`f918963`) and pushed; phase 2 (migrations) committed (`21d65e5`) and pushed, and the staging build log shows the migration step running correctly. Tags `v1.0.0` / `v1.1.0` / `v1.1.1` not created yet; the Build card and the final READY state on staging not checked yet.
 **Created:** 2026-10-14
 **Scope:** Phase 1 (app versioning) is done. Phase 2 (database migrations) is implemented for the repo and the staging database (2026-10-14); production is deliberately untouched and only documented.
 
@@ -128,9 +128,10 @@ Notes and gaps:
    `v1.1.0` on `f918963` and `v1.1.1` on `ed5393c`, then push the tags.
 2. Once the staging deploy is up, open staging.gilifast.com
    `/admin/diagnostics` and confirm version, commit and branch; record it here.
-3. Phase 2 follow-ups: push, then check the staging Vercel build log for
-   `[db-migrate] OK`, and the GitHub `Migrations` job. Baseline production only
-   when the owner decides (`docs/RELEASING.md`, "Production database").
+3. Phase 2 follow-ups: confirm the GitHub `Migrations` job passed and the
+   staging deployment is READY (the staging build log already shows
+   `[db-migrate] OK`, see QC). Baseline production only when the owner decides
+   (`docs/RELEASING.md`, "Production database").
 
 ### QC, phase 2 (2026-10-14)
 
@@ -156,10 +157,20 @@ other's days (the reschedule spec's OFF day on 15 Jun 2099 hid the PEAK day of
 the booking spec). It passed on staging earlier only by timing. Each season spec
 now owns a year (2099, 2097, 2096, 2095).
 
-Not verified: anything on production; the staging Vercel build running the new
-script (needs the push); the GitHub `Migrations` job (needs the push); the
-"skip other previews" behaviour in a real preview build (covered by the unit
-test and by running the script with a faked Vercel environment).
+Verified after the push (2026-10-14, staging deployment `dpl_HWjmBBZYNG9fNckwvjWUWQxk1ivc`,
+commit `21d65e5`, read from the Vercel build log): the build ran
+`gilifast@1.1.1 build` → `prisma generate && node scripts/db-migrate-if-configured.mjs && next build`;
+the script logged `[db-migrate] Vercel target "staging"` (so `VERCEL_TARGET_ENV`
+works as assumed), `2 migrations found`, `No pending migrations to apply.` and
+`[db-migrate] OK — database is up to date`; `next build` then ran and the build
+reported `Build Completed in /vercel/output [27s]`.
+
+Not verified: anything on production; the final READY state of that deployment
+(it still showed BUILDING while outputs were being deployed when last read); the
+GitHub `Migrations` job (the GitHub API was not reachable from here); the "skip
+other previews" behaviour in a real preview build (covered by the unit test and
+by running the script with a faked Vercel environment); the staging site itself
+after the deploy.
 
 ## Findings outside this task
 
