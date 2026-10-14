@@ -36,21 +36,21 @@ pnpm install
 cp .env.example .env.local     # Next.js reads .env.local in dev
 # Required: DATABASE_URL, AUTH_SECRET (16+ chars), QR_HMAC_SECRET (32+ chars)
 
-pnpm db:push                   # apply schema (no migrations dir — see below)
+pnpm db:deploy                 # apply migrations (prisma migrate deploy) — see Database
 pnpm seed:qa                   # deterministic QA data with fixed IDs
 pnpm dev
 ```
 
 ### Updating an existing checkout
 
-After pulling changes, always run `db:push` before seeding — a `git pull` that
-touches `prisma/schema.prisma` leaves the DB behind the client, which fails at
-runtime (e.g. `column Payment.presentmentCurrency does not exist`).
+After pulling changes, always run `db:deploy` before seeding — a `git pull` that
+adds a folder under `prisma/migrations/` leaves the DB behind the client, which
+fails at runtime (e.g. `column Payment.presentmentCurrency does not exist`).
 
 ```bash
 git pull
 pnpm install
-pnpm db:push                   # sync DB with any schema changes from the pull
+pnpm db:deploy                 # apply any migrations that came with the pull
 pnpm seed:qa
 pnpm dev
 ```
@@ -84,9 +84,37 @@ pnpm db:studio      # Prisma Studio
 
 ## Database
 
-There is **no `prisma/migrations/` directory**. Schema changes reach the
-database via `prisma db push`, run from `scripts/db-push-if-configured.mjs`
-during the build.
+Schema changes are **Prisma migrations** in `prisma/migrations/`: plain SQL,
+reviewed in the PR, applied once per database and recorded in that database's
+`_prisma_migrations` table. The build applies pending ones with
+`prisma migrate deploy` (`scripts/db-migrate-if-configured.mjs`) on Vercel
+production and the `staging` environment; any other preview build skips
+migrations and touches no database. `prisma db push` is not used any more: it
+bypasses the history.
+
+`0_init` is the schema production had when migrations were introduced (the
+`main` schema of 2026-10-14) and `1_…` brings it to the current one, so
+`prisma migrate deploy` on an empty database builds the whole schema. Staging
+already had everything and has both recorded as applied. **Production has not
+been baselined yet: follow "Production database" in `docs/RELEASING.md` before
+merging into `main`.**
+
+### Changing the schema
+
+1. Run a local Postgres (`docker run -d -p 54329:5432 -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=dev postgres:16-alpine`)
+   and point `DATABASE_URL` and `DIRECT_URL` at it (`postgresql://postgres:dev@localhost:54329/dev`).
+   Never run `migrate dev` against Supabase: it needs a shadow database.
+2. Edit `prisma/schema.prisma`, then `pnpm db:migrate --name <short_slug>`.
+3. Read the generated `migration.sql`. Anything Prisma cannot model (RLS,
+   policies) is appended to that same file by hand.
+4. Commit the schema and the migration together. CI fails if `schema.prisma`
+   and the migrations disagree, or if the migrations do not build on an empty
+   database.
+
+Migrations are forward-only: never edit one that has been applied anywhere. To
+undo a change, write a new migration. Destructive changes go in steps over
+releases (add → backfill → remove). `pnpm db:status` shows what a database has
+applied.
 
 The URL is resolved from several env-var names, because the Vercel–Supabase
 integration provisions `POSTGRES_*` rather than `DATABASE_URL`:
@@ -94,7 +122,7 @@ integration provisions `POSTGRES_*` rather than `DATABASE_URL`:
 | Purpose | Names tried, in order |
 |---|---|
 | Runtime queries (pooled, `:6543`) | `DATABASE_URL` → `POSTGRES_PRISMA_URL` → `POSTGRES_URL` |
-| DDL / `db push` (direct, `:5432`) | `DIRECT_URL` → `POSTGRES_URL_NON_POOLING` |
+| Migrations / DDL (direct, `:5432`) | `DIRECT_URL` → `POSTGRES_URL_NON_POOLING` |
 
 Import `prisma` from `src/shared/server/db.ts`; do not read those env vars anywhere else.
 DDL cannot run through the pgBouncer pooler, which is why the direct URL is
@@ -102,7 +130,7 @@ separate. A build that cannot resolve a database now fails rather than
 silently skipping the push — schema drift used to reach production and take
 every login page down with `P2021`.
 
-`scripts/db-push-if-configured.mjs` also refuses a resolved URL that is not
+`scripts/db-migrate-if-configured.mjs` also refuses a resolved URL that is not
 a Supabase host (`*.pooler.supabase.com` / `*.supabase.co`). The Vercel
 deployment has exactly one legitimate database, so a different host almost
 always means a var from a removed integration (Vercel Postgres, Neon, a
@@ -134,7 +162,7 @@ with the database on the next push.
 ### Legacy `GILIJET` sales channel
 
 `SalesChannel.GILIJET` is retained in `prisma/schema.prisma` because existing `Booking` rows reference it, and dropping an in-use enum
-value makes `prisma db push` refuse the whole push. `src/features/schedules/sales-channel.ts`
+value makes the migration fail. `src/features/schedules/sales-channel.ts`
 folds it onto `GILIFAST` for every display and grouping.
 
 ## Environments
@@ -161,15 +189,23 @@ Exit 1 builds, exit 0 skips — inverted from the intuition.
 Without it both projects build on every push to either branch, and the
 dangerous half is subtle: a push to `staging` would create a *preview* on the
 production project, and if that project's database variables are scoped to
-Preview as well as Production, its build runs `prisma db push` — with the
-staging branch's schema — against the **production database**. Never scope
-`DATABASE_URL` / `DIRECT_URL` to Preview on `gilifast`.
+Preview as well as Production, its build would run that branch's migrations
+against the **production database**. Never scope `DATABASE_URL` / `DIRECT_URL`
+to Preview on `gilifast`. (As of 2026-10-14 they are scoped to Preview as well
+as Production there. The build script now refuses to migrate anything except
+Vercel production and the `staging` environment, but re-scope them anyway.)
+
+> **Check against reality (2026-10-14):** the Vercel account this repo is wired
+> to shows a single project, `gilifast`, with a custom environment `staging`
+> (branch `staging`, domain `gilijet.vercel.app`) rather than a separate
+> `gilifast-staging` project. The table above predates that; confirm in the
+> Vercel dashboard and correct it.
 
 **Staging is a separate project rather than a preview branch** for two reasons.
 Vercel Cron only fires on Production deployments, so the three routes in
-`vercel.json` would never run on a preview. And `db-push-if-configured.mjs`
+`vercel.json` would never run on a preview. And `db-migrate-if-configured.mjs`
 only hard-fails a build with no resolvable database URL when
-`VERCEL_ENV === "production"` — anywhere else it silently skips the schema push
+`VERCEL_ENV === "production"` — anywhere else it silently skips the migration
 and deploys anyway. A separate project gets both behaviours.
 
 The flip side: `VERCEL_ENV` is `"production"` on **both** projects, so it can
@@ -180,7 +216,7 @@ what `src/app/robots.ts` keys on to keep staging out of Google.
 
 | Var | Why |
 |---|---|
-| `DATABASE_URL` / `DIRECT_URL` | `db push` runs on every build |
+| `DATABASE_URL` / `DIRECT_URL` | migrations run on every production and staging build |
 | `AUTH_SECRET` | shared ⇒ a staging session cookie authenticates against production |
 | `QR_HMAC_SECRET` | shared ⇒ a staging boarding pass validates at a real dock. Never rotate the production value — it invalidates every ticket already issued |
 | `CRON_SECRET` | separate blast radius; also what Vercel Cron sends as its bearer token. It must **exist** on staging — Vercel only injects the bearer when the var is present, and the routes fail closed, so a missing value means all three crons 401 forever and the log still looks fine |
@@ -363,7 +399,7 @@ prisma/
   seed.ts               — demo data
 scripts/
   seed-qa.ts            — deterministic QA data
-  db-push-if-configured.mjs
+  db-migrate-if-configured.mjs
 tests/
   unit/                 — vitest; mirrors src/ (features/<domain>, shared/, app/, mcp/)
   e2e/                  — Playwright golden paths

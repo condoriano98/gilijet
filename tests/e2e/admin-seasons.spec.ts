@@ -8,7 +8,7 @@ loadEnvConfig(process.cwd());
  * Admin side of seasonal pricing: the Seasons tab (add, validate, delete) and
  * the per-departure price override that must opt a leg out of its season.
  *
- * Own fixtures in 2098/2099, removed afterwards. Relies on `pnpm seed:qa`.
+ * Own fixtures in 2098/2097, removed afterwards. Relies on `pnpm seed:qa`.
  */
 const prisma = new PrismaClient();
 
@@ -67,8 +67,8 @@ test.beforeAll(async () => {
     data: {
       id: SEASON_ID,
       type: 'HIGH',
-      startDate: new Date('2099-06-10T00:00:00Z'),
-      endDate: new Date('2099-06-20T00:00:00Z'),
+      startDate: new Date('2097-06-10T00:00:00Z'),
+      endDate: new Date('2097-06-20T00:00:00Z'),
       note: NOTE,
     },
   });
@@ -82,8 +82,8 @@ test.beforeAll(async () => {
         status: 'OPEN',
       },
     });
-  seasonLegId = (await mk('2099-06-12')).id;
-  overrideLegId = (await mk('2099-06-14')).id;
+  seasonLegId = (await mk('2097-06-12')).id;
+  overrideLegId = (await mk('2097-06-14')).id;
 });
 
 test.afterAll(async () => {
@@ -141,7 +141,7 @@ test('a manual price override opts the departure out of its season', async ({ pa
     `/search?origin=${encodeURIComponent(ORIGIN)}&destination=${encodeURIComponent(DESTINATION)}&date=${ymd}&passengers=1`;
 
   // Before: both HIGH-season legs show the season fare.
-  await page.goto(search('2099-06-14'));
+  await page.goto(search('2097-06-14'));
   await expect(page.locator('body')).toContainText('Rp 150.000', { timeout: 15_000 });
 
   await loginAsAdmin(page);
@@ -154,13 +154,13 @@ test('a manual price override opts the departure out of its season', async ({ pa
   expect(Number(leg.basePrice)).toBe(130_000);
   expect(leg.priceOverridden).toBe(true);
 
-  await page.goto(search('2099-06-14'));
+  await page.goto(search('2097-06-14'));
   await expect(page.locator('body')).toContainText('Rp 130.000', { timeout: 15_000 });
   await expect(page.locator('body')).not.toContainText('Rp 150.000');
 
   // The neighbouring, untouched leg still follows the season.
   const other = await prisma.leg.findUniqueOrThrow({ where: { id: seasonLegId } });
   expect(other.priceOverridden).toBe(false);
-  await page.goto(search('2099-06-12'));
+  await page.goto(search('2097-06-12'));
   await expect(page.locator('body')).toContainText('Rp 150.000', { timeout: 15_000 });
 });

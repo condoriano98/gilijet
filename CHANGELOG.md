@@ -12,6 +12,14 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Changed
+
+- Database schema changes are now Prisma migrations (`prisma/migrations/`)
+  instead of `prisma db push` on every build. The build applies pending
+  migrations on production and staging only; other preview builds no longer
+  touch a database. CI checks that the migrations build an empty database and
+  match `schema.prisma`.
+
 ## [1.1.1] - 2026-10-14
 
 ### Fixed

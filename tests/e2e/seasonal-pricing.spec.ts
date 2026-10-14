@@ -9,7 +9,9 @@ loadEnvConfig(process.cwd());
  * OFF-day closure all come from the same resolver the booking engine charges
  * with. Nothing here creates a booking.
  *
- * Builds its own schedule, legs and Season rows in the year 2099 so the real
+ * Builds its own schedule, legs and Season rows in the year 2099 (each season spec
+ * owns a different year: the season calendar is global, so specs running in
+ * parallel must not share dates) so the real
  * calendar and the 60-day leg window never affect it, and removes them again.
  * Relies on `pnpm seed:qa` (for the QA boat).
  */

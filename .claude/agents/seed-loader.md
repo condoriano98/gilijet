@@ -9,8 +9,8 @@ You load deterministic QA fixtures.
 
 ## Workflow
 
-1. Confirm there is a reachable DB: `DATABASE_URL` (or `POSTGRES_PRISMA_URL` / `POSTGRES_URL`) set, and `pnpm prisma db push --skip-generate` returns 0 (or the schema is already in sync).
-2. If the schema is out of date, run `pnpm prisma db push --skip-generate` to align it. Never run `migrate reset`.
+1. Confirm there is a reachable DB: `DATABASE_URL` (or `POSTGRES_PRISMA_URL` / `POSTGRES_URL`) set, and `pnpm prisma migrate status` reports the database is up to date.
+2. If migrations are pending, run `pnpm prisma migrate deploy` to apply them (only against a database the user named; ask first). Never run `migrate reset` or `db push`.
 3. Run the QA seed:
    ```bash
    pnpm seed:qa

@@ -9,7 +9,7 @@ loadEnvConfig(process.cwd());
  * those departures; this proves the server refuses one that is submitted anyway
  * (a stale page, or a hand-edited form).
  *
- * Own fixtures in 2099, removed afterwards. Relies on `pnpm seed:qa` (QA boat).
+ * Own fixtures in 2095, removed afterwards. Relies on `pnpm seed:qa` (QA boat).
  */
 const prisma = new PrismaClient();
 
@@ -58,8 +58,8 @@ test.beforeAll(async () => {
   });
   await prisma.season.createMany({
     data: [
-      { id: SEASON_IDS[0], type: 'LOW', startDate: new Date('2099-06-01T00:00:00Z'), endDate: new Date('2099-06-30T00:00:00Z') },
-      { id: SEASON_IDS[1], type: 'OFF', startDate: new Date('2099-06-15T00:00:00Z'), endDate: new Date('2099-06-15T00:00:00Z') },
+      { id: SEASON_IDS[0], type: 'LOW', startDate: new Date('2095-06-01T00:00:00Z'), endDate: new Date('2095-06-30T00:00:00Z') },
+      { id: SEASON_IDS[1], type: 'OFF', startDate: new Date('2095-06-15T00:00:00Z'), endDate: new Date('2095-06-15T00:00:00Z') },
     ],
   });
   const mk = (ymd: string) =>
@@ -72,9 +72,9 @@ test.beforeAll(async () => {
         status: 'OPEN',
       },
     });
-  originalLegId = (await mk('2099-06-11')).id;
-  openLegId = (await mk('2099-06-12')).id;
-  offLegId = (await mk('2099-06-15')).id;
+  originalLegId = (await mk('2095-06-11')).id;
+  openLegId = (await mk('2095-06-12')).id;
+  offLegId = (await mk('2095-06-15')).id;
 
   await prisma.booking.create({
     data: {
@@ -88,7 +88,7 @@ test.beforeAll(async () => {
       commissionAmount: 8_000,
       operatorAmount: 92_000,
       status: 'CONFIRMED',
-      refundDeadline: new Date('2099-06-10T00:00:00Z'),
+      refundDeadline: new Date('2095-06-10T00:00:00Z'),
     },
   });
 });
@@ -101,14 +101,14 @@ test.afterAll(async () => {
 const page_ = (ymd: string) => `/b/${REFERENCE}/reschedule?date=${ymd}`;
 
 test('the date picker lists an open day and hides the OFF day', async ({ page }) => {
-  await page.goto(page_('2099-06-12'));
+  await page.goto(page_('2095-06-12'));
   await expect(page.getByRole('button', { name: 'Request this' })).toBeVisible({ timeout: 15_000 });
-  await page.goto(page_('2099-06-15'));
+  await page.goto(page_('2095-06-15'));
   await expect(page.locator('body')).toContainText(/No departures on this date/i, { timeout: 15_000 });
 });
 
 test('a request for an OFF-day departure is refused by the server', async ({ page }) => {
-  await page.goto(page_('2099-06-12'));
+  await page.goto(page_('2095-06-12'));
   const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Request this' }) }).first();
   await expect(form).toBeVisible({ timeout: 15_000 });
   // Swap in the OFF leg, as a stale page or a hand-edited form would.
@@ -121,7 +121,7 @@ test('a request for an OFF-day departure is refused by the server', async ({ pag
 });
 
 test('a request for an open departure still goes through', async ({ page }) => {
-  await page.goto(page_('2099-06-12'));
+  await page.goto(page_('2095-06-12'));
   const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Request this' }) }).first();
   await form.locator('input[name="confirmEmail"]').fill(EMAIL);
   await form.getByRole('button', { name: 'Request this' }).click();

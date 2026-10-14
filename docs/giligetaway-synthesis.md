@@ -88,7 +88,7 @@ That's the only comment to add. Do not add per-row comments. Do not add a commen
 ### G1.3 — Run seed locally and confirm
 
 ```bash
-pnpm db:push       # ensures schema is up to date
+pnpm db:deploy     # applies pending migrations
 pnpm db:seed:real  # idempotent; safe to re-run
 pnpm dev
 # Visit http://localhost:3000 and search Serangan → Gili Trawangan on a future date

@@ -1,6 +1,6 @@
 # Seasonal Pricing — Analysis & Plan
 
-**Status:** Implemented (commit `8106454`, rilis **v1.1.0**), ada di `origin/staging`, dan schema + RLS + seed sudah diterapkan ke DB staging (2026-10-13). QC kode selesai. Belum ke production. Cek manual oleh owner dan konfirmasi deploy staging Vercel masih pending.
+**Status:** Implemented (commit `8106454`, rilis **v1.1.0**), ada di `origin/staging`, dan schema + RLS + seed sudah diterapkan ke DB staging (2026-10-13). QC kode selesai dan cek manual dilakukan (2026-10-14, dev server lokal + DB staging). Belum ke production. Konfirmasi di staging Vercel yang ter-deploy (`gilijet.vercel.app`) masih pending sampai commit terbaru di-push dan ter-deploy.
 **Created:** 2026-09-28 · **Revised:** 2026-10-13
 **Scope:** Wahana saja (belum ada boat lain)
 
@@ -47,7 +47,7 @@ Harga tiket saat ini statis. Harga harus ikut season pada tanggal keberangkatan:
 | Override admin | `src/app/admin/(authed)/operations/actions.ts` — `adjustDeparturePrice` |
 | Zona waktu | `src/shared/lib/datetime.ts` — `ymdInZone()` (WITA) |
 
-Tidak ada migrations (`prisma db push`) dan tidak ada RLS/SQL di repo. Auth custom (JWT), Prisma memakai DB role.
+Saat dokumen ini ditulis tidak ada migrations (`prisma db push`) dan tidak ada RLS/SQL di repo; sejak 2026-10-14 schema berupa Prisma migrations (lihat `VERSIONING.md`). Auth custom (JWT), Prisma memakai DB role.
 
 ### Pembaca `basePrice` yang harus lewat resolver
 
@@ -63,7 +63,7 @@ Supaya harga yang tampil = harga yang ditagih:
 ## Rencana implementasi
 
 1. **Schema:** `enum SeasonType { LOW HIGH PEAK OFF }`; `model Season { id, type, startDate @db.Date, endDate @db.Date, note?, isActive, createdAt, updatedAt, deletedAt? }` + index `(startDate, endDate)`; `Leg.priceOverridden`; `Booking.seasonSnapshot Json?`; `SEASON` di `AuditEntityType`.
-2. **RLS:** `prisma/sql/season-rls.sql` (public `SELECT` hanya baris aktif & belum dihapus, tanpa policy tulis). `db push` tidak membuat policy, jadi diapply manual **setelah** push dengan `prisma db execute --file prisma/sql/season-rls.sql` memakai env target. Supabase MCP *tidak* dipakai: project staging tidak terdaftar di MCP. RLS hanya melindungi akses PostgREST langsung; "admin write" ditegakkan `requireSuperAdmin` di app.
+2. **RLS (kini di migrasi `1_round_trip_and_seasonal_pricing`, bukan `prisma/sql/`; teks di bawah adalah rencana awal):** `prisma/sql/season-rls.sql` (public `SELECT` hanya baris aktif & belum dihapus, tanpa policy tulis). `db push` tidak membuat policy, jadi diapply manual **setelah** push dengan `prisma db execute --file prisma/sql/season-rls.sql` memakai env target. Supabase MCP *tidak* dipakai: project staging tidak terdaftar di MCP. RLS hanya melindungi akses PostgREST langsung; "admin write" ditegakkan `requireSuperAdmin` di app.
 3. **Resolver** `src/features/pricing/seasons.ts`: `resolveSeason` (pure), `getSeasonForDate` (query), batch loader untuk list, `resolveLegFares`. Perluas `categoryFaresFor(matrix, season)`. Kunci tanggal = `ymdInZone(departureDate)`.
 4. **Engine:** ganti `leg.basePrice` dengan hasil resolver; OFF → tolak booking; tulis `seasonSnapshot`.
 5. **Override:** set `priceOverridden` di `adjustDeparturePrice`.
@@ -75,7 +75,7 @@ Supaya harga yang tampil = harga yang ditagih:
 
 | UAC | Cara verifikasi |
 |---|---|
-| Tabel season dibuat sesuai struktur | `db push` + cek schema |
+| Tabel season dibuat sesuai struktur | migrasi `1_round_trip_and_seasonal_pricing` (`migrate deploy`) + cek schema; drift kosong |
 | RLS terkonfigurasi | Query anon: SELECT ok, INSERT/UPDATE/DELETE ditolak |
 | Harga frontend berubah sesuai season | E2E: tanggal LOW/HIGH/PEAK/OFF, harga search = book page = total booking |
 | 25 Des tampil PEAK walau bulan HIGH | Unit `seasons.test.ts` + E2E |
@@ -129,6 +129,20 @@ Sengaja tidak diubah: `src/mcp/tools.ts` dan halaman admin/operator yang menampi
 - **Tidak diuji (disengaja):** pembayaran sukses, penerbitan tiket, email/WA boarding pass. Env staging memakai DOKU dan PayPal **production** (`*_IS_PRODUCTION="true"`) beserta kunci WATI/Resend asli. Untuk QC, semua kunci itu dikosongkan di proses dev server/script (mode mock) dan booking hanya dibuat sampai `PENDING_PAYMENT`.
 - Test E2E booking lama (customer, round-trip, admin refund) masih di-skip sejak sebelumnya; alur booking sampai bayar belum diuji E2E.
 
+### Cek manual 2026-10-14 (dilakukan lewat browser otomatis; screenshot dilihat langsung)
+
+Dev server lokal dengan kode terbaru terhadap DB staging; kunci DOKU, PayPal, WATI dan Resend dikosongkan di proses, jadi checkout berjalan di mode mock ("TEST MODE", "Test card pre-filled — no real charge"). **Tombol bayar tidak pernah diklik.** Bukan situs staging Vercel yang ter-deploy.
+
+| Alur | Hasil |
+|---|---|
+| `/search` tanggal HIGH dan PEAK | Badge "High season" / "Peak season"; harga per orang Rp 150.000 / Rp 200.000; tombol "Book 2" memakai harga season |
+| Form booking (1 dewasa + 1 anak) | Rincian per tipe penumpang; total HIGH Rp 225.000, PEAK Rp 300.000; tombol "Pay Rp …" sama dengan total |
+| Submit form | Redirect ke halaman bayar dengan total yang sama. Baris `Booking` `PENDING_PAYMENT`, `Payment` `PENDING` dengan jumlah sama, `seasonSnapshot` mencatat season |
+| Tanggal OFF | Tidak ada keberangkatan di search; halaman book menolak ("no longer accepting bookings"); tidak ada baris booking |
+| `/admin/console/seasons` | 8 baris terseed tampil, urut tanggal, badge tipe benar; form tambah rentang tersedia |
+
+Otomatisasi: `tests/e2e/seasonal-booking.spec.ts` (3 test) mengulang alur form sampai halaman bayar tanpa membayar; screenshot hanya dengan `QC_SHOTS=1`. Fixture 2099 dihapus setelahnya (0 sisa di staging). Tidak diuji: pembayaran sukses, pengiriman email/WA nyata, tampilan mobile.
+
 ### Temuan QC di luar scope season
 
 - `/b/<reference>` untuk booking ber-tiket error di env ini: `QR_HMAC_SECRET` < 32 karakter (log `[env] Invalid or missing variables`), tanda tangan QR gagal di `qr.ts`. Perbaiki secret di env staging. Akibatnya tampilan saran return leg di halaman itu belum terlihat visual (query-nya sudah jalan tanpa error sebelum crash).
@@ -146,6 +160,6 @@ Sengaja tidak diubah: `src/mcp/tools.ts` dan halaman admin/operator yang menampi
 
 ### Deploy / prod
 
-- `pnpm build` menjalankan `scripts/db-push-if-configured.mjs` (`prisma db push`, tanpa `--accept-data-loss`) di setiap build Vercel memakai env build itu. Merge ke branch prod otomatis menerapkan perubahan schema ini ke DB prod (additive). Tahan merge sampai siap, atau set `SKIP_DB_PUSH=1` di env prod.
-- Setelah schema ada di prod: jalankan `prisma/sql/season-rls.sql` dan `pnpm seed:seasons` dengan env prod, secara sadar.
+- (Diganti 2026-10-14: build sekarang menjalankan `prisma migrate deploy` lewat `scripts/db-migrate-if-configured.mjs`; baseline production belum dilakukan.) Sebelumnya `pnpm build` menjalankan `scripts/db-push-if-configured.mjs` (`prisma db push`, tanpa `--accept-data-loss`) di setiap build Vercel memakai env build itu. Merge ke branch prod otomatis menerapkan perubahan schema ini ke DB prod (additive). Tahan merge sampai siap, atau set `SKIP_DB_PUSH=1` di env prod.
+- Setelah schema ada di prod: RLS ikut migrasi `1_…`; `pnpm seed:seasons` dengan env prod tetap dijalankan secara sadar (lihat `docs/RELEASING.md`).
 - DB lokal (`.env`, `.env.local`) dan `.env.staging` menunjuk project Supabase yang sama (staging), sehingga `pnpm seed:qa` / `test:e2e` dari mesin dev menulis ke staging.

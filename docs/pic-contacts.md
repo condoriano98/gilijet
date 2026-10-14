@@ -57,7 +57,7 @@ This app doesn't use Supabase Auth — `requireAdmin()` / `requireOperator()`
 (custom JWT cookies, see `lib/auth.ts`) are the actual authorization
 boundary, and the backend connects to Postgres directly via `DATABASE_URL`
 (not through Supabase's PostgREST/anon-key layer). The connecting role is
-this table's **owner** (it created the table via `prisma db push`), and
+this table's **owner** (it created the table via `prisma db push`, before migrations existed), and
 Postgres table owners bypass RLS by default — so the backend keeps reading
 and writing normally. Enabling RLS with zero policies is defense-in-depth:
 it denies any `anon` / `authenticated` role, i.e. blocks the table entirely
@@ -79,3 +79,5 @@ pnpm tsx scripts/seed-pic-contacts.ts
 An earlier version of the CSV had one corrupted value (a spreadsheet
 scientific-notation artifact that ate a phone number's digits); the
 current CSV has been corrected and fully seeded to staging.
+
+> **Update 2026-10-14:** `ENABLE ROW LEVEL SECURITY` on `OperatorPicContact` is recorded in migration `prisma/migrations/0_init`, so a database built from migrations matches the existing ones. See `docs/RELEASING.md`.

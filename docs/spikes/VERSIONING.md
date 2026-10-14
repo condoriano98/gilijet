@@ -2,8 +2,7 @@
 
 **Status:** Implemented, verified locally, committed (`f918963`) and pushed to `origin/staging` (2026-10-14). Tags `v1.0.0` / `v1.1.0` not created yet; deployed Build card on staging not checked yet.
 **Created:** 2026-10-14
-**Scope:** Phase 1 (app versioning) is built in this task. Phase 2 (database
-migrations) is designed here and runs as a separate task after v1.1.0 is live.
+**Scope:** Phase 1 (app versioning) is done. Phase 2 (database migrations) is implemented for the repo and the staging database (2026-10-14); production is deliberately untouched and only documented.
 
 ## Context
 
@@ -58,38 +57,40 @@ The full process is in [`docs/RELEASING.md`](../RELEASING.md).
 Deviation from the plan: the Build card renders plain rows rather than the
 page's `StatusRow`, whose ok/off badge has no meaning for a version or commit.
 
-## Phase 2 — database migrations (designed, not run)
+## Phase 2 — database migrations (implemented for repo + staging)
 
-Run as its own task, after v1.1.0 is live in production.
+**Constraint:** the production database is never touched in this task; only the
+staging database (`asymnwikxyhipoezoggp`). Production rollout is a runbook in
+`docs/RELEASING.md` ("Production database"), not executed.
 
-1. **Why after v1.1.0.** A baseline needs staging and production on the same
-   schema. Today staging has `Season`, `SeasonType`, `Leg.priceOverridden` and
-   `Booking.seasonSnapshot`; production does not.
-2. **Check for drift.** For each database:
-   `prisma migrate diff --from-url <db> --to-schema-datamodel prisma/schema.prisma --script`
-   must print nothing. Fix any drift before the baseline.
-3. **Baseline.**
-   `prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql`,
-   then `prisma migrate resolve --applied 0_init` on staging, then production.
-   Nothing is executed against the data; this only records the migration as
-   applied.
-4. **RLS.** `prisma/sql/season-rls.sql` becomes migration `1_season_rls` (raw
-   SQL in a Prisma migration), so policies are versioned with the schema.
-5. **Build.** Replace the `prisma db push` call in
-   `scripts/db-push-if-configured.mjs` with `prisma migrate deploy`, keeping the
-   Supabase-only guard and `SKIP_DB_PUSH`. CI's e2e job switches to
-   `prisma migrate deploy` too.
-6. **Development.** `prisma migrate dev` needs a shadow database. Use a local
-   Postgres (Docker) for it, never a shadow database on the Supabase staging
-   project.
-7. **Rollback.** Migrations are forward-only; undo = a new migration that
-   reverses the change. Destructive changes go in steps across releases: add →
-   backfill → remove.
-8. **Versioning link.** A migration is part of the feature or fix that needs
-   it, so it ships under that version; `docs/RELEASING.md` "Release steps by
-   version" shrinks to steps a migration cannot do (such as seeds).
-9. Every step that touches a database needs the user's confirmation and names
-   the target project (CLAUDE.md rule 4).
+### What changed from the original design
+
+The first design (written 2026-10-14, before implementation) baselined at the
+schema *after* v1.1.0 and ran after that release. It was changed to baseline at
+**production's current schema (`origin/main`)**: with a baseline at today's
+schema, production would need a manual `db push` first, and the first migrate
+build would fail on a non-empty database. Now `0_init` is the `main` schema and
+`1_round_trip_and_seasonal_pricing` is everything since, so production's later
+rollout is "record `0_init`, merge, the build applies `1_…`".
+
+### Implemented
+
+| Item | Status |
+|---|---|
+| `prisma/migrations/0_init` (main schema, 1178 lines of SQL, plus RLS on `OperatorPicContact` which Prisma does not model) | Done |
+| `prisma/migrations/1_round_trip_and_seasonal_pricing` (75 lines: additive, one `DROP NOT NULL` on `Booking.legId`; Season RLS policy, made safe on a Postgres without the Supabase roles) | Done |
+| `prisma/sql/season-rls.sql` removed (now inside `1_…`) | Done |
+| `scripts/db-push-if-configured.mjs` → `scripts/db-migrate-if-configured.mjs` (`prisma migrate deploy`; runs only on Vercel production, the `staging` environment and local builds; any other preview skips and touches no database; P3005 gives baseline instructions) | Done |
+| `package.json`: build uses the new script; `db:push` removed; `db:status` added | Done |
+| CI: new `Migrations` job (`migrate deploy` on an empty Postgres, then a diff against `schema.prisma` must be empty); e2e job uses `migrate deploy`; `staging` added to push branches | Done, not yet seen running on GitHub |
+| Unit test `tests/unit/scripts/db-migrate-guard.test.ts` (7 cases) | Done |
+| Docs: README "Database"/"Environments", `STRUCTURE.md`, `CLAUDE.md` (DB rule), `docs/RELEASING.md` (production runbook), `.claude/agents/{prisma-migrator,seed-loader}.md`, `.env.example`, schema comments, `scripts/schema-docs.py` | Done |
+| Staging DB: `migrate resolve --applied` for both migrations | Done (2026-10-14) |
+| Production DB: baseline and first migrate deploy | **Not done, by decision** |
+
+Design rules kept from the first version: forward-only; rollback is a new
+migration; destructive changes in steps; `migrate dev` runs against a local
+Docker Postgres, never Supabase (it needs a shadow database).
 
 ## QC
 
@@ -127,11 +128,51 @@ Notes and gaps:
    `v1.1.0` on `f918963` and `v1.1.1` on `ed5393c`, then push the tags.
 2. Once the staging deploy is up, open staging.gilifast.com
    `/admin/diagnostics` and confirm version, commit and branch; record it here.
-3. Phase 2 (database migrations) as a separate task after v1.1.0 is in
-   production.
+3. Phase 2 follow-ups: push, then check the staging Vercel build log for
+   `[db-migrate] OK`, and the GitHub `Migrations` job. Baseline production only
+   when the owner decides (`docs/RELEASING.md`, "Production database").
+
+### QC, phase 2 (2026-10-14)
+
+Scratch database: a throwaway `postgres:16-alpine` container (removed afterwards).
+Staging database: `asymnwikxyhipoezoggp` only. Payment and messaging keys blanked.
+
+| Check | Result |
+|---|---|
+| `migrate deploy` on an empty Postgres | First attempt **failed**: `role "anon" does not exist` (the Season RLS policy named Supabase roles). Fixed in `1_…` by creating the policy for whichever of `anon`/`authenticated` exist, else `public`; second attempt applied both migrations |
+| Drift, empty scratch DB after `migrate deploy` vs `schema.prisma` | Empty |
+| RLS on scratch | `OperatorPicContact` and `Season` enabled, policy present: same as staging |
+| `seed:qa` and the full Playwright suite against the migrated scratch DB | Seed ok. First run 1 failure (see below); after the fix 24 passed, 4 skipped at 2 and at 4 workers |
+| Build script, 5 cases | Up-to-date DB → "No pending migrations"; non-Supabase host refused; Vercel preview with a bogus URL → skipped, exit 0; production with no URL → fails; DB with tables and no history → P3005 with instructions, and the tables were unchanged |
+| Staging before: drift vs `schema.prisma`, `_prisma_migrations` | Empty / absent; 41 tables |
+| Staging `migrate resolve --applied 0_init` and `1_…` | Both marked applied |
+| Staging after | `migrate status` up to date; drift empty; 42 tables (only `_prisma_migrations` added); both rows finished with 0 applied steps; data intact (8 seasons, 25 bookings); the build script reports "No pending migrations" |
+| `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (clean shell) | Clean, 0 errors, 888/888 |
+| Playwright full suite against staging, 2 workers | 24 passed, 4 skipped (existing), 0 failed; no fixture left |
+
+**Test isolation bug found by this QC:** the season specs shared dates in 2099
+and the season calendar is global, so specs running in parallel could close each
+other's days (the reschedule spec's OFF day on 15 Jun 2099 hid the PEAK day of
+the booking spec). It passed on staging earlier only by timing. Each season spec
+now owns a year (2099, 2097, 2096, 2095).
+
+Not verified: anything on production; the staging Vercel build running the new
+script (needs the push); the GitHub `Migrations` job (needs the push); the
+"skip other previews" behaviour in a real preview build (covered by the unit
+test and by running the script with a faked Vercel environment).
 
 ## Findings outside this task
 
+- `DATABASE_URL` and `DIRECT_URL` are scoped to Preview and Production on the
+  `gilifast` Vercel project (names only; values not read), although the README
+  says never to scope them to Preview. The new build script refuses to migrate
+  anything but production and `staging`, which removes the mutation risk, but
+  the owner should still re-scope them.
+- `docker/entrypoint.sh`, which the old script and `SKIP_DB_PUSH` referred to,
+  does not exist in the repo; Docker/droplet statements in older docs may be stale.
+- The `Season` RLS policy targets `anon`/`authenticated`, but no table grants to
+  those roles are visible, so it likely has no effect through PostgREST until
+  grants exist. Not investigated further.
 - Environments (checked 2026-10-14, variable names only): the Vercel account
   connected here has one Gilifast project, `gilifast`, and no `gilifast-staging`.
   It carries a custom environment with the staging `DATABASE_URL`,

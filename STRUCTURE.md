@@ -2,14 +2,14 @@
 
 Boat-ticketing MVP: Next.js (App Router) + Prisma/Postgres + `next-intl`, deployed on Vercel. Behavioural rules (auth guards, tenant scoping, single sources of truth) live in [`CLAUDE.md`](./CLAUDE.md) — read it first. This file only maps *where things are* and *why*.
 
-Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm seed:seasons`, `pnpm db:push` / `db:migrate`.
+Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm seed:seasons`, `pnpm db:deploy` / `db:migrate` / `db:status`.
 
 ## Top level
 
 ```
 src/            All application code (alias: @/* -> ./src/*)
 CHANGELOG.md    Release notes per version (see docs/RELEASING.md)
-prisma/         schema.prisma, seed.ts, seed-small-boats.ts, sql/ (hand-applied SQL such as RLS)
+prisma/         schema.prisma, migrations/ (SQL history; RLS goes in the migration too), seed.ts, seed-small-boats.ts
 scripts/        One-off scripts (seed-qa, Wahana import/generate, doku/paypal selftests, purge-dummy-data)
 tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright), support/
 docs/           Design docs; RELEASING.md = versioning & releases; docs/spikes/ = in progress, docs/spikes/done/ = finished
@@ -91,5 +91,5 @@ Route-private components live in `_components/` beside the route that uses them 
 
 - **Unused components** (no importer found): `features/payments/components/{auto-redirect,countdown,methods}.tsx` and `features/operators/components/templates/form-page-template.tsx`. Kept, not deleted — decide whether they are WIP or dead.
 - **Operator "duplicate routes"** are not duplicates: `operator/operasi/{jadwal,keberangkatan,pemindai}` and `operator/armada/page.tsx` are 4-line `redirect()` stubs to the English routes. The sidebar picks the active module by `pathname.startsWith(module.href)`, so linking straight to `/operator/schedules` would lose the active module. Removing the stubs needs a sidebar change (per-module prefix list), which is a behaviour change, not a restructure.
-- `next.config.mjs` still has `output: process.env.VERCEL ? undefined : 'standalone'` (a Docker-era branch) and `scripts/db-push-if-configured.mjs` still mentions Docker in comments.
+- `next.config.mjs` still has `output: process.env.VERCEL ? undefined : 'standalone'` (a Docker-era branch) and older design docs (`docs/db-expansion-plan.md`, `docs/home-page-revamp*.md`) still use the old `lib/` paths and, in places, `db push`.
 - `features/schedules/wahana-schedule.ts` is ~2,200 lines of generated data (`pnpm gen:wahana`); it could move to a `data/` folder.

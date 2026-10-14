@@ -11,7 +11,7 @@ datasource db {
   // Required on serverless platforms (Vercel) — without it you exhaust
   // Postgres connections within minutes.
   url       = env("DATABASE_URL")
-  // Migrations and `prisma db push` need a direct, non-pooled connection
+  // Migrations need a direct, non-pooled connection
   // (port 5432). Only needed when running prisma CLI; runtime ignores it.
   directUrl = env("DIRECT_URL")
 }
@@ -38,10 +38,10 @@ enum PaymentMethod {
 enum PaymentProvider {
   MIDTRANS
   PAYPAL
-  // Legacy values retained (unused by the app) so `prisma db push` without
-  // --accept-data-loss stays additive: dropping enum values that existing rows
-  // still reference is destructive and would fail the whole push, leaving the
-  // DB without the columns/values it needs.
+  // Legacy values retained (unused by the app) so schema changes stay
+  // additive: dropping enum values that existing rows still reference is
+  // destructive and would fail the migration, leaving the DB without the
+  // columns/values it needs.
   XENDIT
   MAYAR
   STRIPE
@@ -1121,7 +1121,7 @@ enum SalesChannel {
   GILIFAST
   // Pre-rename value for the same thing: our own platform. Existing Booking
   // rows still carry it, and dropping an enum value those rows reference is
-  // destructive — `prisma db push` would refuse the whole push. Kept for the
+  // destructive — the migration would fail. Kept for the
   // same reason as the legacy PaymentProvider values above. Anything asking
   // "was this sold on our platform?" must match both; see DIRECT_SALES_CHANNELS
   // in lib/operator-erp-queries.ts.
