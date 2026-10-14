@@ -65,6 +65,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 6. **QC is documented, and honest.** Record it in the task's spike doc under `docs/spikes/`: what was tested, how, the result, and what was skipped or could not be verified (and why). Never claim a check that was not run.
 7. **Docs follow every state change.** When a task moves forward (planned → implemented → verified → deployed), update its spike doc, and `CLAUDE.md` / `STRUCTURE.md` where they are affected, in the same step.
 8. **Every feature or bug fix updates the version**, in the task's own commit: bump `package.json` (feature → MINOR, fix → PATCH) and add a dated section to `CHANGELOG.md`; docs/tests/refactors with no user-visible effect go under `[Unreleased]`. Tag `vX.Y.Z` after the commit (with confirmation, rule 5). Full process: `docs/RELEASING.md`.
+9. **Docs are part of done.** A task is not finished, and is not committed, until the docs match the code: its spike doc (status, checklist, QC, findings), `CHANGELOG.md`, and `CLAUDE.md` / `STRUCTURE.md` / `docs/RELEASING.md` when behaviour, structure or process changed. Before every commit run `git status` and check that each code change has its doc change in the same commit. When reporting a task, say which docs were updated and which issues are now done or still open.
 
 ## Don't
 
