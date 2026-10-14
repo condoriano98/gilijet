@@ -395,7 +395,7 @@ export async function cancelDeparture(formData: FormData) {
     fail(back, err instanceof Error ? err.message : 'Could not cancel this departure');
   }
 
-  await notifyLegCancelled(result.cancelled);
+  await notifyLegCancelled(result.cancelled, reason);
 
   await audit({
     entityType: 'LEG',

@@ -132,6 +132,16 @@ Notes and gaps:
 
 ## Findings outside this task
 
+- Environments (checked 2026-10-14, variable names only): the Vercel account
+  connected here has one Gilifast project, `gilifast`, and no `gilifast-staging`.
+  It carries a custom environment with the staging `DATABASE_URL`,
+  `AUTH_SECRET`, `QR_HMAC_SECRET` and Google OAuth values, so staging looks like
+  a custom environment of `gilifast`, not a second project as the README says.
+  Check and correct the README "Environments" section.
+- `CRON_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `WATI_*` are not in
+  that project's variable list. Details and impact: `BUGS_ROUND_TRIP.md`
+  follow-up 6. Fixes shipped after v1.1.0 are in `CHANGELOG.md` 1.1.1.
+
 - The local `.env.staging` holds production DOKU and PayPal keys
   (`*_IS_PRODUCTION="true"`), while the README says the staging Vercel project
   uses DOKU mock and PayPal sandbox. The local file does not mirror Vercel

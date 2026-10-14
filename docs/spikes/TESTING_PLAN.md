@@ -2,7 +2,7 @@
 
 **Document Date:** 2026-10-04  
 **Status note 2026-10-14:** this plan is a historical record. The `[ ]` boxes and `lib/…` / `components/…` paths below follow the original layout and are no longer maintained; the test files under `tests/` are the source of truth (mirror of `src/`, see `STRUCTURE.md`).  
-**Current numbers:** unit 874 tests in 51 files, all passing (run in a shell that has not sourced `.env.staging`, or `paypal.test.ts` › "blames the credentials, not the flag" fails). E2E: the 2026-10-13 full run was 7 passed / 4 skipped (customer-booking, round-trip-booking, admin-refund, one mobile port-field test); added since and passing on their own: `seasonal-pricing.spec.ts` (6), `admin-seasons.spec.ts` (3), `admin-diagnostics.spec.ts` (2). The full suite was not re-run after adding them.  
+**Current numbers (2026-10-14, v1.1.1):** unit 881 tests in 52 files, all passing (run in a shell that has not sourced `.env.staging`, or `paypal.test.ts` › "blames the credentials, not the flag" fails). E2E full suite with 2 workers: 21 passed, 4 skipped (customer-booking, round-trip-booking, admin-refund, one mobile port-field test), 0 failed. With 5 workers one login-page timeout appeared once in `admin-seasons` and did not repeat. E2E specs added since 2026-10-13: `seasonal-pricing` (6), `admin-seasons` (3), `admin-diagnostics` (2), `reschedule-season` (3).  
 **Last Updated:** 2026-10-07 (Phase 6 COMPLETE: TypeScript compilation fixed, all 798 tests passing)  
 **Final Test Status:** 
 - **Unit Tests:** 798/798 passing (100%) ✅ ALL PASSING + TYPECHECK CLEAN

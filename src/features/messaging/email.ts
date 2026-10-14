@@ -425,6 +425,8 @@ type CancellationEmailArgs = {
   refundAmount: number;
   refundTier: 'FULL' | 'PARTIAL' | 'NONE';
   lookupUrl: string;
+  /** Why the departure was cancelled, as typed by the admin. Omitted when the customer cancelled. */
+  reason?: string;
   // Round-trip support
   isRoundTrip?: boolean;
   returnRoute?: { originPort: string; destinationPort: string };
@@ -469,11 +471,16 @@ export async function sendCancellationEmail(
       </table>
     `;
 
+  const reasonLine = args.reason?.trim()
+    ? `<p style="color:#475569;">Reason: ${escapeHtml(args.reason.trim().slice(0, 200))}</p>`
+    : '';
+
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
   <h1 style="margin:0 0 4px 0;font-size:22px;">Booking cancelled</h1>
   <p style="margin:0 0 24px 0;color:#475569;">Reference <strong>${args.bookingReference}</strong></p>
   ${summary}
+  ${reasonLine}
   <p style="color:#475569;">${refundLine}</p>
   <p style="margin-top:16px;color:#475569;font-size:14px;">
     View your booking at <a href="${args.lookupUrl}">${args.lookupUrl}</a>.

@@ -1,4 +1,4 @@
-import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
+import { loadActiveSeasons, withSeasonPrice, legPricingInputs } from '@/features/pricing/seasons';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -32,7 +32,8 @@ async function submitRescheduleAction(formData: FormData) {
   const parsed = submitSchema.safeParse({
     reference: formData.get('reference'),
     requestedLegId: formData.get('requestedLegId'),
-    customerNote: formData.get('customerNote'),
+    // The form has no note field, so this is null, which the schema rejects.
+    customerNote: formData.get('customerNote') ?? undefined,
     confirmEmail: formData.get('confirmEmail'),
   });
   if (!parsed.success) {
@@ -99,6 +100,7 @@ async function submitRescheduleAction(formData: FormData) {
     !target ||
     !original ||
     target.status !== 'OPEN' ||
+    legPricingInputs(target, await loadActiveSeasons()).closed ||
     target.schedule.originPort !== original.schedule.originPort ||
     target.schedule.destinationPort !== original.schedule.destinationPort
   ) {

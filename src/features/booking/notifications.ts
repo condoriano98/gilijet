@@ -270,6 +270,7 @@ export async function notifyBoardingPassIssued(
 export async function notifyOperatorUnavailable(
   bookingId: string,
   refundAmount: number,
+  reason?: string,
 ): Promise<void> {
   const booking = await load(bookingId);
   if (!booking) return;
@@ -291,6 +292,7 @@ export async function notifyOperatorUnavailable(
       // The customer did not cancel, so the time-tier table never applies.
       refundTier: 'FULL',
       lookupUrl: url,
+      reason,
       // Round-trip support (show both legs in cancellation notice)
       isRoundTrip: booking.tripType === 'ROUND_TRIP',
       returnRoute: returnLeg
@@ -307,6 +309,7 @@ export async function notifyOperatorUnavailable(
       customerName: booking.customerName,
       bookingReference: booking.bookingReference,
       lookupUrl: url,
+      reason,
       trip: returnLeg
         ? {
             outbound: {
@@ -332,9 +335,10 @@ export async function notifyOperatorUnavailable(
 /** Tell every customer whose booking a departure cancellation just cancelled. */
 export async function notifyLegCancelled(
   cancelled: { bookingId: string; refundAmount: number }[],
+  reason?: string,
 ): Promise<void> {
   const results = await Promise.allSettled(
-    cancelled.map((c) => notifyOperatorUnavailable(c.bookingId, c.refundAmount)),
+    cancelled.map((c) => notifyOperatorUnavailable(c.bookingId, c.refundAmount, reason)),
   );
   logFailures('leg-cancelled')(results);
 }

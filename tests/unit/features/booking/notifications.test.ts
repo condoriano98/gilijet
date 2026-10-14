@@ -665,6 +665,17 @@ describe('notifyLegCancelled', () => {
     );
   });
 
+  it('passes the cancellation reason to the email and the WhatsApp message', async () => {
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(booking('b-1', 'GILI-ONE', 'ONE_WAY') as any);
+    vi.mocked(sendCancellationEmail).mockResolvedValue(EMAIL_RESULT);
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockResolvedValue(WHATSAPP_RESULT);
+
+    await notifyLegCancelled([{ bookingId: 'b-1', refundAmount: 500000 }], 'Cuaca buruk');
+
+    expect(sendCancellationEmail).toHaveBeenCalledWith(expect.objectContaining({ reason: 'Cuaca buruk' }));
+    expect(sendOperatorUnavailableWhatsapp).toHaveBeenCalledWith(expect.objectContaining({ reason: 'Cuaca buruk' }));
+  });
+
   it('keeps notifying the rest when one booking fails to load', async () => {
     vi.mocked(prisma.booking.findUnique)
       .mockRejectedValueOnce(new Error('DB down'))

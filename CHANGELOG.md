@@ -12,6 +12,17 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-14
+
+### Fixed
+
+- Cancelling a departure from the admin console now tells customers why: the
+  reason the admin typed appears in the cancellation email and WhatsApp message.
+- Customers can request a date change again. Every request from the reschedule
+  page failed with "Invalid input" because the form sent no note field.
+- A date-change request can no longer target a departure on a closed (OFF)
+  day, even if the page is stale or the form is edited by hand.
+
 ## [1.1.0] - 2026-10-14
 
 First versioned release on `staging`; collects everything built since 1.0.0.
@@ -54,6 +65,7 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/condoriano98/gilijet/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/condoriano98/gilijet/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/condoriano98/gilijet/releases/tag/v1.0.0

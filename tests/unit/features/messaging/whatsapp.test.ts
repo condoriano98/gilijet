@@ -189,6 +189,40 @@ describe('WhatsApp messaging - WATI API', () => {
     expect(['wati', 'console']).toContain(result.provider);
   });
 
+  describe('operator unavailable: cancellation reason', () => {
+    const base = {
+      to: '+62812345678',
+      customerName: 'Bob Johnson',
+      bookingReference: 'GILI-DEF456',
+      lookupUrl: 'https://gilifast.com/b/GILI-DEF456',
+    };
+    const sentText = () => decodeURIComponent(new URL(mockFetch.mock.calls[0][0]).searchParams.get('messageText')!);
+
+    it('tells the customer why the departure was cancelled', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+      await sendOperatorUnavailableWhatsapp({ ...base, reason: 'Cuaca buruk di Selat Lombok' });
+      expect(sentText()).toContain('Alasan: Cuaca buruk di Selat Lombok');
+    });
+
+    it('adds no reason line when none was given', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+      await sendOperatorUnavailableWhatsapp(base);
+      expect(sentText()).not.toContain('Alasan');
+    });
+
+    it('ignores a blank reason and caps a long one at 200 characters', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+      await sendOperatorUnavailableWhatsapp({ ...base, reason: '   ' });
+      expect(sentText()).not.toContain('Alasan');
+
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce({ ok: true });
+      await sendOperatorUnavailableWhatsapp({ ...base, reason: 'x'.repeat(500) });
+      expect(sentText()).toContain(`Alasan: ${'x'.repeat(200)}\n`);
+      expect(sentText()).not.toContain('x'.repeat(201));
+    });
+  });
+
   it('sends template message with parameters', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

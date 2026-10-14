@@ -283,6 +283,8 @@ export async function sendOperatorUnavailableWhatsapp(args: {
   customerName: string;
   bookingReference: string;
   lookupUrl: string;
+  /** Why the departure was cancelled, as typed by the admin. */
+  reason?: string;
   /** Round trips are cancelled whole, so say which two sailings are affected. */
   trip?: {
     outbound: { route: { originPort: string; destinationPort: string }; departureDate: Date };
@@ -293,6 +295,7 @@ export async function sendOperatorUnavailableWhatsapp(args: {
     `Mohon maaf ${args.customerName}, operator tidak dapat menerima pemesanan ini.`,
     ``,
     `Kode booking: ${args.bookingReference}`,
+    ...(args.reason?.trim() ? [`Alasan: ${args.reason.trim().slice(0, 200)}`] : []),
     ...(args.trip
       ? [
           `Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan):`,

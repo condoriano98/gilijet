@@ -30,8 +30,8 @@ Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket
 - `search/page.tsx`: rating lookup juga mencakup schedule dari return legs; `ratingsByScheduleId` dikirim sebagai plain object.
 
 **Acceptance Criteria:**
-- [ ] Search Return di staging menampilkan Outbound dan Return dengan jam & harga benar (belum diverifikasi manual di staging)
-- [ ] Tidak ada error baru di Vercel runtime log route `/search` (belum dicek)
+- [x] Search Return di staging menampilkan Outbound dan Return dengan jam & harga benar — _diverifikasi live 2026-10-09, putaran 2_
+- [x] Tidak ada error baru di Vercel runtime log — _runtime log deployment yang diverifikasi bersih, putaran 2 dan 3_
 - [x] Unit test serializer mencakup Date + Decimal
 
 **Sisa:** `type LegForClient = any` di `components/customer/round-trip-leg-selector.tsx` belum diganti tipe yang benar.
@@ -63,7 +63,7 @@ Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket
 - [x] QR outbound tidak bisa boarding leg return, dan sebaliknya
 - [x] Unit test check-in dua leg
 - [x] One-way tidak terdampak (test one-way)
-- [ ] Uji nyata di staging (butuh `QR_HMAC_SECRET` terisi di environment staging dan tabel `TicketCheckin` sudah ter-apply; terbitkan tiket baru setelahnya)
+- [x] Uji nyata di staging — _putaran 2 (2026-10-09): `QR_HMAC_SECRET` staging sudah dibuat, tiket baru diterbitkan lewat UI admin, check-in outbound lalu return, scan ulang dan QR silang ditolak_
 
 **Catatan:** `QR_HMAC_SECRET` hanya ada di target `production` di Vercel (dicek 2026-10-09: tidak ada entri untuk custom environment "staging"). Harus ditambahkan untuk environment staging sebelum uji check-in QR.
 
@@ -85,7 +85,7 @@ Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket
 - [x] Departure detail admin menampilkan booking round-trip di kedua leg
 - [x] Hitungan per leg memuat booking round-trip (tidak ada seat accounting; `booking-engine` memang tanpa capacity check)
 - [x] Unit test manifest one-way + round-trip
-- [ ] Verifikasi manual di browser / staging
+- [x] Verifikasi manual di staging — _putaran 2; yang diperiksa teks/DOM, bukan tampilan visual_
 
 ---
 
@@ -109,7 +109,7 @@ Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket
 
 **Keputusan pending (bisnis):** aturan "leg satunya sudah lewat → serahkan ke admin" belum dikonfirmasi.
 
-**Belum:** alasan pembatalan yang diisi admin/operator ("Shown to affected customers" di form admin) belum masuk ke email/WhatsApp; `sendCancellationEmail` dan `sendOperatorUnavailableWhatsapp` tidak punya parameter alasan.
+**Alasan pembatalan (selesai di v1.1.1, 2026-10-14):** alasan yang diisi admin di form pembatalan departure sekarang masuk ke email ("Reason: …", di-escape) dan WhatsApp ("Alasan: …", maks. 200 karakter). `notifyLegCancelled` dan `notifyOperatorUnavailable` menerima `reason` opsional; admin `cancelDeparture` mengirimkannya. **Ditunda:** aksi cancel di halaman operator belum meneruskan alasan (operator ditunda dulu), dan konfirmasi-tidak-tersedia (`/admin/confirmations`) memang tanpa alasan.
 
 ---
 
@@ -164,6 +164,24 @@ Booking `VERIFY3` dikonfirmasi lewat UI admin gilijet, satu round-trip dibatalka
 - **One-way (P-OW):** 1 WhatsApp dan 1 PDF, caption lama tanpa penanda leg (tidak berubah).
 - **Pembatalan round-trip (P-CX):** WhatsApp memuat "Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang, plus email pembatalan; booking `CANCELLED_BY_OPERATOR`, 1 refund 500000/500000.
 
+### Putaran 4: perbaikan follow-up, v1.1.1 (2026-10-14, lokal terhadap DB staging)
+
+Dev server lokal, DB staging; kunci WATI, Resend, DOKU dan PayPal dikosongkan di proses (env lokal berisi kunci production), tidak ada pembayaran maupun pesan nyata. Yang dikerjakan: alasan pembatalan di email/WhatsApp, penolakan reschedule ke hari OFF di server, dan satu bug yang ditemukan saat menulis E2E-nya. Yang operator dan hapus-kapal ditunda.
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `pnpm typecheck` (app + e2e), `pnpm lint` | Bersih, 0 error (1 warning lama di `postcss.config.mjs`) |
+| `pnpm vitest run`, shell bersih | 881/881, 52 file |
+| Unit baru: `messaging/email.test.ts` (alasan tampil, tidak tampil tanpa alasan, HTML di-escape dan dipotong 200 karakter), `whatsapp.test.ts` (3 kasus alasan), `booking/notifications.test.ts` (alasan diteruskan ke email dan WhatsApp) | Lolos |
+| E2E baru `reschedule-season.spec.ts` (3): pemilih tanggal menampilkan hari buka dan menyembunyikan hari OFF; request ke leg OFF yang dipaksa lewat form yang diubah ditolak server ("Selected departure is unavailable", 0 `RescheduleRequest`); request ke leg buka tetap berhasil | 3/3 |
+| Suite E2E penuh, 2 worker | 21 lolos, 4 di-skip lama, 0 gagal |
+| Suite E2E penuh, 5 worker | 1 gagal: `admin-seasons` timeout 60 dtk menunggu field email di `/admin/login`. Lolos saat spec dijalankan sendiri dan di run 2 worker. Dugaan beban dev server saat banyak worker; penyebab pasti tidak dibuktikan |
+| Fixture E2E di staging setelah run | 0 sisa; season asli tetap 8 baris |
+
+**Bug baru yang ditemukan: permintaan reschedule customer selalu gagal.** Form tidak punya field `customerNote`, jadi `formData.get('customerNote')` bernilai `null`, dan schema Zod menolak `null` ("Invalid input"). Berlaku sebelum perubahan ini; diperbaiki dengan `?? undefined`. Test ke-3 di atas membuktikan request yang valid sekarang tersimpan (`PENDING`).
+
+Tidak diuji: pengiriman email/WhatsApp nyata (hanya pembuatan isi pesan lewat unit test), pembayaran, dan tampilan visual.
+
 ### Belum tercakup
 - Notifikasi diuji mode mock (staging tidak punya kunci Resend/WATI): tidak ada pesan nyata terkirim.
 - Aksi cancel di halaman operator tidak dijalankan (hanya cancel lewat admin); lihat follow-up 7.
@@ -179,10 +197,10 @@ Booking `VERIFY3` dikonfirmasi lewat UI admin gilijet, satu round-trip dibatalka
 
 ## Follow-up (belum jadi tiket)
 
-1. ⚠️ **`collectBoatSubtree` di `lib/operator-purge.ts`** mencari booking hanya lewat `legId`. Guard financial-chain (Payment/Refund/Ticket) buta terhadap booking round-trip pada purge boat. Jalur destruktif; perlu tiket sendiri. (`collectOperatorSubtree` aman karena juga mencocokkan `operatorId`.)
+1. ⏸ **`collectBoatSubtree` di `src/features/operators/purge.ts`** mencari booking hanya lewat `legId`, jadi buta terhadap booking round-trip. **Ditunda.** Dicek ulang 2026-10-14: fungsi ini tidak dipanggil di mana pun (yang dipakai `collectOperatorSubtree`, yang aman) dan semua FK `Booking` → `Leg` adalah `onDelete: Restrict`, jadi database menolak penghapusan yang masih terhubung. Tidak ada dampak sekarang; perbaiki (cocokkan juga `outboundLegId`/`returnLegId`) sebelum fungsi ini dipakai.
 2. ✅ **Manual check-in** di `app/operator/legs/[id]/page.tsx`: sudah diaktifkan lagi untuk round-trip lewat helper per-leg yang sama dengan bug #2.
-3. ⚠️ **Jalur cuaca** di halaman yang sama (cari booking `CONFIRMED` setelah `cancelLeg`) tampaknya sudah tidak pernah menemukan apa pun karena `cancelLeg` sudah mengubah statusnya. Pre-existing; perilaku tidak diubah.
+3. ⏸ **Jalur cuaca** di halaman leg operator: blok khusus `WEATHER` mencari booking `CONFIRMED` setelah `cancelLeg` sudah membatalkan semuanya, jadi tidak menemukan apa pun. **Ditunda (operator).** Uang tidak terpengaruh (refund dibuat oleh `cancelLeg`); yang mungkin hilang hanya pencatatan alasan cuaca di refund dan audit log.
 4. ⚠️ **E2E round-trip** (`round-trip-booking.spec.ts`) di-skip, jadi regresi alur search → booking tidak tertangkap otomatis.
 5. ⚠️ **`QR_HMAC_SECRET`:** sudah dibuat di staging Vercel (dipakai pada verifikasi putaran 2). Di env lokal (`.env`/`.env.local`/`.env.staging`) nilainya kurang dari 32 karakter, sehingga `/b/<reference>` untuk booking ber-tiket error saat development (ditemukan 2026-10-14 saat QC versioning). Test masih me-mock `qr`.
-6. ⚠️ **`CRON_SECRET`** tidak muncul di daftar env Vercel (dicek 2026-10-09). README mewajibkan ada di staging supaya cron tidak 401. Belum diperiksa lebih jauh; di luar scope bug round-trip.
-7. ⚠️ **Aksi cancel di `app/operator/legs/[id]/page.tsx`** memanggil `redirect()` di dalam `try` yang `catch`-nya ikut menangkap `NEXT_REDIRECT`, sehingga cancel yang sukses kemungkinan besar malah redirect ke `?error=NEXT_REDIRECT`. Belum dicoba di runtime; pre-existing, bertentangan dengan konvensi CLAUDE.md (re-throw `NEXT_REDIRECT`).
+6. ⚠️ **`CRON_SECRET`:** dicek 2026-10-14 (hanya nama variabel) di project Vercel `gilifast`: **tidak ada sama sekali**, baik production, preview, maupun environment custom. Route `/api/cron/*` menolak 401 tanpa kunci ini (sejak 2026-05-20), jadi `topup-legs`, `refresh-fx`, dan `retry-webhooks` kemungkinan tidak pernah berjalan, termasuk di production. Perlu ditambahkan oleh owner (production, string acak ≥ 32 karakter) lalu redeploy. Catatan terkait: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` dan `WATI_*` juga tidak terlihat di project itu; perlu dikonfirmasi apakah notifikasi production memakai mock. Project `gilifast-staging` tidak terlihat di akun yang terhubung; staging tampaknya environment custom di project `gilifast` (README menyebut dua project).
+7. ⏸ **Aksi cancel di `src/app/operator/legs/[id]/page.tsx`** memanggil `redirect()` di dalam `try` yang `catch`-nya ikut menangkap `NEXT_REDIRECT`, sehingga cancel yang sukses redirect ke `?error=NEXT_REDIRECT` (dikonfirmasi dari kode 2026-10-14; belum dicoba di runtime). **Ditunda (operator).** Bertentangan dengan konvensi `CLAUDE.md` (re-throw `NEXT_REDIRECT`).
