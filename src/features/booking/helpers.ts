@@ -1,4 +1,5 @@
 import type { Leg, Booking, Prisma } from '@prisma/client';
+import type { PassengerType } from '@/features/pricing/pricing';
 
 type BookingWithLegs<T> = Pick<Booking, 'tripType'> & {
   leg?: T | null;
@@ -51,4 +52,22 @@ export function legRoleForBooking(
 ): LegRole {
   if (booking.tripType !== 'ROUND_TRIP') return 'ONE_WAY';
   return booking.returnLegId === legId ? 'RETURN' : 'OUTBOUND';
+}
+
+/** Per-seat fare of one leg for each passenger type. */
+export type PassengerFares = { adult: number; child: number; infant: number };
+
+/**
+ * What each leg of a round trip costs for this passenger mix. The two sum to the
+ * combined price the booking form charges, so the Outbound / Return lines can
+ * sit above the Total without ever disagreeing with it.
+ */
+export function roundTripBreakdown(
+  types: PassengerType[],
+  outbound: PassengerFares,
+  returnLeg: PassengerFares,
+): { outbound: number; return: number } {
+  const sum = (fares: PassengerFares) =>
+    types.reduce((acc, t) => acc + (t === 'ADULT' ? fares.adult : t === 'CHILD' ? fares.child : fares.infant), 0);
+  return { outbound: sum(outbound), return: sum(returnLeg) };
 }

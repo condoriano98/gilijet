@@ -308,6 +308,7 @@ export default async function BookPage({
           adultPrice={displayAdultPrice}
           childPrice={displayChildPrice}
           infantPrice={displayInfantPrice}
+          legFares={isRoundTrip ? { outbound: outboundFare, return: returnFare } : undefined}
           initialCount={initialPassengers}
           max={10}
         >

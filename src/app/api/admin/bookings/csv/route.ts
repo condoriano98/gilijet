@@ -1,18 +1,9 @@
 import { NextRequest } from 'next/server';
-import { Prisma, BookingStatus } from '@prisma/client';
 import { getAdminSession } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 import { getMainLeg } from '@/features/booking/helpers';
-
-const STATUS_FILTERS: BookingStatus[] = [
-  'PENDING_PAYMENT',
-  'AWAITING_CONFIRMATION',
-  'CONFIRMED',
-  'CANCELLED_BY_CUSTOMER',
-  'CANCELLED_BY_OPERATOR',
-  'EXPIRED',
-];
+import { buildBookingWhere } from '@/features/booking/admin-filters';
 
 function csvEscape(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
@@ -25,21 +16,13 @@ export async function GET(req: NextRequest) {
   const session = await getAdminSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const q = req.nextUrl.searchParams.get('q') ?? undefined;
-  const status = req.nextUrl.searchParams.get('status') ?? undefined;
-
-  const where: Prisma.BookingWhereInput = {};
-  if (status && STATUS_FILTERS.includes(status as BookingStatus)) {
-    where.status = status as BookingStatus;
-  }
-  if (q && q.trim()) {
-    const term = q.trim();
-    where.OR = [
-      { bookingReference: { contains: term, mode: 'insensitive' } },
-      { customerEmail: { contains: term, mode: 'insensitive' } },
-      { customerName: { contains: term, mode: 'insensitive' } },
-    ];
-  }
+  const param = (name: string) => req.nextUrl.searchParams.get(name) ?? undefined;
+  const where = buildBookingWhere({
+    q: param('q'),
+    status: param('status'),
+    paymentMethod: param('paymentMethod'),
+    tripType: param('tripType'),
+  });
 
   const bookings = await prisma.booking.findMany({
     where,

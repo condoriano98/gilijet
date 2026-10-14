@@ -12,6 +12,15 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-14
+
+### Added
+
+- Admin bookings list: a "Trip Type" filter (All / One way / Round trip) that
+  works together with the status and payment-method filters and the search box.
+- Booking page for a round trip: the price summary now shows the Outbound and
+  Return fares separately, above the total.
+
 ### Changed
 
 - Database schema changes are now Prisma migrations (`prisma/migrations/`)
@@ -19,6 +28,13 @@ bump. A version is live in production once its tag is merged into `main`.
   migrations on production and staging only; other preview builds no longer
   touch a database. CI checks that the migrations build an empty database and
   match `schema.prisma`.
+
+### Fixed
+
+- The bookings CSV export ignored the payment-method filter and exported more
+  rows than the list on screen. It now applies the same filters as the list.
+- "Departing soon" on the home page and the reschedule options could show fewer
+  departures than they should when some departures fall on closed (OFF) days.
 
 ## [1.1.1] - 2026-10-14
 
@@ -73,7 +89,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/condoriano98/gilijet/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/condoriano98/gilijet/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/condoriano98/gilijet/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/condoriano98/gilijet/releases/tag/v1.0.0

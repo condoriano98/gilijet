@@ -7,6 +7,7 @@ import {
   getRecentReviews,
   POPULAR_ROUTES_FALLBACK,
 } from '@/features/schedules/home-data';
+import { withSeasonPrice } from '@/features/pricing/seasons';
 
 /**
  * Unit tests for src/features/schedules/home-data.ts
@@ -22,7 +23,7 @@ import {
 
 vi.mock('@/features/pricing/seasons', () => ({
   loadActiveSeasons: async () => [],
-  withSeasonPrice: <T,>(legs: T[]) => legs,
+  withSeasonPrice: vi.fn(<T,>(legs: T[]) => legs),
 }));
 
 vi.mock('@/shared/server/db', () => ({
@@ -185,12 +186,38 @@ describe('getDepartingSoon', () => {
     expect(diff).toBeCloseTo(24, 0);
   });
 
-  it('respects limit parameter (default 8)', async () => {
-    vi.mocked(prisma.leg.findMany).mockResolvedValueOnce([]);
+  const departing = (id: string) => ({
+    id,
+    departureDate: new Date(Date.now() + 3 * 60 * 60 * 1000),
+    basePrice: new Prisma.Decimal('250000'),
+    schedule: {
+      originPort: 'BLI',
+      destinationPort: 'SBY',
+      boat: { name: 'Fast Boat', operator: { companyName: 'PT Ferry' } },
+    },
+  });
 
-    await getDepartingSoon({ limit: 10 });
+  it('caps the result at the limit (default 8)', async () => {
+    const rows = Array.from({ length: 12 }, (_, i) => departing(`leg-${i}`));
+    vi.mocked(prisma.leg.findMany).mockResolvedValueOnce(rows as any);
+    expect(await getDepartingSoon({ limit: 10 })).toHaveLength(10);
 
-    expect(vi.mocked(prisma.leg.findMany).mock.calls[0][0]!.take).toBe(10);
+    vi.mocked(prisma.leg.findMany).mockResolvedValueOnce(rows as any);
+    expect(await getDepartingSoon()).toHaveLength(8);
+  });
+
+  it('still fills the limit when OFF-day departures are dropped', async () => {
+    const rows = Array.from({ length: 5 }, (_, i) => departing(`leg-${i}`));
+    vi.mocked(prisma.leg.findMany).mockResolvedValueOnce(rows as any);
+    // The first two sit on a closed (OFF) day.
+    vi.mocked(withSeasonPrice).mockImplementationOnce(((legs: { id: string }[]) =>
+      legs.filter((l) => l.id !== 'leg-0' && l.id !== 'leg-1')) as any);
+
+    const result = await getDepartingSoon({ limit: 3 });
+
+    expect(result.map((r) => r.legId)).toEqual(['leg-2', 'leg-3', 'leg-4']);
+    // Capped in memory after the season filter, never in the query.
+    expect(vi.mocked(prisma.leg.findMany).mock.calls[0][0]!.take).toBeUndefined();
   });
 
   it('filters for OPEN status and non-deleted schedule/boat', async () => {

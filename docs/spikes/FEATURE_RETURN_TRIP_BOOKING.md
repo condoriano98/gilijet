@@ -82,7 +82,7 @@ Round Trip Transaction
 - [x] Satu booking ID mencakup kedua perjalanan (outbound + return) — _engine.ts `createRoundTripBooking`; engine-round-trip.test.ts_
 - [x] Data penumpang diisi sekali untuk kedua perjalanan — _book page: "same passengers apply to both legs"_
 - [x] Total harga terhitung benar (outbound + return) — _engine.ts menjumlah kedua leg; QC season: HIGH+PEAK = 525.000_
-- [ ] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z" — _halaman book menampilkan total gabungan; rincian terpisah Outbound/Return belum diverifikasi_
+- [x] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z" — _v1.2.0: `roundTripBreakdown` (helpers.ts) + `BookingPriceSummary`; e2e `round-trip-booking.spec.ts` (Outbound Rp 225.000, Return Rp 300.000, Total Rp 525.000), screenshot dilihat_
 
 ### Database
 - [x] Booking model punya `outboundLegId` field (reference ke leg outbound) — _schema.prisma_
@@ -94,7 +94,7 @@ Round Trip Transaction
 
 ### Admin Dashboard
 - [x] Admin bisa melihat detail kedua leg di dashboard — _diverifikasi di staging, bug #3_
-- [ ] Admin bisa filter bookings by type (ONE_WAY vs ROUND_TRIP) — _belum ada: `/admin/bookings` hanya memfilter status dan metode bayar_
+- [x] Admin bisa filter bookings by type (ONE_WAY vs ROUND_TRIP) — _v1.2.0: chip "Trip Type" di `/admin/bookings`, `buildBookingWhere` (admin-filters.ts) dipakai juga oleh CSV; e2e `admin-bookings-filter.spec.ts`_
 - [x] Admin view shows: booking ref, outbound leg, return leg, combined total — _booking-row.tsx (`isRoundTrip`); admin-booking-display.test.ts_
 
 ### Notifications & E-Tiket
@@ -108,7 +108,7 @@ Round Trip Transaction
 
 ### End-to-End Test
 - [ ] Booking return berhasil hingga e-tiket diterima — _terverifikasi di staging dengan email/WA/pembayaran mock; pengiriman nyata belum diuji_
-- [x] Customer bisa search & pilih outbound & return legs — _diverifikasi manual di staging; E2E otomatis di-skip_
+- [x] Customer bisa search & pilih outbound & return legs — _diverifikasi manual di staging; E2E otomatis `round-trip-booking.spec.ts` aktif lagi sejak 2026-10-14_
 - [x] Customer bisa enter passenger data (once, apply to both) — _diverifikasi manual di staging; E2E otomatis di-skip_
 - [ ] Payment berhasil — _belum diuji: DOKU/PayPal di env ini production; staging memakai mock_
 - [ ] Email dengan booking ref & 2 tiket diterima — _hanya mock (log Vercel); belum ada pengiriman nyata_
@@ -411,7 +411,7 @@ Display:
      - Fixed admin-booking-display.test.ts TypeScript errors
      - Created proper LegWithSchedule & BookingWithLegs types
      - All 10 admin dashboard tests now type-safe and passing
-   - E2E: 7/10 passing, 4 skipped (round-trip E2E selector tuning deferred)
+   - E2E: 7/10 passing, 4 skipped (round-trip E2E selector tuning deferred) — _catatan 2026-10-14: keempat test itu sudah aktif lagi (lihat TESTING_PLAN); penyebab skip sebenarnya data QA, bukan selector_
    - Search page UI confirmed working with round-trip support
    - Checkout page verified handling round-trip bookings
    - All critical paths tested and working
@@ -472,12 +472,12 @@ Display:
 
 Production is the `main` branch (Vercel project `gilifast`); the old branch name
 `claude/boat-ticketing-mvp-YAGl9` and the commands that were here are obsolete.
-Round trip reaches production with **v1.1.x** (v1.1.0 plus the v1.1.1 fixes), together with seasonal pricing.
+Round trip reaches production with **v1.1.x** (v1.1.0 plus the v1.1.1 fixes) and **v1.2.0** (admin trip-type filter, Outbound/Return breakdown), together with seasonal pricing.
 Process and the per-version steps: `docs/RELEASING.md`.
 
 - [ ] Baseline the production database first (`docs/RELEASING.md`, "Production database"), then PR `staging` → `main`, merge (the production build runs `prisma migrate deploy` against the production database)
 - [ ] Post-deploy steps for 1.1.0 (`pnpm seed:seasons`; the Season RLS now ships inside the migration)
-- [ ] `/admin/diagnostics` on gilifast.com shows the released version (currently v1.1.1)
+- [ ] `/admin/diagnostics` on gilifast.com shows the released version (currently v1.1.1; staging code is v1.2.0)
 - [ ] Move this spike and `BUGS_ROUND_TRIP.md` to `docs/spikes/done/` once the open checks in `BUGS_ROUND_TRIP.md` are closed
 
 ---

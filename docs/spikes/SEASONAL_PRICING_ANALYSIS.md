@@ -153,7 +153,7 @@ Otomatisasi: `tests/e2e/seasonal-booking.spec.ts` (3 test) mengulang alur form s
 
 - Cek manual owner di browser: alur booking sampai halaman bayar (jangan bayar; DOKU/PayPal di env ini production), tampilan tab Seasons, badge di kartu search.
 - ~~Reschedule customer belum menolak leg tujuan di hari OFF di server~~ — selesai di v1.1.1: `submitRescheduleAction` memakai `legPricingInputs(...).closed`. E2E: `tests/e2e/reschedule-season.spec.ts`.
-- `take` pada departing-soon (home) dan kandidat reschedule dipotong sebelum leg OFF dibuang, jadi di hari OFF hasil bisa sedikit kurang dari limit.
+- ~~`take` pada departing-soon (home) dan kandidat reschedule dipotong sebelum leg OFF dibuang~~ — selesai di v1.2.0: `take` dihapus, `.slice(limit)` setelah `withSeasonPrice`. Unit test di `home-data.test.ts`.
 - Boat selain Wahana: butuh `fareMatrix` (atau keputusan baru, mis. multiplier) sebelum season berlaku untuk mereka.
 - Kalender season harus diisi admin tiap tahun (terutama Nyepi); seed hanya mencakup 2026/27.
 - Struktur kolom dari attachment tiket belum dilihat; kolom `Season` diasumsikan dari data. Cocokkan sebelum prod.

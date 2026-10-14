@@ -1,93 +1,122 @@
 import { test, expect } from '@playwright/test';
+import { loadEnvConfig } from '@next/env';
+import { PrismaClient } from '@prisma/client';
+import { requireMockPayments, payInMockMode } from './support/mock-payments';
+import { removeBookings, removeSchedules } from './support/fixtures';
+
+loadEnvConfig(process.cwd());
+requireMockPayments();
 
 /**
- * Round-trip booking golden path: anonymous customer lands on homepage, searches
- * for a round-trip route, picks outbound + return legs from QA schedules, fills
- * passenger form (once, for both legs), mock-pays, and lands on booking confirmation
- * showing both outbound and return itineraries.
+ * Round trip, end to end: search with a return date, pick an outbound and a
+ * return departure, fill the passenger form once, see what each leg costs, pay
+ * on the mock checkout. One booking covers both legs.
  *
- * Relies on `pnpm seed:qa` having been run — see scripts/seed-qa.ts.
+ * Own routes in 2093 (outbound A→B, return B→A, with different fares so the
+ * Outbound / Return lines cannot be confused) removed afterwards.
+ * `requireMockPayments()` skips the file when a live key is set. `QC_SHOTS=1`
+ * saves a screenshot of the form to test-results/qc/.
  */
-test.skip('anonymous customer can book a round-trip schedule end-to-end (E2E selector tuning needed)', async ({
-  page,
-}) => {
-  // Search 7 days ahead for outbound, 9 days for return (ensures 2-day gap)
-  const outboundDate = new Date(Date.now() + 7 * 86_400_000);
-  const returnDate = new Date(Date.now() + 9 * 86_400_000);
+const prisma = new PrismaClient();
 
-  const formatDate = (d: Date) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+const A = 'E2E Trip A';
+const B = 'E2E Trip B';
+const EMAIL = 'e2e-round-trip@example.invalid';
+const OUT_DATE = '2093-06-12';
+const RET_DATE = '2093-06-14';
+
+const matrix = (adult: number) => {
+  const cell = { adult, child: adult / 2, infant: 0 };
+  const season = { low: cell, high: cell, peak: cell };
+  return { oneWay: season, return: season };
+};
+
+test.beforeAll(async () => {
+  await removeBookings(prisma, { customerEmail: EMAIL });
+  await removeSchedules(prisma, [A, B]);
+  const boat = await prisma.boat.findUniqueOrThrow({ where: { registrationNumber: 'QA-BOAT-001' } });
+  const mk = async (origin: string, destination: string, adult: number, ymd: string) => {
+    const schedule = await prisma.schedule.create({
+      data: {
+        boatId: boat.id,
+        originPort: origin,
+        destinationPort: destination,
+        departureTime: '09:00',
+        durationMinutes: 45,
+        basePrice: adult,
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+        status: 'ACTIVE',
+        fareMatrix: matrix(adult),
+      },
+    });
+    await prisma.leg.create({
+      data: {
+        scheduleId: schedule.id,
+        operatorId: boat.operatorId,
+        departureDate: new Date(`${ymd}T01:00:00Z`),
+        basePrice: adult,
+        status: 'OPEN',
+      },
+    });
   };
+  await mk(A, B, 150_000, OUT_DATE);
+  await mk(B, A, 200_000, RET_DATE);
+});
 
-  const outboundStr = formatDate(outboundDate);
-  const returnStr = formatDate(returnDate);
+test.afterAll(async () => {
+  await removeBookings(prisma, { customerEmail: EMAIL });
+  await removeSchedules(prisma, [A, B]);
+  await prisma.$disconnect();
+});
 
-  // Go to search page with return date (triggers round-trip mode)
-  // returnDate param automatically sets isRoundTrip = true
+test('customer books a round trip, sees each leg priced, and pays on the mock checkout', async ({ page }) => {
   await page.goto(
-    `/search?origin=Sanur&destination=Nusa+Penida&` +
-    `date=${outboundStr}&returnDate=${returnStr}&passengers=1`,
+    `/search?origin=${encodeURIComponent(A)}&destination=${encodeURIComponent(B)}` +
+      `&date=${OUT_DATE}&returnDate=${RET_DATE}&passengers=2`,
   );
+  await expect(page.getByRole('heading', { name: 'Outbound' })).toBeVisible({ timeout: 15_000 });
 
-  // Wait for search results to load
-  await expect(page.locator('h1').first()).toBeVisible({ timeout: 15_000 });
-
-  // Verify round-trip indicator is present (page shows "returning [date]")
-  await expect(page.getByText(/returning/i)).toBeVisible({ timeout: 5_000 });
-
-  // Pick first outbound leg
-  // Button text is "Book {passengers} ·" (with bullet point)
-  const bookLinks = page.locator('a').filter({ hasText: /^Book \d/ });
-  const bookLinkCount = await bookLinks.count();
-  expect(bookLinkCount).toBeGreaterThanOrEqual(1); // At least one outbound leg
-
-  await bookLinks.first().click({ timeout: 10_000 });
-
-  // Wait for booking page and verify we see round-trip structure
+  const pick = (heading: string) =>
+    page.getByRole('heading', { name: heading }).locator('xpath=following-sibling::*[1]').getByRole('button').first();
+  await pick('Outbound').click();
+  await pick('Return').click();
+  await page.getByRole('link', { name: 'Continue to Booking' }).click();
   await page.waitForURL(/\/book\//, { timeout: 15_000 });
 
-  // Should see passenger form and booking details
-  await expect(page.getByText(/passenger|penumpang/i).first()).toBeVisible();
-
-  // For round-trip, both legs should be shown
-  await expect(page.getByText(/outbound|berangkat/i)).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByText(/return|pulang/i)).toBeVisible({ timeout: 5_000 });
-
-  // Fill passenger details (once for both legs)
-  await page.getByLabel('Passenger 1 name').fill('Round Trip Tester');
-  await page.getByLabel('Your name').fill('Round Trip Tester');
-  await page.getByLabel('Email').fill('qa-roundtrip@gilifast.local');
+  await page.locator('#passengerName-0').fill('E2E Adult');
+  await page.locator('#passengerName-1').fill('E2E Child');
+  await page.locator('#passengerType-1').selectOption('CHILD');
+  await page.locator('#customerName').fill('E2E Round Trip');
+  await page.locator('#customerEmail').fill(EMAIL);
   await page.getByPlaceholder('812 3456 7890').fill('8123456789');
-  await page.getByRole('checkbox').check();
+  await page.locator('input[name="agreedToTerms"]').check();
 
-  // Click book/pay button
-  await page.getByRole('button', { name: /continue|book|pay/i }).first().click();
+  // Each leg is priced for the passenger mix, and the two add up to the total.
+  const row = (label: string, amount: string) =>
+    page.locator('div.flex.justify-between').filter({ hasText: label }).filter({ hasText: amount });
+  await expect(row('Outbound', 'Rp 225.000').first()).toBeVisible();
+  await expect(row('Return', 'Rp 300.000').first()).toBeVisible();
+  await expect(row('Total', 'Rp 525.000').first()).toBeVisible();
+  if (process.env.QC_SHOTS) await page.screenshot({ path: 'test-results/qc/ROUNDTRIP-book-form.png', fullPage: true });
+  const pay = page.getByRole('button', { name: /^Pay\s/ });
+  await expect(pay).toContainText('Rp 525.000');
+  await pay.click();
 
-  // Navigate to checkout or confirmation
-  await page.waitForURL(/\/(checkout|b|tickets?|account\/bookings)\//, {
-    timeout: 30_000,
+  await page.waitForURL((u) => !u.pathname.includes('/book'), { timeout: 30_000 });
+  await payInMockMode(page);
+  await page.waitForURL(/\/b\/[^/]+/, { timeout: 30_000 });
+  await expect(page.locator('body')).toContainText(/confirming your seat/i, { timeout: 15_000 });
+
+  const booking = await prisma.booking.findFirstOrThrow({
+    where: { customerEmail: EMAIL },
+    include: { payment: true },
   });
-
-  // Handle payment checkbox if present
-  const checkoutCheckbox = page.getByRole('checkbox');
-  if (await checkoutCheckbox.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await checkoutCheckbox.check();
-    await page.getByRole('button', { name: /^Pay\s/ }).click();
-    await page.waitForURL(/\/(b|tickets?|account\/bookings)\//, { timeout: 30_000 });
-  }
-
-  // Verify confirmation message
-  await expect(page.locator('body')).toContainText(
-    /confirming your seat|payment received|booking confirmed/i,
-  );
-
-  // Verify both outbound and return are mentioned in confirmation
-  await expect(page.getByText(/outbound|berangkat|departure/i)).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByText(/return|pulang|kembali/i)).toBeVisible({ timeout: 5_000 });
-
-  // Verify round-trip badge/indicator in confirmation
-  await expect(page.getByText(/round[\s-]trip/i)).toBeVisible({ timeout: 5_000 });
+  expect(booking.tripType).toBe('ROUND_TRIP');
+  expect(booking.legId).toBeNull();
+  expect(booking.outboundLegId).not.toBeNull();
+  expect(booking.returnLegId).not.toBeNull();
+  expect(booking.status).toBe('AWAITING_CONFIRMATION');
+  expect(Number(booking.totalAmount)).toBe(525_000);
+  expect(booking.payment?.status).toBe('SUCCESSFUL');
+  expect(booking.seasonSnapshot).toHaveLength(2);
 });

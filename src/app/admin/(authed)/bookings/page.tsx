@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Prisma, BookingStatus, PaymentMethod } from '@prisma/client';
+import { PaymentMethod } from '@prisma/client';
 import { requireAdmin } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import {
@@ -19,46 +19,23 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { BookingRow } from './booking-row';
-
-const STATUS_FILTERS: BookingStatus[] = [
-  'PENDING_PAYMENT',
-  'AWAITING_CONFIRMATION',
-  'CONFIRMED',
-  'CANCELLED_BY_CUSTOMER',
-  'CANCELLED_BY_OPERATOR',
-  'EXPIRED',
-];
-
-function buildWhere(q?: string, status?: string, paymentMethod?: string): Prisma.BookingWhereInput {
-  const where: Prisma.BookingWhereInput = {};
-  if (status && STATUS_FILTERS.includes(status as BookingStatus)) {
-    where.status = status as BookingStatus;
-  }
-  if (paymentMethod) {
-    where.payment = {
-      method: paymentMethod as PaymentMethod,
-    };
-  }
-  if (q && q.trim()) {
-    const term = q.trim();
-    where.OR = [
-      { bookingReference: { contains: term, mode: 'insensitive' } },
-      { customerEmail: { contains: term, mode: 'insensitive' } },
-      { customerName: { contains: term, mode: 'insensitive' } },
-    ];
-  }
-  return where;
-}
+import {
+  BOOKING_STATUS_FILTERS,
+  TRIP_TYPE_FILTERS,
+  buildBookingWhere,
+  bookingsHref,
+} from '@/features/booking/admin-filters';
 
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; paymentMethod?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; paymentMethod?: string; tripType?: string }>;
 }) {
   await requireAdmin();
-  const { q, status, paymentMethod } = await searchParams;
+  const { q, status, paymentMethod, tripType } = await searchParams;
+  const filters = { q, status, paymentMethod, tripType };
 
-  const where = buildWhere(q, status, paymentMethod);
+  const where = buildBookingWhere(filters);
   const bookings = await prisma.booking.findMany({
     where,
     orderBy: { createdAt: 'desc' },
@@ -73,11 +50,7 @@ export default async function AdminBookingsPage({
     },
   });
 
-  const csvParams = new URLSearchParams();
-  if (q) csvParams.set('q', q);
-  if (status) csvParams.set('status', status);
-  if (paymentMethod) csvParams.set('paymentMethod', paymentMethod);
-  const csvHref = `/api/admin/bookings/csv${csvParams.toString() ? `?${csvParams}` : ''}`;
+  const csvHref = bookingsHref('/api/admin/bookings/csv', filters);
 
   return (
     <div className="space-y-6">
@@ -106,8 +79,9 @@ export default async function AdminBookingsPage({
             />
             {status ? <input type="hidden" name="status" value={status} /> : null}
             {paymentMethod ? <input type="hidden" name="paymentMethod" value={paymentMethod} /> : null}
+            {tripType ? <input type="hidden" name="tripType" value={tripType} /> : null}
             <Button type="submit">Search</Button>
-            {(q || status || paymentMethod) && (
+            {(q || status || paymentMethod || tripType) && (
               <Button asChild variant="ghost">
                 <Link href="/admin/bookings">Clear</Link>
               </Button>
@@ -118,21 +92,15 @@ export default async function AdminBookingsPage({
             <div>
               <p className="mb-2 text-sm font-medium text-muted-foreground">Booking Status:</p>
               <div className="flex flex-wrap gap-2">
-                <FilterChip label="All" active={!status} href={q ? `/admin/bookings?q=${encodeURIComponent(q)}` : '/admin/bookings'} />
-                {STATUS_FILTERS.map((s) => {
-                  const params = new URLSearchParams();
-                  if (q) params.set('q', q);
-                  if (paymentMethod) params.set('paymentMethod', paymentMethod);
-                  params.set('status', s);
-                  return (
-                    <FilterChip
-                      key={s}
-                      label={s.replace(/_/g, ' ')}
-                      active={status === s}
-                      href={`/admin/bookings?${params}`}
-                    />
-                  );
-                })}
+                <FilterChip label="All" active={!status} href={bookingsHref('/admin/bookings', filters, { status: undefined })} />
+                {BOOKING_STATUS_FILTERS.map((s) => (
+                  <FilterChip
+                    key={s}
+                    label={s.replace(/_/g, ' ')}
+                    active={status === s}
+                    href={bookingsHref('/admin/bookings', filters, { status: s })}
+                  />
+                ))}
               </div>
             </div>
             <div className="mt-3 w-full">
@@ -141,23 +109,34 @@ export default async function AdminBookingsPage({
                 <FilterChip
                   label="All"
                   active={!paymentMethod}
-                  href={q ? `/admin/bookings?q=${encodeURIComponent(q)}${status ? `&status=${status}` : ''}` : `/admin/bookings${status ? `?status=${status}` : ''}`}
+                  href={bookingsHref('/admin/bookings', filters, { paymentMethod: undefined })}
                 />
-                {Object.values(PaymentMethod).map((method) => {
-                  const params = new URLSearchParams();
-                  if (q) params.set('q', q);
-                  if (status) params.set('status', status);
-                  params.set('paymentMethod', method);
-                  const label = method === 'PAYPAL' ? 'PayPal' : method.replace(/_/g, ' ');
-                  return (
-                    <FilterChip
-                      key={method}
-                      label={label}
-                      active={paymentMethod === method}
-                      href={`/admin/bookings?${params}`}
-                    />
-                  );
-                })}
+                {Object.values(PaymentMethod).map((method) => (
+                  <FilterChip
+                    key={method}
+                    label={method === 'PAYPAL' ? 'PayPal' : method.replace(/_/g, ' ')}
+                    active={paymentMethod === method}
+                    href={bookingsHref('/admin/bookings', filters, { paymentMethod: method })}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 w-full">
+              <p className="mb-2 text-sm font-medium text-muted-foreground">Trip Type:</p>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip
+                  label="All"
+                  active={!tripType}
+                  href={bookingsHref('/admin/bookings', filters, { tripType: undefined })}
+                />
+                {TRIP_TYPE_FILTERS.map((t) => (
+                  <FilterChip
+                    key={t.value}
+                    label={t.label}
+                    active={tripType === t.value}
+                    href={bookingsHref('/admin/bookings', filters, { tripType: t.value })}
+                  />
+                ))}
               </div>
             </div>
           </div>

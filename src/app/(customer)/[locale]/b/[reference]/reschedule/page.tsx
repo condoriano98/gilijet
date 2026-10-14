@@ -210,9 +210,8 @@ export default async function ReschedulePage({
     },
     include: { schedule: { include: { boat: true } } },
     orderBy: { departureDate: 'asc' },
-    take: 20,
   });
-  const candidateLegs = withSeasonPrice(rawCandidateLegs, await loadActiveSeasons());
+  const candidateLegs = withSeasonPrice(rawCandidateLegs, await loadActiveSeasons()).slice(0, 20);
 
   return (
     <div className="container py-8">

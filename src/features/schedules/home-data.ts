@@ -71,9 +71,9 @@ export async function getDepartingSoon(
       },
     },
     orderBy: { departureDate: 'asc' },
-    take: limit,
   });
-  const legs = withSeasonPrice(rawLegs, await loadActiveSeasons());
+  // OFF days are dropped here, so cap afterwards or the list can come back short.
+  const legs = withSeasonPrice(rawLegs, await loadActiveSeasons()).slice(0, limit);
 
   return legs.map((leg) => ({
     legId: leg.id,

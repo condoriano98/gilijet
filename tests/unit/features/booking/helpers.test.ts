@@ -8,6 +8,7 @@ import {
   bookingsOnLegWhere,
   legRoleForBooking,
   LEG_ROLE_LABEL,
+  roundTripBreakdown,
 } from '@/features/booking/helpers';
 
 describe('booking-helpers', () => {
@@ -387,5 +388,31 @@ describe('legRoleForBooking', () => {
     expect(LEG_ROLE_LABEL.ONE_WAY).toBe('One-way');
     expect(LEG_ROLE_LABEL.OUTBOUND).toMatch(/outbound/);
     expect(LEG_ROLE_LABEL.RETURN).toMatch(/return/);
+  });
+});
+
+describe('roundTripBreakdown', () => {
+  const outbound = { adult: 150_000, child: 75_000, infant: 0 };
+  const ret = { adult: 200_000, child: 100_000, infant: 0 };
+
+  it('prices each leg for the passenger mix', () => {
+    expect(roundTripBreakdown(['ADULT', 'CHILD', 'INFANT'], outbound, ret)).toEqual({
+      outbound: 225_000,
+      return: 300_000,
+    });
+  });
+
+  it('adds up to the combined per-passenger price the form charges', () => {
+    const types = ['ADULT', 'ADULT', 'CHILD'] as const;
+    const { outbound: o, return: r } = roundTripBreakdown([...types], outbound, ret);
+    const combined = types.reduce(
+      (sum, t) => sum + (t === 'ADULT' ? outbound.adult + ret.adult : outbound.child + ret.child),
+      0,
+    );
+    expect(o + r).toBe(combined);
+  });
+
+  it('is zero for an empty mix', () => {
+    expect(roundTripBreakdown([], outbound, ret)).toEqual({ outbound: 0, return: 0 });
   });
 });

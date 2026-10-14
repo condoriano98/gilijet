@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import type { PassengerType } from '@/features/pricing/pricing';
+import { roundTripBreakdown, type PassengerFares } from '@/features/booking/helpers';
 
 type BookingPriceContextValue = {
   types: PassengerType[];
@@ -10,6 +11,8 @@ type BookingPriceContextValue = {
   removePassenger: () => void;
   unitPriceFor: (type: PassengerType) => number;
   total: number;
+  /** Round trips only: what each leg costs for the current passenger mix. */
+  legTotals: { outbound: number; return: number } | null;
   max: number;
 };
 
@@ -30,6 +33,7 @@ export function BookingPriceProvider({
   adultPrice,
   childPrice,
   infantPrice,
+  legFares,
   initialCount,
   max = 10,
   children,
@@ -37,6 +41,8 @@ export function BookingPriceProvider({
   adultPrice: number;
   childPrice: number;
   infantPrice: number;
+  /** Round trips: the two legs' fares, whose sum is adultPrice/childPrice/infantPrice. */
+  legFares?: { outbound: PassengerFares; return: PassengerFares };
   initialCount: number;
   max?: number;
   children: React.ReactNode;
@@ -70,10 +76,11 @@ export function BookingPriceProvider({
   }, []);
 
   const total = types.reduce((sum, t) => sum + unitPriceFor(t), 0);
+  const legTotals = legFares ? roundTripBreakdown(types, legFares.outbound, legFares.return) : null;
 
   return (
     <BookingPriceContext.Provider
-      value={{ types, setType, addPassenger, removePassenger, unitPriceFor, total, max }}
+      value={{ types, setType, addPassenger, removePassenger, unitPriceFor, total, legTotals, max }}
     >
       {children}
     </BookingPriceContext.Provider>
