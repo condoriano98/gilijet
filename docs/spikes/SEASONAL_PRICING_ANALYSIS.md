@@ -1,6 +1,6 @@
 # Seasonal Pricing — Analysis & Plan
 
-**Status:** Implemented & applied di **staging** (2026-10-13), QC kode selesai. Belum di-commit, belum ke prod. Cek manual oleh owner masih pending.
+**Status:** Implemented (commit `8106454`, rilis **v1.1.0**), ada di `origin/staging`, dan schema + RLS + seed sudah diterapkan ke DB staging (2026-10-13). QC kode selesai. Belum ke production. Cek manual oleh owner dan konfirmasi deploy staging Vercel masih pending.
 **Created:** 2026-09-28 · **Revised:** 2026-10-13
 **Scope:** Wahana saja (belum ada boat lain)
 

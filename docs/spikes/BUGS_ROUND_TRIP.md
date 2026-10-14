@@ -4,21 +4,17 @@
 **Source:** QC GIL-28 (2026-10-08, code review) + temuan saat investigasi
 **Scope:** Bug fitur Return / Round Trip di staging. Satu tempat untuk semua tiket bug + follow-up.
 
-Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · 🔴 Open · ⚠️ Follow-up (belum jadi tiket)
+**Kondisi per 2026-10-14:** kelima bug sudah fixed, ter-commit, dan ada di `origin/staging` (rilis **v1.1.0** di `CHANGELOG.md`; staging Vercel `gilijet.vercel.app`). Belum di production: `main` belum menerima merge dari `staging`. Path `lib/…`, `app/…`, `components/…` di dokumen ini adalah struktur lama; sekarang `src/features/…`, `src/app/…`, `src/shared/…` (lihat `STRUCTURE.md`).
+
+Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket)
 
 | # | Bug | Severity | Status |
 |---|-----|----------|--------|
-| 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), terverifikasi live lokal; di Vercel staging sudah ke-deploy |
-| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal; belum di-push |
-| 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal; belum di-push |
-| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal; belum di-push |
+| 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), terverifikasi live lokal dan di Vercel staging |
+| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal dan di Vercel staging |
+| 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal dan di Vercel staging |
+| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal dan di Vercel staging |
 | 5 | WhatsApp round-trip hanya mengirim 1 boarding pass (outbound) dan pembatalan tidak menyebut kedua leg | Krusial | ✅ Fixed (`1d16552`), terverifikasi live di gilijet.vercel.app |
-
----|-----|----------|--------|
-| 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), verifikasi staging pending |
-| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | 🟡 Fixed di working tree; tabel baru ter-apply saat deploy (`db push`) |
-| 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | 🟡 Fixed di working tree |
-| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | 🟡 Fixed di working tree (cancel/refund/guard di `fece18d`; notifikasi + aturan leg lewat belum commit) |
 
 ---
 
@@ -51,7 +47,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 - `app/api/operator/checkin/route.ts`: menolak jika `ticket.status === 'CHECKED_IN'` di level tiket.
 - QR sudah per-leg lewat tanggal (HMAC `ticketCode + tanggal`; PDF return memakai tanggal leg return). Jadi QR outbound tidak bisa dipakai di leg return dan sebaliknya; yang rusak hanya status check-in.
 
-**Fix (working tree, belum commit):** tabel `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` dengan unique `(ticketId, legId)`.
+**Fix (`be2abc0`):** tabel `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` dengan unique `(ticketId, legId)`.
 - `lib/leg-checkin.ts`: `boardedLegIds`, `ticketStatusOnLeg`, `checkedInAtOnLeg`, `recordLegCheckin`. Gate-nya `createMany(skipDuplicates)` pada unique row (aman dari race antar scanner, tidak meng-abort transaksi Postgres).
 - `checkin/route.ts`: "already checked in" dicek per leg. `Ticket.status` jadi `CHECKED_IN` hanya setelah semua leg boarded (1 untuk one-way, 2 untuk round-trip), jadi refund (yang menyasar `ISSUED`) tetap benar untuk tiket yang baru separuh dipakai.
 - Manifest JSON/CSV/print dan halaman leg operator membaca status per leg. Manual check-in diaktifkan lagi untuk round-trip (memakai helper yang sama).
@@ -77,7 +73,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 **Gejala:** Booking round-trip menyimpan `legId = null`; semua query per leg memakai `leg.bookings` (relasi one-way), jadi penumpang round-trip tidak muncul. Relasi `outboundBookings` / `returnBookings` tidak dipakai di mana pun.
 
-**Fix (working tree, belum commit):**
+**Fix (`fece18d`):**
 - Helper `bookingsOnLegWhere(legId)` + `legRoleForBooking` di `lib/booking-helpers.ts`.
 - Dipakai di: manifest JSON, CSV (kolom "Trip"), print manifest, `getOperatorLeg` (halaman leg operator), Admin Departure detail, hitungan list departure (`/admin/operations`), guard hapus schedule.
 - Badge "Round trip · outbound/return" di halaman operator dan admin.
@@ -99,9 +95,9 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 **Sudah:**
 - (`fece18d`) `cancelLeg` memakai `bookingsOnLegWhere`: leg mana pun dibatalkan, booking round-trip jadi `CANCELLED_BY_OPERATOR`, tiket `REFUNDED`, 1 Refund 100% `totalAmount`, semua dalam satu `$transaction`. Guard hapus/nonaktifkan schedule ikut menghitung booking round-trip.
-- (working tree) **Notifikasi:** `cancelLeg` mengembalikan `cancelled: [{bookingId, refundAmount}]`; admin `cancelDeparture` dan aksi cancel operator memanggil `notifyLegCancelled` (email + WhatsApp via `notifyOperatorUnavailable`, round-trip menyebut kedua leg) setelah transaksi commit. Kegagalan kirim ditelan per booking.
-- (working tree) **Leg lain sudah lewat:** booking round-trip yang leg satunya `SAILED` atau sudah lewat tanggalnya tidak dibatalkan; dikembalikan di `skipped` dan ditampilkan sebagai peringatan di halaman admin dan operator untuk ditangani manual. (Aturan ini usulan, belum dikonfirmasi bisnis.)
-- (working tree) Unit test: cancel via leg outbound dan via leg return dengan one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), skip leg lewat, refund existing, dan `notifyLegCancelled`. Total 839 unit test lolos.
+- (`28dbe1d`) **Notifikasi:** `cancelLeg` mengembalikan `cancelled: [{bookingId, refundAmount}]`; admin `cancelDeparture` dan aksi cancel operator memanggil `notifyLegCancelled` (email + WhatsApp via `notifyOperatorUnavailable`, round-trip menyebut kedua leg) setelah transaksi commit. Kegagalan kirim ditelan per booking.
+- (`28dbe1d`) **Leg lain sudah lewat:** booking round-trip yang leg satunya `SAILED` atau sudah lewat tanggalnya tidak dibatalkan; dikembalikan di `skipped` dan ditampilkan sebagai peringatan di halaman admin dan operator untuk ditangani manual. (Aturan ini usulan, belum dikonfirmasi bisnis.)
+- (`28dbe1d`) Unit test: cancel via leg outbound dan via leg return dengan one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), skip leg lewat, refund existing, dan `notifyLegCancelled`. Total 839 unit test lolos.
 
 **Acceptance Criteria:**
 - [x] Cancel leg outbound / return → booking Return batal penuh, refund 100% (secara kode; belum diuji DB nyata)
@@ -127,7 +123,7 @@ Status: ✅ Fixed & deployed · 🟡 Fixed di working tree (belum commit) · �
 
 **Expected (konfirmasi user):** WhatsApp dan email sama-sama menyampaikan 2 tiket untuk round-trip.
 
-**Fix (working tree, belum commit):**
+**Fix (`1d16552`):**
 - `notifyBoardingPassIssued`: satu dokumen WhatsApp per PDF, berurutan (outbound dulu), tiap caption menyebut "boarding pass berangkat/pulang Anda terlampir (1 dari 2)" beserta rute dan waktu leg tersebut dan bahwa pemesanan ini 2 boarding pass. Kegagalan kirim satu pass tidak menghentikan pass lain. Email tetap 1 email dengan 2 PDF.
 - Fallback teks (PDF gagal dibuat) kini menuliskan kedua leg dan menyebut 2 boarding pass.
 - WhatsApp pembatalan: untuk round-trip menyebut "dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang.
@@ -184,9 +180,9 @@ Booking `VERIFY3` dikonfirmasi lewat UI admin gilijet, satu round-trip dibatalka
 ## Follow-up (belum jadi tiket)
 
 1. ⚠️ **`collectBoatSubtree` di `lib/operator-purge.ts`** mencari booking hanya lewat `legId`. Guard financial-chain (Payment/Refund/Ticket) buta terhadap booking round-trip pada purge boat. Jalur destruktif; perlu tiket sendiri. (`collectOperatorSubtree` aman karena juga mencocokkan `operatorId`.)
-2. ⚠️ **Manual check-in** di `app/operator/legs/[id]/page.tsx` nyaring `booking.legId`, jadi gagal untuk round-trip. Tombolnya disembunyikan untuk baris round-trip sampai #2 selesai.
+2. ✅ **Manual check-in** di `app/operator/legs/[id]/page.tsx`: sudah diaktifkan lagi untuk round-trip lewat helper per-leg yang sama dengan bug #2.
 3. ⚠️ **Jalur cuaca** di halaman yang sama (cari booking `CONFIRMED` setelah `cancelLeg`) tampaknya sudah tidak pernah menemukan apa pun karena `cancelLeg` sudah mengubah statusnya. Pre-existing; perilaku tidak diubah.
 4. ⚠️ **E2E round-trip** (`round-trip-booking.spec.ts`) di-skip, jadi regresi alur search → booking tidak tertangkap otomatis.
-5. ⚠️ **`QR_HMAC_SECRET`** tidak ada di environment staging (hanya production) maupun env test (test me-mock `lib/qr`).
+5. ⚠️ **`QR_HMAC_SECRET`:** sudah dibuat di staging Vercel (dipakai pada verifikasi putaran 2). Di env lokal (`.env`/`.env.local`/`.env.staging`) nilainya kurang dari 32 karakter, sehingga `/b/<reference>` untuk booking ber-tiket error saat development (ditemukan 2026-10-14 saat QC versioning). Test masih me-mock `qr`.
 6. ⚠️ **`CRON_SECRET`** tidak muncul di daftar env Vercel (dicek 2026-10-09). README mewajibkan ada di staging supaya cron tidak 401. Belum diperiksa lebih jauh; di luar scope bug round-trip.
 7. ⚠️ **Aksi cancel di `app/operator/legs/[id]/page.tsx`** memanggil `redirect()` di dalam `try` yang `catch`-nya ikut menangkap `NEXT_REDIRECT`, sehingga cancel yang sukses kemungkinan besar malah redirect ke `?error=NEXT_REDIRECT`. Belum dicoba di runtime; pre-existing, bertentangan dengan konvensi CLAUDE.md (re-throw `NEXT_REDIRECT`).

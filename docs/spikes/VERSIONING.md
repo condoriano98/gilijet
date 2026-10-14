@@ -1,6 +1,6 @@
 # Versioning — app now, database planned
 
-**Status:** Implemented and verified locally (2026-10-14). Not committed, pushed or tagged yet — waiting for the user's go-ahead.
+**Status:** Implemented, verified locally, committed (`f918963`) and pushed to `origin/staging` (2026-10-14). Tags `v1.0.0` / `v1.1.0` not created yet; deployed Build card on staging not checked yet.
 **Created:** 2026-10-14
 **Scope:** Phase 1 (app versioning) is built in this task. Phase 2 (database
 migrations) is designed here and runs as a separate task after v1.1.0 is live.
@@ -51,8 +51,9 @@ The full process is in [`docs/RELEASING.md`](../RELEASING.md).
 | Unit: `tests/unit/shared/server/build-info.test.ts`, `tests/unit/changelog.test.ts` | Done |
 | E2E: `tests/e2e/admin-diagnostics.spec.ts` | Done |
 | `CLAUDE.md` rule 8, `AGENTS.md` pointer (removed from `.gitignore`), `STRUCTURE.md` | Done |
-| QC on the dev server | Pending |
-| Commit, push, tags `v1.0.0` (on `88d0781`) and `v1.1.0` | Pending — needs the user's go-ahead |
+| QC on the dev server | Done (see QC) |
+| Commit and push to `staging` (`f918963`) | Done |
+| Tags `v1.0.0` (on `88d0781`) and `v1.1.0` (on `f918963`) | Pending — needs the user's go-ahead |
 
 Deviation from the plan: the Build card renders plain rows rather than the
 page's `StatusRow`, whose ok/off badge has no meaning for a version or commit.
@@ -122,10 +123,10 @@ Notes and gaps:
 
 ## Next steps
 
-1. With the user's confirmation: commit on `staging`, push, tag `v1.0.0` on
-   `88d0781` (retroactive) and `v1.1.0` on the new commit, push the tags.
-2. After the push, open staging.gilifast.com `/admin/diagnostics` and confirm
-   version, commit and branch; record it here.
+1. With the user's confirmation: tag `v1.0.0` on `88d0781` (retroactive) and
+   `v1.1.0` on `f918963`, then push the tags.
+2. Once the staging deploy is up, open staging.gilifast.com
+   `/admin/diagnostics` and confirm version, commit and branch; record it here.
 3. Phase 2 (database migrations) as a separate task after v1.1.0 is in
    production.
 

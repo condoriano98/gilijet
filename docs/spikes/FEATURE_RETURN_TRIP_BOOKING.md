@@ -1,8 +1,9 @@
 # Feature: Return Trip Booking (Round Trip) End-to-End
 
-**Status:** ✅ Implementation Complete - Ready for Testing (2026-10-07)  
+**Status:** ✅ Implemented and on `staging` (v1.1.0); bug round-trip GIL-28 fixed and verified there (2026-10-09). Phase 8 (production) not done (2026-10-14).  
 **Created:** 2026-09-28  
-**Updated:** 2026-10-07 (Synced staging ↔ main, Phase 7 ready)  
+**Updated:** 2026-10-14 (acceptance criteria checked against code and the staging verification in `BUGS_ROUND_TRIP.md`)  
+**Note:** paths like `lib/…` below are the old layout; now `src/features/…` (see `STRUCTURE.md`).  
 **Owner:** Product Team
 
 ---
@@ -73,44 +74,44 @@ Round Trip Transaction
 ## ✅ Acceptance Criteria
 
 ### Search & Pilih Jadwal
-- [ ] User bisa memilih "One Way" atau "Return" di halaman search
-- [ ] Untuk Return: user bisa input tanggal & memilih jadwal pulang
-- [ ] Hasil pencarian menampilkan pilihan jadwal untuk kedua arah (berangkat & pulang)
+- [x] User bisa memilih "One Way" atau "Return" di halaman search — _search-form.tsx: `tripType` one_way/round_trip_
+- [x] Untuk Return: user bisa input tanggal & memilih jadwal pulang — _search-form.tsx: `returnDate`; round-trip-leg-selector_
+- [x] Hasil pencarian menampilkan pilihan jadwal untuk kedua arah (berangkat & pulang) — _diverifikasi di staging, BUGS_ROUND_TRIP.md bug #1_
 
 ### Booking Flow
-- [ ] Satu booking ID mencakup kedua perjalanan (outbound + return)
-- [ ] Data penumpang diisi sekali untuk kedua perjalanan
-- [ ] Total harga terhitung benar (outbound + return)
-- [ ] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z"
+- [x] Satu booking ID mencakup kedua perjalanan (outbound + return) — _engine.ts `createRoundTripBooking`; engine-round-trip.test.ts_
+- [x] Data penumpang diisi sekali untuk kedua perjalanan — _book page: "same passengers apply to both legs"_
+- [x] Total harga terhitung benar (outbound + return) — _engine.ts menjumlah kedua leg; QC season: HIGH+PEAK = 525.000_
+- [ ] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z" — _halaman book menampilkan total gabungan; rincian terpisah Outbound/Return belum diverifikasi_
 
 ### Database
-- [ ] Booking model punya `outboundLegId` field (reference ke leg outbound)
-- [ ] Booking model punya `returnLegId` field (reference ke leg return)
-- [ ] Booking model punya `tripType` field ("ONE_WAY" | "ROUND_TRIP")
-- [ ] 1 Booking record created (mencakup 2 legs)
-- [ ] 1 Payment record created (covers both)
-- [ ] Booking return tersimpan dengan referensi ke kedua jadwal
+- [x] Booking model punya `outboundLegId` field (reference ke leg outbound) — _schema.prisma_
+- [x] Booking model punya `returnLegId` field (reference ke leg return) — _schema.prisma_
+- [x] Booking model punya `tripType` field ("ONE_WAY" | "ROUND_TRIP") — _schema.prisma_
+- [x] 1 Booking record created (mencakup 2 legs) — _engine.ts `createBookingRow`_
+- [x] 1 Payment record created (covers both) — _engine.ts: nested `payment.create` satu kali_
+- [x] Booking return tersimpan dengan referensi ke kedua jadwal — _outboundLegId + returnLegId_
 
 ### Admin Dashboard
-- [ ] Admin bisa melihat detail kedua leg di dashboard
-- [ ] Admin bisa filter bookings by type (ONE_WAY vs ROUND_TRIP)
-- [ ] Admin view shows: booking ref, outbound leg, return leg, combined total
+- [x] Admin bisa melihat detail kedua leg di dashboard — _diverifikasi di staging, bug #3_
+- [ ] Admin bisa filter bookings by type (ONE_WAY vs ROUND_TRIP) — _belum ada: `/admin/bookings` hanya memfilter status dan metode bayar_
+- [x] Admin view shows: booking ref, outbound leg, return leg, combined total — _booking-row.tsx (`isRoundTrip`); admin-booking-display.test.ts_
 
 ### Notifications & E-Tiket
-- [ ] Email: 1 email dengan subject "Round Trip Booking Confirmed"
+- [ ] Email: 1 email dengan subject "Round Trip Booking Confirmed" — _subject sebenarnya "Your Gilifast booking <ref>" / "Payment received for <ref>"; isi menyebut kedua leg_
   - Show outbound details (leg, passengers, price)
   - Show return details (leg, passengers, price)
   - Show total payment & invoice
-- [ ] E-tickets: 2 tiket files (1 outbound, 1 return) dalam 1 email
-- [ ] E-tiket mencantumkan kedua perjalanan secara jelas
-- [ ] Notifikasi email/WA menyertakan detail outbound dan return
+- [x] E-tickets: 2 tiket files (1 outbound, 1 return) dalam 1 email — _diverifikasi di staging (email mock), BUGS_ROUND_TRIP.md putaran 2_
+- [x] E-tiket mencantumkan kedua perjalanan secara jelas — _boarding-pass.tsx; diverifikasi di staging (mock)_
+- [x] Notifikasi email/WA menyertakan detail outbound dan return — _email.ts + bug #5, diverifikasi di staging (mock)_
 
 ### End-to-End Test
-- [ ] Booking return berhasil hingga e-tiket diterima
-- [ ] Customer bisa search & pilih outbound & return legs
-- [ ] Customer bisa enter passenger data (once, apply to both)
-- [ ] Payment berhasil
-- [ ] Email dengan booking ref & 2 tiket diterima
+- [ ] Booking return berhasil hingga e-tiket diterima — _terverifikasi di staging dengan email/WA/pembayaran mock; pengiriman nyata belum diuji_
+- [x] Customer bisa search & pilih outbound & return legs — _diverifikasi manual di staging; E2E otomatis di-skip_
+- [x] Customer bisa enter passenger data (once, apply to both) — _diverifikasi manual di staging; E2E otomatis di-skip_
+- [ ] Payment berhasil — _belum diuji: DOKU/PayPal di env ini production; staging memakai mock_
+- [ ] Email dengan booking ref & 2 tiket diterima — _hanya mock (log Vercel); belum ada pengiriman nyata_
 
 ---
 
@@ -417,7 +418,7 @@ Display:
    - E2E test can be tuned later (selector refinement, not UI changes needed)
    - **Status: READY FOR PHASE 7** ✅
 
-### 🔄 Phase 7: Staging Readiness & Final QA (READY FOR TESTING)
+### ✅ Phase 7: Staging Readiness & Final QA (functional QA done 2026-10-09; visual/mobile pending)
 
 **Target:** Get feature stable on staging branch for developer testing
 
@@ -437,7 +438,7 @@ Display:
    - ✅ Restored full UI to staging (both options)
    - ✅ Branches diverged correctly for safety
 
-3. **Manual Testing on Staging** ⏳ WILL VERIFY BY DEV
+3. **Manual Testing on Staging** ✅ DONE for the functional flow (2026-10-09, three rounds, see `BUGS_ROUND_TRIP.md`); real email/WA/payment not covered
    - Round-trip search flow (one-way vs return toggle)
    - Passenger data entry (once, applies to both legs)
    - Payment flow (single transaction for both legs)
@@ -445,7 +446,7 @@ Display:
    - Admin dashboard (round-trip display)
    - Booking cancellation (full cancel, both legs)
 
-4. **Visual & UX Polish** ⏳ WILL VERIFY BY DEV
+4. **Visual & UX Polish** ⏳ NOT VERIFIED (only text/DOM was checked)
    - Mobile responsiveness (search & checkout)
    - Error messaging clarity
    - Accessibility (keyboard, screen readers)
@@ -467,46 +468,17 @@ Display:
 
 ---
 
-### 🚀 Phase 8: Manual Merge to Main (Developer Decision)
+### 🚀 Phase 8: Release to production (not done)
 
-**Scope:** When ready, developer manually merges staging → main branch
+Production is the `main` branch (Vercel project `gilifast`); the old branch name
+`claude/boat-ticketing-mvp-YAGl9` and the commands that were here are obsolete.
+Round trip reaches production with **v1.1.0**, together with seasonal pricing.
+Process and the per-version steps: `docs/RELEASING.md`.
 
-#### Prerequisites (Before Merge):
-- ✅ Phase 7 complete (E2E tests done, dev manual testing done)
-- ✅ Developer verified no critical bugs on staging
-- ⚠️ No regressions in one-way booking flows
-- ⚠️ Manual testing checklist verified by dev
-
-#### Merge Steps (Manual by Developer):
-```bash
-# 1. Ensure everything is committed on staging
-git status  # Should be clean
-
-# 2. Switch to main branch
-git checkout claude/boat-ticketing-mvp-YAGl9
-
-# 3. Merge staging into main
-git merge staging
-
-# 4. Push to remote
-git push origin claude/boat-ticketing-mvp-YAGl9
-
-# 5. Create PR if needed (GitHub flow)
-gh pr create --title "feat: round-trip booking - production ready" \
-  --body "Merges staging to main after successful staging QA"
-```
-
-#### Post-Merge Verification:
-- [ ] CI/CD pipeline passes on main
-- [ ] Staging & main branches in sync
-- [ ] No merge conflicts
-- [ ] Feature deployable to production when ready
-
-#### Notes:
-- **Developer-driven:** Not automated, manual decision
-- **Staging verification required:** Phase 7 must be complete
-- **No rollback:** Once merged to main, follow normal git revert if issues found
-- **Communication:** Notify team of merge via PR/Slack
+- [ ] PR `staging` → `main`, merge (the production build runs `prisma db push` against the production database)
+- [ ] Post-deploy steps for 1.1.0 (`season-rls.sql`, `pnpm seed:seasons`)
+- [ ] `/admin/diagnostics` on gilifast.com shows `v1.1.0`
+- [ ] Move this spike and `BUGS_ROUND_TRIP.md` to `docs/spikes/done/` once the open checks in `BUGS_ROUND_TRIP.md` are closed
 
 ---
 
