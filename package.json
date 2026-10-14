@@ -21,6 +21,7 @@
     "db:seed:small": "tsx prisma/seed-small-boats.ts",
     "seed:qa": "tsx scripts/seed-qa.ts",
     "seed:seasons": "tsx scripts/seed-seasons.ts",
+    "seed:one-rupiah": "tsx scripts/seed-one-rupiah.ts",
     "seed:schedules": "tsx scripts/seed-schedules-from-csv.ts",
     "link:ports": "tsx scripts/link-schedules-to-ports.ts",
     "gen:wahana": "tsx scripts/generate-wahana-schedule.ts",

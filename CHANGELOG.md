@@ -12,6 +12,10 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Changed
+
+- Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
+
 ## [1.2.0] - 2026-10-14
 
 ### Added

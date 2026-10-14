@@ -2,7 +2,7 @@
 
 Boat-ticketing MVP: Next.js (App Router) + Prisma/Postgres + `next-intl`, deployed on Vercel. Behavioural rules (auth guards, tenant scoping, single sources of truth) live in [`CLAUDE.md`](./CLAUDE.md) — read it first. This file only maps *where things are* and *why*.
 
-Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm seed:seasons`, `pnpm db:deploy` / `db:migrate` / `db:status`.
+Package manager: `pnpm` (single lockfile). Commands: `pnpm dev`, `pnpm qc` (lint + typecheck), `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright), `pnpm seed:qa`, `pnpm seed:seasons`, `pnpm seed:one-rupiah` (Rp 1 staging departure), `pnpm db:deploy` / `db:migrate` / `db:status`.
 
 ## Top level
 
