@@ -1,206 +1,206 @@
 # Bug List: Round Trip (QC GIL-28)
 
 **Created:** 2026-10-09
-**Source:** QC GIL-28 (2026-10-08, code review) + temuan saat investigasi
-**Scope:** Bug fitur Return / Round Trip di staging. Satu tempat untuk semua tiket bug + follow-up.
+**Source:** QC GIL-28 (2026-10-08, code review) + findings during investigation
+**Scope:** Return / Round Trip feature bugs on staging. One place for all bug tickets + follow-ups.
 
-**Kondisi per 2026-10-14:** kelima bug sudah fixed, ter-commit, dan ada di `origin/staging` (rilis **v1.1.0** di `CHANGELOG.md`; staging Vercel `gilijet.vercel.app`). Belum di production: `main` belum menerima merge dari `staging`. Path `lib/…`, `app/…`, `components/…` di dokumen ini adalah struktur lama; sekarang `src/features/…`, `src/app/…`, `src/shared/…` (lihat `STRUCTURE.md`).
+**Status as of 2026-10-14:** all five bugs are fixed, committed, and on `origin/staging` (release **v1.1.0** in `CHANGELOG.md`; Vercel staging `gilijet.vercel.app`). Not yet in production: `main` has not received a merge from `staging`. The `lib/…`, `app/…`, `components/…` paths in this document are the old structure; they are now `src/features/…`, `src/app/…`, `src/shared/…` (see `STRUCTURE.md`).
 
-Status: ✅ Fixed, di staging · 🔴 Open · ⚠️ Follow-up (belum jadi tiket)
+Status: ✅ Fixed, on staging · 🔴 Open · ⚠️ Follow-up (not yet a ticket)
 
 | # | Bug | Severity | Status |
 |---|-----|----------|--------|
-| 1 | Search Return error, daftar Outbound/Return tidak tampil | Blocker | ✅ Fixed (`e0bdf98`), terverifikasi live lokal dan di Vercel staging |
-| 2 | Check-in leg pulang ditolak "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), terverifikasi live lokal dan di Vercel staging |
-| 3 | Penumpang Return tidak muncul di manifest operator & departure admin | Blocker | ✅ Fixed (`fece18d`), terverifikasi live lokal dan di Vercel staging |
-| 4 | Pembatalan departure tidak membatalkan, me-refund, atau menotifikasi booking Return | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), terverifikasi live lokal dan di Vercel staging |
-| 5 | WhatsApp round-trip hanya mengirim 1 boarding pass (outbound) dan pembatalan tidak menyebut kedua leg | Krusial | ✅ Fixed (`1d16552`), terverifikasi live di gilijet.vercel.app |
+| 1 | Return search errors, Outbound/Return list does not show | Blocker | ✅ Fixed (`e0bdf98`), verified live locally and on Vercel staging |
+| 2 | Return leg check-in rejected with "Already checked in" | Blocker | ✅ Fixed (`be2abc0`), verified live locally and on Vercel staging |
+| 3 | Return passengers do not appear in the operator manifest & admin departure | Blocker | ✅ Fixed (`fece18d`), verified live locally and on Vercel staging |
+| 4 | Cancelling a departure does not cancel, refund, or notify Return bookings | Blocker | ✅ Fixed (`fece18d` + `28dbe1d`), verified live locally and on Vercel staging |
+| 5 | Round-trip WhatsApp sends only 1 boarding pass (outbound) and the cancellation does not mention both legs | Critical | ✅ Fixed (`1d16552`), verified live on gilijet.vercel.app |
 
 ---
 
-## 1. Search Return error (serializer)
+## 1. Return search error (serializer)
 
-**Gejala:** `/search?...&returnDate=...` menampilkan "Something went wrong". Vercel runtime log: `Functions cannot be passed directly to Client Components ... {constructor: function i, s: 1, e: 5, d: ...}`.
+**Symptom:** `/search?...&returnDate=...` shows "Something went wrong". Vercel runtime log: `Functions cannot be passed directly to Client Components ... {constructor: function i, s: 1, e: 5, d: ...}`.
 
-**Root cause:** `lib/serialize-decimals.ts` mendeteksi Decimal lewat `obj.constructor.name === 'Decimal'`. Di build Prisma nama class di-minify jadi `i`, jadi Decimal disalin sebagai objek biasa beserta properti `constructor` (function). `Date` juga berubah jadi `{}` (tidak punya properti enumerable). Unit test memakai fake Decimal bernama `'Decimal'` dan malah mengunci perilaku `Date → {}`, jadi test tetap hijau.
+**Root cause:** `lib/serialize-decimals.ts` detects Decimal via `obj.constructor.name === 'Decimal'`. In the Prisma build the class name is minified to `i`, so the Decimal was copied as a plain object together with its `constructor` property (a function). `Date` also became `{}` (it has no enumerable properties). The unit test used a fake Decimal named `'Decimal'` and even locked in the `Date → {}` behaviour, so the test stayed green.
 
 **Fix (`e0bdf98`, staging, deployment READY):**
-- `serializeDecimals` pakai `Prisma.Decimal.isDecimal()`; `Date` dilewatkan apa adanya.
-- Test pakai `new Prisma.Decimal(...)` asli; test Date sekarang memastikan Date tetap `Date`.
-- `search/page.tsx`: rating lookup juga mencakup schedule dari return legs; `ratingsByScheduleId` dikirim sebagai plain object.
+- `serializeDecimals` uses `Prisma.Decimal.isDecimal()`; `Date` is passed through as is.
+- Tests use a real `new Prisma.Decimal(...)`; the Date test now asserts that a Date stays a `Date`.
+- `search/page.tsx`: the rating lookup also covers schedules from return legs; `ratingsByScheduleId` is passed as a plain object.
 
 **Acceptance Criteria:**
-- [x] Search Return di staging menampilkan Outbound dan Return dengan jam & harga benar — _diverifikasi live 2026-10-09, putaran 2_
-- [x] Tidak ada error baru di Vercel runtime log — _runtime log deployment yang diverifikasi bersih, putaran 2 dan 3_
-- [x] Unit test serializer mencakup Date + Decimal
+- [x] Return search on staging shows Outbound and Return with correct times & prices — _verified live 2026-10-09, round 2_
+- [x] No new errors in the Vercel runtime log — _runtime log of the verified deployment clean, rounds 2 and 3_
+- [x] Serializer unit test covers Date + Decimal
 
-**Sisa:** `type LegForClient = any` di `components/customer/round-trip-leg-selector.tsx` belum diganti tipe yang benar.
+**Remaining:** `type LegForClient = any` in `components/customer/round-trip-leg-selector.tsx` has not yet been replaced with the correct type.
 
 ---
 
-## 2. Check-in leg pulang ditolak ALREADY_CHECKED_IN
+## 2. Return leg check-in rejected with ALREADY_CHECKED_IN
 
-**Gejala:** Penumpang round-trip check-in di leg outbound sukses, scan di leg return ditolak `ALREADY_CHECKED_IN`.
+**Symptom:** A round-trip passenger checks in successfully on the outbound leg, but the scan on the return leg is rejected with `ALREADY_CHECKED_IN`.
 
-**Terverifikasi di kode:**
-- `lib/ticket-issuer.ts`: 1 tiket per penumpang per booking, status/`checkedInAt` hanya satu.
-- `app/api/operator/checkin/route.ts`: menolak jika `ticket.status === 'CHECKED_IN'` di level tiket.
-- QR sudah per-leg lewat tanggal (HMAC `ticketCode + tanggal`; PDF return memakai tanggal leg return). Jadi QR outbound tidak bisa dipakai di leg return dan sebaliknya; yang rusak hanya status check-in.
+**Verified in code:**
+- `lib/ticket-issuer.ts`: 1 ticket per passenger per booking, with a single status/`checkedInAt`.
+- `app/api/operator/checkin/route.ts`: rejects if `ticket.status === 'CHECKED_IN'` at the ticket level.
+- The QR is already per-leg via the date (HMAC of `ticketCode + date`; the return PDF uses the return leg's date). So the outbound QR cannot be used on the return leg and vice versa; only the check-in status is broken.
 
-**Fix (`be2abc0`):** tabel `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` dengan unique `(ticketId, legId)`.
-- `lib/leg-checkin.ts`: `boardedLegIds`, `ticketStatusOnLeg`, `checkedInAtOnLeg`, `recordLegCheckin`. Gate-nya `createMany(skipDuplicates)` pada unique row (aman dari race antar scanner, tidak meng-abort transaksi Postgres).
-- `checkin/route.ts`: "already checked in" dicek per leg. `Ticket.status` jadi `CHECKED_IN` hanya setelah semua leg boarded (1 untuk one-way, 2 untuk round-trip), jadi refund (yang menyasar `ISSUED`) tetap benar untuk tiket yang baru separuh dipakai.
-- Manifest JSON/CSV/print dan halaman leg operator membaca status per leg. Manual check-in diaktifkan lagi untuk round-trip (memakai helper yang sama).
-- Tiket lama yang sudah `CHECKED_IN` tanpa row dianggap sudah boarding leg pertama (outbound); tidak perlu backfill.
-- `ticketCode`, QR, dan PDF tidak berubah. QR sudah per-leg lewat tanggal.
-- Tes: helper, alur route dua leg (in-memory), manifest per leg. Total 831 unit test lolos.
+**Fix (`be2abc0`):** `TicketCheckin(ticketId, legId, checkedInAt, checkedInBy)` table with a unique `(ticketId, legId)`.
+- `lib/leg-checkin.ts`: `boardedLegIds`, `ticketStatusOnLeg`, `checkedInAtOnLeg`, `recordLegCheckin`. The gate is `createMany(skipDuplicates)` on the unique row (safe against races between scanners, does not abort the Postgres transaction).
+- `checkin/route.ts`: "already checked in" is checked per leg. `Ticket.status` becomes `CHECKED_IN` only after all legs are boarded (1 for one-way, 2 for round-trip), so refunds (which target `ISSUED`) stay correct for a half-used ticket.
+- Manifest JSON/CSV/print and the operator leg page read the per-leg status. Manual check-in is enabled again for round-trip (using the same helper).
+- Old tickets that are already `CHECKED_IN` without a row are treated as having boarded the first leg (outbound); no backfill needed.
+- `ticketCode`, QR, and PDF are unchanged. The QR is already per-leg via the date.
+- Tests: helper, two-leg route flow (in-memory), per-leg manifest. 831 unit tests pass in total.
 
-**Deploy (kondisi saat itu; sejak 2026-10-14 schema berupa Prisma migrations dan build menjalankan `prisma migrate deploy`, lihat `VERSIONING.md`):** repo ini tanpa migration file; setiap build Vercel menjalankan `prisma db push` (tanpa `--accept-data-loss`) ke Supabase yang terkonfigurasi. Tabel baru bersifat additive, jadi ter-apply otomatis saat branch di-push. `.env` lokal menunjuk ke Supabase remote, jadi `db push` tidak dijalankan dari lokal.
+**Deploy (status at the time; since 2026-10-14 the schema is Prisma migrations and the build runs `prisma migrate deploy`, see `VERSIONING.md`):** this repo has no migration files; every Vercel build runs `prisma db push` (without `--accept-data-loss`) against the configured Supabase. The new table is additive, so it is applied automatically when the branch is pushed. The local `.env` points to the remote Supabase, so `db push` is not run from local.
 
 **Acceptance Criteria:**
-- [x] Check-in outbound lalu return berhasil (unit test route)
-- [x] Scan dua kali di leg yang sama tetap ditolak
-- [x] QR outbound tidak bisa boarding leg return, dan sebaliknya
-- [x] Unit test check-in dua leg
-- [x] One-way tidak terdampak (test one-way)
-- [x] Uji nyata di staging — _putaran 2 (2026-10-09): `QR_HMAC_SECRET` staging sudah dibuat, tiket baru diterbitkan lewat UI admin, check-in outbound lalu return, scan ulang dan QR silang ditolak_
+- [x] Outbound then return check-in succeeds (route unit test)
+- [x] Scanning twice on the same leg is still rejected
+- [x] The outbound QR cannot board the return leg, and vice versa
+- [x] Two-leg check-in unit test
+- [x] One-way is unaffected (one-way test)
+- [x] Real test on staging — _round 2 (2026-10-09): staging `QR_HMAC_SECRET` created, new tickets issued via the admin UI, outbound then return check-in, re-scan and cross QR rejected_
 
-**Catatan:** `QR_HMAC_SECRET` hanya ada di target `production` di Vercel (dicek 2026-10-09: tidak ada entri untuk custom environment "staging"). Harus ditambahkan untuk environment staging sebelum uji check-in QR.
+**Note:** `QR_HMAC_SECRET` exists only in the `production` target on Vercel (checked 2026-10-09: no entry for the custom environment "staging"). It must be added for the staging environment before testing QR check-in.
 
 ---
 
-## 3. Penumpang Return tidak muncul di manifest / departure admin
+## 3. Return passengers do not appear in the manifest / admin departure
 
-**Gejala:** Booking round-trip menyimpan `legId = null`; semua query per leg memakai `leg.bookings` (relasi one-way), jadi penumpang round-trip tidak muncul. Relasi `outboundBookings` / `returnBookings` tidak dipakai di mana pun.
+**Symptom:** A round-trip booking stores `legId = null`; all per-leg queries use `leg.bookings` (the one-way relation), so round-trip passengers do not appear. The `outboundBookings` / `returnBookings` relations are not used anywhere.
 
 **Fix (`fece18d`):**
-- Helper `bookingsOnLegWhere(legId)` + `legRoleForBooking` di `lib/booking-helpers.ts`.
-- Dipakai di: manifest JSON, CSV (kolom "Trip"), print manifest, `getOperatorLeg` (halaman leg operator), Admin Departure detail, hitungan list departure (`/admin/operations`), guard hapus schedule.
-- Badge "Round trip · outbound/return" di halaman operator dan admin.
-- Tes: helper, `getOperatorLeg`, `cancelLeg`, route manifest JSON/CSV (one-way + round-trip). Total unit test 810/810.
+- `bookingsOnLegWhere(legId)` helper + `legRoleForBooking` in `lib/booking-helpers.ts`.
+- Used in: manifest JSON, CSV ("Trip" column), print manifest, `getOperatorLeg` (operator leg page), Admin Departure detail, departure list counts (`/admin/operations`), schedule delete guard.
+- "Round trip · outbound/return" badge on the operator and admin pages.
+- Tests: helper, `getOperatorLeg`, `cancelLeg`, manifest JSON/CSV routes (one-way + round-trip). Total unit tests 810/810.
 
 **Acceptance Criteria:**
-- [x] Manifest operator (halaman + CSV) leg outbound menampilkan penumpang round-trip
-- [x] Manifest leg return menampilkan penumpang yang sama
-- [x] Departure detail admin menampilkan booking round-trip di kedua leg
-- [x] Hitungan per leg memuat booking round-trip (tidak ada seat accounting; `booking-engine` memang tanpa capacity check)
-- [x] Unit test manifest one-way + round-trip
-- [x] Verifikasi manual di staging — _putaran 2; yang diperiksa teks/DOM, bukan tampilan visual_
+- [x] Operator manifest (page + CSV) of the outbound leg shows round-trip passengers
+- [x] Return leg manifest shows the same passengers
+- [x] Admin departure detail shows round-trip bookings on both legs
+- [x] Per-leg counts include round-trip bookings (no seat accounting; `booking-engine` has no capacity check)
+- [x] Manifest unit test one-way + round-trip
+- [x] Manual verification on staging — _round 2; what was checked was text/DOM, not visual appearance_
 
 ---
 
-## 4. Pembatalan departure tidak membatalkan / refund / notifikasi booking Return
+## 4. Departure cancellation does not cancel / refund / notify Return bookings
 
-**Gejala:** Operator/admin membatalkan leg A atau B, booking Return tetap `CONFIRMED`: tidak dibatalkan, tidak ada Refund, tiket tidak di-void, customer tidak diberi tahu. `cancelLeg` (`lib/legs.ts`) mencari `where: { legId, status: 'CONFIRMED' }`, padahal round-trip menyimpan `legId = null`.
+**Symptom:** When an operator/admin cancels leg A or B, the Return booking stays `CONFIRMED`: not cancelled, no Refund, tickets not voided, customer not notified. `cancelLeg` (`lib/legs.ts`) looks up `where: { legId, status: 'CONFIRMED' }`, while round-trip stores `legId = null`.
 
-**Sudah:**
-- (`fece18d`) `cancelLeg` memakai `bookingsOnLegWhere`: leg mana pun dibatalkan, booking round-trip jadi `CANCELLED_BY_OPERATOR`, tiket `REFUNDED`, 1 Refund 100% `totalAmount`, semua dalam satu `$transaction`. Guard hapus/nonaktifkan schedule ikut menghitung booking round-trip.
-- (`28dbe1d`) **Notifikasi:** `cancelLeg` mengembalikan `cancelled: [{bookingId, refundAmount}]`; admin `cancelDeparture` dan aksi cancel operator memanggil `notifyLegCancelled` (email + WhatsApp via `notifyOperatorUnavailable`, round-trip menyebut kedua leg) setelah transaksi commit. Kegagalan kirim ditelan per booking.
-- (`28dbe1d`) **Leg lain sudah lewat:** booking round-trip yang leg satunya `SAILED` atau sudah lewat tanggalnya tidak dibatalkan; dikembalikan di `skipped` dan ditampilkan sebagai peringatan di halaman admin dan operator untuk ditangani manual. (Aturan ini usulan, belum dikonfirmasi bisnis.)
-- (`28dbe1d`) Unit test: cancel via leg outbound dan via leg return dengan one-way + round-trip sekaligus (status booking, tiket, jumlah Refund), skip leg lewat, refund existing, dan `notifyLegCancelled`. Total 839 unit test lolos.
+**Done:**
+- (`fece18d`) `cancelLeg` uses `bookingsOnLegWhere`: whichever leg is cancelled, the round-trip booking becomes `CANCELLED_BY_OPERATOR`, tickets `REFUNDED`, 1 Refund of 100% of `totalAmount`, all in one `$transaction`. The schedule delete/deactivate guard also counts round-trip bookings.
+- (`28dbe1d`) **Notification:** `cancelLeg` returns `cancelled: [{bookingId, refundAmount}]`; admin `cancelDeparture` and the operator cancel action call `notifyLegCancelled` (email + WhatsApp via `notifyOperatorUnavailable`, round-trip mentions both legs) after the transaction commits. Send failures are swallowed per booking.
+- (`28dbe1d`) **Other leg already past:** a round-trip booking whose other leg is `SAILED` or already past its date is not cancelled; it is returned in `skipped` and shown as a warning on the admin and operator pages to be handled manually. (This rule is a proposal, not yet confirmed by the business.)
+- (`28dbe1d`) Unit tests: cancel via the outbound leg and via the return leg with one-way + round-trip together (booking status, tickets, number of Refunds), skip past leg, existing refund, and `notifyLegCancelled`. 839 unit tests pass in total.
 
 **Acceptance Criteria:**
-- [x] Cancel leg outbound / return → booking Return batal penuh, refund 100% (secara kode; belum diuji DB nyata)
-- [x] Notifikasi email + WhatsApp menyebut kedua leg (unit test; belum diuji kirim nyata)
-- [x] Booking Return yang leg satunya sudah lewat tidak terdampak secara salah
-- [x] Guard nonaktifkan jadwal memblokir jika ada booking round-trip aktif
-- [x] Unit test cancel leg one-way + round-trip
-- [x] Alur one-way tidak berubah
+- [x] Cancel outbound / return leg → Return booking fully cancelled, 100% refund (in code; not yet tested against a real DB)
+- [x] Email + WhatsApp notification mentions both legs (unit test; real sending not yet tested)
+- [x] A Return booking whose other leg is already past is not wrongly affected
+- [x] Schedule deactivation guard blocks if there are active round-trip bookings
+- [x] Cancel leg unit test one-way + round-trip
+- [x] One-way flow unchanged
 
-**Keputusan pending (bisnis):** aturan "leg satunya sudah lewat → serahkan ke admin" belum dikonfirmasi.
+**Pending decision (business):** the rule "other leg already past → hand over to admin" has not been confirmed.
 
-**Alasan pembatalan (selesai di v1.1.1, 2026-10-14):** alasan yang diisi admin di form pembatalan departure sekarang masuk ke email ("Reason: …", di-escape) dan WhatsApp ("Alasan: …", maks. 200 karakter). `notifyLegCancelled` dan `notifyOperatorUnavailable` menerima `reason` opsional; admin `cancelDeparture` mengirimkannya. **Ditunda:** aksi cancel di halaman operator belum meneruskan alasan (operator ditunda dulu), dan konfirmasi-tidak-tersedia (`/admin/confirmations`) memang tanpa alasan.
+**Cancellation reason (done in v1.1.1, 2026-10-14):** the reason the admin fills in on the departure cancellation form now goes into the email ("Reason: …", escaped) and WhatsApp ("Alasan: …", max. 200 characters). `notifyLegCancelled` and `notifyOperatorUnavailable` accept an optional `reason`; admin `cancelDeparture` passes it. **Deferred:** the cancel action on the operator page does not yet pass the reason along (operator deferred for now), and the unavailability confirmation (`/admin/confirmations`) is intentionally without a reason.
 
 ---
 
-## 5. WhatsApp round-trip: hanya 1 boarding pass, pembatalan tidak menyebut kedua leg
+## 5. Round-trip WhatsApp: only 1 boarding pass, cancellation does not mention both legs
 
-**Ditemukan:** 2026-10-09, dari runtime log Vercel saat verifikasi live (bukan dari tiket QC).
+**Found:** 2026-10-09, from the Vercel runtime log during live verification (not from a QC ticket).
 
-**Gejala:**
-- Booking round-trip menghasilkan 2 PDF boarding pass (outbound dan return, masing-masing QR sendiri). Email melampirkan keduanya, tetapi WhatsApp hanya mengirim `attachments[0]` (outbound) dengan teks rute/tanggal leg berangkat saja. Customer yang mengandalkan WhatsApp tidak menerima pass pulang dan tidak tahu ia membeli 2 tiket.
-- WhatsApp pembatalan (`sendOperatorUnavailableWhatsapp`) bersifat generik dan tidak menyebut kedua leg, padahal acceptance criteria #4 meminta email + WhatsApp menyebut kedua leg.
+**Symptom:**
+- A round-trip booking produces 2 boarding pass PDFs (outbound and return, each with its own QR). The email attaches both, but WhatsApp sends only `attachments[0]` (outbound) with route/date text for the outbound leg only. A customer who relies on WhatsApp does not receive the return pass and does not know they bought 2 tickets.
+- The cancellation WhatsApp (`sendOperatorUnavailableWhatsapp`) is generic and does not mention both legs, even though acceptance criterion #4 asks for email + WhatsApp to mention both legs.
 
-**Expected (konfirmasi user):** WhatsApp dan email sama-sama menyampaikan 2 tiket untuk round-trip.
+**Expected (user confirmation):** WhatsApp and email both convey 2 tickets for a round-trip.
 
 **Fix (`1d16552`):**
-- `notifyBoardingPassIssued`: satu dokumen WhatsApp per PDF, berurutan (outbound dulu), tiap caption menyebut "boarding pass berangkat/pulang Anda terlampir (1 dari 2)" beserta rute dan waktu leg tersebut dan bahwa pemesanan ini 2 boarding pass. Kegagalan kirim satu pass tidak menghentikan pass lain. Email tetap 1 email dengan 2 PDF.
-- Fallback teks (PDF gagal dibuat) kini menuliskan kedua leg dan menyebut 2 boarding pass.
-- WhatsApp pembatalan: untuk round-trip menyebut "dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang.
-- One-way tidak berubah (caption dan teks identik, satu dokumen). Kedua pesan ini session message biasa (bukan template WATI), jadi tidak butuh persetujuan template.
-- Tes: 12 unit test baru (urutan dan isi dua dokumen, kegagalan parsial, one-way tidak berubah, fallback teks, teks pembatalan). Total 851 unit test lolos.
+- `notifyBoardingPassIssued`: one WhatsApp document per PDF, in order (outbound first), each caption saying "boarding pass berangkat/pulang Anda terlampir (1 dari 2)" along with that leg's route and time and that this booking is 2 boarding passes. A send failure for one pass does not stop the other. The email remains 1 email with 2 PDFs.
+- The text fallback (PDF generation failed) now writes out both legs and mentions 2 boarding passes.
+- Cancellation WhatsApp: for round-trip it says "dibatalkan seluruhnya (kedua perjalanan)" along with the outbound and return legs.
+- One-way is unchanged (identical caption and text, one document). Both messages are ordinary session messages (not WATI templates), so no template approval is needed.
+- Tests: 12 new unit tests (order and content of the two documents, partial failure, one-way unchanged, text fallback, cancellation text). 851 unit tests pass in total.
 
 **Acceptance Criteria:**
-- [x] Round-trip: WhatsApp mengirim 2 boarding pass (berangkat dan pulang), tiap pass menyebut legnya
-- [x] Round-trip: email tetap 1 email dengan 2 PDF dan detail kedua leg
-- [x] WhatsApp pembatalan menyebut kedua leg
-- [x] One-way tidak berubah
-- [x] Unit test
-- [x] Verifikasi live di staging (mode mock: teks dicek di runtime log Vercel, 2026-10-09)
+- [x] Round-trip: WhatsApp sends 2 boarding passes (outbound and return), each pass mentioning its leg
+- [x] Round-trip: email remains 1 email with 2 PDFs and the details of both legs
+- [x] Cancellation WhatsApp mentions both legs
+- [x] One-way unchanged
+- [x] Unit tests
+- [x] Live verification on staging (mock mode: text checked in the Vercel runtime log, 2026-10-09)
 
-**Catatan:** session message WhatsApp hanya sampai bila customer menghubungi bisnis dalam 24 jam terakhir (batasan WATI yang sudah ada, tidak diubah di sini); pengiriman nyata belum diuji karena staging tanpa kunci WATI.
+**Note:** WhatsApp session messages are only delivered if the customer contacted the business within the last 24 hours (an existing WATI limitation, not changed here); real sending has not been tested because staging has no WATI keys.
 
 ---
 
-## Verifikasi live (2026-10-09)
+## Live verification (2026-10-09)
 
-### Putaran 1: lokal terhadap DB staging
-`next dev` (port 3100) terhadap DB Supabase staging (project `asymnwikxyhipoezoggp`, dipakai `.env.staging`; production memakai `viluiajknccclsogyogv`), akun QA yang sudah ada, email/WhatsApp/pembayaran mock. Tabel `TicketCheckin` di-apply ke DB staging lewat `prisma db push` (additive, tanpa `--accept-data-loss`). **38/38 cek lolos.**
+### Round 1: local against the staging DB
+`next dev` (port 3100) against the Supabase staging DB (project `asymnwikxyhipoezoggp`, used by `.env.staging`; production uses `viluiajknccclsogyogv`), existing QA accounts, mock email/WhatsApp/payment. The `TicketCheckin` table was applied to the staging DB via `prisma db push` (additive, without `--accept-data-loss`). **38/38 checks passed.**
 
-### Putaran 2: gilijet.vercel.app (Vercel staging, commit `3d2fcac`, redeploy setelah `QR_HMAC_SECRET` staging dibuat)
-Akses lewat share link sementara Vercel (situs di balik Deployment Protection). Booking dibuat lewat jalur aplikasi di DB staging; **tiket diterbitkan lewat UI admin di gilijet**, QR diambil dari endpoint manifest operator di gilijet (ditandatangani secret staging). **39/39 cek lolos**, runtime log Vercel untuk deployment itu: nol error/fatal.
-- **#1** URL repro dari tiket tidak lagi error; route QA menampilkan Outbound + Return dengan jam dan harga.
-- **`QR_HMAC_SECRET` staging** bekerja: konfirmasi admin menerbitkan tiket dan mengirim boarding pass (email mock melampirkan PDF outbound + return untuk round-trip).
-- **#3** Manifest JSON/CSV/print, halaman leg operator, Admin Departure detail di kedua leg memuat penumpang round-trip dengan badge.
-- **#2** Check-in outbound lalu return untuk penumpang yang sama; scan ulang ditolak per leg; QR silang ditolak (`INVALID_QR`); status per leg di manifest benar; one-way tidak berubah.
-- **#4** Cancel via leg return dan via leg outbound dari UI admin: booking dibatalkan, tiket `REFUNDED`, 1 refund 100%; round-trip dengan leg lain `SAILED` tidak dibatalkan dan memunculkan peringatan. Runtime log: email pembatalan + WhatsApp (mock) tercatat untuk booking yang dibatalkan dan tidak untuk yang dilewati.
+### Round 2: gilijet.vercel.app (Vercel staging, commit `3d2fcac`, redeployed after the staging `QR_HMAC_SECRET` was created)
+Access via a temporary Vercel share link (the site is behind Deployment Protection). Bookings were created through the app path in the staging DB; **tickets were issued via the admin UI on gilijet**, QRs taken from the operator manifest endpoint on gilijet (signed with the staging secret). **39/39 checks passed**, Vercel runtime log for that deployment: zero errors/fatals.
+- **#1** The repro URL from the ticket no longer errors; the QA route shows Outbound + Return with times and prices.
+- **Staging `QR_HMAC_SECRET`** works: admin confirmation issues tickets and sends the boarding pass (mock email attaches the outbound + return PDFs for round-trip).
+- **#3** Manifest JSON/CSV/print, operator leg page, Admin Departure detail on both legs include the round-trip passengers with the badge.
+- **#2** Outbound then return check-in for the same passenger; re-scan rejected per leg; cross QR rejected (`INVALID_QR`); per-leg status in the manifest correct; one-way unchanged.
+- **#4** Cancel via the return leg and via the outbound leg from the admin UI: booking cancelled, tickets `REFUNDED`, 1 refund of 100%; a round-trip with the other leg `SAILED` was not cancelled and raised a warning. Runtime log: cancellation email + WhatsApp (mock) recorded for the cancelled bookings and not for the skipped one.
 
-### Temuan dari log putaran 2
-WhatsApp round-trip hanya mengirim 1 boarding pass dan WhatsApp pembatalan tidak menyebut kedua leg: dicatat dan diperbaiki sebagai bug #5.
+### Findings from the round 2 log
+Round-trip WhatsApp sends only 1 boarding pass and the cancellation WhatsApp does not mention both legs: recorded and fixed as bug #5.
 
-### Putaran 3: verifikasi bug #5 di gilijet.vercel.app (commit `c2b5005`, deployment `dpl_9iEC…`)
-Booking `VERIFY3` dikonfirmasi lewat UI admin gilijet, satu round-trip dibatalkan lewat leg return; isi pesan dibaca dari runtime log Vercel (mode mock), nol error/fatal.
-- **Round-trip, 2 penumpang (P-RT):** WhatsApp mengirim 2 dokumen berurutan: "boarding pass berangkat Anda terlampir (1 dari 2)" (Sanur → Nusa Penida, 15 Nov 08:00) lalu "boarding pass pulang Anda terlampir (2 dari 2)" (Nusa Penida → Sanur, 17 Nov 16:00), keduanya menyebut "Pemesanan pulang-pergi: 2 boarding pass (berangkat dan pulang), masing-masing dengan QR code sendiri". Email: 1 email, 2 tiket, 2 PDF (outbound + return).
-- **One-way (P-OW):** 1 WhatsApp dan 1 PDF, caption lama tanpa penanda leg (tidak berubah).
-- **Pembatalan round-trip (P-CX):** WhatsApp memuat "Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan)" beserta leg berangkat dan pulang, plus email pembatalan; booking `CANCELLED_BY_OPERATOR`, 1 refund 500000/500000.
+### Round 3: bug #5 verification on gilijet.vercel.app (commit `c2b5005`, deployment `dpl_9iEC…`)
+Booking `VERIFY3` was confirmed via the gilijet admin UI, one round-trip was cancelled via the return leg; message content was read from the Vercel runtime log (mock mode), zero errors/fatals.
+- **Round-trip, 2 passengers (P-RT):** WhatsApp sent 2 documents in order: "boarding pass berangkat Anda terlampir (1 dari 2)" (Sanur → Nusa Penida, 15 Nov 08:00) then "boarding pass pulang Anda terlampir (2 dari 2)" (Nusa Penida → Sanur, 17 Nov 16:00), both mentioning "Pemesanan pulang-pergi: 2 boarding pass (berangkat dan pulang), masing-masing dengan QR code sendiri". Email: 1 email, 2 tickets, 2 PDFs (outbound + return).
+- **One-way (P-OW):** 1 WhatsApp and 1 PDF, old caption without leg markers (unchanged).
+- **Round-trip cancellation (P-CX):** WhatsApp contains "Pemesanan pulang-pergi dibatalkan seluruhnya (kedua perjalanan)" along with the outbound and return legs, plus the cancellation email; booking `CANCELLED_BY_OPERATOR`, 1 refund 500000/500000.
 
-### Putaran 4: perbaikan follow-up, v1.1.1 (2026-10-14, lokal terhadap DB staging)
+### Round 4: follow-up fixes, v1.1.1 (2026-10-14, local against the staging DB)
 
-Dev server lokal, DB staging; kunci WATI, Resend, DOKU dan PayPal dikosongkan di proses (env lokal berisi kunci production), tidak ada pembayaran maupun pesan nyata. Yang dikerjakan: alasan pembatalan di email/WhatsApp, penolakan reschedule ke hari OFF di server, dan satu bug yang ditemukan saat menulis E2E-nya. Yang operator dan hapus-kapal ditunda.
+Local dev server, staging DB; WATI, Resend, DOKU and PayPal keys blanked in the process (the local env contains production keys), no real payments or messages. What was done: cancellation reason in email/WhatsApp, server-side rejection of rescheduling to an OFF day, and one bug found while writing its E2E. The operator and boat-delete parts were deferred.
 
-| Pemeriksaan | Hasil |
+| Check | Result |
 |---|---|
-| `pnpm typecheck` (app + e2e), `pnpm lint` | Bersih, 0 error (1 warning lama di `postcss.config.mjs`) |
-| `pnpm vitest run`, shell bersih | 881/881, 52 file |
-| Unit baru: `messaging/email.test.ts` (alasan tampil, tidak tampil tanpa alasan, HTML di-escape dan dipotong 200 karakter), `whatsapp.test.ts` (3 kasus alasan), `booking/notifications.test.ts` (alasan diteruskan ke email dan WhatsApp) | Lolos |
-| E2E baru `reschedule-season.spec.ts` (3): pemilih tanggal menampilkan hari buka dan menyembunyikan hari OFF; request ke leg OFF yang dipaksa lewat form yang diubah ditolak server ("Selected departure is unavailable", 0 `RescheduleRequest`); request ke leg buka tetap berhasil | 3/3 |
-| Suite E2E penuh, 2 worker | 21 lolos, 4 di-skip lama, 0 gagal |
-| Suite E2E penuh, 5 worker | 1 gagal: `admin-seasons` timeout 60 dtk menunggu field email di `/admin/login`. Lolos saat spec dijalankan sendiri dan di run 2 worker. Dugaan beban dev server saat banyak worker; penyebab pasti tidak dibuktikan |
-| Fixture E2E di staging setelah run | 0 sisa; season asli tetap 8 baris |
+| `pnpm typecheck` (app + e2e), `pnpm lint` | Clean, 0 errors (1 old warning in `postcss.config.mjs`) |
+| `pnpm vitest run`, clean shell | 881/881, 52 files |
+| New units: `messaging/email.test.ts` (reason shown, not shown without a reason, HTML escaped and truncated to 200 characters), `whatsapp.test.ts` (3 reason cases), `booking/notifications.test.ts` (reason passed to email and WhatsApp) | Pass |
+| New E2E `reschedule-season.spec.ts` (3): date picker shows open days and hides OFF days; a request to an OFF leg forced through a modified form is rejected by the server ("Selected departure is unavailable", 0 `RescheduleRequest`); a request to an open leg still succeeds | 3/3 |
+| Full E2E suite, 2 workers | 21 passed, 4 long-skipped, 0 failed |
+| Full E2E suite, 5 workers | 1 failed: `admin-seasons` 60 s timeout waiting for the email field on `/admin/login`. Passes when the spec is run alone and in the 2-worker run. Suspected dev server load with many workers; exact cause not proven |
+| E2E fixtures on staging after the run | 0 left; the real season is still 8 rows |
 
-**Bug baru yang ditemukan: permintaan reschedule customer selalu gagal.** Form tidak punya field `customerNote`, jadi `formData.get('customerNote')` bernilai `null`, dan schema Zod menolak `null` ("Invalid input"). Berlaku sebelum perubahan ini; diperbaiki dengan `?? undefined`. Test ke-3 di atas membuktikan request yang valid sekarang tersimpan (`PENDING`).
+**New bug found: customer reschedule requests always fail.** The form has no `customerNote` field, so `formData.get('customerNote')` is `null`, and the Zod schema rejects `null` ("Invalid input"). Applied before this change; fixed with `?? undefined`. The 3rd test above proves a valid request is now saved (`PENDING`).
 
-Tidak diuji: pengiriman email/WhatsApp nyata (hanya pembuatan isi pesan lewat unit test), pembayaran, dan tampilan visual.
+Not tested: real email/WhatsApp sending (only message content generation via unit tests), payments, and visual appearance.
 
-### Belum tercakup
-- Notifikasi diuji mode mock (staging tidak punya kunci Resend/WATI): tidak ada pesan nyata terkirim.
-- Aksi cancel di halaman operator tidak dijalankan (hanya cancel lewat admin); lihat follow-up 7.
-- Tampilan visual tidak diperiksa manual (hanya teks/DOM).
+### Not covered
+- Notifications were tested in mock mode (staging has no Resend/WATI keys): no real messages were sent.
+- The cancel action on the operator page was not exercised (only cancel via admin); see follow-up 7.
+- Visual appearance was not checked manually (only text/DOM).
 
-### Data uji tertinggal di DB staging
-- Putaran 1: 5 booking `VERIFY` (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP); leg uji QA Boats 14-16, 20-22, 26-28 Okt (3 dibatalkan, 1 `SAILED`).
-- Putaran 3: 3 booking `VERIFY3` (BK-2026-10-J5CZLJ, -PPEBUU, -6BF99S); leg uji QA Boats 15-17 dan 21-23 Nov (2 leg dibatalkan); 1 Refund `PENDING`; leg QA Boats diperpanjang sampai +75 hari.
-- Putaran 2: 5 booking `VERIFY2` (BK-2026-10-GLTZYP, -GJ5WC4, -3LKCU7, -RHCG2E, -FQRW3V); leg uji QA Boats 4-6, 10-12, 16-18 Nov (3 dibatalkan, 1 `SAILED`).
-- Total 4 Refund `PENDING`, dan 132 leg QA Boats baru (10 Okt sampai 22 Nov) hasil `generateLegsForSchedule`.
+### Test data left in the staging DB
+- Round 1: 5 `VERIFY` bookings (BK-2026-10-AJBU5Q, -VRJ9E9, -BZK3AJ, -PT4Z6H, -RCZMDP); QA Boats test legs 14-16, 20-22, 26-28 Oct (3 cancelled, 1 `SAILED`).
+- Round 3: 3 `VERIFY3` bookings (BK-2026-10-J5CZLJ, -PPEBUU, -6BF99S); QA Boats test legs 15-17 and 21-23 Nov (2 legs cancelled); 1 `PENDING` Refund; QA Boats legs extended to +75 days.
+- Round 2: 5 `VERIFY2` bookings (BK-2026-10-GLTZYP, -GJ5WC4, -3LKCU7, -RHCG2E, -FQRW3V); QA Boats test legs 4-6, 10-12, 16-18 Nov (3 cancelled, 1 `SAILED`).
+- Total 4 `PENDING` Refunds, and 132 new QA Boats legs (10 Oct to 22 Nov) from `generateLegsForSchedule`.
 
 ---
 
-## Follow-up (belum jadi tiket)
+## Follow-up (not yet tickets)
 
-1. ⏸ **`collectBoatSubtree` di `src/features/operators/purge.ts`** mencari booking hanya lewat `legId`, jadi buta terhadap booking round-trip. **Ditunda.** Dicek ulang 2026-10-14: fungsi ini tidak dipanggil di mana pun (yang dipakai `collectOperatorSubtree`, yang aman) dan semua FK `Booking` → `Leg` adalah `onDelete: Restrict`, jadi database menolak penghapusan yang masih terhubung. Tidak ada dampak sekarang; perbaiki (cocokkan juga `outboundLegId`/`returnLegId`) sebelum fungsi ini dipakai.
-2. ✅ **Manual check-in** di `app/operator/legs/[id]/page.tsx`: sudah diaktifkan lagi untuk round-trip lewat helper per-leg yang sama dengan bug #2.
-3. ⏸ **Jalur cuaca** di halaman leg operator: blok khusus `WEATHER` mencari booking `CONFIRMED` setelah `cancelLeg` sudah membatalkan semuanya, jadi tidak menemukan apa pun. **Ditunda (operator).** Uang tidak terpengaruh (refund dibuat oleh `cancelLeg`); yang mungkin hilang hanya pencatatan alasan cuaca di refund dan audit log.
-4. ✅ **E2E round-trip** (`round-trip-booking.spec.ts`) aktif lagi (2026-10-14). Penyebab skip: `seed:qa` hanya membuat leg di jendela demo Juli–Agustus, jadi pencarian "7 hari ke depan" tidak menemukan apa pun. Spec sekarang membuat fixture sendiri (tahun 2093), membayar lewat mode mock (dijaga: skip jika ada key pembayaran live), dan memeriksa rincian Outbound/Return.
-5. ⚠️ **`QR_HMAC_SECRET`:** sudah dibuat di staging Vercel (dipakai pada verifikasi putaran 2). Di env lokal (`.env`/`.env.local`/`.env.staging`) nilainya kurang dari 32 karakter, sehingga `/b/<reference>` untuk booking ber-tiket error saat development (ditemukan 2026-10-14 saat QC versioning). Test masih me-mock `qr`.
-6. ✅/⚠️ **`CRON_SECRET`:** ditemukan 2026-10-14 tidak ada sama sekali di project Vercel `gilifast`, sehingga route `/api/cron/*` (sejak 2026-05-20) selalu 401 dan `topup-legs`, `refresh-fx`, `retry-webhooks` tidak pernah berjalan. **Ditambahkan 2026-10-14** untuk production dan untuk environment custom `staging` (dua nilai acak berbeda, tipe `sensitive`; nilainya tidak ditulis di docs). Variabel baru hanya terbaca setelah deploy berikutnya, jadi cron production baru mulai jalan pada rilis production berikutnya (lihat `docs/RELEASING.md`). Vercel Cron hanya berjalan di deployment Production; di staging kunci ini hanya untuk pemanggilan manual. **Masih terbuka:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL` dan `WATI_*` juga tidak terlihat di project itu (perlu dikonfirmasi apakah notifikasi production memakai mock), dan README menyebut project `gilifast-staging` padahal staging tampaknya environment custom `staging` di project `gilifast` (domain `gilijet.vercel.app`, branch `staging`).
-7. ⏸ **Aksi cancel di `src/app/operator/legs/[id]/page.tsx`** memanggil `redirect()` di dalam `try` yang `catch`-nya ikut menangkap `NEXT_REDIRECT`, sehingga cancel yang sukses redirect ke `?error=NEXT_REDIRECT` (dikonfirmasi dari kode 2026-10-14; belum dicoba di runtime). **Ditunda (operator).** Bertentangan dengan konvensi `CLAUDE.md` (re-throw `NEXT_REDIRECT`).
+1. ⏸ **`collectBoatSubtree` in `src/features/operators/purge.ts`** finds bookings only via `legId`, so it is blind to round-trip bookings. **Deferred.** Re-checked 2026-10-14: this function is not called anywhere (the one in use is `collectOperatorSubtree`, which is safe) and all `Booking` → `Leg` FKs are `onDelete: Restrict`, so the database rejects deletions that are still linked. No impact now; fix it (also match `outboundLegId`/`returnLegId`) before this function is used.
+2. ✅ **Manual check-in** in `app/operator/legs/[id]/page.tsx`: enabled again for round-trip via the same per-leg helper as bug #2.
+3. ⏸ **Weather path** on the operator leg page: the dedicated `WEATHER` block looks for `CONFIRMED` bookings after `cancelLeg` has already cancelled all of them, so it finds nothing. **Deferred (operator).** Money is not affected (the refund is created by `cancelLeg`); what may be missing is only the recording of the weather reason on the refund and in the audit log.
+4. ✅ **Round-trip E2E** (`round-trip-booking.spec.ts`) active again (2026-10-14). Cause of the skip: `seed:qa` only creates legs in the July–August demo window, so the "next 7 days" search found nothing. The spec now creates its own fixture (year 2093), pays via mock mode (guarded: skips if live payment keys exist), and checks the Outbound/Return breakdown.
+5. ⚠️ **`QR_HMAC_SECRET`:** created in Vercel staging (used in the round 2 verification). In the local env (`.env`/`.env.local`/`.env.staging`) its value is shorter than 32 characters, so `/b/<reference>` for a ticketed booking errors during development (found 2026-10-14 during versioning QC). Tests still mock `qr`.
+6. ✅/⚠️ **`CRON_SECRET`:** found 2026-10-14 to be missing entirely from the Vercel project `gilifast`, so the `/api/cron/*` routes (since 2026-05-20) always returned 401 and `topup-legs`, `refresh-fx`, `retry-webhooks` never ran. **Added 2026-10-14** for production and for the custom `staging` environment (two different random values, type `sensitive`; the values are not written in the docs). A new variable is only read after the next deploy, so production cron only starts running with the next production release (see `docs/RELEASING.md`). Vercel Cron only runs on Production deployments; on staging this key is only for manual invocation. **Still open:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `WATI_*` are also not visible in that project (needs confirmation whether production notifications use mock), and the README mentions a `gilifast-staging` project while staging appears to be the custom `staging` environment in the `gilifast` project (domain `gilijet.vercel.app`, branch `staging`).
+7. ⏸ **The cancel action in `src/app/operator/legs/[id]/page.tsx`** calls `redirect()` inside a `try` whose `catch` also catches `NEXT_REDIRECT`, so a successful cancel redirects to `?error=NEXT_REDIRECT` (confirmed from the code 2026-10-14; not yet tried at runtime). **Deferred (operator).** Conflicts with the `CLAUDE.md` convention (re-throw `NEXT_REDIRECT`).

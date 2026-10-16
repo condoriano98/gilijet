@@ -32,8 +32,8 @@
   - All 10 tests passing, TypeScript compilation clean
 
 **E2E Tests (3 remaining issues):**
-- `admin-refund.spec.ts`: Admin login flow issue (tidak masuk ke halaman refund)
-- `customer-booking.spec.ts`: Button click timeout ("Book" link tidak ketemu)
+- `admin-refund.spec.ts`: Admin login flow issue (does not reach the refund page)
+- `customer-booking.spec.ts`: Button click timeout ("Book" link not found)
 - `mobile-layout.spec.ts` + `round-trip-booking.spec.ts`: UI timing/rendering issues
 
 **Summary:** ✅ Unit testing infrastructure 100% complete. All 798 tests passing. TypeCheck passes. E2E failures are UI/timing issues, not core logic.

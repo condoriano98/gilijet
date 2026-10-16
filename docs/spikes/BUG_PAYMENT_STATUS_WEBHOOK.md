@@ -1,108 +1,108 @@
-# Bug: status booking tidak ter-update setelah pembayaran berhasil
+# Bug: booking status is not updated after a successful payment
 
-**Status (2026-10-16):** selesai dan sudah di `staging` sebagai commit `7eb88f6`, tag `v1.3.0`. Belum di `main`/production. Migration index/unique `WebhookEvent` tidak diambil (keputusan user belum ada, rule 4). Lanjutan untuk badge customer: `BUG_DOKU_PAYMENT_CONFIRMATION.md` (v1.3.1).
+**Status (2026-10-16):** done and on `staging` as commit `7eb88f6`, tag `v1.3.0`. Not yet on `main`/production. The `WebhookEvent` index/unique migration was not taken (no user decision yet, rule 4). Follow-up for the customer badge: `BUG_DOKU_PAYMENT_CONFIRMATION.md` (v1.3.1).
 **Created:** 2026-10-16
-**Target versi:** 1.3.0 (MINOR: halaman log webhook baru + perbaikan)
-**Tiket:** "[Bug] Status booking tidak ter-update setelah pembayaran berhasil di payment gateway". Contoh kasus `BK-2026-09-P6EXQV` (dilaporkan dari gilibali.com, yaitu production; tidak kita sentuh, `CLAUDE.md` rule 1).
+**Target version:** 1.3.0 (MINOR: new webhook log page + fixes)
+**Ticket:** "[Bug] Booking status is not updated after a successful payment at the payment gateway". Example case `BK-2026-09-P6EXQV` (reported from gilibali.com, i.e. production; we do not touch it, `CLAUDE.md` rule 1).
 
-## Laporan
+## Report
 
-Setelah pembayaran dikonfirmasi DOKU/PayPal, status booking di admin Bookings tidak ter-update otomatis dan tetap "Waiting Confirmation".
+After a payment is confirmed by DOKU/PayPal, the booking status in admin Bookings is not updated automatically and stays "Waiting Confirmation".
 
 **Steps to reproduce**
 
-1. Buka gilibali.com, booking sampai pembayaran selesai.
-2. Pastikan pembayaran tercatat sukses di sisi payment gateway.
-3. Login admin → Bookings.
-4. Cek status booking yang baru dibayar.
+1. Open gilibali.com, book through to completed payment.
+2. Make sure the payment is recorded as successful on the payment gateway side.
+3. Log in as admin → Bookings.
+4. Check the status of the newly paid booking.
 
-**Expected:** status otomatis menjadi Paid/Confirmed setelah pembayaran sukses.
-**Actual:** tetap "Waiting Confirmation" walau gateway sudah sukses.
-**Dugaan pelapor:** webhook/callback tidak ter-trigger, atau endpoint callback gagal mengupdate DB.
+**Expected:** status automatically becomes Paid/Confirmed after a successful payment.
+**Actual:** stays "Waiting Confirmation" even though the gateway succeeded.
+**Reporter's suspicion:** the webhook/callback is not triggered, or the callback endpoint fails to update the DB.
 
-**Acceptance criteria (dari tiket)**
+**Acceptance criteria (from the ticket)**
 
-- AC1: status booking ter-update otomatis menjadi Paid/Confirmed setelah gateway mengirim callback sukses.
-- AC2: tidak perlu refresh manual oleh admin.
-- AC3: log webhook tersedia untuk monitoring kalau callback gagal.
+- AC1: booking status is updated automatically to Paid/Confirmed after the gateway sends a successful callback.
+- AC2: no manual refresh needed by the admin.
+- AC3: a webhook log is available for monitoring when a callback fails.
 
-### Pemetaan AC ke rencana
+### Mapping ACs to the plan
 
-| AC | Dipenuhi oleh | Catatan |
-|----|---------------|---------|
-| AC1 | Webhook sukses → `AWAITING_CONFIRMATION`, tampil sebagai "Paid · awaiting confirmation" (rencana 5). Callback yang gagal dipulihkan oleh retry cron yang diperbaiki (rencana 1–2). | "Confirmed" tetap menunggu admin di `/admin/confirmations` (Keputusan). Perlu disampaikan ke pelapor: "Paid" otomatis, "Confirmed" tidak. |
-| AC2 | Halaman Bookings dinamis per request, plus `auto-refresh.tsx` (`router.refresh()` tiap 30 detik, dilewati saat tab tersembunyi). | Diimplementasikan 2026-10-16 dengan tafsiran "tanpa reload"; user belum mengonfirmasi tafsiran ini. |
-| AC3 | Callback ditolak dicatat (rencana 3) + halaman `/admin/webhooks` dengan Retry (rencana 4) + hitungan `FAILED` 24 jam di diagnostics. | |
+| AC | Met by | Notes |
+|----|--------|-------|
+| AC1 | Successful webhook → `AWAITING_CONFIRMATION`, shown as "Paid · awaiting confirmation" (plan 5). Failed callbacks are recovered by the fixed retry cron (plan 1–2). | "Confirmed" still waits for an admin at `/admin/confirmations` (Decision). Needs to be communicated to the reporter: "Paid" is automatic, "Confirmed" is not. |
+| AC2 | The Bookings page is dynamic per request, plus `auto-refresh.tsx` (`router.refresh()` every 30 seconds, skipped while the tab is hidden). | Implemented 2026-10-16 with the interpretation "without reload"; the user has not confirmed this interpretation. |
+| AC3 | Rejected callbacks are recorded (plan 3) + `/admin/webhooks` page with Retry (plan 4) + 24-hour `FAILED` count in diagnostics. | |
 
-## Temuan
+## Findings
 
-1. **"Waiting Confirmation" adalah perilaku yang disengaja.** `recordPaymentAwaitingConfirmation` (`src/features/tickets/ticket-issuer.ts`) memindahkan booking `PENDING_PAYMENT` → `AWAITING_CONFIRMATION` saat uang masuk. `CONFIRMED` dan tiket baru terbit setelah admin menelepon operator di `/admin/confirmations` (aturan "Payment → ticket gate" di `CLAUDE.md`). Admin menampilkan `status.replace(/_/g, ' ')` (`src/app/admin/(authed)/bookings/booking-row.tsx`), sehingga "sudah dibayar" tidak dibedakan dari "belum ada kabar". Booking yang webhook-nya benar-benar gagal tetap `PENDING_PAYMENT`.
-2. **Retry cron tidak memulihkan pembayaran DOKU.** `src/app/api/cron/retry-webhooks/route.ts` memanggil `dispatchWebhookPayload`, yang hanya mengenali bentuk Xendit (`status=PAID`, `external_id`). Payload DOKU (`order.invoice_number`, `transaction.status`) jatuh ke `ignored`, lalu event ditandai `PROCESSED` tanpa memproses apa pun. Cron hanya memilih `provider: 'doku'`, jadi event PayPal tidak pernah di-retry. Cron baru bisa jalan sejak `CRON_SECRET` dipasang (2026-10-14).
-3. **Callback yang ditolak tidak tercatat.** Signature salah (401), JSON invalid (400), booking tidak ditemukan (200 "ignored") dan amount mismatch (409) hanya menulis `console.error` atau tidak menulis apa-apa.
-4. **Tidak ada UI untuk `WebhookEvent`.** Hanya route dan cron yang menyentuh tabelnya, jadi acceptance criteria "log webhook tersedia" belum terpenuhi.
+1. **"Waiting Confirmation" is intentional behaviour.** `recordPaymentAwaitingConfirmation` (`src/features/tickets/ticket-issuer.ts`) moves the booking `PENDING_PAYMENT` → `AWAITING_CONFIRMATION` when the money arrives. `CONFIRMED` and the tickets are only issued after an admin phones the operator at `/admin/confirmations` (the "Payment → ticket gate" rule in `CLAUDE.md`). Admin shows `status.replace(/_/g, ' ')` (`src/app/admin/(authed)/bookings/booking-row.tsx`), so "already paid" is not distinguished from "no news yet". A booking whose webhook truly failed stays `PENDING_PAYMENT`.
+2. **The retry cron does not recover DOKU payments.** `src/app/api/cron/retry-webhooks/route.ts` calls `dispatchWebhookPayload`, which only recognises the Xendit shape (`status=PAID`, `external_id`). DOKU payloads (`order.invoice_number`, `transaction.status`) fall through to `ignored`, and the event is then marked `PROCESSED` without processing anything. The cron only selects `provider: 'doku'`, so PayPal events are never retried. The cron has only been able to run since `CRON_SECRET` was set (2026-10-14).
+3. **Rejected callbacks are not recorded.** Wrong signature (401), invalid JSON (400), booking not found (200 "ignored") and amount mismatch (409) only write a `console.error` or nothing at all.
+4. **There is no UI for `WebhookEvent`.** Only the routes and the cron touch its table, so the acceptance criterion "webhook log available" is not met.
 
-## Keputusan
+## Decision
 
-- Gate konfirmasi operator **dipertahankan** (diputuskan user 2026-10-16). Tidak ada auto-confirm.
-- Tidak ada perubahan schema: `WebhookEventStatus` sudah punya `SKIPPED`, `errorMessage` dan `attempts`.
+- The operator confirmation gate is **kept** (decided by the user 2026-10-16). No auto-confirm.
+- No schema change: `WebhookEventStatus` already has `SKIPPED`, `errorMessage` and `attempts`.
 
-## Rencana
+## Plan
 
-1. `src/features/payments/webhook-processor.ts`: ekstrak `processDokuPaymentSuccess` (dari route DOKU) dan `processPaypalEvent` (dari `handleEvent` di route PayPal). Ganti `dispatchWebhookPayload` dengan `dispatchWebhookEvent(event)` yang memilih berdasarkan `provider` + `eventType`. Memakai ulang `recordPaymentAwaitingConfirmation`, `notifyPaymentReceived`, `normalizePaymentMethod`.
-2. `retry-webhooks`: ambil provider `doku` dan `paypal`; payload tak dikenal menjadi `FAILED` dengan pesan jelas, bukan `PROCESSED`.
-3. Route DOKU dan PayPal mencatat callback yang ditolak ke `WebhookEvent` (signature, JSON, booking tak ditemukan = `SKIPPED`, amount mismatch). Payload dipotong ±4 KB karena endpoint publik; pencatatan di try/catch agar respons ke gateway tidak berubah.
-4. Halaman `/admin/webhooks` (`requireAdmin()`): daftar event, filter provider/status/booking reference, waktu WITA, tombol Retry untuk `FAILED` (menulis `AuditLog`). Tautan di nav admin, hitungan `FAILED` 24 jam di `/admin/diagnostics`, entri di `feature-catalog.ts`.
-5. Label status di admin Bookings lewat satu helper: `AWAITING_CONFIRMATION` = "Paid · awaiting confirmation", `PENDING_PAYMENT` = "Unpaid". Halaman tidak di-cache (sudah dinamis karena `searchParams`; tidak perlu `force-dynamic`).
-6. Rilis: bump `package.json` ke 1.3.0, section dated + compare links di `CHANGELOG.md`; update `STRUCTURE.md`, README dan doc lain yang `git grep` temukan.
+1. `src/features/payments/webhook-processor.ts`: extract `processDokuPaymentSuccess` (from the DOKU route) and `processPaypalEvent` (from `handleEvent` in the PayPal route). Replace `dispatchWebhookPayload` with `dispatchWebhookEvent(event)`, which chooses by `provider` + `eventType`. Reuses `recordPaymentAwaitingConfirmation`, `notifyPaymentReceived`, `normalizePaymentMethod`.
+2. `retry-webhooks`: pick up the `doku` and `paypal` providers; an unrecognised payload becomes `FAILED` with a clear message, not `PROCESSED`.
+3. The DOKU and PayPal routes record rejected callbacks to `WebhookEvent` (signature, JSON, booking not found = `SKIPPED`, amount mismatch). The payload is truncated to ±4 KB because the endpoint is public; recording is in a try/catch so the response to the gateway does not change.
+4. `/admin/webhooks` page (`requireAdmin()`): event list, provider/status/booking reference filters, WITA time, a Retry button for `FAILED` (writes `AuditLog`). Link in the admin nav, 24-hour `FAILED` count at `/admin/diagnostics`, entry in `feature-catalog.ts`.
+5. Status label in admin Bookings through a single helper: `AWAITING_CONFIRMATION` = "Paid · awaiting confirmation", `PENDING_PAYMENT` = "Unpaid". The page is not cached (already dynamic because of `searchParams`; no `force-dynamic` needed).
+6. Release: bump `package.json` to 1.3.0, dated section + compare links in `CHANGELOG.md`; update `STRUCTURE.md`, README and other docs that `git grep` finds.
 
 ## Checklist
 
 - [x] 1 processor + dispatcher (`webhook-processor.ts`, `webhook-events.ts`)
 - [x] 2 retry cron
-- [x] 3 pencatatan callback ditolak (rate limit 50 per 10 menit per provider, body dipotong 4 KB)
-- [x] 4 halaman `/admin/webhooks` + diagnostics + feature catalog
-- [x] 5 label status (`src/features/booking/status-label.ts`)
-- [x] 5b auto-refresh Bookings (AC2), `bookings-auto-refresh.test.ts`
-- [x] Unit test: `webhook-processor`, `webhook-events`, `status-label`, `retry-webhooks`, `webhooks-guard`
-- [x] E2E ditulis: `tests/e2e/admin-webhooks.spec.ts` (belum dijalankan)
-- [x] `pnpm lint` (0 error, 1 warning lama di `postcss.config.mjs`), `pnpm typecheck`, `pnpm test:unit`
-- [x] `pnpm test:e2e` terhadap DB staging (project `asymnwikxyhipoezoggp`, dikonfirmasi user 2026-10-16): 32 lulus, 2 skip (DOKU live, opt-in). Fixture tahun 2090 terhapus (dicek read-only).
-- [x] `security-auditor` dan `db-query-auditor` (2026-10-16). Diperbaiki: batas body 256 KB (413) di kedua route, try/catch verifikasi PayPal (503). Sisanya di Pertanyaan terbuka
-- [x] QC lewat `pnpm dev` (otomatis lewat Playwright, bukan manual; lihat QC)
-- [x] Versi 1.3.0, CHANGELOG, doc yang tersentuh (README, STRUCTURE, RELEASING, CLAUDE.md, security-auditor.md, catatan di TESTING_PLAN)
-- [ ] Commit/tag/push (hanya dengan go-ahead user; user minta tidak ada perintah git sampai disuruh)
+- [x] 3 rejected-callback recording (rate limit 50 per 10 minutes per provider, body truncated to 4 KB)
+- [x] 4 `/admin/webhooks` page + diagnostics + feature catalog
+- [x] 5 status label (`src/features/booking/status-label.ts`)
+- [x] 5b Bookings auto-refresh (AC2), `bookings-auto-refresh.test.ts`
+- [x] Unit tests: `webhook-processor`, `webhook-events`, `status-label`, `retry-webhooks`, `webhooks-guard`
+- [x] E2E written: `tests/e2e/admin-webhooks.spec.ts` (not yet run)
+- [x] `pnpm lint` (0 errors, 1 existing warning in `postcss.config.mjs`), `pnpm typecheck`, `pnpm test:unit`
+- [x] `pnpm test:e2e` against the staging DB (project `asymnwikxyhipoezoggp`, confirmed by the user 2026-10-16): 32 passed, 2 skipped (DOKU live, opt-in). Year-2090 fixtures deleted (checked read-only).
+- [x] `security-auditor` and `db-query-auditor` (2026-10-16). Fixed: 256 KB body limit (413) on both routes, try/catch around PayPal verification (503). The rest is under Open questions
+- [x] QC via `pnpm dev` (automated through Playwright, not manual; see QC)
+- [x] Version 1.3.0, CHANGELOG, touched docs (README, STRUCTURE, RELEASING, CLAUDE.md, security-auditor.md, note in TESTING_PLAN)
+- [ ] Commit/tag/push (only with the user's go-ahead; the user asked for no git commands until told)
 
-## Pertanyaan terbuka
+## Open questions
 
-- **AC2, arti "tanpa refresh manual".** Auto-refresh 30 detik sudah ditambahkan (tafsiran "tanpa reload"). Kalau user cukup dengan reload, hapus `auto-refresh.tsx` dan pemakaiannya di `bookings/page.tsx`.
-- **Temuan audit yang butuh migration (rule 4, menunggu konfirmasi):** `@@index([provider, eventType, createdAt])` pada `WebhookEvent` (rate limit callback ditolak scan satu provider penuh), `@@index([createdAt])` untuk daftar default `/admin/webhooks`, dan `@@unique([provider, eventType, externalRef])` untuk menutup race find-then-create di `beginWebhookEvent` (perlu mengecualikan baris `signature.rejected`, dan baris duplikat lama memblokir migration). Dampak race hari ini kecil: `recordPaymentAwaitingConfirmation` idempotent.
-- **Audit, tidak diambil:** cek umur `Request-Timestamp` DOKU (jendela retry DOKU berjam-jam, perlu cek dulu), `timingSafeEqual` untuk `CRON_SECRET`, pesan amount mismatch yang generik ke gateway, audit Retry saat booking tidak ketemu.
-- **Komunikasi ke pelapor:** label "Paid · awaiting confirmation" menggantikan "Waiting Confirmation"; "Confirmed" tetap manual lewat `/admin/confirmations`.
+- **AC2, meaning of "without manual refresh".** A 30-second auto-refresh has been added (interpretation "without reload"). If the user is fine with a reload, remove `auto-refresh.tsx` and its use in `bookings/page.tsx`.
+- **Audit findings that need a migration (rule 4, awaiting confirmation):** `@@index([provider, eventType, createdAt])` on `WebhookEvent` (the rejected-callback rate limit scans a whole provider), `@@index([createdAt])` for the default `/admin/webhooks` list, and `@@unique([provider, eventType, externalRef])` to close the find-then-create race in `beginWebhookEvent` (needs to exclude `signature.rejected` rows, and old duplicate rows block the migration). The impact of the race today is small: `recordPaymentAwaitingConfirmation` is idempotent.
+- **Audit, not taken:** age check on the DOKU `Request-Timestamp` (DOKU's retry window is hours, needs checking first), `timingSafeEqual` for `CRON_SECRET`, a generic amount mismatch message to the gateway, auditing Retry when the booking is not found.
+- **Communication to the reporter:** the label "Paid · awaiting confirmation" replaces "Waiting Confirmation"; "Confirmed" stays manual through `/admin/confirmations`.
 
-## Eksekusi berikutnya (ditunda, 2026-10-16)
+## Next execution (deferred, 2026-10-16)
 
-User minta eksekusi nanti. Urutan saat dilanjutkan:
+The user asked to execute later. Order when resumed:
 
-1. Putuskan pertanyaan AC2 di atas; kalau perlu auto-refresh, tambahkan + unit/e2e test-nya.
-2. `security-auditor` (diff menyentuh `src/app/api/webhooks/**`, `src/app/api/cron/**`) dan `db-query-auditor`.
-3. `pnpm test:e2e` setelah user konfirmasi target DB (rule 4).
-4. QC `pnpm dev`: kirim callback DOKU mock (sukses, signature salah, amount mismatch), cek label di `/admin/bookings`, log + Retry di `/admin/webhooks`, hitungan di `/admin/diagnostics`. Catat hasilnya di bagian QC.
-5. `pnpm lint` + `pnpm typecheck` ulang, `git grep` doc (rule 7), lalu minta go-ahead commit + tag `v1.3.0` (rule 5).
+1. Decide the AC2 question above; if auto-refresh is needed, add it + its unit/e2e tests.
+2. `security-auditor` (the diff touches `src/app/api/webhooks/**`, `src/app/api/cron/**`) and `db-query-auditor`.
+3. `pnpm test:e2e` after the user confirms the DB target (rule 4).
+4. QC with `pnpm dev`: send mock DOKU callbacks (success, wrong signature, amount mismatch), check the label at `/admin/bookings`, the log + Retry at `/admin/webhooks`, the count at `/admin/diagnostics`. Record the results in the QC section.
+5. Re-run `pnpm lint` + `pnpm typecheck`, `git grep` the docs (rule 7), then ask for a go-ahead to commit + tag `v1.3.0` (rule 5).
 
 ## QC
 
-- Unit: 961 tes lulus di 62 file (2026-10-16), termasuk tes baru di atas (lint 0 error, typecheck bersih). Semua dengan mock, tanpa DB.
-- E2E (2026-10-16, dev server lokal + DB staging): suite penuh 32 lulus, 2 skip. `admin-webhooks.spec.ts` (3 tes) mencakup label "Paid · awaiting confirmation" di Bookings, log webhook (daftar, tab Rejected callbacks, filter, Retry yang menulis ulang status event dan attempts), dan auto-refresh (status booking diubah di DB, jam dimajukan 31 detik, baris berubah tanpa reload). Spec sempat salah mengharapkan baris "ditolak" di tab default; yang diperbaiki spec-nya, bukan halamannya.
-- Tidak diverifikasi: callback DOKU/PayPal sungguhan atau bertanda tangan (staging mock mode, endpoint 401), jadi pemrosesan webhook hanya dicakup unit test; tidak ada klik manual di browser di luar Playwright; tombol Retry hanya diuji pada event `payment.success` yang disimulasikan; auto-refresh tidak diuji pada tab yang tersembunyi.
-- Peringatan `Decimal objects are not supported` di log dev server berasal dari `BookingRow` (client component) yang menerima objek Prisma mentah; bukan dari perubahan ini dan tidak diubah.
+- Unit: 961 tests pass across 62 files (2026-10-16), including the new tests above (lint 0 errors, typecheck clean). All with mocks, no DB.
+- E2E (2026-10-16, local dev server + staging DB): full suite 32 passed, 2 skipped. `admin-webhooks.spec.ts` (3 tests) covers the "Paid · awaiting confirmation" label in Bookings, the webhook log (list, Rejected callbacks tab, filter, Retry which rewrites the event status and attempts), and auto-refresh (booking status changed in the DB, clock advanced 31 seconds, row changed without reload). The spec at one point wrongly expected a "rejected" row on the default tab; the spec was fixed, not the page.
+- Not verified: real or signed DOKU/PayPal callbacks (staging is in mock mode, endpoint 401), so webhook processing is covered by unit tests only; no manual clicking in the browser outside Playwright; the Retry button was only tested on simulated `payment.success` events; auto-refresh was not tested on a hidden tab.
+- The `Decimal objects are not supported` warning in the dev server log comes from `BookingRow` (a client component) receiving raw Prisma objects; it is not from this change and was not changed.
 
-## Catatan implementasi
+## Implementation notes
 
-- Event DOKU sekarang dibuat sebelum amount/booking diperiksa, jadi amount mismatch dan booking tak ditemukan muncul di log (`FAILED` / `SKIPPED`). Redelivery event `FAILED` memakai ulang barisnya (attempts + 1), bukan baris baru.
-- Fungsi bentuk Xendit di `webhook-processor.ts` (`processInvoicePaid`, `processInvoiceExpired`, `processRefund*`, `dispatchWebhookPayload`) dihapus: tidak ada yang memanggilnya kecuali retry cron yang salah itu.
-- Event yang tersangkut `PROCESSING` lebih dari 5 menit (`STUCK_PROCESSING_MS`) dibuka ulang saat gateway mengirim ulang. Cron dan tombol Retry mengklaim event lewat `updateMany` bersyarat status, jadi tidak diproses dua kali. `PAYMENT.CAPTURE.DENIED` tidak membalik payment yang sudah `SUCCESSFUL`.
+- DOKU events are now created before the amount/booking is checked, so amount mismatch and booking not found show up in the log (`FAILED` / `SKIPPED`). Redelivery of a `FAILED` event reuses its row (attempts + 1) instead of creating a new one.
+- The Xendit-shaped functions in `webhook-processor.ts` (`processInvoicePaid`, `processInvoiceExpired`, `processRefund*`, `dispatchWebhookPayload`) were removed: nothing called them except that faulty retry cron.
+- Events stuck in `PROCESSING` for more than 5 minutes (`STUCK_PROCESSING_MS`) are reopened when the gateway redelivers. The cron and the Retry button claim events through an `updateMany` conditional on status, so they are not processed twice. `PAYMENT.CAPTURE.DENIED` does not reverse a payment that is already `SUCCESSFUL`.
 
-## Tidak bisa diverifikasi
+## Cannot be verified
 
-- Callback DOKU/PayPal live: staging berjalan di mock mode dan `/api/webhooks/doku` menjawab 401 di sana (README "Environments"). Jalur ini hanya dicakup unit test.
-- `BK-2026-09-P6EXQV`: ada di production, tidak boleh dibaca. Dari kode tidak bisa dibedakan antara "webhook tidak datang" dan "gate normal". Cek status Payment-nya di production, atau lewat `/admin/webhooks` setelah rilis.
+- Live DOKU/PayPal callbacks: staging runs in mock mode and `/api/webhooks/doku` answers 401 there (README "Environments"). This path is covered by unit tests only.
+- `BK-2026-09-P6EXQV`: lives in production, must not be read. From the code it is impossible to tell "the webhook did not arrive" from "the normal gate". Check its Payment status in production, or through `/admin/webhooks` after the release.

@@ -1,87 +1,87 @@
-# Bug: konfirmasi pembayaran DOKU, status tetap "awaiting confirmation"
+# Bug: DOKU payment confirmation, status stays "awaiting confirmation"
 
-**Status (2026-10-16):** Rencana A diimplementasi (v1.3.1): kode, unit test (963 lulus), e2e `admin-webhooks.spec.ts` (4 lulus, staging), lint, typecheck. **Belum:** verifikasi production (off-limits tanpa izin), commit + tag `v1.3.1` (menunggu go-ahead, rule 5), rilis ke `main`. Pertanyaan terbuka di bawah belum dijawab; Rencana A dijalankan atas instruksi "lanjut implementasi".
+**Status (2026-10-16):** Plan A implemented (v1.3.1): code, unit tests (963 pass), e2e `admin-webhooks.spec.ts` (4 pass, staging), lint, typecheck. **Not yet:** production verification (off-limits without permission), commit + tag `v1.3.1` (awaiting go-ahead, rule 5), release to `main`. The open questions below are not yet answered; Plan A was run on the instruction "continue the implementation".
 
-**Terkait:** `docs/spikes/BUG_PAYMENT_STATUS_WEBHOOK.md` (v1.3.0, sudah di `staging`, belum di `main`).
+**Related:** `docs/spikes/BUG_PAYMENT_STATUS_WEBHOOK.md` (v1.3.0, already on `staging`, not yet on `main`).
 
-## Laporan
+## Report
 
-Tiket "Konfirmasi Pembayaran":
+Ticket "Payment Confirmation":
 
-1. Sistem menangkap status callback/webhook dari payment gateway (sukses/gagal).
-2. Setelah status "sukses" diterima, sistem mengubah status booking dari pending → paid. **Saat ini masih "awaiting confirmation"** (pelapor sudah mencoba pembayaran sungguhan). Dugaan pelapor: tidak nyambung dengan webhook payment gateway.
-3. Halaman/pop-up "Pembayaran Berhasil" tampil otomatis setelah status ter-update, tanpa refresh manual. **Sudah DONE** menurut pelapor.
+1. The system captures the callback/webhook status from the payment gateway (success/failure).
+2. Once a "success" status is received, the system changes the booking status from pending → paid. **Currently it is still "awaiting confirmation"** (the reporter already tried a real payment). The reporter's suspicion: it is not connected to the payment gateway webhook.
+3. A "Payment Successful" page/pop-up appears automatically after the status is updated, without a manual refresh. **Already DONE** according to the reporter.
 
-Yang perlu diperbaiki hanya poin 2 (dan poin 1 sejauh poin 2 bergantung padanya).
+Only point 2 needs fixing (and point 1 insofar as point 2 depends on it).
 
-## Temuan awal (dari kode, belum diverifikasi di production)
+## Initial findings (from the code, not yet verified in production)
 
-1. **Pembayaran sungguhan hanya bisa terjadi di production.** Staging menjalankan DOKU dalam mode mock (`README.md` "DOKU has no sandbox account"; `docs/spikes/DOKU_ONE_RUPIAH_STAGING.md` "Blocker"). Jadi tes "real" pelapor hampir pasti di gilibali.com, yang menjalankan `main`.
-2. **Di mode live, satu-satunya jalan DOKU dari `PENDING_PAYMENT` ke `AWAITING_CONFIRMATION` adalah webhook yang tervalidasi.** `recordPaymentAwaitingConfirmation` dipanggil dari: webhook DOKU/PayPal (`webhook-processor.ts`), capture PayPal di return URL (`psp.ts`), penyelamatan PayPal saat expiry (`expiry.ts`), dan dummy checkout (hanya saat mock, `checkout/[reference]/page.tsx`). Tidak ada polling status ke DOKU. Artinya: **kalau booking DOKU berstatus `AWAITING_CONFIRMATION`, webhook-nya sudah masuk dan diproses.** Kalau webhook gagal, booking akan tetap `PENDING_PAYMENT` lalu `EXPIRED`.
-3. **"Awaiting confirmation" adalah status yang memang dituju setelah bayar, bukan tanda gagal.** Aturan payment → ticket gate (`CLAUDE.md`, `src/features/tickets/ticket-issuer.ts`): uang masuk hanya memindahkan booking ke `AWAITING_CONFIRMATION`; tiket terbit setelah admin menelepon operator di `/admin/confirmations`. Tidak ada status `PAID` di enum `BookingStatus`. Flow ini sudah dikonfirmasi tetap dipakai (sesi 2026-10-16, tiket sebelumnya).
-4. **Yang dilihat pelapor kemungkinan besar label enum mentah.**
-   - Halaman customer `/b/[reference]` menampilkan badge `booking.status.replace(/_/g, ' ')` → **"AWAITING CONFIRMATION"** (`src/app/(customer)/[locale]/b/[reference]/page.tsx:293-294`), padahal kartu di bawahnya sudah bilang "Payment received — we're confirming your seat". Badge ini belum disentuh v1.3.0.
-   - Admin `/admin/bookings`: v1.3.0 sudah mengganti label menjadi "Paid · awaiting confirmation", tapi baru di `staging`. Production (`main`, commit `88d0781`) masih jauh di belakang `staging` (belum ada v1.1.1 s.d. v1.3.0), jadi admin production masih melihat "AWAITING CONFIRMATION".
-5. **Production juga belum punya perbaikan webhook v1.3.0**: log `/admin/webhooks`, retry cron untuk DOKU/PayPal, pencatatan callback yang ditolak, 413/503. Kalau ada webhook yang benar-benar gagal di production, saat ini tidak ada yang mencoba ulang dan tidak ada tempat melihatnya.
+1. **Real payments can only happen in production.** Staging runs DOKU in mock mode (`README.md` "DOKU has no sandbox account"; `docs/spikes/DOKU_ONE_RUPIAH_STAGING.md` "Blocker"). So the reporter's "real" test was almost certainly on gilibali.com, which runs `main`.
+2. **In live mode, the only path for DOKU from `PENDING_PAYMENT` to `AWAITING_CONFIRMATION` is a validated webhook.** `recordPaymentAwaitingConfirmation` is called from: the DOKU/PayPal webhook (`webhook-processor.ts`), the PayPal capture at the return URL (`psp.ts`), the PayPal rescue at expiry (`expiry.ts`), and the dummy checkout (mock only, `checkout/[reference]/page.tsx`). There is no status polling to DOKU. This means: **if a DOKU booking has status `AWAITING_CONFIRMATION`, its webhook has already arrived and been processed.** If the webhook fails, the booking stays `PENDING_PAYMENT` and then becomes `EXPIRED`.
+3. **"Awaiting confirmation" is the status intended after payment, not a sign of failure.** The payment → ticket gate rule (`CLAUDE.md`, `src/features/tickets/ticket-issuer.ts`): money arriving only moves the booking to `AWAITING_CONFIRMATION`; tickets are issued after an admin phones the operator at `/admin/confirmations`. There is no `PAID` status in the `BookingStatus` enum. This flow was confirmed to remain in use (session 2026-10-16, previous ticket).
+4. **What the reporter sees is most likely the raw enum label.**
+   - Customer page `/b/[reference]` shows the badge `booking.status.replace(/_/g, ' ')` → **"AWAITING CONFIRMATION"** (`src/app/(customer)/[locale]/b/[reference]/page.tsx:293-294`), even though the card below it already says "Payment received — we're confirming your seat". This badge was not touched by v1.3.0.
+   - Admin `/admin/bookings`: v1.3.0 already changed the label to "Paid · awaiting confirmation", but only on `staging`. Production (`main`, commit `88d0781`) is far behind `staging` (v1.1.1 through v1.3.0 are missing), so production admin still sees "AWAITING CONFIRMATION".
+5. **Production also lacks the v1.3.0 webhook fixes**: the `/admin/webhooks` log, the retry cron for DOKU/PayPal, recording of rejected callbacks, 413/503. If a webhook really fails in production, nothing retries it today and there is nowhere to see it.
 
-**Kesimpulan sementara:** webhook DOKU kemungkinan besar sudah jalan; masalahnya label "awaiting confirmation" yang terbaca seperti "belum dibayar", ditambah ekspektasi status "paid" yang tidak ada di desain. Ini perlu dibuktikan dengan data production (lihat Verifikasi), bukan diasumsikan.
+**Interim conclusion:** the DOKU webhook most likely already works; the problem is that the "awaiting confirmation" label reads like "not yet paid", plus an expectation of a "paid" status that does not exist in the design. This needs to be proven with production data (see Verification), not assumed.
 
-## Verifikasi yang dibutuhkan (production, perlu izin eksplisit)
+## Required verification (production, needs explicit permission)
 
-Semua di bawah ini menyentuh production, jadi off-limits sampai user mengizinkan (`CLAUDE.md` rule 1). Semuanya **read-only**.
+Everything below touches production, so it is off-limits until the user allows it (`CLAUDE.md` rule 1). All of it is **read-only**.
 
-1. Minta ke pelapor: booking reference tes pembayarannya, waktu bayar, metode (QRIS/VA/kartu), dan screenshot halaman tempat dia melihat "awaiting confirmation" (customer `/b/...` atau admin).
-2. Cek row booking + `Payment` di DB production: `Payment.status` harus `SUCCESSFUL`, `paidAt` dan `gatewayReference` terisi. Kalau iya → webhook sukses, temuan 2 terbukti.
-3. Cek Vercel runtime logs production untuk `POST /api/webhooks/doku` di sekitar waktu bayar: status 200 vs 401 (signature/URL notifikasi salah), 409 (amount mismatch), 5xx.
-4. Cek tabel `WebhookEvent` production untuk reference itu (tabel sudah ada; hanya UI-nya yang belum di production).
+1. Ask the reporter for: the booking reference of the payment test, the payment time, the method (QRIS/VA/card), and a screenshot of the page where they saw "awaiting confirmation" (customer `/b/...` or admin).
+2. Check the booking row + `Payment` in the production DB: `Payment.status` should be `SUCCESSFUL`, with `paidAt` and `gatewayReference` filled. If so → the webhook succeeded, finding 2 is proven.
+3. Check the Vercel production runtime logs for `POST /api/webhooks/doku` around the payment time: status 200 vs 401 (wrong signature/notification URL), 409 (amount mismatch), 5xx.
+4. Check the production `WebhookEvent` table for that reference (the table already exists; only its UI is not yet in production).
 
-Kalau hasilnya ternyata booking masih `PENDING_PAYMENT`/`EXPIRED` padahal DOKU bilang sukses, ini bug webhook sungguhan dan rencana berubah ke "Rencana B".
+If it turns out the booking is still `PENDING_PAYMENT`/`EXPIRED` even though DOKU says success, this is a real webhook bug and the plan changes to "Plan B".
 
-## Rencana A — webhook terbukti jalan (dugaan utama)
+## Plan A — webhook proven to work (main hypothesis)
 
-1. **Badge customer** `/b/[reference]`: ganti enum mentah dengan label yang jelas, misalnya `AWAITING_CONFIRMATION` → "Paid · confirming your seat" / "Pembayaran diterima" (ikut i18n locale yang ada), `PENDING_PAYMENT` → "Awaiting payment", dst. Buat `customerBookingStatusLabel` di `src/features/booking/status-label.ts` di samping `adminBookingStatusLabel`, satu sumber label.
-2. **Cari tempat lain yang menampilkan enum mentah** ke customer: email/WhatsApp (`src/features/booking/notifications.ts`), halaman akun customer (`/account`), PDF/CSV. `git grep "status.replace"` dan `git grep "AWAITING_CONFIRMATION"` di `src/app/(customer)` dan `src/features/messaging`.
-3. **Rilis ke production**: PR `staging` → `main` supaya v1.3.0 (label admin, log webhook, retry DOKU/PayPal) + perbaikan ini sampai ke gilibali.com. Perhatian: production tertinggal banyak versi, termasuk migration Prisma; build production menjalankan `prisma migrate deploy` (rule 9, `docs/RELEASING.md`).
-4. **Jelaskan ke pelapor**: "Paid" itu otomatis dari webhook (status `AWAITING_CONFIRMATION` = sudah dibayar); "Confirmed" + tiket tetap manual lewat admin. Kalau bisnis ingin tiket terbit langsung tanpa telepon operator, itu perubahan flow (lihat Rencana C), bukan bug.
+1. **Customer badge** `/b/[reference]`: replace the raw enum with a clear label, e.g. `AWAITING_CONFIRMATION` → "Paid · confirming your seat" / "Payment received" (following the existing locale i18n), `PENDING_PAYMENT` → "Awaiting payment", etc. Create `customerBookingStatusLabel` in `src/features/booking/status-label.ts` next to `adminBookingStatusLabel`, one source of labels.
+2. **Find other places that show the raw enum** to customers: email/WhatsApp (`src/features/booking/notifications.ts`), the customer account page (`/account`), PDF/CSV. `git grep "status.replace"` and `git grep "AWAITING_CONFIRMATION"` in `src/app/(customer)` and `src/features/messaging`.
+3. **Release to production**: PR `staging` → `main` so that v1.3.0 (admin label, webhook log, DOKU/PayPal retry) + this fix reach gilibali.com. Note: production is many versions behind, including Prisma migrations; the production build runs `prisma migrate deploy` (rule 9, `docs/RELEASING.md`).
+4. **Explain to the reporter**: "Paid" is automatic from the webhook (status `AWAITING_CONFIRMATION` = already paid); "Confirmed" + tickets stay manual through admin. If the business wants tickets issued immediately without phoning the operator, that is a flow change (see Plan C), not a bug.
 
-Versi: perbaikan label → PATCH (v1.3.1).
+Version: label fix → PATCH (v1.3.1).
 
-## Rencana B — webhook memang gagal di production
+## Plan B — the webhook really fails in production
 
-Tergantung hasil log:
-- **401**: URL notifikasi di DOKU Back Office tidak persis `{APP_BASE_URL}/api/webhooks/doku`, atau `DOKU_SECRET_KEY`/client id production salah. Perbaikan di konfigurasi DOKU/Vercel, bukan kode. Setelah v1.3.0 di production, callback ini tercatat di tab "Rejected callbacks".
-- **409 amount mismatch**: cek pembulatan `totalAmount` vs `order.amount` DOKU (mis. service fee/promo).
-- **Tidak ada request sama sekali**: notification URL belum di-set di DOKU Back Office.
-- **5xx**: baca error, perbaiki di `webhook-processor.ts`; retry cron v1.3.0 akan memproses ulang.
+Depends on the log results:
+- **401**: the notification URL in the DOKU Back Office is not exactly `{APP_BASE_URL}/api/webhooks/doku`, or the production `DOKU_SECRET_KEY`/client id is wrong. The fix is in DOKU/Vercel configuration, not code. After v1.3.0 is in production, these callbacks are recorded in the "Rejected callbacks" tab.
+- **409 amount mismatch**: check the rounding of `totalAmount` vs DOKU's `order.amount` (e.g. service fee/promo).
+- **No request at all**: the notification URL has not been set in the DOKU Back Office.
+- **5xx**: read the error, fix in `webhook-processor.ts`; the v1.3.0 retry cron will reprocess.
 
-Pemulihan booking yang terlanjur tidak ter-update: Retry di `/admin/webhooks` (setelah v1.3.0 live) — perlu izin karena menulis ke DB production.
+Recovering bookings that were not updated: Retry at `/admin/webhooks` (after v1.3.0 is live) — needs permission because it writes to the production DB.
 
-## Rencana C — bisnis ingin status "paid" terpisah atau tiket otomatis (bukan bug)
+## Plan C — the business wants a separate "paid" status or automatic tickets (not a bug)
 
-Hanya kalau pelapor/owner memang meminta perubahan flow:
-- C1: status baru `PAID` di enum → migration + ubah semua tempat yang membaca `AWAITING_CONFIRMATION`. Kami tidak merekomendasikan: secara makna sama dengan `AWAITING_CONFIRMATION`, cukup labelnya.
-- C2: tiket langsung terbit setelah bayar (lewati telepon operator) → melanggar payment → ticket gate di `CLAUDE.md`; butuh keputusan owner dan update `CLAUDE.md`.
+Only if the reporter/owner actually requests a flow change:
+- C1: a new `PAID` status in the enum → migration + change every place that reads `AWAITING_CONFIRMATION`. We do not recommend it: it means the same as `AWAITING_CONFIRMATION`, only the label is needed.
+- C2: tickets issued immediately after payment (skipping the operator phone call) → violates the payment → ticket gate in `CLAUDE.md`; needs an owner decision and an update to `CLAUDE.md`.
 
-## Pertanyaan terbuka
+## Open questions
 
-1. Di mana pelapor melihat "awaiting confirmation": halaman customer `/b/...`, admin bookings, atau email/WhatsApp?
-2. Booking reference tes pembayaran sungguhan itu apa, dan boleh dicek read-only di production (DB + Vercel logs)?
-3. Yang diharapkan "paid" itu cukup label (Rencana A), atau memang status/flow berbeda (Rencana C)?
-4. Poin 3 tiket ("pop-up Pembayaran Berhasil, DONE"): di mana itu diimplementasikan? Di repo ini tidak ditemukan polling status di halaman customer (`/b/[reference]` adalah server component tanpa auto-refresh). Kalau dibuat di branch/repo lain, perlu tahu supaya tidak bentrok.
+1. Where does the reporter see "awaiting confirmation": the customer page `/b/...`, admin bookings, or email/WhatsApp?
+2. What is the booking reference of the real payment test, and may it be checked read-only in production (DB + Vercel logs)?
+3. Is the expected "paid" just a label (Plan A), or really a different status/flow (Plan C)?
+4. Ticket point 3 ("Payment Successful" pop-up, DONE): where is it implemented? No status polling was found on the customer page in this repo (`/b/[reference]` is a server component without auto-refresh). If it was built in another branch/repo, we need to know so as not to conflict.
 
-## Checklist (setelah pertanyaan terjawab)
+## Checklist (after the questions are answered)
 
-- [ ] Verifikasi production read-only (dengan izin) — belum, jadi dugaan "webhook sudah jalan" belum terbukti
-- [x] Pilih Rencana A
-- [x] `customerBookingStatusLabel` di `status-label.ts`; dipakai di `/b/[reference]` dan `/account` (langkah 1)
+- [ ] Read-only production verification (with permission) — not yet, so the hypothesis "the webhook already works" is not proven
+- [x] Choose Plan A
+- [x] `customerBookingStatusLabel` in `status-label.ts`; used in `/b/[reference]` and `/account` (step 1)
 - [x] Unit test `tests/unit/features/booking/status-label.test.ts`
-- [x] E2E: test baru di `tests/e2e/admin-webhooks.spec.ts` (booking `AWAITING_CONFIRMATION` fixture tahun 2090, cek badge `/b/[ref]`; fixture dibersihkan)
-- [x] Docs + `CHANGELOG.md` 1.3.1 + `package.json` (rule 7, 8)
-- [ ] Commit/tag/push `staging` dengan konfirmasi (rule 5); PR ke `main` dengan dua peringatan (rule 9)
+- [x] E2E: new test in `tests/e2e/admin-webhooks.spec.ts` (`AWAITING_CONFIRMATION` booking, year-2090 fixture, checks the `/b/[ref]` badge; fixture cleaned up)
+- [x] Docs + `CHANGELOG.md` 1.3.1 + `package.json` (rules 7, 8)
+- [ ] Commit/tag/push `staging` with confirmation (rule 5); PR to `main` with two warnings (rule 9)
 
 ## QC
 
-- `pnpm lint` 0 error (1 warning lama di `postcss.config.mjs`); `pnpm typecheck` bersih; `pnpm vitest run` 963 lulus (62 file).
-- `pnpm exec playwright test tests/e2e/admin-webhooks.spec.ts`: 4 lulus terhadap DB staging (`asymnwikxyhipoezoggp`), termasuk test baru yang memuat `/b/BK-2090-06-WHKPD1` dan melihat "Paid · confirming your seat", tanpa "AWAITING CONFIRMATION". Fixture dihapus oleh `afterAll`.
+- `pnpm lint` 0 errors (1 existing warning in `postcss.config.mjs`); `pnpm typecheck` clean; `pnpm vitest run` 963 pass (62 files).
+- `pnpm exec playwright test tests/e2e/admin-webhooks.spec.ts`: 4 pass against the staging DB (`asymnwikxyhipoezoggp`), including the new test that loads `/b/BK-2090-06-WHKPD1` and sees "Paid · confirming your seat", without "AWAITING CONFIRMATION". The fixture is deleted by `afterAll`.
 
-**Tidak diverifikasi:** klik manual di browser (hanya Playwright), halaman `/account` secara visual (hanya typecheck; labelnya dites di unit test), bahasa selain Inggris (halaman tidak memakai i18n untuk badge status), email/WhatsApp (tidak ditemukan yang menampilkan enum mentah), halaman operator `/operator/penjualan` (masih enum mentah; operator tidak memakai app), production (off-limits) sehingga dugaan bahwa webhook DOKU sudah jalan belum terbukti. Server log e2e menampilkan peringatan lama "Decimal objects are not supported" dari halaman admin; bukan dari perubahan ini.
+**Not verified:** manual clicking in the browser (Playwright only), the `/account` page visually (typecheck only; the label is tested in the unit test), languages other than English (the page does not use i18n for the status badge), email/WhatsApp (none found that show the raw enum), the operator page `/operator/penjualan` (still the raw enum; operators do not use the app), production (off-limits) so the hypothesis that the DOKU webhook already works is not proven. The e2e server log shows the existing "Decimal objects are not supported" warning from the admin page; it is not from this change.

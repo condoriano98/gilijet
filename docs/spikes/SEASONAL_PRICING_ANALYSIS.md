@@ -1,165 +1,165 @@
 # Seasonal Pricing — Analysis & Plan
 
-**Status:** Implemented (commit `8106454`, rilis **v1.1.0**), ada di `origin/staging`, dan schema + RLS + seed sudah diterapkan ke DB staging (2026-10-13). QC kode selesai dan cek manual dilakukan (2026-10-14, dev server lokal + DB staging). Belum ke production. Konfirmasi di staging Vercel yang ter-deploy (`gilijet.vercel.app`) masih pending sampai commit terbaru di-push dan ter-deploy.
+**Status:** Implemented (commit `8106454`, release **v1.1.0**), is on `origin/staging`, and the schema + RLS + seed have been applied to the staging DB (2026-10-13). Code QC is done and a manual check was performed (2026-10-14, local dev server + staging DB). Not in production yet. Confirmation on the deployed Vercel staging (`gilijet.vercel.app`) is still pending until the latest commit is pushed and deployed.
 **Created:** 2026-09-28 · **Revised:** 2026-10-13
-**Scope:** Wahana saja (belum ada boat lain)
+**Scope:** Wahana only (no other boats yet)
 
-## Tujuan
+## Goal
 
-Harga tiket saat ini statis. Harga harus ikut season pada tanggal keberangkatan: **LOW, HIGH, PEAK, OFF** (UAC menulis "MEDIUM" di beberapa tempat; data season memakai HIGH, jadi enum final = HIGH). Admin bisa mengelola data season. Tanpa data season → fallback ke harga default.
+Ticket prices are currently static. Prices must follow the season on the departure date: **LOW, HIGH, PEAK, OFF** (the UAC writes "MEDIUM" in some places; the season data uses HIGH, so the final enum = HIGH). Admins can manage the season data. No season data → fall back to the default price.
 
-## Data season (dari bisnis)
+## Season data (from the business)
 
-| Season | Mulai | Selesai | Note |
+| Season | Start | End | Note |
 |---|---|---|---|
-| PEAK | 25 Des | 25 Des | |
+| PEAK | 25 Dec | 25 Dec | |
 | PEAK | 1 Jan | 2 Jan | |
 | HIGH | 3 Jan | 31 Jan | |
-| HIGH | 1 Des | 31 Des | |
+| HIGH | 1 Dec | 31 Dec | |
 | LOW | 1 Feb | 28 Feb | |
 | LOW | 1 Mar | 31 Mar | |
 | LOW | 1 Apr | 30 Apr | |
 | OFF | 27 Mar | 27 Mar | Nyepi |
 
-- Mei–Nov tidak ada baris → fallback default (harga LOW / `basePrice`).
-- Rentang boleh overlap (PEAK 25 Des di dalam HIGH Des; OFF 27 Mar di dalam LOW Mar).
-- **Precedence:** OFF > PEAK > HIGH/LOW; jika sama, rentang paling sempit menang.
-- Tanggal disimpan dengan tahun (Nyepi bergeser tiap tahun), bukan recurring.
+- May–Nov have no rows → fall back to default (LOW price / `basePrice`).
+- Ranges may overlap (PEAK 25 Dec inside HIGH Dec; OFF 27 Mar inside LOW Mar).
+- **Precedence:** OFF > PEAK > HIGH/LOW; if equal, the narrowest range wins.
+- Dates are stored with the year (Nyepi shifts every year), not recurring.
 
-## Keputusan
+## Decisions
 
-1. **Harga per season disimpan di `Schedule.fareMatrix`**, bukan di tabel season. Struktur `[oneWay|return][low|high|peak][adult|child|infant]` sudah ada (`src/features/pricing/fares.ts`) dan cocok dengan enum season. Tabel `Season` hanya kalender: tanggal → tipe season.
-2. **`basePrice` = fallback.** Schedule tanpa `fareMatrix` tetap memakai `basePrice` + multiplier penumpang yang ada (season tidak mengubah harga). Saat ini hanya schedule Wahana yang punya `fareMatrix` (`scripts/import-wahana-schedule.ts`); itu cukup untuk scope ini. Tidak ada editor `fareMatrix` di admin.
-3. **Resolve saat tampil & booking** lewat satu resolver, bukan saat generate leg. Leg hanya digenerate 60 hari ke depan (`BOOKING_HORIZON_DAYS`) dan idempotent, jadi harga yang ditulis saat generate akan basi kalau season diubah.
-4. **OFF = tidak tersedia**: leg tidak muncul/tidak bisa dibooking.
-5. **Override manual menang atas season.** `adjustDeparturePrice` (super admin) menandai `Leg.priceOverridden = true`; resolver melewati season untuk leg itu.
-6. **Booking existing tidak dihitung ulang.** Harga sudah snapshot sebagai `totalAmount` saat booking dibuat; `Booking.seasonSnapshot` (Json) mencatat season yang dipakai untuk audit.
-7. **Round trip** tetap memakai sel `oneWay` per leg (perilaku sekarang); sel `return` di luar scope.
+1. **Per-season prices are stored in `Schedule.fareMatrix`**, not in the season table. The structure `[oneWay|return][low|high|peak][adult|child|infant]` already exists (`src/features/pricing/fares.ts`) and matches the season enum. The `Season` table is only a calendar: date → season type.
+2. **`basePrice` = fallback.** A schedule without `fareMatrix` still uses the existing `basePrice` + passenger multiplier (season does not change the price). Currently only Wahana schedules have a `fareMatrix` (`scripts/import-wahana-schedule.ts`); that is enough for this scope. There is no `fareMatrix` editor in admin.
+3. **Resolve at display & booking time** through a single resolver, not at leg generation time. Legs are only generated 60 days ahead (`BOOKING_HORIZON_DAYS`) and are idempotent, so a price written at generation time would go stale if the seasons change.
+4. **OFF = unavailable**: the leg does not appear / cannot be booked.
+5. **Manual override wins over season.** `adjustDeparturePrice` (super admin) marks `Leg.priceOverridden = true`; the resolver skips the season for that leg.
+6. **Existing bookings are not recalculated.** The price is already snapshotted as `totalAmount` when the booking is created; `Booking.seasonSnapshot` (Json) records the season used for audit.
+7. **Round trip** keeps using the `oneWay` cell per leg (current behaviour); the `return` cell is out of scope.
 
-## Kondisi kode saat ini
+## Current state of the code
 
-| Area | Lokasi |
+| Area | Location |
 |---|---|
-| Engine harga | `src/features/pricing/pricing.ts` — `computeBookingPriceWithTypes({ unitPrice, … categoryUnitPrices })` |
-| Booking | `src/features/booking/engine.ts` — `leg.basePrice` dipakai di ~165, 192 (one-way) dan ~284, 291, 324, 335 (round trip); hanya total yang disimpan di `Booking` |
-| Fare matrix | `src/features/pricing/fares.ts` — `categoryFaresFor()` hard-coded ke `oneWay.low` ("no season resolver") |
-| Leg | `src/features/schedules/legs.ts` — `generateLegsForSchedule` menyalin `schedule.basePrice` |
-| Override admin | `src/app/admin/(authed)/operations/actions.ts` — `adjustDeparturePrice` |
-| Zona waktu | `src/shared/lib/datetime.ts` — `ymdInZone()` (WITA) |
+| Pricing engine | `src/features/pricing/pricing.ts` — `computeBookingPriceWithTypes({ unitPrice, … categoryUnitPrices })` |
+| Booking | `src/features/booking/engine.ts` — `leg.basePrice` is used at ~165, 192 (one-way) and ~284, 291, 324, 335 (round trip); only the total is stored on `Booking` |
+| Fare matrix | `src/features/pricing/fares.ts` — `categoryFaresFor()` hard-coded to `oneWay.low` ("no season resolver") |
+| Leg | `src/features/schedules/legs.ts` — `generateLegsForSchedule` copies `schedule.basePrice` |
+| Admin override | `src/app/admin/(authed)/operations/actions.ts` — `adjustDeparturePrice` |
+| Timezone | `src/shared/lib/datetime.ts` — `ymdInZone()` (WITA) |
 
-Saat dokumen ini ditulis tidak ada migrations (`prisma db push`) dan tidak ada RLS/SQL di repo; sejak 2026-10-14 schema berupa Prisma migrations (lihat `VERSIONING.md`). Auth custom (JWT), Prisma memakai DB role.
+When this document was written there were no migrations (`prisma db push`) and no RLS/SQL in the repo; since 2026-10-14 the schema is Prisma migrations (see `VERSIONING.md`). Auth is custom (JWT), Prisma uses a DB role.
 
-### Pembaca `basePrice` yang harus lewat resolver
+### `basePrice` readers that must go through the resolver
 
-Supaya harga yang tampil = harga yang ditagih:
+So that the displayed price = the charged price:
 
-- Search: `src/app/(customer)/[locale]/search/page.tsx` (filter maxPrice, sort, tampil), `_components/round-trip-leg-selector.tsx`
-- Book page: `book/[legId]/page.tsx` (menduplikasi logic child/infant dari engine — hapus duplikasi)
+- Search: `src/app/(customer)/[locale]/search/page.tsx` (maxPrice filter, sort, display), `_components/round-trip-leg-selector.tsx`
+- Book page: `book/[legId]/page.tsx` (duplicates the child/infant logic from the engine — remove the duplication)
 - `b/[reference]/page.tsx`, `b/[reference]/reschedule/page.tsx`
-- `src/features/booking/notifications.ts` (email round trip; saat ini juga mengabaikan diskon/child fare)
+- `src/features/booking/notifications.ts` (round-trip email; currently also ignores discount/child fare)
 - `src/features/schedules/connection-search.ts`, `home-data.ts`, `src/mcp/tools.ts`
 - POS: `src/app/operator/pos/page.tsx`, `pos-client.tsx`
 
-## Rencana implementasi
+## Implementation plan
 
-1. **Schema:** `enum SeasonType { LOW HIGH PEAK OFF }`; `model Season { id, type, startDate @db.Date, endDate @db.Date, note?, isActive, createdAt, updatedAt, deletedAt? }` + index `(startDate, endDate)`; `Leg.priceOverridden`; `Booking.seasonSnapshot Json?`; `SEASON` di `AuditEntityType`.
-2. **RLS (kini di migrasi `1_round_trip_and_seasonal_pricing`, bukan `prisma/sql/`; teks di bawah adalah rencana awal):** `prisma/sql/season-rls.sql` (public `SELECT` hanya baris aktif & belum dihapus, tanpa policy tulis). `db push` tidak membuat policy, jadi diapply manual **setelah** push dengan `prisma db execute --file prisma/sql/season-rls.sql` memakai env target. Supabase MCP *tidak* dipakai: project staging tidak terdaftar di MCP. RLS hanya melindungi akses PostgREST langsung; "admin write" ditegakkan `requireSuperAdmin` di app.
-3. **Resolver** `src/features/pricing/seasons.ts`: `resolveSeason` (pure), `getSeasonForDate` (query), batch loader untuk list, `resolveLegFares`. Perluas `categoryFaresFor(matrix, season)`. Kunci tanggal = `ymdInZone(departureDate)`.
-4. **Engine:** ganti `leg.basePrice` dengan hasil resolver; OFF → tolak booking; tulis `seasonSnapshot`.
-5. **Override:** set `priceOverridden` di `adjustDeparturePrice`.
-6. **Display:** semua pembaca di atas + badge season di hasil search.
-7. **Admin CRUD:** tab "Seasons" di `console/layout.tsx`, template dari `console/coupons/`; guard `requireAdmin`/`requireSuperAdmin`, Zod, `audit()`, soft-delete.
-8. **Seed:** season deterministik di `scripts/seed-qa.ts` + seed 2026/27 dari tabel di atas.
+1. **Schema:** `enum SeasonType { LOW HIGH PEAK OFF }`; `model Season { id, type, startDate @db.Date, endDate @db.Date, note?, isActive, createdAt, updatedAt, deletedAt? }` + index `(startDate, endDate)`; `Leg.priceOverridden`; `Booking.seasonSnapshot Json?`; `SEASON` in `AuditEntityType`.
+2. **RLS (now in migration `1_round_trip_and_seasonal_pricing`, not `prisma/sql/`; the text below is the original plan):** `prisma/sql/season-rls.sql` (public `SELECT` only on active & not-deleted rows, no write policy). `db push` does not create policies, so it is applied manually **after** the push with `prisma db execute --file prisma/sql/season-rls.sql` using the target env. The Supabase MCP is *not* used: the staging project is not registered in the MCP. RLS only protects direct PostgREST access; "admin write" is enforced by `requireSuperAdmin` in the app.
+3. **Resolver** `src/features/pricing/seasons.ts`: `resolveSeason` (pure), `getSeasonForDate` (query), batch loader for lists, `resolveLegFares`. Extend `categoryFaresFor(matrix, season)`. Date key = `ymdInZone(departureDate)`.
+4. **Engine:** replace `leg.basePrice` with the resolver result; OFF → reject the booking; write `seasonSnapshot`.
+5. **Override:** set `priceOverridden` in `adjustDeparturePrice`.
+6. **Display:** all the readers above + a season badge in search results.
+7. **Admin CRUD:** "Seasons" tab in `console/layout.tsx`, templated from `console/coupons/`; `requireAdmin`/`requireSuperAdmin` guard, Zod, `audit()`, soft-delete.
+8. **Seed:** deterministic seasons in `scripts/seed-qa.ts` + 2026/27 seed from the table above.
 
-## Acceptance Criteria (UAC) → verifikasi
+## Acceptance Criteria (UAC) → verification
 
-| UAC | Cara verifikasi |
+| UAC | How to verify |
 |---|---|
-| Tabel season dibuat sesuai struktur | migrasi `1_round_trip_and_seasonal_pricing` (`migrate deploy`) + cek schema; drift kosong |
-| RLS terkonfigurasi | Query anon: SELECT ok, INSERT/UPDATE/DELETE ditolak |
-| Harga frontend berubah sesuai season | E2E: tanggal LOW/HIGH/PEAK/OFF, harga search = book page = total booking |
-| 25 Des tampil PEAK walau bulan HIGH | Unit `seasons.test.ts` + E2E |
-| Nyepi (OFF) tidak tersedia | Unit + E2E: leg tidak bisa dibooking |
-| Fallback tanpa data season | Unit: Mei → default; schedule tanpa `fareMatrix` → `basePrice` |
-| Tidak ada regresi booking | `pnpm test:e2e`, `pnpm test:unit` (update mock `tests/support/test-utils.ts` dan engine tests) |
+| Season table created per the structure | migration `1_round_trip_and_seasonal_pricing` (`migrate deploy`) + schema check; no drift |
+| RLS configured | Anon query: SELECT ok, INSERT/UPDATE/DELETE rejected |
+| Frontend price changes per season | E2E: LOW/HIGH/PEAK/OFF dates, search price = book page = booking total |
+| 25 Dec shows PEAK even though the month is HIGH | Unit `seasons.test.ts` + E2E |
+| Nyepi (OFF) is unavailable | Unit + E2E: leg cannot be booked |
+| Fallback without season data | Unit: May → default; schedule without `fareMatrix` → `basePrice` |
+| No booking regression | `pnpm test:e2e`, `pnpm test:unit` (update the `tests/support/test-utils.ts` mock and engine tests) |
 
-Edge case unit test: keberangkatan 06:00 WITA jatuh di hari UTC sebelumnya (jangan pakai `getMonth()`/`getDate()` UTC).
+Unit test edge case: a 06:00 WITA departure falls on the previous UTC day (do not use UTC `getMonth()`/`getDate()`).
 
-## Risiko
+## Risks
 
-- **Konsistensi harga:** pembaca `basePrice` yang terlewat akan menampilkan harga beda dari total booking. Mitigasi: satu resolver + grep `basePrice` sebelum merge.
-- **Perubahan season setelah ada booking:** booking lama tidak berubah (snapshot total); hold PENDING_PAYMENT juga tidak dihitung ulang karena harga dihitung sekali saat booking dibuat.
-- **N+1:** list search/home harus pakai batch loader.
-- **Input tahunan:** season per-tahun harus diinput admin tiap tahun (terutama Nyepi).
-- **Mock test:** query season baru di engine memaksa update mock Prisma di test.
+- **Price consistency:** a missed `basePrice` reader will show a price different from the booking total. Mitigation: a single resolver + grep `basePrice` before merging.
+- **Season change after bookings exist:** old bookings do not change (total snapshot); PENDING_PAYMENT holds are also not recalculated because the price is computed once when the booking is created.
+- **N+1:** search/home lists must use the batch loader.
+- **Yearly input:** per-year seasons must be entered by an admin every year (especially Nyepi).
+- **Test mocks:** the new season query in the engine forces an update of the Prisma mock in tests.
 
-## Status implementasi (2026-10-13)
+## Implementation status (2026-10-13)
 
-| Langkah | Status |
+| Step | Status |
 |---|---|
-| 1. Schema (`Season`, `SeasonType`, `Leg.priceOverridden`, `Booking.seasonSnapshot`, `SEASON` audit) | Done, applied ke staging |
-| 2. RLS | Done, applied ke staging (1 policy, RLS aktif) |
+| 1. Schema (`Season`, `SeasonType`, `Leg.priceOverridden`, `Booking.seasonSnapshot`, `SEASON` audit) | Done, applied to staging |
+| 2. RLS | Done, applied to staging (1 policy, RLS enabled) |
 | 3. Resolver `src/features/pricing/seasons.ts` | Done (`resolveSeason`, `legPricingInputs`, `withSeasonPrice`, `adultFareFromSnapshot`) |
-| 4. Engine: harga dari resolver, OFF → `LEG_CLOSED`, tulis `seasonSnapshot` | Done |
-| 5. Override: `adjustDeparturePrice` set `priceOverridden` | Done |
-| 6. Display: search (+badge High/Peak), round-trip selector, book page, `b/[reference]`, reschedule, home, connection-search, POS, email round trip | Done |
-| 7. Admin CRUD `/admin/console/seasons` (super admin, soft-delete, audit) | Done, belum dicoba di browser |
-| 8. Seed `pnpm seed:seasons` (8 baris 2026/27) | Done, di-seed ke staging |
+| 4. Engine: price from resolver, OFF → `LEG_CLOSED`, write `seasonSnapshot` | Done |
+| 5. Override: `adjustDeparturePrice` sets `priceOverridden` | Done |
+| 6. Display: search (+High/Peak badge), round-trip selector, book page, `b/[reference]`, reschedule, home, connection-search, POS, round-trip email | Done |
+| 7. Admin CRUD `/admin/console/seasons` (super admin, soft-delete, audit) | Done, not yet tried in a browser |
+| 8. Seed `pnpm seed:seasons` (8 rows 2026/27) | Done, seeded to staging |
 
-Sengaja tidak diubah: `src/mcp/tools.ts` dan halaman admin/operator yang menampilkan `basePrice` mentah (itu harga dasar leg, bukan harga customer).
+Intentionally not changed: `src/mcp/tools.ts` and the admin/operator pages that show the raw `basePrice` (that is the leg's base price, not the customer price).
 
-### Keputusan yang diambil saat implementasi
+### Decisions taken during implementation
 
-- Enum final **HIGH** (UAC menulis MEDIUM).
-- Leg dengan override manual di schedule ber-`fareMatrix`: harga anak/bayi sekarang = multiplier × harga override (sebelumnya sel low matrix).
-- Email round trip menghitung harga per leg dari season di `seasonSnapshot`, bukan kalender saat email dikirim.
-- Tidak ada form edit season: hapus lalu tambah ulang.
-- Leg dengan override manual: badge dan `seasonSnapshot` mencatat `season: null` (harganya bukan dari season), tapi hari OFF tetap menutup penjualan.
-- Wahana: tarif anak di `fareMatrix` sama dengan dewasa (data operator, bukan bug resolver).
+- Final enum **HIGH** (the UAC writes MEDIUM).
+- Leg with a manual override on a `fareMatrix` schedule: child/infant price is now multiplier × override price (previously the matrix low cell).
+- The round-trip email computes the per-leg price from the season in `seasonSnapshot`, not from the calendar at the time the email is sent.
+- There is no season edit form: delete and re-add.
+- Leg with a manual override: the badge and `seasonSnapshot` record `season: null` (its price does not come from the season), but OFF days still close sales.
+- Wahana: the child fare in `fareMatrix` equals the adult fare (operator data, not a resolver bug).
 
-### Verifikasi
+### Verification
 
-- **Unit:** 868 test lolos (`seasons.test.ts`: resolver, precedence, WITA day key, `withSeasonPrice`, `legPricingInputs`, `adultFareFromSnapshot`; test engine one-way: OFF ditolak, harga PEAK, snapshot; mock tx diperbarui).
-- **E2E baru, 9 test lolos:**
-  - `tests/e2e/seasonal-pricing.spec.ts` (6): fixture sendiri di 2099 (schedule, leg, `Season`) dan dihapus lagi. Tanpa season, LOW, HIGH, PEAK menang atas HIGH, override manual, OFF tersembunyi dan tidak bisa dibuka di book page. Search = baris Total di book page. Tidak membuat booking.
-  - `tests/e2e/admin-seasons.spec.ts` (3): `/admin/console/seasons` tidak bisa dibuka tanpa login; super admin tambah, ditolak saat end < start (divalidasi server), deactivate, soft-delete + audit log; `adjustDeparturePrice` lewat UI men-set `priceOverridden` dan harga di search ikut berubah sementara leg tetangga tetap mengikuti season.
-- **QC engine terhadap DB staging** (script sementara, sudah dihapus; 18 cek lolos): total one-way untuk tanpa season/LOW/HIGH/PEAK/override sesuai hitungan manual (adult+child+infant), payment amount = total dan `PENDING_PAYMENT`, `seasonSnapshot` benar, OFF ditolak `LEG_CLOSED` tanpa baris booking, round-trip HIGH+PEAK = 525.000 dengan 2 entri snapshot, round-trip dengan return OFF ditolak, booking lama tidak berubah saat season dinonaktifkan, booking baru kembali ke harga normal saat season dinonaktifkan/di-soft-delete. Booking dan fixture uji dihapus; staging bersih.
-- **Render sweep:** home, search (normal, round-trip, koneksi), reschedule, `/operator/pos`, `/operator/schedules` tanpa error.
-- **Live di staging** (`/search` Padang Bai → Gili Trawangan): 1 Des 2026 Rp 500.000 + badge High; 25 Des Rp 700.000 + badge Peak; 27 Mar 2027 (Nyepi) tidak ada keberangkatan; 26 Mar Rp 450.000.
-- **Tidak diuji (disengaja):** pembayaran sukses, penerbitan tiket, email/WA boarding pass. Env staging memakai DOKU dan PayPal **production** (`*_IS_PRODUCTION="true"`) beserta kunci WATI/Resend asli. Untuk QC, semua kunci itu dikosongkan di proses dev server/script (mode mock) dan booking hanya dibuat sampai `PENDING_PAYMENT`.
-- Test E2E booking lama (customer, round-trip, admin refund) masih di-skip sejak sebelumnya; alur booking sampai bayar belum diuji E2E.
+- **Unit:** 868 tests pass (`seasons.test.ts`: resolver, precedence, WITA day key, `withSeasonPrice`, `legPricingInputs`, `adultFareFromSnapshot`; one-way engine tests: OFF rejected, PEAK price, snapshot; tx mock updated).
+- **New E2E, 9 tests pass:**
+  - `tests/e2e/seasonal-pricing.spec.ts` (6): own fixtures in 2099 (schedule, leg, `Season`) and deleted again. No season, LOW, HIGH, PEAK wins over HIGH, manual override, OFF hidden and cannot be opened on the book page. Search = Total row on the book page. Does not create a booking.
+  - `tests/e2e/admin-seasons.spec.ts` (3): `/admin/console/seasons` cannot be opened without login; super admin adds, rejected when end < start (validated by the server), deactivates, soft-delete + audit log; `adjustDeparturePrice` through the UI sets `priceOverridden` and the price in search follows while the neighbouring leg keeps following the season.
+- **Engine QC against the staging DB** (temporary script, since deleted; 18 checks pass): one-way totals for no season/LOW/HIGH/PEAK/override match the manual calculation (adult+child+infant), payment amount = total and `PENDING_PAYMENT`, `seasonSnapshot` correct, OFF rejected with `LEG_CLOSED` without a booking row, round-trip HIGH+PEAK = 525.000 with 2 snapshot entries, round-trip with an OFF return rejected, old bookings unchanged when a season is deactivated, new bookings return to the normal price when a season is deactivated/soft-deleted. Test bookings and fixtures deleted; staging is clean.
+- **Render sweep:** home, search (normal, round-trip, connection), reschedule, `/operator/pos`, `/operator/schedules` without errors.
+- **Live on staging** (`/search` Padang Bai → Gili Trawangan): 1 Dec 2026 Rp 500.000 + High badge; 25 Dec Rp 700.000 + Peak badge; 27 Mar 2027 (Nyepi) no departures; 26 Mar Rp 450.000.
+- **Not tested (deliberate):** successful payment, ticket issuance, boarding pass email/WA. The staging env uses **production** DOKU and PayPal (`*_IS_PRODUCTION="true"`) plus real WATI/Resend keys. For QC, all those keys were emptied in the dev server/script process (mock mode) and bookings were only created up to `PENDING_PAYMENT`.
+- The old booking E2E tests (customer, round-trip, admin refund) have been skipped since before; the booking flow through to payment has not been E2E-tested.
 
-### Cek manual 2026-10-14 (dilakukan lewat browser otomatis; screenshot dilihat langsung)
+### Manual check 2026-10-14 (done through an automated browser; screenshots viewed directly)
 
-Dev server lokal dengan kode terbaru terhadap DB staging; kunci DOKU, PayPal, WATI dan Resend dikosongkan di proses, jadi checkout berjalan di mode mock ("TEST MODE", "Test card pre-filled — no real charge"). **Tombol bayar tidak pernah diklik.** Bukan situs staging Vercel yang ter-deploy.
+Local dev server with the latest code against the staging DB; DOKU, PayPal, WATI and Resend keys were emptied in the process, so checkout ran in mock mode ("TEST MODE", "Test card pre-filled — no real charge"). **The pay button was never clicked.** Not the deployed Vercel staging site.
 
-| Alur | Hasil |
+| Flow | Result |
 |---|---|
-| `/search` tanggal HIGH dan PEAK | Badge "High season" / "Peak season"; harga per orang Rp 150.000 / Rp 200.000; tombol "Book 2" memakai harga season |
-| Form booking (1 dewasa + 1 anak) | Rincian per tipe penumpang; total HIGH Rp 225.000, PEAK Rp 300.000; tombol "Pay Rp …" sama dengan total |
-| Submit form | Redirect ke halaman bayar dengan total yang sama. Baris `Booking` `PENDING_PAYMENT`, `Payment` `PENDING` dengan jumlah sama, `seasonSnapshot` mencatat season |
-| Tanggal OFF | Tidak ada keberangkatan di search; halaman book menolak ("no longer accepting bookings"); tidak ada baris booking |
-| `/admin/console/seasons` | 8 baris terseed tampil, urut tanggal, badge tipe benar; form tambah rentang tersedia |
+| `/search` HIGH and PEAK dates | "High season" / "Peak season" badge; per-person price Rp 150.000 / Rp 200.000; the "Book 2" button uses the season price |
+| Booking form (1 adult + 1 child) | Breakdown per passenger type; total HIGH Rp 225.000, PEAK Rp 300.000; the "Pay Rp …" button equals the total |
+| Form submit | Redirect to the payment page with the same total. `Booking` row `PENDING_PAYMENT`, `Payment` `PENDING` with the same amount, `seasonSnapshot` records the season |
+| OFF date | No departures in search; the book page refuses ("no longer accepting bookings"); no booking row |
+| `/admin/console/seasons` | The 8 seeded rows are shown, ordered by date, correct type badges; add-range form available |
 
-Otomatisasi: `tests/e2e/seasonal-booking.spec.ts` (3 test) mengulang alur form sampai halaman bayar tanpa membayar; screenshot hanya dengan `QC_SHOTS=1`. Fixture 2099 dihapus setelahnya (0 sisa di staging). Tidak diuji: pembayaran sukses, pengiriman email/WA nyata, tampilan mobile.
+Automation: `tests/e2e/seasonal-booking.spec.ts` (3 tests) repeats the form flow up to the payment page without paying; screenshots only with `QC_SHOTS=1`. The 2099 fixture was deleted afterwards (0 left on staging). Not tested: successful payment, sending real email/WA, mobile view.
 
-### Temuan QC di luar scope season
+### QC findings outside the season scope
 
-- `/b/<reference>` untuk booking ber-tiket error di env ini: `QR_HMAC_SECRET` < 32 karakter (log `[env] Invalid or missing variables`), tanda tangan QR gagal di `qr.ts`. Perbaiki secret di env staging. Akibatnya tampilan saran return leg di halaman itu belum terlihat visual (query-nya sudah jalan tanpa error sebelum crash).
-- `operator-manifest.spec.ts` memakai `waitForURL(/\/operator(\/|$)/)` yang juga cocok dengan `/operator/login`, jadi bisa lolos tanpa benar-benar login.
-- Harga season di POS tidak terlihat saat QC karena tidak ada keberangkatan dalam 8 jam; logikanya sama dengan yang diuji di engine.
+- `/b/<reference>` for a ticketed booking errors in this env: `QR_HMAC_SECRET` < 32 characters (log `[env] Invalid or missing variables`), QR signing fails in `qr.ts`. Fix the secret in the staging env. As a result the return-leg suggestion view on that page has not been seen visually (its query ran without error before the crash).
+- `operator-manifest.spec.ts` uses `waitForURL(/\/operator(\/|$)/)` which also matches `/operator/login`, so it can pass without actually logging in.
+- The season price in POS was not visible during QC because there are no departures within 8 hours; the logic is the same as what was tested in the engine.
 
-### Belum
+### Remaining
 
-- Cek manual owner di browser: alur booking sampai halaman bayar (jangan bayar; DOKU/PayPal di env ini production), tampilan tab Seasons, badge di kartu search.
-- ~~Reschedule customer belum menolak leg tujuan di hari OFF di server~~ — selesai di v1.1.1: `submitRescheduleAction` memakai `legPricingInputs(...).closed`. E2E: `tests/e2e/reschedule-season.spec.ts`.
-- ~~`take` pada departing-soon (home) dan kandidat reschedule dipotong sebelum leg OFF dibuang~~ — selesai di v1.2.0: `take` dihapus, `.slice(limit)` setelah `withSeasonPrice`. Unit test di `home-data.test.ts`.
-- Boat selain Wahana: butuh `fareMatrix` (atau keputusan baru, mis. multiplier) sebelum season berlaku untuk mereka.
-- Kalender season harus diisi admin tiap tahun (terutama Nyepi); seed hanya mencakup 2026/27.
-- Struktur kolom dari attachment tiket belum dilihat; kolom `Season` diasumsikan dari data. Cocokkan sebelum prod.
+- Owner's manual check in the browser: booking flow up to the payment page (do not pay; DOKU/PayPal in this env are production), the Seasons tab view, the badge on search cards.
+- ~~Customer reschedule does not yet reject a destination leg on an OFF day on the server~~ — done in v1.1.1: `submitRescheduleAction` uses `legPricingInputs(...).closed`. E2E: `tests/e2e/reschedule-season.spec.ts`.
+- ~~`take` on departing-soon (home) and reschedule candidates is truncated before OFF legs are dropped~~ — done in v1.2.0: `take` removed, `.slice(limit)` after `withSeasonPrice`. Unit test in `home-data.test.ts`.
+- Boats other than Wahana: need a `fareMatrix` (or a new decision, e.g. a multiplier) before seasons apply to them.
+- The season calendar must be filled in by an admin every year (especially Nyepi); the seed only covers 2026/27.
+- The column structure from the ticket attachment has not been seen; the `Season` columns are assumed from the data. Match them before prod.
 
 ### Deploy / prod
 
-- (Diganti 2026-10-14: build sekarang menjalankan `prisma migrate deploy` lewat `scripts/db-migrate-if-configured.mjs`; baseline production belum dilakukan.) Sebelumnya `pnpm build` menjalankan `scripts/db-push-if-configured.mjs` (`prisma db push`, tanpa `--accept-data-loss`) di setiap build Vercel memakai env build itu. Merge ke branch prod otomatis menerapkan perubahan schema ini ke DB prod (additive). Tahan merge sampai siap, atau set `SKIP_DB_PUSH=1` di env prod.
-- Setelah schema ada di prod: RLS ikut migrasi `1_…`; `pnpm seed:seasons` dengan env prod tetap dijalankan secara sadar (lihat `docs/RELEASING.md`).
-- DB lokal (`.env`, `.env.local`) dan `.env.staging` menunjuk project Supabase yang sama (staging), sehingga `pnpm seed:qa` / `test:e2e` dari mesin dev menulis ke staging.
+- (Replaced 2026-10-14: the build now runs `prisma migrate deploy` through `scripts/db-migrate-if-configured.mjs`; the production baseline has not been done.) Previously `pnpm build` ran `scripts/db-push-if-configured.mjs` (`prisma db push`, without `--accept-data-loss`) on every Vercel build using that build's env. Merging to the prod branch automatically applied this schema change to the prod DB (additive). Hold the merge until ready, or set `SKIP_DB_PUSH=1` in the prod env.
+- Once the schema is in prod: RLS comes with migration `1_…`; `pnpm seed:seasons` with the prod env is still run deliberately (see `docs/RELEASING.md`).
+- The local DB (`.env`, `.env.local`) and `.env.staging` point to the same Supabase project (staging), so `pnpm seed:qa` / `test:e2e` from a dev machine write to staging.

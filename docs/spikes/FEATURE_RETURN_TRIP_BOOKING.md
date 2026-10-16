@@ -10,26 +10,26 @@
 
 ## 📌 Overview
 
-Aktifkan fitur booking return (pulang-pergi) end-to-end sehingga customer bisa memesan tiket round trip dalam satu transaksi, bukan perlu booking dua kali.
+Enable the return (round trip) booking feature end-to-end so customers can book round-trip tickets in a single transaction instead of booking twice.
 
 ---
 
 ## 👤 User Story
 
 ```
-Sebagai customer,
-Saya ingin bisa memesan tiket pulang-pergi (return) dalam satu transaksi,
-Agar lebih efisien dan tidak perlu booking dua kali.
+As a customer,
+I want to book a round-trip (return) ticket in a single transaction,
+So that it is more efficient and I do not need to book twice.
 ```
 
-**Latar Belakang:** Pilihan "Return" sudah ada di UI pencarian, tapi belum berfungsi — customer tidak bisa menyelesaikan booking return hingga pembayaran.
+**Background:** The "Return" option already exists in the search UI, but does not work yet — customers cannot complete a return booking through to payment.
 
 ---
 
 ## 🎯 Approach: Single Booking with Dual Legs
 
-### Prinsip
-- **1 Booking Record** (mencakup outbound + return)
+### Principle
+- **1 Booking Record** (covers outbound + return)
 - **1 Payment** (covers both legs)
 - **1 Email** (shows both legs)
 - **Stored with:** `outboundLegId` + `returnLegId` (references to both legs)
@@ -45,7 +45,7 @@ Round Trip Transaction
 │  ├─ returnLegId: LEG-2026-002
 │  │  └─ Jakarta → Bali (26 Des, 15:00)
 │  │
-│  ├─ passengers: [Budi, Ani, Citra] (sama untuk outbound & return)
+│  ├─ passengers: [Budi, Ani, Citra] (same for outbound & return)
 │  ├─ status: PENDING_PAYMENT
 │  ├─ tripType: "ROUND_TRIP"
 │  │
@@ -73,71 +73,71 @@ Round Trip Transaction
 
 ## ✅ Acceptance Criteria
 
-### Search & Pilih Jadwal
-- [x] User bisa memilih "One Way" atau "Return" di halaman search — _search-form.tsx: `tripType` one_way/round_trip_
-- [x] Untuk Return: user bisa input tanggal & memilih jadwal pulang — _search-form.tsx: `returnDate`; round-trip-leg-selector_
-- [x] Hasil pencarian menampilkan pilihan jadwal untuk kedua arah (berangkat & pulang) — _diverifikasi di staging, BUGS_ROUND_TRIP.md bug #1_
+### Search & Select Schedule
+- [x] User can choose "One Way" or "Return" on the search page — _search-form.tsx: `tripType` one_way/round_trip_
+- [x] For Return: user can enter a date & choose a return schedule — _search-form.tsx: `returnDate`; round-trip-leg-selector_
+- [x] Search results show schedule options for both directions (outbound & return) — _verified on staging, BUGS_ROUND_TRIP.md bug #1_
 
 ### Booking Flow
-- [x] Satu booking ID mencakup kedua perjalanan (outbound + return) — _engine.ts `createRoundTripBooking`; engine-round-trip.test.ts_
-- [x] Data penumpang diisi sekali untuk kedua perjalanan — _book page: "same passengers apply to both legs"_
-- [x] Total harga terhitung benar (outbound + return) — _engine.ts menjumlah kedua leg; QC season: HIGH+PEAK = 525.000_
-- [x] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z" — _v1.2.0: `roundTripBreakdown` (helpers.ts) + `BookingPriceSummary`; e2e `round-trip-booking.spec.ts` (Outbound Rp 225.000, Return Rp 300.000, Total Rp 525.000), screenshot dilihat_
+- [x] One booking ID covers both trips (outbound + return) — _engine.ts `createRoundTripBooking`; engine-round-trip.test.ts_
+- [x] Passenger data is entered once for both trips — _book page: "same passengers apply to both legs"_
+- [x] Total price is calculated correctly (outbound + return) — _engine.ts sums both legs; QC season: HIGH+PEAK = 525.000_
+- [x] User lihat summary: "Outbound: Rp X | Return: Rp Y | Total: Rp Z" — _v1.2.0: `roundTripBreakdown` (helpers.ts) + `BookingPriceSummary`; e2e `round-trip-booking.spec.ts` (Outbound Rp 225.000, Return Rp 300.000, Total Rp 525.000), screenshot viewed_
 
 ### Database
-- [x] Booking model punya `outboundLegId` field (reference ke leg outbound) — _schema.prisma_
-- [x] Booking model punya `returnLegId` field (reference ke leg return) — _schema.prisma_
-- [x] Booking model punya `tripType` field ("ONE_WAY" | "ROUND_TRIP") — _schema.prisma_
-- [x] 1 Booking record created (mencakup 2 legs) — _engine.ts `createBookingRow`_
-- [x] 1 Payment record created (covers both) — _engine.ts: nested `payment.create` satu kali_
-- [x] Booking return tersimpan dengan referensi ke kedua jadwal — _outboundLegId + returnLegId_
+- [x] Booking model has an `outboundLegId` field (reference to the outbound leg) — _schema.prisma_
+- [x] Booking model has a `returnLegId` field (reference to the return leg) — _schema.prisma_
+- [x] Booking model has a `tripType` field ("ONE_WAY" | "ROUND_TRIP") — _schema.prisma_
+- [x] 1 Booking record created (covers 2 legs) — _engine.ts `createBookingRow`_
+- [x] 1 Payment record created (covers both) — _engine.ts: nested `payment.create` once_
+- [x] Return booking is stored with references to both schedules — _outboundLegId + returnLegId_
 
 ### Admin Dashboard
-- [x] Admin bisa melihat detail kedua leg di dashboard — _diverifikasi di staging, bug #3_
-- [x] Admin bisa filter bookings by type (ONE_WAY vs ROUND_TRIP) — _v1.2.0: chip "Trip Type" di `/admin/bookings`, `buildBookingWhere` (admin-filters.ts) dipakai juga oleh CSV; e2e `admin-bookings-filter.spec.ts`_
+- [x] Admin can see the details of both legs in the dashboard — _verified on staging, bug #3_
+- [x] Admin can filter bookings by type (ONE_WAY vs ROUND_TRIP) — _v1.2.0: chip "Trip Type" on `/admin/bookings`, `buildBookingWhere` (admin-filters.ts) also used by the CSV export; e2e `admin-bookings-filter.spec.ts`_
 - [x] Admin view shows: booking ref, outbound leg, return leg, combined total — _booking-row.tsx (`isRoundTrip`); admin-booking-display.test.ts_
 
-### Notifications & E-Tiket
-- [ ] Email: 1 email dengan subject "Round Trip Booking Confirmed" — _subject sebenarnya "Your Gilifast booking <ref>" / "Payment received for <ref>"; isi menyebut kedua leg_
+### Notifications & E-Tickets
+- [ ] Email: 1 email with subject "Round Trip Booking Confirmed" — _the actual subject is "Your Gilifast booking <ref>" / "Payment received for <ref>"; the body mentions both legs_
   - Show outbound details (leg, passengers, price)
   - Show return details (leg, passengers, price)
   - Show total payment & invoice
-- [x] E-tickets: 2 tiket files (1 outbound, 1 return) dalam 1 email — _diverifikasi di staging (email mock), BUGS_ROUND_TRIP.md putaran 2_
-- [x] E-tiket mencantumkan kedua perjalanan secara jelas — _boarding-pass.tsx; diverifikasi di staging (mock)_
-- [x] Notifikasi email/WA menyertakan detail outbound dan return — _email.ts + bug #5, diverifikasi di staging (mock)_
+- [x] E-tickets: 2 ticket files (1 outbound, 1 return) in 1 email — _verified on staging (mock email), BUGS_ROUND_TRIP.md putaran 2_
+- [x] E-ticket clearly lists both trips — _boarding-pass.tsx; verified on staging (mock)_
+- [x] Email/WA notifications include outbound and return details — _email.ts + bug #5, verified on staging (mock)_
 
 ### End-to-End Test
-- [ ] Booking return berhasil hingga e-tiket diterima — _terverifikasi di staging dengan email/WA/pembayaran mock; pengiriman nyata belum diuji_
-- [x] Customer bisa search & pilih outbound & return legs — _diverifikasi manual di staging; E2E otomatis `round-trip-booking.spec.ts` aktif lagi sejak 2026-10-14_
-- [x] Customer bisa enter passenger data (once, apply to both) — _diverifikasi manual di staging; E2E otomatis di-skip_
-- [ ] Payment berhasil — _belum diuji: DOKU/PayPal di env ini production; staging memakai mock_
-- [ ] Email dengan booking ref & 2 tiket diterima — _hanya mock (log Vercel); belum ada pengiriman nyata_
+- [ ] Return booking succeeds through to receiving the e-ticket — _verified on staging with mock email/WA/payment; real delivery not yet tested_
+- [x] Customer can search & select outbound & return legs — _verified manually on staging; automated E2E `round-trip-booking.spec.ts` active again since 2026-10-14_
+- [x] Customer can enter passenger data (once, apply to both) — _verified manually on staging; automated E2E is skipped_
+- [ ] Payment berhasil — _not tested yet: DOKU/PayPal in this env are production; staging uses mock_
+- [ ] Email with booking ref & 2 tickets received — _mock only (Vercel log); no real delivery yet_
 
 ---
 
 ## 🔒 Current Constraints (MVP)
 
 ### Cancellation
-- ✅ **Full cancellation only** — cancel entire round trip (tidak ada per-leg cancellation)
+- ✅ **Full cancellation only** — cancel entire round trip (no per-leg cancellation)
 
 ### Refund
-- ✅ **Full refund** — 100% refund untuk entire round trip
+- ✅ **Full refund** — 100% refund for the entire round trip
 - ❌ No partial/per-leg refund (future)
 
 ### Passengers
 - ✅ **Same passengers** for outbound & return (mandatory)
-- Example: [Budi, Ani, Citra] untuk outbound → same untuk return
+- Example: [Budi, Ani, Citra] for outbound → same for return
 
 ### Operator
 - ✅ **Same operator** for outbound & return (mandatory)
-- Example: Outbound Operator A → Return juga Operator A
+- Example: Outbound Operator A → Return also Operator A
 - ❌ Multi-operator (future)
 
 ### Business Logic
 - ✅ One booking ID covers both legs
 - ✅ One payment covers both legs
 - ✅ One email notification with both itineraries
-- ✅ Data penumpang diisi sekali untuk kedua perjalanan
+- ✅ Passenger data is entered once for both trips
 
 ---
 
@@ -151,8 +151,8 @@ model Booking {
   legId              String?      // DEPRECATED for round trips: use outboundLegId & returnLegId
   
   // NEW FIELDS for Round Trip
-  outboundLegId      String?      // for ROUND_TRIP: reference ke leg outbound
-  returnLegId        String?      // for ROUND_TRIP: reference ke leg return
+  outboundLegId      String?      // for ROUND_TRIP: reference to the outbound leg
+  returnLegId        String?      // for ROUND_TRIP: reference to the return leg
   tripType           String       // "ONE_WAY" | "ROUND_TRIP"
   
   customerId         String?
@@ -161,9 +161,9 @@ model Booking {
   
   // ... existing fields (customerName, passengers, status, etc)
   
-  @@index([tripType])             // NEW: untuk filter ONE_WAY vs ROUND_TRIP
-  @@index([outboundLegId])        // NEW: untuk query by outbound leg
-  @@index([returnLegId])          // NEW: untuk query by return leg
+  @@index([tripType])             // NEW: to filter ONE_WAY vs ROUND_TRIP
+  @@index([outboundLegId])        // NEW: to query by outbound leg
+  @@index([returnLegId])          // NEW: to query by return leg
 }
 ```
 
@@ -179,8 +179,8 @@ model Payment {
 
 **Note:** 
 - ONE_WAY bookings: use existing `legId` field
-- ROUND_TRIP bookings: use `outboundLegId` + `returnLegId` (legId tetap NULL)
-- Payment tetap 1:1 dengan Booking (not changed)
+- ROUND_TRIP bookings: use `outboundLegId` + `returnLegId` (legId stays NULL)
+- Payment stays 1:1 with Booking (not changed)
 
 ---
 
@@ -192,16 +192,16 @@ Customer selects "Round Trip"
   ↓
 Show 2 date pickers (departure date & return date)
   ↓
-Query legs untuk departure date & return date
+Query legs for departure date & return date
   ↓
-Display pilihan jadwal untuk kedua arah
+Display schedule options for both directions
   ↓
 Customer selects outbound leg & return leg
 ```
 
 ### 2. Booking Creation
 ```
-Customer enters passenger data (diisi sekali untuk kedua perjalanan)
+Customer enters passenger data (entered once for both trips)
   ↓
 Create 1 Booking record:
   - outboundLegId: {outbound leg ID}
@@ -229,12 +229,12 @@ On success:
   - Update Booking status → AWAITING_CONFIRMATION
   - Update Payment status → SUCCESSFUL
   ↓
-Send 1 email dengan detail outbound & return
+Send 1 email with outbound & return details
 ```
 
 ### 4. Admin View
 ```
-Admin view booking dengan tripType="ROUND_TRIP"
+Admin view booking with tripType="ROUND_TRIP"
   ↓
 Display:
   - Booking ref, outbound leg details, return leg details
@@ -296,8 +296,8 @@ Display:
 ## ✅ Business Confirmation & Requirements (2026-10-03)
 
 1. **Booking Structure**
-   - ✅ **1 Booking ID** mencakup 2 leg (outbound + return)
-   - ✅ Satu transaksi pembayaran
+   - ✅ **1 Booking ID** covers 2 legs (outbound + return)
+   - ✅ One payment transaction
 
 2. **Cancellation Policy**
    - ✅ **Full cancel only** (no per-leg cancel)
@@ -310,12 +310,12 @@ Display:
 
 5. **Passenger Requirement**
    - ✅ **Same passengers mandatory** for both legs
-   - ✅ Data diisi sekali, apply ke kedua perjalanan
+   - ✅ Data entered once, applies to both trips
 
 6. **Notifications & E-Tickets**
-   - ✅ 1 Email dengan detail outbound & return
+   - ✅ 1 Email with outbound & return details
    - ✅ 2 E-ticket files (1 outbound, 1 return)
-   - ✅ Email/WA menyertakan detail kedua perjalanan
+   - ✅ Email/WA include details of both trips
 
 ---
 
@@ -411,7 +411,7 @@ Display:
      - Fixed admin-booking-display.test.ts TypeScript errors
      - Created proper LegWithSchedule & BookingWithLegs types
      - All 10 admin dashboard tests now type-safe and passing
-   - E2E: 7/10 passing, 4 skipped (round-trip E2E selector tuning deferred) — _catatan 2026-10-14: keempat test itu sudah aktif lagi (lihat TESTING_PLAN); penyebab skip sebenarnya data QA, bukan selector_
+   - E2E: 7/10 passing, 4 skipped (round-trip E2E selector tuning deferred) — _note 2026-10-14: those four tests are active again (see TESTING_PLAN); the real cause of the skips was QA data, not selectors_
    - Search page UI confirmed working with round-trip support
    - Checkout page verified handling round-trip bookings
    - All critical paths tested and working
@@ -486,6 +486,6 @@ Process and the per-version steps: `docs/RELEASING.md`.
 
 - Approach: Single Booking with 2 Leg References (simpler than 2 separate bookings)
 - MVP scope: full cancel, full refund, same operator, same passengers
-- Future phases dapat add: per-leg cancel, multi-operator, flexible passengers, etc
-- All existing ONE_WAY bookings tetap unaffected (backward compatible)
+- Future phases can add: per-leg cancel, multi-operator, flexible passengers, etc
+- All existing ONE_WAY bookings stay unaffected (backward compatible)
 - tripType field helps filter & identify booking type
