@@ -507,6 +507,24 @@ const ADMIN: Feature[] = [
     models: ['Booking'],
   },
   {
+    id: 'admin-webhooks',
+    area: 'admin',
+    name: 'Payment webhook log',
+    status: 'shipped',
+    routes: [
+      'src/app/admin/(authed)/webhooks/page.tsx',
+      'src/app/admin/(authed)/webhooks/actions.ts',
+    ],
+    modules: [
+      'src/features/payments/webhook-events.ts',
+      'src/features/payments/webhook-processor.ts',
+      'src/shared/server/audit.ts',
+    ],
+    models: ['WebhookEvent', 'Booking', 'AuditLog'],
+    notes:
+      'Every DOKU/PayPal callback, including ones rejected for a bad signature. FAILED events can be retried by any admin (requireAdmin).',
+  },
+  {
     id: 'admin-refunds',
     area: 'admin',
     name: 'Refund queue',
@@ -584,15 +602,20 @@ const API: Feature[] = [
     area: 'api',
     name: 'Payment webhooks',
     status: 'shipped',
-    routes: ['src/app/api/webhooks/doku/route.ts'],
+    routes: [
+      'src/app/api/webhooks/doku/route.ts',
+      'src/app/api/webhooks/paypal/route.ts',
+    ],
     modules: [
       'src/features/payments/doku.ts',
+      'src/features/payments/paypal.ts',
+      'src/features/payments/webhook-events.ts',
       'src/features/payments/webhook-processor.ts',
       'src/features/tickets/ticket-issuer.ts',
     ],
     models: ['Payment', 'WebhookEvent', 'Ticket'],
     notes:
-      'Signatures verified timing-safely. Replay-protected by a WebhookEvent unique constraint. DOKU is the only gateway.',
+      'Signatures verified before anything is trusted. Redeliveries are deduplicated on WebhookEvent (provider, event type, reference). Rejected callbacks are logged too; retry-webhooks re-runs FAILED DOKU and PayPal events.',
   },
   {
     id: 'api-cron-active',

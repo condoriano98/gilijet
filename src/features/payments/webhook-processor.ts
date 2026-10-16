@@ -1,182 +1,227 @@
-import { z } from 'zod';
+import { PaymentMethod } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
-import { env } from '@/shared/server/env';
 import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
-import { releaseBookingSeats } from '@/features/booking/engine';
 import { notifyPaymentReceived } from '@/features/booking/notifications';
-import { normalizePaymentMethod } from '@/features/payments/psp';
+import { normalizePaymentMethod, paypalFeeAsIdr } from '@/features/payments/psp';
+import { readNotification } from '@/features/payments/doku';
+import { readCaptureFromWebhook } from '@/features/payments/paypal';
+import {
+  BOOKING_NOT_FOUND,
+  type ProcessResult,
+} from '@/features/payments/webhook-events';
 
-// ─── Schemas ─────────────────────────────────────────────────────────────────
+export type { ProcessResult };
 
-export const invoicePaidSchema = z.object({
-  external_id: z.string().min(1),
-  id: z.string().optional(),
-  invoice_id: z.string().optional(),
-  status: z.string().optional(),
-  paid_at: z.string().optional(),
-  payment_method: z.string().optional(),
-  fees_paid_amount: z.number().optional(),
-});
+/**
+ * What a verified gateway callback does to a booking.
+ *
+ * The routes verify the signature and keep the WebhookEvent record; the work
+ * itself lives here so the retry cron and the admin Retry button run exactly the
+ * code the first delivery ran. Settling money only moves a booking to
+ * AWAITING_CONFIRMATION (see src/features/tickets/ticket-issuer.ts).
+ */
 
-export const invoiceExpiredSchema = z.object({
-  external_id: z.string().min(1),
-});
+// ─── DOKU ───────────────────────────────────────────────────────────────────
 
-export const refundEventSchema = z.object({
-  id: z.string().min(1),
-  created: z.string().optional(),
-});
-
-// ─── Handlers ────────────────────────────────────────────────────────────────
-
-export type ProcessResult =
-  | { ok: true; status: string }
-  | { ok: false; error: string; httpStatus?: number };
-
-export async function processInvoicePaid(
-  body: Record<string, unknown>,
+/** Handle a successful DOKU notification (already signature-verified). */
+export async function processDokuPaymentSuccess(
+  payload: Record<string, unknown>,
 ): Promise<ProcessResult> {
-  const parsed = invoicePaidSchema.safeParse(body);
-  if (!parsed.success) {
-    return { ok: false, error: 'Invalid invoice.paid payload', httpStatus: 400 };
-  }
-  const data = parsed.data;
-  const invoiceId = data.id ?? data.invoice_id ?? '';
+  const notification = readNotification(payload);
+  const reference = notification.invoiceNumber;
+  if (!reference) return { ok: true, status: 'ignored' };
 
   const booking = await prisma.booking.findUnique({
-    where: { bookingReference: data.external_id },
-    include: {
-      leg: { include: { schedule: { include: { boat: true } } } },
-      tickets: true,
-      payment: true,
-    },
+    where: { bookingReference: reference },
+    select: { id: true, totalAmount: true },
   });
-  if (!booking) {
-    return { ok: false, error: 'Booking not found', httpStatus: 404 };
+  if (!booking) return { ok: true, status: BOOKING_NOT_FOUND };
+
+  // Amount integrity: never confirm a booking on a mismatched paid amount.
+  // The signature already covers the body, but this catches a stale or
+  // re-created invoice carrying a different total.
+  if (notification.amount !== null) {
+    const paid = Math.round(notification.amount);
+    const owed = Math.round(Number(booking.totalAmount));
+    if (paid !== owed) {
+      console.error(
+        `[doku-webhook] amount mismatch for ${reference}: paid=${paid} owed=${owed}`,
+      );
+      return {
+        ok: false,
+        error: `Amount mismatch: paid ${paid}, owed ${owed}`,
+        httpStatus: 409,
+      };
+    }
+  }
+
+  // DOKU always names a channel; the fallback only covers a malformed
+  // notification, where guessing bank transfer beats refusing to ticket a
+  // customer who has already paid.
+  let method: PaymentMethod = PaymentMethod.BANK_TRANSFER;
+  try {
+    method = normalizePaymentMethod(notification.channelCode ?? 'BANK_TRANSFER');
+  } catch {
+    console.warn(
+      `[doku-webhook] unknown channel ${notification.channelCode} for ${reference}`,
+    );
   }
 
   const result = await recordPaymentAwaitingConfirmation({
     bookingId: booking.id,
-    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
-    method: normalizePaymentMethod(data.payment_method ?? 'BANK_TRANSFER'),
-    gatewayReference: invoiceId || null,
-    gatewayFee: data.fees_paid_amount ?? null,
+    paidAt: new Date(),
+    method,
+    gatewayReference: notification.identifier ?? reference,
   });
 
-  if (booking.payment) {
-    await prisma.payment.update({
-      where: { bookingId: booking.id },
-      data: { rawWebhookData: body as never },
-    });
-  }
+  await prisma.payment.update({
+    where: { bookingId: booking.id },
+    data: {
+      rawWebhookData: payload as never,
+      // Clear any earlier decline: this booking is paid, and a stale reason
+      // would keep the retry prompt showing on a paid booking.
+      failedReason: null,
+    },
+  });
 
   if (!result.alreadyRecorded) {
     notifyPaymentReceived(booking.id).catch((err) =>
-      console.error('[webhook-processor] notify failed:', err),
+      console.error('[doku-webhook] notify failed:', err),
     );
   }
 
   return { ok: true, status: 'awaiting_confirmation' };
 }
 
-export async function processInvoiceExpired(
-  body: Record<string, unknown>,
+// ─── PayPal ─────────────────────────────────────────────────────────────────
+
+/** Handle a verified PayPal event. */
+export async function processPaypalEvent(
+  eventType: string,
+  payload: Record<string, unknown>,
 ): Promise<ProcessResult> {
-  const parsed = invoiceExpiredSchema.safeParse(body);
-  if (!parsed.success) {
-    return { ok: false, error: 'Invalid invoice.expired payload', httpStatus: 400 };
-  }
+  const resource = (payload.resource ?? {}) as Record<string, unknown>;
+  const capture = readCaptureFromWebhook(resource);
+
+  const bookingReference = capture.bookingReference;
+  if (!bookingReference) return { ok: true, status: 'ignored' };
+
   const booking = await prisma.booking.findUnique({
-    where: { bookingReference: parsed.data.external_id },
+    where: { bookingReference },
+    include: { payment: true },
   });
-  if (!booking) return { ok: false, error: 'Booking not found', httpStatus: 404 };
-  if (booking.status !== 'PENDING_PAYMENT') {
-    return { ok: true, status: 'noop' };
-  }
+  if (!booking) return { ok: true, status: BOOKING_NOT_FOUND };
+  const payment = booking.payment;
 
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: { status: 'EXPIRED' },
-  });
-  await prisma.payment.updateMany({
-    where: { bookingId: booking.id, status: 'PENDING' },
-    data: { status: 'EXPIRED' },
-  });
-  await releaseBookingSeats(booking.id, 'expired');
-  return { ok: true, status: 'expired' };
+  switch (eventType) {
+    case 'PAYMENT.CAPTURE.COMPLETED': {
+      if (!capture.completed) return { ok: true, status: 'ignored' };
+
+      // Amount integrity, mirroring DOKU: never confirm on a capture that
+      // doesn't match what we quoted in the presentment currency.
+      if (capture.amount && payment?.presentmentAmount) {
+        const captured = Number(capture.amount);
+        const quoted = Number(payment.presentmentAmount);
+        if (!Number.isFinite(captured) || Math.abs(captured - quoted) > 0.01) {
+          console.error(
+            `[paypal-webhook] amount mismatch for ${bookingReference}: captured=${captured} quoted=${quoted}`,
+          );
+          return {
+            ok: false,
+            error: `Amount mismatch: captured ${captured}, quoted ${quoted}`,
+            httpStatus: 409,
+          };
+        }
+      }
+
+      const result = await recordPaymentAwaitingConfirmation({
+        bookingId: booking.id,
+        paidAt: new Date(),
+        method: PaymentMethod.PAYPAL,
+        gatewayReference: payment?.gatewayReference ?? capture.captureId,
+        gatewayFee: paypalFeeAsIdr(capture.feeAmount, payment?.fxRate ?? null),
+      });
+
+      if (!result.alreadyRecorded) {
+        notifyPaymentReceived(booking.id).catch((err) =>
+          console.error('[paypal-webhook] notify failed:', err),
+        );
+      }
+
+      await prisma.payment.update({
+        where: { bookingId: booking.id },
+        data: {
+          rawWebhookData: payload as never,
+          instrumentData: {
+            paypalOrderId: payment?.gatewayReference ?? null,
+            paypalCaptureId: capture.captureId,
+          },
+        },
+      });
+
+      return { ok: true, status: 'awaiting_confirmation' };
+    }
+
+    case 'PAYMENT.CAPTURE.DENIED':
+    case 'PAYMENT.CAPTURE.REVERSED': {
+      // The customer's money never arrived. Leave the booking PENDING_PAYMENT
+      // so the existing hold timer decides its fate — a failed attempt is not
+      // terminal, exactly as a DOKU non-success notification is treated.
+      // A late or retried DENIED must not flip a payment that already settled.
+      if (payment) {
+        await prisma.payment.updateMany({
+          where: { bookingId: booking.id, status: { not: 'SUCCESSFUL' } },
+          data: {
+            status: 'FAILED',
+            failedReason: `PayPal ${eventType}`,
+            rawWebhookData: payload as never,
+          },
+        });
+      }
+      return { ok: true, status: 'failed' };
+    }
+
+    case 'PAYMENT.CAPTURE.REFUNDED': {
+      // Reconciliation only — the refund itself is driven from /admin/refunds.
+      // Recording the payload keeps the audit trail complete when a refund is
+      // issued from the PayPal dashboard instead.
+      if (payment) {
+        await prisma.payment.update({
+          where: { bookingId: booking.id },
+          data: { rawWebhookData: payload as never },
+        });
+      }
+      return { ok: true, status: 'refund-recorded' };
+    }
+
+    default:
+      return { ok: true, status: 'ignored' };
+  }
 }
 
-export async function processRefundSucceeded(
-  body: Record<string, unknown>,
-): Promise<ProcessResult> {
-  const parsed = refundEventSchema.safeParse(body);
-  if (!parsed.success) {
-    return { ok: false, error: 'Invalid refund payload', httpStatus: 400 };
-  }
-  const refund = await prisma.refund.findFirst({
-    where: { gatewayReference: parsed.data.id },
-    include: { booking: true },
-  });
-  if (!refund) return { ok: true, status: 'ignored' };
-
-  await prisma.refund.update({
-    where: { id: refund.id },
-    data: {
-      status: 'COMPLETED',
-      processedAt: parsed.data.created ? new Date(parsed.data.created) : new Date(),
-    },
-  });
-
-  // Fire refund-processed email (import inline to avoid circular deps)
-  try {
-    const { sendRefundProcessedEmail } = await import('@/features/messaging/email');
-    await sendRefundProcessedEmail({
-      to: refund.booking.customerEmail,
-      customerName: refund.booking.customerName,
-      bookingReference: refund.booking.bookingReference,
-      refundAmount: Number(refund.refundAmount),
-      lookupUrl: `${env.APP_BASE_URL}/b/${refund.booking.bookingReference}`,
-    });
-  } catch (err) {
-    console.error('[webhook-processor] refund email failed:', err);
-  }
-
-  return { ok: true, status: 'refund_completed' };
-}
-
-export async function processRefundFailed(
-  body: Record<string, unknown>,
-): Promise<ProcessResult> {
-  const parsed = refundEventSchema.safeParse(body);
-  if (!parsed.success) {
-    return { ok: false, error: 'Invalid refund payload', httpStatus: 400 };
-  }
-  const refund = await prisma.refund.findFirst({
-    where: { gatewayReference: parsed.data.id },
-  });
-  if (!refund) return { ok: true, status: 'ignored' };
-  await prisma.refund.update({
-    where: { id: refund.id },
-    data: { status: 'FAILED' },
-  });
-  return { ok: true, status: 'refund_failed' };
-}
+// ─── Dispatch ───────────────────────────────────────────────────────────────
 
 /**
- * Routes a raw payload (already auth-verified) to the correct handler.
- * Used both by the webhook route and the retry cron.
+ * Re-run a stored event through the handler its provider and type name. Used by
+ * the retry cron and the admin Retry button. An event nothing handles is a
+ * failure, never a silent success: the old dispatcher marked unrecognised DOKU
+ * payloads PROCESSED without doing anything.
  */
-export async function dispatchWebhookPayload(
-  body: Record<string, unknown>,
-): Promise<ProcessResult> {
-  const status = String(body.status ?? '').toUpperCase();
-  const event = String(body.event ?? '').toLowerCase();
+export async function dispatchWebhookEvent(event: {
+  provider: string;
+  eventType: string;
+  rawPayload: unknown;
+}): Promise<ProcessResult> {
+  const payload = (event.rawPayload ?? {}) as Record<string, unknown>;
 
-  if (status === 'PAID') return processInvoicePaid(body);
-  if (status === 'EXPIRED' || event === 'invoice.expired')
-    return processInvoiceExpired(body);
-  if (event === 'refund.succeeded') return processRefundSucceeded(body);
-  if (event === 'refund.failed') return processRefundFailed(body);
-
-  return { ok: true, status: 'ignored' };
+  if (event.provider === 'doku' && event.eventType === 'payment.success') {
+    return processDokuPaymentSuccess(payload);
+  }
+  if (event.provider === 'paypal' && event.eventType.startsWith('PAYMENT.CAPTURE.')) {
+    return processPaypalEvent(event.eventType, payload);
+  }
+  return {
+    ok: false,
+    error: `No handler for ${event.provider} ${event.eventType}`,
+  };
 }

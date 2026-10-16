@@ -10,6 +10,7 @@ import { quoteForeignCharge, MAX_RATE_AGE_MS } from '@/features/pricing/fx';
 import { applyGatewayModeOverrides } from '@/features/payments/payment-mode';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 import { env } from '@/shared/server/env';
+import { prisma } from '@/shared/server/db';
 import { getBuildInfo } from '@/shared/server/build-info';
 import {
   Card,
@@ -61,6 +62,15 @@ export default async function DiagnosticsPage() {
     { label: 'Branch', detail: build.branch ?? '—' },
     { label: 'Site', detail: env.APP_BASE_URL },
   ];
+
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const failedWebhooks = await prisma.webhookEvent.count({
+    where: {
+      status: 'FAILED',
+      eventType: { not: 'signature.rejected' },
+      createdAt: { gte: dayAgo },
+    },
+  });
 
   const doku = pingDoku();
   const notificationUrl = `${env.APP_BASE_URL}${NOTIFICATION_PATH}`;
@@ -232,6 +242,16 @@ export default async function DiagnosticsPage() {
               detail: env.APP_BASE_URL.startsWith('https://')
                 ? notificationUrl
                 : `${notificationUrl} — HTTPS strongly recommended`,
+            }}
+          />
+          <StatusRow
+            row={{
+              label: 'Failed callbacks (24h)',
+              ok: failedWebhooks === 0,
+              detail:
+                failedWebhooks === 0
+                  ? 'none'
+                  : `${failedWebhooks} — see /admin/webhooks`,
             }}
           />
         </CardContent>

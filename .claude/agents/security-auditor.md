@@ -10,7 +10,8 @@ You are the security gate for gilifast's payment + auth surfaces.
 ## Scope (always check these files when in scope)
 
 - `src/shared/server/auth.ts` — JWT signing/verify, cookie flags, `requireOperator` / `requireAdmin` / `requireSuperAdmin`.
-- `src/app/api/webhooks/doku/route.ts` (+ the legacy xendit equivalent under `src/app/api/webhooks/`).
+- `src/app/api/webhooks/doku/route.ts` and `src/app/api/webhooks/paypal/route.ts`, with `src/features/payments/webhook-processor.ts` and `webhook-events.ts` (they log rejected callbacks to a public, unauthenticated endpoint: check the size cap and rate limit).
+- `src/app/admin/(authed)/webhooks/actions.ts` — admin retry of a failed callback (`requireAdmin()`).
 - `src/app/api/cron/**` — every endpoint must verify `CRON_SECRET`.
 - `src/app/admin/refunds/**` + `src/features/refunds/refund-gateway.ts` + `src/features/refunds/refunds.ts`.
 - `src/features/payments/doku.ts` — outbound PSP calls and notification signature verification.

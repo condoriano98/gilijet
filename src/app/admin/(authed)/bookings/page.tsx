@@ -19,6 +19,8 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { BookingRow } from './booking-row';
+import { AutoRefresh } from './auto-refresh';
+import { adminBookingStatusLabel } from '@/features/booking/status-label';
 import {
   BOOKING_STATUS_FILTERS,
   TRIP_TYPE_FILTERS,
@@ -54,6 +56,7 @@ export default async function AdminBookingsPage({
 
   return (
     <div className="space-y-6">
+      <AutoRefresh />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
@@ -96,7 +99,7 @@ export default async function AdminBookingsPage({
                 {BOOKING_STATUS_FILTERS.map((s) => (
                   <FilterChip
                     key={s}
-                    label={s.replace(/_/g, ' ')}
+                    label={adminBookingStatusLabel(s)}
                     active={status === s}
                     href={bookingsHref('/admin/bookings', filters, { status: s })}
                   />

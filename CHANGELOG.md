@@ -17,6 +17,35 @@ bump. A version is live in production once its tag is merged into `main`.
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
+## [1.3.0] - 2026-10-16
+
+### Added
+
+- Admin **Webhooks** page (`/admin/webhooks`): every DOKU and PayPal callback the
+  app received, with status, attempts and error, filters by provider, status and
+  booking reference, and a Retry button for failed events. Callbacks rejected for
+  a bad signature are listed too.
+- `/admin/diagnostics` shows how many callbacks failed in the last 24 hours.
+
+### Changed
+
+- Admin bookings: a paid booking now reads "Paid · awaiting confirmation" (and an
+  unpaid one "Unpaid") instead of the raw status name, so a payment that is
+  waiting for the operator call is no longer mistaken for one the payment
+  gateway never reported. The booking flow itself is unchanged: tickets are
+  still issued after an admin confirms with the operator.
+- Admin bookings refreshes itself every 30 seconds while the tab is open, so a
+  payment that lands shows up without a manual reload.
+
+### Fixed
+
+- Payment callbacks larger than 256 KB are refused (413), and a PayPal verification outage answers 503 so PayPal redelivers.
+- The scheduled retry of failed payment callbacks did nothing for DOKU: it
+  marked the event done without recording the payment, and it never looked at
+  PayPal. It now re-runs the same handler as the first delivery for both.
+- Callbacks that were refused (bad signature, unreadable body, unknown booking,
+  amount mismatch) left no record. They are now logged.
+
 ## [1.2.0] - 2026-10-14
 
 ### Added
@@ -94,7 +123,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/condoriano98/gilijet/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/condoriano98/gilijet/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/condoriano98/gilijet/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/condoriano98/gilijet/compare/v1.0.0...v1.1.0

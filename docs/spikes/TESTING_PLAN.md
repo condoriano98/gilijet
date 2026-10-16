@@ -1240,6 +1240,9 @@ Already listed in CRITICAL; move overage here
 ---
 
 #### lib/webhook-processor.ts
+
+> Status note 2026-10-16: the functions below were Xendit-shaped and are gone. `src/features/payments/webhook-processor.ts` now has `processDokuPaymentSuccess`, `processPaypalEvent` and `dispatchWebhookEvent`; tests in `tests/unit/features/payments/webhook-processor.test.ts` and `webhook-events.test.ts`.
+
 | Function | Status | Complexity | Notes |
 |----------|--------|-----------|-------|
 | `processInvoicePaid()` | ✓ Tested | High | DOKU webhook → ticket issuance |

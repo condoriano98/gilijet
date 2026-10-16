@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PaymentMethod } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
-import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
-import { notifyPaymentReceived } from '@/features/booking/notifications';
-import { normalizePaymentMethod } from '@/features/payments/psp';
+import { processDokuPaymentSuccess } from '@/features/payments/webhook-processor';
+import {
+  beginWebhookEvent,
+  failWebhookEvent,
+  isOversizedWebhookBody,
+  recordRejectedCallback,
+  settleWebhookEvent,
+} from '@/features/payments/webhook-events';
 import {
   readNotification,
   readNotificationHeaders,
@@ -15,12 +19,14 @@ import {
  *
  * DOKU POSTs a signed JSON body when a payment settles. We recompute the
  * signature over the raw request bytes — re-serialising parsed JSON changes the
- * digest — then converge on `recordPaymentAwaitingConfirmation`, which is
- * idempotent, so a redelivered notification cannot re-notify the customer.
+ * digest — then hand the payload to `processDokuPaymentSuccess`, which converges
+ * on `recordPaymentAwaitingConfirmation`; that is idempotent, so a redelivered
+ * notification cannot re-notify the customer. Every outcome, including a
+ * rejected signature, leaves a WebhookEvent row for /admin/webhooks.
  *
  * Settling money does not issue a boarding pass: the booking parks in
  * AWAITING_CONFIRMATION until an admin has rung the operator. See
- * lib/ticket-issuer.ts.
+ * src/features/tickets/ticket-issuer.ts.
  *
  * Notification path: /api/webhooks/doku
  */
@@ -30,6 +36,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (isOversizedWebhookBody(req.headers)) {
+    return NextResponse.json({ ok: false, error: 'Payload too large' }, { status: 413 });
+  }
   // Raw bytes first — the signature covers the original serialization.
   const rawBody = await req.text();
 
@@ -39,6 +48,11 @@ export async function POST(req: NextRequest) {
       rawBody,
     })
   ) {
+    await recordRejectedCallback({
+      provider: 'doku',
+      reason: 'Invalid signature',
+      rawBody,
+    });
     return NextResponse.json(
       { ok: false, error: 'Invalid signature' },
       { status: 401 },
@@ -49,6 +63,11 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
+    await recordRejectedCallback({
+      provider: 'doku',
+      reason: 'Invalid JSON',
+      rawBody,
+    });
     return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 });
   }
 
@@ -68,113 +87,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, recorded: notification.status });
   }
 
-  const eventType = 'payment.success';
-
-  // Idempotency: skip if already processed or in-flight.
-  const existing = await prisma.webhookEvent.findFirst({
-    where: {
-      provider: 'doku',
-      eventType,
-      externalRef: reference,
-      status: { in: ['PROCESSED', 'PROCESSING'] },
-    },
+  // Idempotency: a delivery already processed or in flight is acknowledged.
+  const event = await beginWebhookEvent({
+    provider: 'doku',
+    eventType: 'payment.success',
+    externalRef: reference,
+    payload,
   });
-  if (existing) {
+  if (event.idempotent) {
     return NextResponse.json({ ok: true, idempotent: true });
   }
 
-  const booking = await prisma.booking.findUnique({
-    where: { bookingReference: reference },
-    include: {
-      leg: { include: { schedule: { include: { boat: true } } } },
-      payment: true,
-    },
-  });
-  if (!booking) {
-    return NextResponse.json({ ok: true, ignored: true });
-  }
-
-  // Amount integrity: never confirm a booking on a mismatched paid amount.
-  // The signature already covers the body, but this catches a stale or
-  // re-created invoice carrying a different total.
-  if (notification.amount !== null) {
-    const paid = Math.round(notification.amount);
-    const owed = Math.round(Number(booking.totalAmount));
-    if (paid !== owed) {
-      console.error(
-        `[doku-webhook] amount mismatch for ${reference}: paid=${paid} owed=${owed}`,
-      );
-      return NextResponse.json(
-        { ok: false, error: 'Amount mismatch' },
-        { status: 409 },
-      );
-    }
-  }
-
-  const webhookEvent = await prisma.webhookEvent.create({
-    data: {
-      provider: 'doku',
-      eventType,
-      externalRef: reference,
-      rawPayload: payload as never,
-      status: 'PROCESSING',
-      attempts: 1,
-      lastAttemptAt: new Date(),
-    },
-  });
-
   try {
-    // DOKU always names a channel; the fallback only covers a malformed
-    // notification, where guessing bank transfer beats refusing to ticket a
-    // customer who has already paid.
-    let method: PaymentMethod = PaymentMethod.BANK_TRANSFER;
-    try {
-      method = normalizePaymentMethod(notification.channelCode ?? 'BANK_TRANSFER');
-    } catch {
-      console.warn(
-        `[doku-webhook] unknown channel ${notification.channelCode} for ${reference}`,
+    const result = await processDokuPaymentSuccess(payload);
+    await settleWebhookEvent(event.id, result);
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, error: result.error },
+        { status: result.httpStatus ?? 500 },
       );
     }
-
-    const result = await recordPaymentAwaitingConfirmation({
-      bookingId: booking.id,
-      paidAt: new Date(),
-      method,
-      gatewayReference: notification.identifier ?? reference,
-    });
-
-    await prisma.payment.update({
-      where: { bookingId: booking.id },
-      data: {
-        rawWebhookData: payload as never,
-        // Clear any earlier decline: this booking is paid, and a stale reason
-        // would keep the retry prompt showing on a paid booking.
-        failedReason: null,
-      },
-    });
-
-    if (!result.alreadyRecorded) {
-      notifyPaymentReceived(booking.id).catch((err) =>
-        console.error('[doku-webhook] notify failed:', err),
-      );
-    }
-
-    await prisma.webhookEvent.update({
-      where: { id: webhookEvent.id },
-      data: { status: 'PROCESSED', processedAt: new Date(), errorMessage: null },
-    });
-    return NextResponse.json({ ok: true, status: 'awaiting_confirmation' });
+    return NextResponse.json({ ok: true, status: result.status });
   } catch (err) {
     console.error('[doku-webhook] handler error:', err);
-    await prisma.webhookEvent
-      .update({
-        where: { id: webhookEvent.id },
-        data: {
-          status: 'FAILED',
-          errorMessage: err instanceof Error ? err.message : String(err),
-        },
-      })
-      .catch(() => {});
+    await failWebhookEvent(event.id, err);
     return NextResponse.json({ ok: false, error: 'Handler error' }, { status: 500 });
   }
 }

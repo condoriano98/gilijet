@@ -46,7 +46,7 @@ src/
 |---|---|---|
 | `(customer)/[locale]/…` | Customers | Localized. search, book, checkout, pay, b (booking lookup), account, change-plans, refunds, reviews, blog, about, contact, terms, privacy, best-price-guarantee, demo |
 | `operator/…` | Operators | Not localized. Must call `requireOperator()`. Indonesian module names in the sidebar; English paths (`schedules`, `legs`, `boats`, `scanner`) hold the real pages |
-| `admin/(authed)/…` | Platform admin | `requireAdmin()` / `requireSuperAdmin()`. bookings, confirmations, refunds, reschedules, operators, operations, promos, diagnostics, console |
+| `admin/(authed)/…` | Platform admin | `requireAdmin()` / `requireSuperAdmin()`. bookings, confirmations, webhooks, refunds, reschedules, operators, operations, promos, diagnostics, console |
 | `api/…` | Machines | `webhooks/{doku,paypal}`, `cron/*` (`CRON_SECRET`), `auth/*`, `bookings/[reference]`, `promos/validate`, `operator/*`, `admin/bookings`, `mcp` |
 | `print/…`, `legal/…` | Printables / static legal | |
 
@@ -58,7 +58,7 @@ Route-private components live in `_components/` beside the route that uses them 
 |---|---|
 | `booking/` | `engine` (seat hold/confirm race), `expiry`, `helpers`, `display`, `notifications`, `references`, `components/` (booking-progress, payment-countdown) |
 | `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
-| `payments/` | `doku`, `paypal`, `psp`, `webhook-processor`, `payment-mode`, `components/` |
+| `payments/` | `doku`, `paypal`, `psp`, `webhook-processor` (what a callback does), `webhook-events` (WebhookEvent bookkeeping), `payment-mode`, `components/` |
 | `refunds/` | `refunds` (tier math), `refund-gateway` |
 | `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin` |
 | `schedules/` | `legs`, `connection-search`, `sales-channel`, `wahana-schedule` (generated), `home-data`, `components/` (search-form, days-picker) |

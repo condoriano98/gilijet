@@ -8,7 +8,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
 > run schedules, departures, POS, cash and reporting; admins onboard operators,
 > handle refunds and tune platform economics.
 >
-> `src/features/diagnostics/feature-catalog.ts` is the canonical inventory of what exists — 57
+> `src/features/diagnostics/feature-catalog.ts` is the canonical inventory of what exists — 58
 > entries, each with its routes, owning modules and Prisma models, and a status
 > that distinguishes shipped from partial, placeholder and schema-only. Read it
 > before assuming a feature works; a few routes exist without being finished.
@@ -294,6 +294,7 @@ Duplicating any of these is a bug:
 | Platform economics resolution | `src/shared/server/platform-config.ts` |
 | Refund tiers and deadlines | `src/features/refunds/refunds.ts` |
 | Seat holds and booking lifecycle | `src/features/booking/engine.ts` |
+| What a gateway callback does to a booking (routes, retry cron and admin Retry share it) | `src/features/payments/webhook-processor.ts` |
 | Per-departure rows | `src/features/schedules/legs.ts` |
 | WITA formatting | `src/shared/lib/datetime.ts` |
 | Port names | `src/features/ports/port-info.ts` |
@@ -380,14 +381,14 @@ Honest state, so nobody plans against features that do not work:
 src/app/
   (customer)/[locale]/  — search, booking, checkout, tickets, account, blog
   operator/             — back office (Indonesian nav; English canonical routes)
-  admin/(authed)/       — operator onboarding, bookings, refunds, reschedules
+  admin/(authed)/       — operator onboarding, bookings, webhook log, refunds, reschedules
     console/            — owner-only coupons + platform economics
   api/                  — REST, DOKU/Xendit webhooks, cron
   print/                — printable tickets and manifests
 src/features/           — domain logic, one folder per domain
   booking/              — engine, expiry, helpers, notifications, references (+ components/)
   pricing/              — pricing, fares, fx, promotions
-  payments/             — doku, paypal, psp, webhook-processor
+  payments/             — doku, paypal, psp, webhook-processor, webhook-events
   refunds/  tickets/  schedules/  operators/  ports/  messaging/  diagnostics/
 src/shared/             — cross-cutting, must not import features/ or app/
   server/               — db, auth, env, audit, login-throttle, platform-config

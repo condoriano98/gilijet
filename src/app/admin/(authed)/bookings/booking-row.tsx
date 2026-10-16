@@ -6,6 +6,7 @@ import { TableCell, TableRow } from '@/shared/ui/table';
 import { Badge } from '@/shared/ui/badge';
 import { formatIDR } from '@/shared/lib/utils';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
+import { adminBookingStatusLabel } from '@/features/booking/status-label';
 import {
   parsePassengersFromNotes,
   calculateArrivalTime,
@@ -123,7 +124,7 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
         </TableCell>
         <TableCell className="whitespace-nowrap">
           <Badge variant="outline" className="px-3 py-1">
-            {booking.status.replace(/_/g, ' ')}
+            {adminBookingStatusLabel(booking.status)}
           </Badge>
         </TableCell>
         <TableCell className="whitespace-nowrap">

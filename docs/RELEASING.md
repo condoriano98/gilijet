@@ -107,7 +107,7 @@ deployment. From then on Vercel Cron runs, daily:
 
 - `topup-legs` (02:00) generates departures for every active schedule up to the booking horizon;
 - `refresh-fx` (00:00) refreshes exchange rates;
-- `retry-webhooks` (03:00) retries `PENDING` and `FAILED` webhook events.
+- `retry-webhooks` (03:00) retries `PENDING` and `FAILED` DOKU and PayPal payment events. Before 1.3.0 it marked DOKU events done without recording the payment; since 1.3.0 it runs the same handler as the first delivery. Failed events are listed at `/admin/webhooks`.
 
 Before that first deploy, look at the webhook event table for old `FAILED` or
 `PENDING` rows: the job will retry them. After it, check the Vercel cron logs
