@@ -16,3 +16,17 @@ const ADMIN_LABELS: Record<BookingStatus, string> = {
 export function adminBookingStatusLabel(status: BookingStatus): string {
   return ADMIN_LABELS[status] ?? status.replace(/_/g, ' ');
 }
+
+const CUSTOMER_LABELS: Record<BookingStatus, string> = {
+  PENDING_PAYMENT: 'Awaiting payment',
+  AWAITING_CONFIRMATION: 'Paid · confirming your seat',
+  CONFIRMED: 'Confirmed',
+  CANCELLED_BY_CUSTOMER: 'Cancelled',
+  CANCELLED_BY_OPERATOR: 'Cancelled by operator',
+  EXPIRED: 'Expired',
+};
+
+/** Label for a booking status on the customer pages. */
+export function customerBookingStatusLabel(status: BookingStatus): string {
+  return CUSTOMER_LABELS[status] ?? status.replace(/_/g, ' ');
+}

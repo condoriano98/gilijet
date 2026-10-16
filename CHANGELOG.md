@@ -17,6 +17,15 @@ bump. A version is live in production once its tag is merged into `main`.
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
+## [1.3.1] - 2026-10-16
+
+### Fixed
+
+- A customer who has paid no longer sees the raw status "AWAITING CONFIRMATION"
+  on the booking page (`/b/…`) and in "My bookings". It now reads "Paid ·
+  confirming your seat" (and "Awaiting payment" before payment). The payment was
+  already recorded; only the wording made it look unpaid.
+
 ## [1.3.0] - 2026-10-16
 
 ### Added
@@ -123,7 +132,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/condoriano98/gilijet/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/condoriano98/gilijet/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/condoriano98/gilijet/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/condoriano98/gilijet/compare/v1.1.0...v1.1.1

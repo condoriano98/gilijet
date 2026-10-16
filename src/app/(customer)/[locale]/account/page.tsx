@@ -1,7 +1,8 @@
+import { customerBookingStatusLabel } from '@/features/booking/status-label';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import type { TripType } from '@prisma/client';
+import type { BookingStatus, TripType } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import {
   requireCustomer,
@@ -349,7 +350,7 @@ export default async function AccountPage({
 type BookingWithLeg = {
   id: string;
   bookingReference: string;
-  status: string;
+  status: BookingStatus;
   totalAmount: unknown;
   leg?: {
     departureDate: Date;
@@ -400,7 +401,7 @@ function BookingCard({
               {mainLeg.schedule.destinationPort}
             </span>
             <Badge variant={statusVariant(booking.status)} className="text-xs">
-              {booking.status.replace(/_/g, ' ')}
+              {customerBookingStatusLabel(booking.status)}
             </Badge>
             {hasReview ? (
               <Badge variant="outline" className="text-xs">

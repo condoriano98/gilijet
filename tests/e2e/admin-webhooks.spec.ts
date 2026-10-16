@@ -123,6 +123,15 @@ test('a paid booking is labelled as paid in the admin bookings list', async ({ p
   await expect(body).not.toContainText('AWAITING CONFIRMATION');
 });
 
+test('a paid booking tells the customer that payment arrived', async ({ page }) => {
+  await page.goto(`/b/${PAID}`);
+  const body = page.locator('body');
+  await expect(body).toContainText(PAID, { timeout: 15_000 });
+  await expect(body).toContainText('Paid · confirming your seat');
+  await expect(body).not.toContainText('AWAITING CONFIRMATION');
+  await expect(body).toContainText('Payment received');
+});
+
 test('the webhook log lists events, filters them and retries a failed one', async ({ page }) => {
   await login(page);
   await page.goto(`/admin/webhooks?q=BK-2090-06-WHK`);

@@ -1,6 +1,6 @@
 # Bug: status booking tidak ter-update setelah pembayaran berhasil
 
-**Status (2026-10-16):** kode, unit test (961 lulus), e2e terhadap staging (32 lulus, 2 skip), lint, typecheck, dan review `security-auditor`/`db-query-auditor` selesai. Belum: migration index/unique `WebhookEvent` (menunggu keputusan user, rule 4), commit + tag `v1.3.0` (menunggu go-ahead, rule 5). Tidak ada yang di-commit atau di-push.
+**Status (2026-10-16):** selesai dan sudah di `staging` sebagai commit `7eb88f6`, tag `v1.3.0`. Belum di `main`/production. Migration index/unique `WebhookEvent` tidak diambil (keputusan user belum ada, rule 4). Lanjutan untuk badge customer: `BUG_DOKU_PAYMENT_CONFIRMATION.md` (v1.3.1).
 **Created:** 2026-10-16
 **Target versi:** 1.3.0 (MINOR: halaman log webhook baru + perbaikan)
 **Tiket:** "[Bug] Status booking tidak ter-update setelah pembayaran berhasil di payment gateway". Contoh kasus `BK-2026-09-P6EXQV` (dilaporkan dari gilibali.com, yaitu production; tidak kita sentuh, `CLAUDE.md` rule 1).

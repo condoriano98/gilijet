@@ -1,3 +1,4 @@
+import { customerBookingStatusLabel } from '@/features/booking/status-label';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -291,7 +292,7 @@ export default async function BookingLookupPage({
               </p>
             </div>
             <Badge variant={statusBadge(booking.status)} className="text-sm">
-              {booking.status.replace(/_/g, ' ')}
+              {customerBookingStatusLabel(booking.status)}
             </Badge>
           </div>
         </div>
