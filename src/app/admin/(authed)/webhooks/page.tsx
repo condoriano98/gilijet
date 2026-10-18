@@ -34,7 +34,12 @@ const STATUSES: WebhookEventStatus[] = [
   'PROCESSED',
   'SKIPPED',
 ];
-const PROVIDERS = ['doku', 'paypal'];
+const PROVIDERS = ['doku', 'paypal', 'resend-inbound'];
+const PROVIDER_LABELS: Record<string, string> = {
+  doku: 'DOKU',
+  paypal: 'PayPal',
+  'resend-inbound': 'Operator email',
+};
 
 const MESSAGES: Record<string, string> = {
   retried: 'Event processed.',
@@ -201,7 +206,7 @@ export default async function AdminWebhooksPage({
             {PROVIDERS.map((p) => (
               <Chip
                 key={p}
-                label={p === 'paypal' ? 'PayPal' : 'DOKU'}
+                label={PROVIDER_LABELS[p]}
                 active={provider === p}
                 href={filterHref(current, { provider: p })}
               />

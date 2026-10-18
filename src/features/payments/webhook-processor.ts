@@ -1,3 +1,8 @@
+import {
+  OPERATOR_TICKET_EVENT,
+  OPERATOR_TICKET_PROVIDER,
+  processOperatorTicketEmail,
+} from '@/features/tickets/operator-ticket-email';
 import { PaymentMethod } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
@@ -216,6 +221,9 @@ export async function dispatchWebhookEvent(event: {
 
   if (event.provider === 'doku' && event.eventType === 'payment.success') {
     return processDokuPaymentSuccess(payload);
+  }
+  if (event.provider === OPERATOR_TICKET_PROVIDER && event.eventType === OPERATOR_TICKET_EVENT) {
+    return processOperatorTicketEmail(payload);
   }
   if (event.provider === 'paypal' && event.eventType.startsWith('PAYMENT.CAPTURE.')) {
     return processPaypalEvent(event.eventType, payload);

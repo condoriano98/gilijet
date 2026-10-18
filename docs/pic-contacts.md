@@ -50,6 +50,11 @@ model OperatorPicContact {
   whichever one responds first is the one that counts — that race is
   application logic for a future automation ticket, not enforced by this
   table (no `respondedAt` / priority column exists here).
+  Since 1.4.0 `emailKonfirmasiTrigger` is also read by the e-ticket
+  forward (`src/features/tickets/operator-ticket-email.ts`): an inbound email
+  is only accepted when its sender equals an operator's
+  `emailKonfirmasiTrigger` (Wahana: `no-reply@virendrafastferry.com`).
+  The platform row (`operatorId` null) is not a sender.
 
 ## RLS
 

@@ -47,7 +47,7 @@ src/
 | `(customer)/[locale]/…` | Customers | Localized. search, book, checkout, pay, b (booking lookup), account, change-plans, refunds, reviews, blog, about, contact, terms, privacy, best-price-guarantee, demo |
 | `operator/…` | Operators | Not localized. Must call `requireOperator()`. Indonesian module names in the sidebar; English paths (`schedules`, `legs`, `boats`, `scanner`) hold the real pages |
 | `admin/(authed)/…` | Platform admin | `requireAdmin()` / `requireSuperAdmin()`. bookings, confirmations, webhooks, refunds, reschedules, operators, operations, promos, diagnostics, console |
-| `api/…` | Machines | `webhooks/{doku,paypal}`, `cron/*` (`CRON_SECRET`), `auth/*`, `bookings/[reference]`, `promos/validate`, `operator/*`, `admin/bookings`, `mcp` |
+| `api/…` | Machines | `webhooks/{doku,paypal,resend-inbound}`, `cron/*` (`CRON_SECRET`), `auth/*`, `bookings/[reference]`, `promos/validate`, `operator/*`, `admin/bookings`, `mcp` |
 | `print/…`, `legal/…` | Printables / static legal | |
 
 Route-private components live in `_components/` beside the route that uses them (customer: `book/[legId]`, `search`, `pay/[reference]`, `checkout/[reference]`, `b/[reference]`, `account`, `reviews/new`, `[locale]` home; layout-level in `(customer)/_components`; operator: `operator/_components` (sidebar, top-bar) and `scanner/_components`).
@@ -60,11 +60,11 @@ Route-private components live in `_components/` beside the route that uses them 
 | `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
 | `payments/` | `doku`, `paypal`, `psp`, `webhook-processor` (what a callback does), `webhook-events` (WebhookEvent bookkeeping), `payment-mode`, `components/` |
 | `refunds/` | `refunds` (tier math), `refund-gateway` |
-| `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin` |
+| `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin`, `operator-ticket-email` (forward the operator's ticket email to the buyer), `operator-ticket-parse` |
 | `schedules/` | `legs`, `connection-search`, `sales-channel`, `wahana-schedule` (generated), `home-data`, `components/` (search-form, days-picker) |
 | `operators/` | `data` (active-entity helpers), `erp-queries`, `documents`, `purge`, `components/templates/` (list/detail/form page templates) |
 | `ports/` | `port-info`, `geo`, `sea-conditions`, `weather-policy`, `destination-photos` |
-| `messaging/` | `email`, `whatsapp`, `admin-alerts`, `pic-notifications` |
+| `messaging/` | `email`, `whatsapp`, `admin-alerts`, `pic-notifications`, `resend-inbound` (Svix check + email fetch) |
 | `diagnostics/` | `feature-catalog` (checked by a drift test) |
 
 ### `src/shared/`

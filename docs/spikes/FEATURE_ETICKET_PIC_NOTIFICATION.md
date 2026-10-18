@@ -1,6 +1,6 @@
 # Feature: e-ticket issuance — PIC WhatsApp on payment, operator ticket email forwarded to the customer
 
-**Status (2026-10-18):** Part A (PIC WhatsApp on payment) is implemented and QC'd on staging, committed without a tag. Part B (inbound operator email forward) is not started; we discuss it before building. The release (1.4.0) is tagged only after Part B. Revised 2026-10-17 after the real Wahana email and the GIL-39 setup note (see "Revision 2026-10-17").
+**Status (2026-10-18):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B (inbound operator email forward) is built and QC'd on staging (below), uncommitted. Release 1.4.0 is prepared in the changelog and `package.json` but NOT tagged; the tag waits for the user's go-ahead and the real Resend/Gmail setup. A real Wahana sample email (2026-10-18) is in `tests/unit/fixtures/wahana-ticket.html`.
 **Created:** 2026-10-17
 **Target version:** 1.4.0 (MINOR: new notification + inbound email feature). No schema change.
 **Ticket:** "4 Penerbitan E-Tiket".
@@ -145,7 +145,26 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 - `/admin/confirmations` shows "Operator ticket forwarded <time>" from that audit row, so the admin knows the operator has issued before confirming.
 - A round trip gets one operator email per leg. Each is matched on its own leg and forwarded.
 
+## Decisions 2026-10-18 (user, Part B)
+
+- **Transport:** Gmail filter on admin@gilifast.com (`from:no-reply@virendrafastferry.com`) forwards to a Resend inbound address (e.g. `tiket@in.gilifast.com`); Resend POSTs `email.received` to `/api/webhooks/resend-inbound`. The user's side: the Gmail filter, the Resend inbound domain and the MX record. Claude cannot "listen" to a mailbox between sessions; the app receives the push.
+- **Match key:** the Gilifast booking code typed after the customer's name (user confirmed the Wahana team will do this).
+- **Recipient:** always `Booking.customerEmail` (the buyer), never a passenger. If Wahana sends several emails for one booking (one per passenger, or one per leg of a round trip), the buyer receives each one. Dedupe is by email Message-ID / Resend email id, not "once per booking" (this replaces the earlier "each (booking, leg) once" wording).
+- **No code:** a name-only fallback is allowed only when exactly one candidate matches (same operator, paid, same WITA departure time, name equals the booker or any passenger). Recommended and built that way; the user has not yet answered whether name-only matches should auto-forward or always wait for an admin click (default: auto-forward, flagged "matched by name"). Zero or several candidates: nothing is sent and the email waits on the admin page.
+- **Admin dashboard:** new page `/admin/eticket-delivery` (no schema change): **Waiting** (paid, PIC notified, operator email not yet forwarded), **Needs review** (unmatched inbound emails, one-click pick of the booking), **Delivered** (matched by code or name).
+- **Resend API facts (docs, 2026-10-18):** the webhook carries metadata only (`data.email_id`, `from`, `to`, `subject`, `message_id`, `attachments[]`). Body and headers: `GET /emails/receiving/{id}`. Attachments: `GET /emails/receiving/{id}/attachments` (`download_url`, valid 1 hour). Webhook signature: Svix headers `svix-id`, `svix-timestamp`, `svix-signature` over the raw body.
+- **Mock mode:** without `RESEND_API_KEY` the processor reads the email from `data.mock_email` in the payload, so the flow is testable offline. Production always has the key, so the branch never runs there.
+
+## Findings 2026-10-18 (environment and transport, end of day)
+
+- **WhatsApp and email are not connected anywhere we can see.** A read-only look at the variable names of the Vercel project `gilifast` (the only project; production, preview and the staging environment) found no `WATI_*`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_WHATSAPP_NUMBER` or `ADMIN_ALERT_TEMPLATE`. The code for WATI and Resend is on `main` (old layout: `lib/whatsapp.ts`, `lib/email.ts`) and on `staging`, but with no keys every send is only logged to the console. So payment-received, boarding-pass and cancellation messages, staff alerts and confirmation emails do not go out from that project. Not checked: another host (the repo has Docker/Caddy files and the README mentions a droplet), the Resend and WATI dashboards. Quick check: `/admin/console/alerts` on each site says whether WATI credentials are present.
+- **GIL-39 note vs the app.** The note's `WHATSAPP_*` variables (Meta Cloud API direct) and `INBOX_IMAP_*` / `SMTP_*` variables (Gmail IMAP + SMTP) are not read anywhere. The app sends WhatsApp through WATI (`WATI_API_KEY`, `WATI_TENANT_ID`, `WATI_API_URL`, plus `PIC_ORDER_TEMPLATE`) and email through Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_INBOUND_SECRET`). `WATI_API_KEY` is WATI's own token, not Meta's `WHATSAPP_ACCESS_TOKEN`. The note's template name `order_masuk_operator` can be used for `PIC_ORDER_TEMPLATE`. The note wants gender/age and nationality per passenger; the message sends category and nationality (no gender; the form does not collect it).
+- **Recommendation, not yet decided:** keep WATI (if the WABA number is connected to a WATI account) and keep Resend (free tier is likely enough; confirm sending and inbound limits on resend.com/pricing). Moving to Meta-direct, or to SMTP/IMAP, would be a new task with its own spike: a second WhatsApp sender, or an always-on IMAP poller (Vercel cron here is daily only) and Gmail SMTP limits.
+- **Customer WhatsApp messages are session messages** (payment received, boarding pass, cancellation). WhatsApp only delivers them inside 24 hours of the customer writing to the number. Worth checking with WATI before connecting the keys, because connecting them turns on all five WhatsApp features at once.
+
 ## Open questions
+
+**Status 2026-10-18 evening:** answered or changed by the findings above and the Part B work: 1 and 8 (inbox transport: Gmail filter to Resend inbound, decided; account, domain and MX still to do), 2 (a real Wahana sample arrived, see Part B QC; still wanted: one with a real Gilifast code), 6 and 7 (several emails per booking are each forwarded; our code in the greeting still to be confirmed by Wahana), 9 (WATI is the transport in the code; confirm the account exists). Still open: 3, 4, 5 (built as: nothing is sent when two bookings match).
 
 1. **Inbox transport.** Is admin@gilifast.com on Google Workspace / Gmail, so it can run an auto-forward filter? Is a Resend Inbound subdomain (e.g. `in.gilifast.com`) acceptable? If not, the fallback is the Gmail API with a Pub/Sub `watch()` (OAuth refresh token, GCP topic, renewal every 7 days).
 2. **Real Wahana email samples**: subject, body, date/time format, sender address. The keyword 1 / keyword 2 parser depends on them.
@@ -159,16 +178,18 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 
 ## Checklist
 
+**Next session (2026-10-19):** decide WATI vs Meta-direct and confirm the WATI account/number; Resend account, verified `gilifast.com`, API key, inbound domain/MX and webhook secret; the WATI template `order_masuk_operator`; the Gmail forwarding filter; a sample email with a real Gilifast code; name-only auto-forward vs admin click; tag `v1.4.0` after the live test. Production is untouched (rule 1), including the PIC phone fix.
+
 - [x] Spike doc (this file)
-- [ ] User confirms with the Wahana team that the PIC types our booking code in the name; real sample email with the code received
+- [ ] User confirms with the Wahana team that the PIC types our booking code in the name. Real sample email received (2026-10-18); its greeting held a placeholder code (`BK-ujicobaxxx-xxx`), so a sample with a real code is still wanted
 - [x] User go-ahead to implement Part A (2026-10-18); Part B: discuss first, do not implement yet
 - [x] Part A: `pic-notifications.ts`, hook in `notifyPaymentReceived`, env `PIC_ORDER_TEMPLATE`
-- [ ] Part B: inbound route, `operator-ticket-email.ts`, `sendOperatorTicketForward`, retry wiring, confirmations badge, env `RESEND_INBOUND_SECRET`
-- [x] Part A unit tests (`tests/unit/features/messaging/pic-notifications.test.ts`); [ ] Part B (`operator-ticket-email.test.ts`, `resend-inbound.test.ts`)
+- [x] Part B: inbound route, `operator-ticket-email.ts`, `sendOperatorTicketForward`, retry wiring, env `RESEND_INBOUND_SECRET`, admin page `/admin/eticket-delivery`; [ ] "Operator ticket forwarded" badge on `/admin/confirmations` (not built: the new page already lists it)
+- [x] Part A unit tests (`tests/unit/features/messaging/pic-notifications.test.ts`); [x] Part B (`operator-ticket-parse`, `operator-ticket-email`, `resend-inbound`, route)
 - [x] Part A E2E `tests/e2e/eticket-pic.spec.ts` (own fixtures, cleaned up)
-- [ ] `security-auditor` + `db-query-auditor` (new public webhook route)
-- [ ] QC via `pnpm dev`, recorded below
-- [ ] Docs (`docs/pic-contacts.md`, README, `STRUCTURE.md`, `.env.example`, `feature-catalog.ts`, `.claude/agents/security-auditor.md`), `CHANGELOG.md` 1.4.0, `package.json`
+- [x] `code-reviewer`, `security-auditor`, `db-query-auditor` on Part B; findings below
+- [x] Part B E2E `tests/e2e/eticket-operator-email.spec.ts`; [x] QC recorded below (live Resend not verified)
+- [x] Docs (`docs/pic-contacts.md`, README, `STRUCTURE.md`, `.env.example`, `feature-catalog.ts`, `.claude/agents/security-auditor.md`), `CHANGELOG.md` 1.4.0, `package.json`
 - [ ] Commit / tag with confirmation (rule 5)
 
 ## Test plan
@@ -200,6 +221,11 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 - **Not verified:** real WATI delivery (the template is not created or approved yet); a round trip through the running app (unit tests only); the production database.
 - Subagent reviews (`code-reviewer`, `db-query-auditor`): see the commit; findings fixed before it.
 
-### Part B
+### Part B (2026-10-18, staging database `asymnwikxyhipoezoggp`)
 
-Not started.
+- **Unit:** `pnpm test:unit` 67 files / 1031 tests pass; lint (0 errors, 1 old warning) and typecheck clean. The parser is also run against the real Wahana email (`tests/unit/fixtures/wahana-ticket.html`, taken from an `.eml`): sender, greeting name, no code of ours, WITA departure and the sanitised HTML are asserted.
+- **E2E:** `eticket-operator-email.spec.ts` (4 tests) and `eticket-pic.spec.ts` pass with DOKU, PayPal, WATI and Resend keys blanked and a throwaway `RESEND_INBOUND_SECRET`. It signs its own webhooks, uses `data.mock_email`, and covers: bad signature → 401; code match forwarded once (a redelivery and a duplicate Message-ID are not forwarded again); a stranger is SKIPPED; an unmatched email shows under Needs review and the admin forwards it from the page. Fixtures (booking, PIC row, audit and webhook rows) were removed; a read-only count afterwards found none.
+- **Dev server:** the e2e ran against `pnpm dev` (the same server) and the admin page was driven in a browser by the test. No separate manual session.
+- **Review findings, fixed:** the sender is trusted from the `From` header only (a `From:` line typed in the body no longer counts); the forwarded HTML is sanitised (scripts, links, remote images, handlers dropped); attachments must be real PDFs, https-only download with a timeout and no redirects, size enforced on the bytes read; the audit row is claimed before sending (and released if the send fails), and a missing `RESEND_FROM_EMAIL` with a key set now fails instead of counting as sent; the name fallback refuses a truncated candidate list; the admin pick only claims "Needs review" `email.received` rows, is scoped to the sender's operator and reports success only when something was forwarded; the cron no longer retries "Needs review" rows; Svix check rejects an empty key and a loose timestamp; the body cap also checks bytes read; the mock-email path is refused when `NODE_ENV=production`. The duplicate check now runs per booking on the `(entityType, entityId)` index (no scan of `AuditLog`).
+- **Open risk (not fixed):** Resend's signature proves the call came from Resend, not who sent the mail. Anyone who can email the inbound address with a spoofed `From` of Wahana's address and a valid booking code can make us forward their (sanitised, PDF-only) mail to that booking's buyer. Mitigations in place: sanitised HTML, PDF-only, recipient is always the booking's own email, every forward is listed on `/admin/eticket-delivery`. To close it: use an unguessable inbound address, and check SPF/DKIM from the email headers once a real Resend payload shows which field carries them. The check-then-claim dedupe still has a window of one DB round trip for two simultaneous deliveries (no unique key without a schema change).
+- **Not verified:** the live Resend inbound path (domain/MX, the `GET /emails/receiving/{id}` and attachment responses, the Svix secret format against a real delivery); Gmail forwarding keeping `From` and `Message-ID`; a real Wahana email carrying a real Gilifast code; real delivery of the forward (keys blank, console only); the production database.

@@ -722,10 +722,15 @@ const PLATFORM: Feature[] = [
     name: 'Email & WhatsApp',
     status: 'partial',
     routes: [],
-    modules: ['src/features/messaging/email.ts', 'src/features/messaging/pic-notifications.ts'],
+    modules: [
+      'src/features/messaging/email.ts',
+      'src/features/messaging/pic-notifications.ts',
+      'src/features/messaging/resend-inbound.ts',
+      'src/features/tickets/operator-ticket-email.ts',
+    ],
     models: ['NotificationLog', 'OperatorNotification', 'OperatorPicContact'],
     notes:
-      'Resend with a mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send. Paying a booking sends the operator PICs a WATI template (PIC_ORDER_TEMPLATE; skipped when unset).',
+      'Resend with a mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send. Paying a booking sends the operator PICs a WATI template (PIC_ORDER_TEMPLATE; skipped when unset). The operator ticket email arrives at /api/webhooks/resend-inbound and is forwarded to the buyer; unmatched ones wait at /admin/eticket-delivery.',
   },
   {
     id: 'platform-fx',

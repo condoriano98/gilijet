@@ -22,6 +22,7 @@ export default async function AdminLayout({
     { href: '/admin/operators', label: 'Operators' },
     { href: '/admin/bookings', label: 'Bookings' },
     { href: '/admin/confirmations', label: 'Confirmations' },
+    { href: '/admin/eticket-delivery', label: 'E-tickets' },
     { href: '/admin/webhooks', label: 'Webhooks' },
     { href: '/admin/refunds', label: 'Refunds' },
     { href: '/admin/reschedules', label: 'Reschedules' },

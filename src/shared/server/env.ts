@@ -50,6 +50,10 @@ const envSchema = z.object({
   // = the PIC message is skipped. See features/messaging/pic-notifications.ts.
   PIC_ORDER_TEMPLATE: z.string().optional(),
 
+  // Svix signing secret (whsec_…) of the Resend inbound webhook. Unset = the
+  // route rejects every call. See features/messaging/resend-inbound.ts.
+  RESEND_INBOUND_SECRET: z.string().optional(),
+
   CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),

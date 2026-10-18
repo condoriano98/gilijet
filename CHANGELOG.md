@@ -12,15 +12,19 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
-### Added
-
-- When a booking is paid, the operator's PICs (and Gilifast's own contact) get a WhatsApp message with the booking code, passengers, boat, route and departure time, so they can create the ticket in the operator's dashboard. Information only: the booking still waits for the admin's confirmation. Needs the WATI template named in `PIC_ORDER_TEMPLATE`; without it nothing is sent. Part A of the e-ticket feature; it ships as a release together with Part B.
-
 ### Changed
 
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
 - `scripts/seed-pic-contacts.ts` stores PIC phone numbers as `628…` digits (a spreadsheet drops the leading 0).
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
+
+## [1.4.0] - 2026-10-18
+
+### Added
+
+- When a booking is paid, the operator's PICs (and Gilifast's own contact) get a WhatsApp message with the booking code, passengers, boat, route and departure time, so they can create the ticket in the operator's dashboard. Information only: the booking still waits for the admin's confirmation. Needs the WATI template named in `PIC_ORDER_TEMPLATE`; without it nothing is sent. Part A of the e-ticket feature; it ships as a release together with Part B.
+- The operator's e-ticket email is forwarded to the buyer automatically. admin@gilifast.com forwards Wahana's mail to a Resend inbound address, Resend calls `/api/webhooks/resend-inbound`, and the app sends the email and its PDF to `Booking.customerEmail`, with the subject suffixed `_<booking reference>` and a "Gilifast Booking code" line. The booking is found by the Gilifast code typed after the customer's name; without a code, by name plus departure time when exactly one booking fits. Nothing else is sent. The booking stays awaiting the admin's confirmation.
+- Admin page **E-tickets** (`/admin/eticket-delivery`): emails that could not be matched (with a pick-a-booking forward), paid bookings still waiting for the operator's ticket, and what was delivered. Operator emails also appear in `/admin/webhooks`.
 
 ## [1.3.1] - 2026-10-16
 
@@ -137,7 +141,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/condoriano98/gilijet/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/condoriano98/gilijet/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/condoriano98/gilijet/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/condoriano98/gilijet/compare/v1.1.1...v1.2.0

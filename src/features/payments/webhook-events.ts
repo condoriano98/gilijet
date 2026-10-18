@@ -13,9 +13,18 @@ export type ProcessResult =
 /** `ok` result whose booking does not exist: logged as SKIPPED, not PROCESSED. */
 export const BOOKING_NOT_FOUND = 'booking-not-found';
 
+/** `ok` result for an inbound email from an address that is not an operator's: logged SKIPPED. */
+export const SENDER_NOT_ALLOWED = 'sender-not-allowed';
+
+const SKIP_REASONS: Record<string, string> = {
+  [BOOKING_NOT_FOUND]: 'Booking not found',
+  [SENDER_NOT_ALLOWED]: 'Sender is not an operator confirmation address',
+};
+
 /** Event types a retry can act on. Everything else is a record, not work. */
 export const RETRYABLE_EVENTS: { provider: string; eventTypes: string[] }[] = [
   { provider: 'doku', eventTypes: ['payment.success'] },
+  { provider: 'resend-inbound', eventTypes: ['email.received'] },
   {
     provider: 'paypal',
     eventTypes: [
@@ -32,6 +41,9 @@ export function isRetryableEvent(provider: string, eventType: string): boolean {
     (r) => r.provider === provider && r.eventTypes.includes(eventType),
   );
 }
+
+/** errorMessage prefix of an inbound email that waits for an admin; never retried automatically. */
+export const NEEDS_REVIEW_PREFIX = 'Needs review: ';
 
 export const REJECTED_EVENT_TYPE = 'signature.rejected';
 const REJECTED_BODY_LIMIT = 4096;
@@ -109,13 +121,13 @@ export async function settleWebhookEvent(
   result: ProcessResult,
 ): Promise<void> {
   if (result.ok) {
-    const skipped = result.status === BOOKING_NOT_FOUND;
+    const skipReason = SKIP_REASONS[result.status];
     await prisma.webhookEvent.update({
       where: { id },
       data: {
-        status: skipped ? 'SKIPPED' : 'PROCESSED',
+        status: skipReason ? 'SKIPPED' : 'PROCESSED',
         processedAt: new Date(),
-        errorMessage: skipped ? 'Booking not found' : null,
+        errorMessage: skipReason ?? null,
       },
     });
     return;

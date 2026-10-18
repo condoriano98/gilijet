@@ -3,6 +3,7 @@ import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { dispatchWebhookEvent } from '@/features/payments/webhook-processor';
 import {
+  NEEDS_REVIEW_PREFIX,
   RETRYABLE_EVENTS,
   STUCK_PROCESSING_MS,
   failWebhookEvent,
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
         eventType: { in: r.eventTypes },
       })),
       attempts: { lt: 5 },
+      // A human decides these; a later retry could match on looser grounds.
+      NOT: { errorMessage: { startsWith: NEEDS_REVIEW_PREFIX } },
       AND: [
         {
           OR: [

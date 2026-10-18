@@ -565,3 +565,55 @@ export async function sendRefundProcessedEmail(
   }
   return { delivered: true, provider: 'resend' };
 }
+
+// ─── Operator e-ticket forward ────────────────────────────────────────────────
+
+/**
+ * The operator's own ticket email (with its PDF), forwarded to the buyer with
+ * our booking code added. Subject: the original with "Fwd:" removed plus
+ * `_<bookingReference>`.
+ */
+export async function sendOperatorTicketForward(args: {
+  to: string;
+  subject: string;
+  bodyHtml: string;
+  bookingReference: string;
+  attachments: EmailAttachment[];
+}): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+  const subject = `${args.subject}_${args.bookingReference}`;
+  const html = `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;margin-bottom:16px;"><strong>Gilifast Booking code : ${escapeHtml(args.bookingReference)}</strong></div>${args.bodyHtml}`;
+
+  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    console.log(
+      `\n[email] (no RESEND_API_KEY) → would forward operator ticket to ${args.to}\n` +
+        `        subject: ${subject}\n` +
+        `        attach : ${args.attachments.map((a) => a.filename).join(', ') || '(none)'}\n`,
+    );
+    return { delivered: false, provider: 'console' };
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: env.RESEND_FROM_EMAIL,
+      to: [args.to],
+      reply_to: 'admin@gilifast.com',
+      subject,
+      html,
+      attachments: args.attachments.map((a) => ({
+        filename: a.filename,
+        content: a.content.toString('base64'),
+      })),
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error(`[email] Resend failed ${res.status}: ${text}`);
+    return { delivered: false, provider: 'resend' };
+  }
+  return { delivered: true, provider: 'resend' };
+}

@@ -21,7 +21,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
   audience (customer / operator / admin)
 - **Payments:** DOKU Checkout (primary, settles IDR) with PayPal as the backup
   for cards DOKU declines (charged in USD at a stored FX rate)
-- **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent
+- **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent. Also receives the operator's e-ticket email (Resend inbound → `/api/webhooks/resend-inbound`, `RESEND_INBOUND_SECRET`) and forwards it to the buyer
 - **Storage:** Supabase Storage, for operator KYB documents
 - **i18n:** `next-intl` — `en`, `id`, `zh`, `ja` on the customer surface
 
@@ -383,7 +383,7 @@ src/app/
   operator/             — back office (Indonesian nav; English canonical routes)
   admin/(authed)/       — operator onboarding, bookings, webhook log, refunds, reschedules
     console/            — owner-only coupons + platform economics
-  api/                  — REST, DOKU/Xendit webhooks, cron
+  api/                  — REST, DOKU/Xendit/Resend-inbound webhooks, cron
   print/                — printable tickets and manifests
 src/features/           — domain logic, one folder per domain
   booking/              — engine, expiry, helpers, notifications, references (+ components/)
