@@ -12,9 +12,14 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Added
+
+- When a booking is paid, the operator's PICs (and Gilifast's own contact) get a WhatsApp message with the booking code, passengers, boat, route and departure time, so they can create the ticket in the operator's dashboard. Information only: the booking still waits for the admin's confirmation. Needs the WATI template named in `PIC_ORDER_TEMPLATE`; without it nothing is sent. Part A of the e-ticket feature; it ships as a release together with Part B.
+
 ### Changed
 
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
+- `scripts/seed-pic-contacts.ts` stores PIC phone numbers as `628…` digits (a spreadsheet drops the leading 0).
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
 ## [1.3.1] - 2026-10-16

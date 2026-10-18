@@ -46,6 +46,10 @@ const envSchema = z.object({
   ADMIN_WHATSAPP_NUMBER: z.string().optional(),
   ADMIN_ALERT_TEMPLATE: z.string().optional(),
 
+  // Approved WATI template for the "order paid" message to operator PICs. Unset
+  // = the PIC message is skipped. See features/messaging/pic-notifications.ts.
+  PIC_ORDER_TEMPLATE: z.string().optional(),
+
   CRON_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),

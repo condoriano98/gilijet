@@ -64,7 +64,7 @@ Route-private components live in `_components/` beside the route that uses them 
 | `schedules/` | `legs`, `connection-search`, `sales-channel`, `wahana-schedule` (generated), `home-data`, `components/` (search-form, days-picker) |
 | `operators/` | `data` (active-entity helpers), `erp-queries`, `documents`, `purge`, `components/templates/` (list/detail/form page templates) |
 | `ports/` | `port-info`, `geo`, `sea-conditions`, `weather-policy`, `destination-photos` |
-| `messaging/` | `email`, `whatsapp`, `admin-alerts` |
+| `messaging/` | `email`, `whatsapp`, `admin-alerts`, `pic-notifications` |
 | `diagnostics/` | `feature-catalog` (checked by a drift test) |
 
 ### `src/shared/`

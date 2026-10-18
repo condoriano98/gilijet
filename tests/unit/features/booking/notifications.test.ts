@@ -44,6 +44,9 @@ vi.mock('@/features/tickets/boarding-pass', () => ({
   boardingPassFilenameForLeg: (bookingId: string, legType: string) => `boarding-pass-${bookingId}-${legType}.pdf`,
 }));
 
+vi.mock('@/features/messaging/pic-notifications', () => ({
+  notifyOperatorPicsOrderPaid: vi.fn(),
+}));
 vi.mock('@/features/messaging/admin-alerts', () => ({
   alertAdminBookingPaid: vi.fn(),
 }));
@@ -62,6 +65,7 @@ import {
 } from '@/features/messaging/whatsapp';
 import { generateBoardingPassPdf, generateBoardingPassPdfsForBooking } from '@/features/tickets/boarding-pass';
 import { alertAdminBookingPaid } from '@/features/messaging/admin-alerts';
+import { notifyOperatorPicsOrderPaid } from '@/features/messaging/pic-notifications';
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -112,6 +116,7 @@ describe('notifyPaymentReceived', () => {
     expect(sendPaymentReceivedEmail).toHaveBeenCalled();
     expect(sendPaymentReceivedWhatsapp).toHaveBeenCalled();
     expect(alertAdminBookingPaid).toHaveBeenCalled();
+    expect(notifyOperatorPicsOrderPaid).toHaveBeenCalled();
   });
 
   it('swallows email send errors', async () => {

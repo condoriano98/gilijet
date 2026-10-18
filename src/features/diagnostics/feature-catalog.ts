@@ -722,10 +722,10 @@ const PLATFORM: Feature[] = [
     name: 'Email & WhatsApp',
     status: 'partial',
     routes: [],
-    modules: ['src/features/messaging/email.ts'],
-    models: ['NotificationLog', 'OperatorNotification'],
+    modules: ['src/features/messaging/email.ts', 'src/features/messaging/pic-notifications.ts'],
+    models: ['NotificationLog', 'OperatorNotification', 'OperatorPicContact'],
     notes:
-      'Resend with a mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send.',
+      'Resend with a mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send. Paying a booking sends the operator PICs a WATI template (PIC_ORDER_TEMPLATE; skipped when unset).',
   },
   {
     id: 'platform-fx',

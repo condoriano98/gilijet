@@ -19,6 +19,7 @@ import {
   generateBoardingPassPdfsForBooking,
 } from '@/features/tickets/boarding-pass';
 import { alertAdminBookingPaid } from '@/features/messaging/admin-alerts';
+import { notifyOperatorPicsOrderPaid } from '@/features/messaging/pic-notifications';
 import type { IssuedTicket } from '@/features/tickets/ticket-issuer';
 
 /**
@@ -145,6 +146,8 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
   // Staff alert: this is the moment the admin has something to do — ring the
   // operator and confirm the boat. Swallows its own errors.
   void alertAdminBookingPaid(bookingId);
+  // Info-only message to the operator's PICs so they can create the ticket.
+  void notifyOperatorPicsOrderPaid(bookingId);
 }
 
 /** The admin reached the operator and the seat is real. Boarding pass goes out. */

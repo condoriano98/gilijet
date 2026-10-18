@@ -3,8 +3,10 @@
 Contact channels (phone/email) for a boat operator's PIC (Person In Charge).
 This is the data foundation for automating booking confirmation with the
 operator side — currently done by an admin calling the operator by phone
-(see `/admin/confirmations`, `lib/ticket-issuer.ts`). This table only stores
-*who to contact*; the actual WhatsApp/email trigger automation and the
+(see `/admin/confirmations`, `lib/ticket-issuer.ts`). This table stores
+*who to contact*. Since 2026-10-18 `src/features/messaging/pic-notifications.ts`
+reads `nohpNotifikasi` and sends the "order paid" WhatsApp (e-ticket Part A,
+`docs/spikes/FEATURE_ETICKET_PIC_NOTIFICATION.md`). The email trigger and the
 "first responder wins" race are not implemented yet — future work.
 
 ## Schema
@@ -79,5 +81,7 @@ pnpm tsx scripts/seed-pic-contacts.ts
 An earlier version of the CSV had one corrupted value (a spreadsheet
 scientific-notation artifact that ate a phone number's digits); the
 current CSV has been corrected and fully seeded to staging.
+
+> **Update 2026-10-18:** phone numbers are stored as `628…` digits (no `0`, no `+`); `seed-pic-contacts.ts` now normalizes them. Staging rows were fixed on 2026-10-18; **production rows still need the same fix** before Part A is released.
 
 > **Update 2026-10-14:** `ENABLE ROW LEVEL SECURITY` on `OperatorPicContact` is recorded in migration `prisma/migrations/0_init`, so a database built from migrations matches the existing ones. See `docs/RELEASING.md`.
