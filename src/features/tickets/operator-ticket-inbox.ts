@@ -25,7 +25,8 @@ import {
  *
  * The mailbox is opened read-only. "Already handled" is a WebhookEvent row keyed
  * by the Message-ID, not an IMAP flag, because people read this inbox too. Only
- * the last LOOKBACK_DAYS days are looked at, and at most BATCH messages per run.
+ * the last LOOKBACK_DAYS days (or since INBOX_POLL_SINCE, if later) are looked at,
+ * judged by the time the mail arrived, and at most BATCH messages per run.
  * Without INBOX_POLL_LIVE=true nothing is forwarded or written: the run only
  * reports what it would do (dry run).
  */
@@ -93,7 +94,9 @@ export async function pollOperatorInbox(
 
   const senderSet = new Set(senders);
   const deadline = Date.now() + (opts.budgetMs ?? DEFAULT_BUDGET_MS);
-  const since = new Date((opts.now ?? new Date()).getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const lookbackStart = new Date((opts.now ?? new Date()).getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const configuredStart = env.INBOX_POLL_SINCE ? new Date(`${env.INBOX_POLL_SINCE}T00:00:00+08:00`) : null;
+  const since = configuredStart && configuredStart > lookbackStart ? configuredStart : lookbackStart;
 
   const client = openInbox();
   await client.connect();
@@ -116,7 +119,9 @@ export async function pollOperatorInbox(
       // whose single From address is exactly an operator's confirmation address.
       const known: { uid: number; ref: string; size: number; from: string; subject: string }[] = [];
       if (ordered.length > 0) {
-        for await (const e of client.fetch(ordered.join(','), { envelope: true, size: true, uid: true }, { uid: true })) {
+        for await (const e of client.fetch(ordered.join(','), { envelope: true, size: true, uid: true, internalDate: true }, { uid: true })) {
+          // IMAP SINCE only knows whole days; the arrival time makes the cut exact.
+          if (e.internalDate && new Date(e.internalDate) < since) continue;
           const from = e.envelope?.from?.length === 1 ? (e.envelope.from[0].address?.toLowerCase() ?? '') : '';
           if (!senderSet.has(from)) continue;
           known.push({

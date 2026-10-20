@@ -20,7 +20,7 @@ requireMockPayments();
  * (requireMockPayments), so the processor reads the mock email and the forward
  * is only logged; what is asserted is the event outcome, the
  * `operator_ticket_forwarded` audit row and what the admin page shows. Also
- * checks the poll route's auth. Builds its own route (2096), booking and PIC row
+ * checks the poll route's auth and the admin "Check mailbox now" button. Builds its own route (2096), booking and PIC row
  * and removes them. Relies on `pnpm seed:qa` (boat and admin account), and on
  * CRON_SECRET in the dev server's env (skips itself otherwise).
  */
@@ -189,4 +189,12 @@ test('an email without a code that matches nothing waits for the admin, who forw
   const booking = await prisma.booking.findUniqueOrThrow({ where: { bookingReference: REF } });
   expect(await prisma.auditLog.count({ where: { entityId: booking.id, action: 'operator_ticket_forwarded' } })).toBe(2);
   await expect(page.getByRole('row', { name: new RegExp(REF) }).filter({ hasText: 'admin' })).toHaveCount(1);
+});
+
+test('the "Check mailbox now" button reports instead of failing when no mailbox is configured', async ({ page }) => {
+  await login(page);
+  await page.goto('/admin/eticket-delivery');
+  await expect(page.getByText(/Dry run: shows what would be forwarded/)).toBeVisible();
+  await page.getByRole('button', { name: 'Check mailbox now' }).click();
+  await expect(page.locator('body')).toContainText('The mailbox is not configured on this environment', { timeout: 20_000 });
 });

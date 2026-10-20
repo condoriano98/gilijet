@@ -21,7 +21,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
   audience (customer / operator / admin)
 - **Payments:** DOKU Checkout (primary, settles IDR) with PayPal as the backup
   for cards DOKU declines (charged in USD at a stored FX rate)
-- **Email:** Gmail SMTP (`nodemailer`, app password: `SMTP_*`, `EMAIL_FROM`), with a console-only mock fallback when they are absent. Also reads the operator's e-ticket mailbox over IMAP (`imapflow`, `INBOX_IMAP_*`; `/api/cron/poll-operator-inbox`, meant to be called every 5 minutes by `.github/workflows/poll-operator-inbox.yml`, which only runs once it is on the default branch and its secret/variable are set; dry run until `INBOX_POLL_LIVE=true`) and forwards each ticket to the buyer
+- **Email:** Gmail SMTP (`nodemailer`, app password: `SMTP_*`, `EMAIL_FROM`), with a console-only mock fallback when they are absent. Also reads the operator's e-ticket mailbox over IMAP (`imapflow`, `INBOX_IMAP_*`; `/api/cron/poll-operator-inbox`, called by hand on staging for now and not scheduled in `vercel.json` (Vercel Cron only fires on production); dry run until `INBOX_POLL_LIVE=true`; `INBOX_POLL_SINCE` limits it to mail from a given day; the admin E-tickets page has a "Check mailbox now" button) and forwards each ticket to the buyer
 - **Storage:** Supabase Storage, for operator KYB documents
 - **i18n:** `next-intl` — `en`, `id`, `zh`, `ja` on the customer surface
 

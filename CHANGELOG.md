@@ -18,13 +18,20 @@ bump. A version is live in production once its tag is merged into `main`.
 - `scripts/seed-pic-contacts.ts` stores PIC phone numbers as `628…` digits (a spreadsheet drops the leading 0).
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
+## [1.6.0] - 2026-10-20
+
+### Added
+
+- **Check mailbox now** button on the admin E-tickets page (`/admin/eticket-delivery`): reads the operator mailbox immediately, the same way the poll route does, and reports how many new emails were found, forwarded (or, in dry-run mode, would be forwarded), need review or failed. Needed because Vercel Cron only runs on production and the poll is not scheduled yet.
+- `INBOX_POLL_SINCE` (YYYY-MM-DD, WITA): the operator inbox poll only looks at mail that arrived on or after that day, judged by arrival time. Unset keeps the last 7 days.
+
 ## [1.5.0] - 2026-10-20
 
 Replaces the Resend transport that 1.4.0 introduced (1.4.0 was never tagged or released): mail now goes out over Gmail SMTP and the operator's ticket emails are read over IMAP.
 
 ### Added
 
-- The operator ticket mailbox (admin@gilifast.com) is read over IMAP by `/api/cron/poll-operator-inbox` (secured by `CRON_SECRET`, called every 5 minutes by a GitHub Actions workflow because Vercel Hobby only runs daily crons). It looks at the last 7 days of mail from the operators' confirmation addresses, never changes the mailbox, and remembers what it has handled by Message-ID. It is a dry run, reporting what it would forward, until `INBOX_POLL_LIVE=true` is set. Needs `INBOX_IMAP_*` and a Gmail app password.
+- The operator ticket mailbox (admin@gilifast.com) is read over IMAP by `/api/cron/poll-operator-inbox` (secured by `CRON_SECRET`; scheduled every 5 minutes in `vercel.json`, see Unreleased). It looks at the last 7 days of mail from the operators' confirmation addresses, never changes the mailbox, and remembers what it has handled by Message-ID. It is a dry run, reporting what it would forward, until `INBOX_POLL_LIVE=true` is set. Needs `INBOX_IMAP_*` and a Gmail app password.
 - A ticket email is forwarded only when the receiving server vouches for the sender (DMARC pass for the From domain, or DKIM aligned with it), the From has exactly one address, and it is exactly an operator's confirmation address.
 - The forwarded message is plain text plus the original PDF: the operator's HTML is no longer passed on.
 
@@ -164,7 +171,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/condoriano98/gilijet/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/condoriano98/gilijet/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/condoriano98/gilijet/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/condoriano98/gilijet/compare/v1.3.0...v1.3.1

@@ -67,6 +67,12 @@ const envSchema = z.object({
   INBOX_IMAP_PORT: z.coerce.number().int().positive().optional().default(993),
   INBOX_IMAP_USER: z.string().optional(),
   INBOX_IMAP_PASSWORD: z.string().optional().transform((v) => v?.replace(/\s+/g, '')),
+  // Only mail that arrived on or after this date (YYYY-MM-DD, WITA) is looked at.
+  // Unset = the last 7 days.
+  INBOX_POLL_SINCE: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   INBOX_POLL_LIVE: z
     .string()
     .optional()

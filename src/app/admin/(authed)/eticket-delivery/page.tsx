@@ -7,10 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { forwardOperatorEmailAction } from './actions';
+import { env } from '@/shared/server/env';
+import { checkMailboxNowAction, forwardOperatorEmailAction } from './actions';
 
 export const metadata = { title: 'E-ticket delivery · Admin' };
 export const dynamic = 'force-dynamic';
+// "Check mailbox now" runs the IMAP poll inside a server action (Gmail alone takes 10-20 s).
+export const maxDuration = 60;
 
 const MESSAGES: Record<string, string> = {
   forwarded: 'Forwarded to the customer.',
@@ -18,6 +21,8 @@ const MESSAGES: Record<string, string> = {
   missing_input: 'Pick a booking reference first.',
   event_not_found: 'Email not found.',
   already_in_progress: 'This email was already handled.',
+  not_configured: 'The mailbox is not configured on this environment (INBOX_IMAP_*).',
+  mailbox_unreachable: 'Could not read the mailbox. Check the server log.',
 };
 
 const WAIT_DAYS = 14;
@@ -35,7 +40,7 @@ export default async function ETicketDeliveryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   await requireAdmin();
-  const { ok, error } = await searchParams;
+  const { ok, error, checked, dry, new: newCount, fwd, rev, fail } = await searchParams;
   const since = new Date(Date.now() - WAIT_DAYS * 24 * 60 * 60 * 1000);
 
   const [notified, forwarded, review] = await Promise.all([
@@ -90,7 +95,13 @@ export default async function ETicketDeliveryPage({
         (forwardedCount.get(n.entityId) ?? 0) < (b.tripType === 'ROUND_TRIP' ? 2 : 1),
     );
 
-  const banner = ok ? MESSAGES[ok] : error ? MESSAGES[error] : null;
+  const checkedBanner =
+    checked === '1'
+      ? dry === '1'
+        ? `Mailbox checked (dry run, nothing was sent): ${newCount ?? 0} new, ${fwd ?? 0} would be forwarded, ${rev ?? 0} need review, ${fail ?? 0} failed.`
+        : `Mailbox checked: ${newCount ?? 0} new, ${fwd ?? 0} forwarded, ${rev ?? 0} need review, ${fail ?? 0} failed.`
+      : null;
+  const banner = checkedBanner ?? (ok ? MESSAGES[ok] : error ? MESSAGES[error] : null);
 
   return (
     <div className="space-y-6">
@@ -101,6 +112,17 @@ export default async function ETicketDeliveryPage({
           it to admin@gilifast.com, which forwards it to the customer automatically. Last {WAIT_DAYS}{' '}
           days. Times are WITA.
         </p>
+        <form action={checkMailboxNowAction} className="mt-3 flex items-center gap-3">
+          <Button type="submit" variant="outline" size="sm">
+            Check mailbox now
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {env.INBOX_POLL_LIVE
+              ? 'Live: new operator emails are forwarded to customers.'
+              : 'Dry run: shows what would be forwarded, sends nothing.'}
+            {env.INBOX_POLL_SINCE ? ` Mail from ${env.INBOX_POLL_SINCE} on.` : ' Last 7 days.'} Takes up to a minute.
+          </span>
+        </form>
       </div>
 
       {banner && (

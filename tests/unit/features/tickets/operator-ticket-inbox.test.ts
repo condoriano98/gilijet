@@ -224,6 +224,32 @@ describe('pollOperatorInbox', () => {
       expect(mocks.client.fetchOne).not.toHaveBeenCalled();
     });
 
+    it('with INBOX_POLL_SINCE only looks at mail that arrived on or after that day (WITA), by arrival time', async () => {
+      mocks.env.INBOX_POLL_SINCE = '2026-10-20';
+      const now = new Date('2026-10-20T10:00:00Z');
+      envelopes((uid) =>
+        envelope(uid, {
+          // uid 5 arrived 19 Oct 23:30 WITA (before the cut), uid 6 on 20 Oct 08:00 WITA.
+          internalDate: uid === 5 ? new Date('2026-10-19T15:30:00Z') : new Date('2026-10-20T00:00:00Z'),
+        }),
+      );
+      const s = await pollOperatorInbox({ live: true, now });
+      expect(mocks.client.search).toHaveBeenCalledWith(
+        { since: new Date('2026-10-19T16:00:00Z'), from: 'no-reply@wahana.com' },
+        { uid: true },
+      );
+      expect(s.candidates).toBe(1);
+      expect(mocks.begin.mock.calls[0][0].externalRef).toBe('<m6@w>');
+      delete mocks.env.INBOX_POLL_SINCE;
+    });
+
+    it('INBOX_POLL_SINCE never reaches further back than the 7 day window', async () => {
+      mocks.env.INBOX_POLL_SINCE = '2026-01-01';
+      await pollOperatorInbox({ now: new Date('2026-10-20T10:00:00Z') });
+      expect(mocks.client.search.mock.calls[0][0].since).toEqual(new Date('2026-10-13T10:00:00Z'));
+      delete mocks.env.INBOX_POLL_SINCE;
+    });
+
     it('bounds a sender-controlled Message-ID before it is stored', async () => {
       envelopes((uid) => envelope(uid, { envelope: { messageId: `<${'a'.repeat(900)}>`, subject: 's', from: [{ address: 'no-reply@wahana.com' }] } }));
       await pollOperatorInbox(live);

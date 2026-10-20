@@ -629,7 +629,7 @@ const API: Feature[] = [
     ],
     modules: ['src/features/schedules/legs.ts', 'src/features/payments/webhook-processor.ts'],
     models: ['WebhookEvent', 'Leg'],
-    notes: 'The only two jobs actually scheduled in vercel.json. CRON_SECRET-gated.',
+    notes: 'The only two jobs actually scheduled in vercel.json. CRON_SECRET-gated. (poll-operator-inbox is a cron-style route but is not scheduled yet.)',
   },
   {
     id: 'api-cron-unscheduled',

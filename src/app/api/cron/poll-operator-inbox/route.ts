@@ -4,10 +4,10 @@ import { pollOperatorInbox } from '@/features/tickets/operator-ticket-inbox';
 
 /**
  * Cron job: reads the operator e-ticket mailbox over IMAP and forwards each new
- * ticket email to its buyer. Vercel Hobby only runs daily crons, so a GitHub
- * Actions schedule (.github/workflows/poll-operator-inbox.yml) calls this every
- * few minutes. Secured by CRON_SECRET like the other cron routes. Dry run unless
- * INBOX_POLL_LIVE=true.
+ * ticket email to its buyer. Not in vercel.json yet: Vercel Cron only fires on
+ * Production deployments, and for now the poll runs on staging only, so it is
+ * called by hand. Secured by CRON_SECRET like the other cron routes. Dry run
+ * unless INBOX_POLL_LIVE=true.
  */
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');

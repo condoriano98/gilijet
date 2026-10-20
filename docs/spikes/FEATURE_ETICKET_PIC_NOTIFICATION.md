@@ -1,13 +1,13 @@
 # Feature: e-ticket issuance — PIC WhatsApp on payment, operator ticket email forwarded to the customer
 
-**Status (2026-10-20):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B was committed as `9333eb0` on Resend inbound and then moved to **IMAP polling + Gmail SMTP** (release 1.5.0, committed and pushed to `staging`, tag `v1.5.0`; see "Checkpoint"). Unit, lint, typecheck, e2e on staging and a read-only dry run against the real mailbox are done. Not yet verified: a real SMTP send and a live (non-dry) poll; that is the manual test on staging. `main`/production are untouched.
+**Status (2026-10-20):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B was committed as `9333eb0` on Resend inbound and then moved to **IMAP polling + Gmail SMTP** (release 1.5.0, committed and pushed to `staging`, tag `v1.5.0`; 1.6.0 adds the Check mailbox now button and `INBOX_POLL_SINCE`; see "Checkpoint"). Unit, lint, typecheck, e2e on staging and a read-only dry run against the real mailbox are done. Not yet verified: a real SMTP send and a live (non-dry) poll; that is the manual test on staging. `main`/production are untouched.
 **Created:** 2026-10-17
 **Target version:** 1.4.0 (MINOR: new notification + inbound email feature). No schema change.
 **Ticket:** "4 Penerbitan E-Tiket".
 
 ## Checkpoint (implementation, updated as it goes)
 
-**Last updated 2026-10-20 (end of day).** The user said "implement" on 2026-10-20. Order: 1 SMTP → 2 Part B fixes → 3 IMAP poller → 4 cleanup of Resend → 5 QC and docs sweep. Committed and pushed to `staging` as v1.5.0 (user's go, 2026-10-20); `main` is untouched.
+**Last updated 2026-10-20 (end of day; v1.6.0 = button + INBOX_POLL_SINCE).** The user said "implement" on 2026-10-20. Order: 1 SMTP → 2 Part B fixes → 3 IMAP poller → 4 cleanup of Resend → 5 QC and docs sweep. Committed and pushed to `staging` as v1.5.0 (user's go, 2026-10-20); `main` is untouched.
 
 | Step | State |
 |---|---|
@@ -23,7 +23,8 @@
 | 5d e2e `eticket-operator-email.spec.ts` (rewritten for IMAP) and `eticket-pic.spec.ts`, `customer-booking.spec.ts` on the staging DB | done 2026-10-20 with the user's go: all pass, fixtures removed (read-only count afterwards: 0 left) |
 | 5e Commit, push to `staging`, tag `v1.5.0` | done 2026-10-20 with the user's go (see the commit); `main` untouched |
 | 5f Manual test on staging after the push | todo, user + Claude (see "Manual test plan") |
-| 6 Go-live setup: GitHub secret `CRON_SECRET` + variable `POLL_BASE_URL`; `CRON_SECRET` set on the target deployment; `INBOX_POLL_LIVE=true` only after a clean dry run; rotate the app password | todo, user |
+| 6a **"Check mailbox now" button** on `/admin/eticket-delivery` (server action `checkMailboxNowAction`, `requireAdmin()`, same `pollOperatorInbox` as the cron route, `maxDuration` 60) | done 2026-10-20 (user chose option 2): guard test, e2e (no mailbox configured), and a real run in the dev server against the real mailbox: dry run, 6 s, "0 new" |
+| 6b Automatic scheduling on staging | not done: Vercel Cron cannot run on staging; the button and manual calls are the staging way. Production scheduling is deliberately not set up (user's decision); `CRON_SECRET` set on the target deployment; `INBOX_POLL_LIVE=true` only after a clean dry run; rotate the app password | todo, user |
 
 **Design changes made while building (differs from "Decision 2026-10-19" above):**
 - **No `\Seen` flags and no writes to the mailbox.** People read this inbox, so a mail opened in Gmail must not vanish from the poller. "Handled" is a `WebhookEvent` row keyed by the Message-ID; the poller searches the last 7 days from the operators' confirmation addresses and skips known Message-IDs (envelope fetched first, body only for new mail). The IMAP lock is always read-only.
@@ -32,7 +33,7 @@
 - **Retries and the admin pick re-read the message from the mailbox** by `(UIDVALIDITY, UID)` stored in the event; if the mailbox was reset or the message deleted, the retry fails visibly.
 - **The poll route is called by GitHub Actions**, not Vercel cron (Hobby). The workflow does nothing until the repo secret `CRON_SECRET` and variable `POLL_BASE_URL` are set, and scheduled workflows only run from the default branch.
 
-**Scheduling decision:** the Vercel team is a personal one ("condoriano98's projects", so almost certainly Hobby: daily crons only; a `*/5` entry in `vercel.json` would fail the deploy on Hobby). The poll is therefore scheduled by a GitHub Actions workflow that calls the route with `CRON_SECRET`; `vercel.json` is not touched. Not yet confirmed by the user.
+**Scheduling decision (updated 2026-10-20):** the Vercel team is on **Pro**, but Vercel Cron only runs on production, and the user wants staging only for now: nothing is scheduled yet. The earlier Hobby / GitHub Actions plan is withdrawn; see "Scheduling, 2026-10-20" below.
 
 ## Ticket (translated)
 
@@ -325,6 +326,23 @@ Read, not re-run. Gaps in `src/features/tickets/operator-ticket-email.ts` and `s
 - **Finding for the Wahana team:** these two real emails carry **no Gilifast code**; the second has an old-style `GF-20261018-ABCD` after the name. Our code format is `BK-YYYY-MM-XXXXXX`. Until the PIC types that, every email will sit in Needs review and the admin forwards it with one click. The Wahana emails are HTML-only (no text part) and are sent through Resend by Wahana, signed with DKIM for `virendrafastferry.com`.
 - **Not verified:** the e2e on staging (waiting for go); SMTP sending to a real address (port 465 was never exercised; mock mode and unit tests only); a live (non-dry) run; a real email carrying a real Gilifast code; the GitHub Actions workflow (needs the repo secret and variable, and only runs from the default branch); production.
 - **Local env note:** `.env.local` now holds the real mailbox and SMTP password, so e2e specs refuse to run (`requireMockPayments`) unless `SMTP_PASSWORD=` and `INBOX_IMAP_PASSWORD=` are blanked on the command line, like the payment keys.
+
+### Scheduling the poll, findings 2026-10-20 (after the v1.5.0 push)
+
+- **The poll has never run on a deployed site.** `vercel.json` has only the three daily crons; the GitHub workflow is inactive.
+- **The GitHub repository `condoriano98/gilijet` is public and its default branch is `main`** (checked through the GitHub API; the local `origin/HEAD` still points at an old branch). Two consequences: (1) a `schedule:` workflow only runs from `main`, which is production, so the workflow would only start after a `staging` → `main` release (CLAUDE.md rule 9: two warnings); (2) Actions logs of a public repo are public, which is why the workflow prints only status codes, never the response. Scheduled workflows in a public repo are also switched off after 60 days without repository activity.
+- **Options to run the poll every 5 minutes without waiting for a release:** (a) set the repository's default branch to `staging` (GitHub setting, the user's call); (b) an external scheduler (for example cron-job.org) calling `GET https://gilijet.vercel.app/api/cron/poll-operator-inbox` with the header `Authorization: Bearer <staging CRON_SECRET>`; (c) a crontab on the droplet doing the same `curl`; (d) a Vercel plan that allows sub-daily crons. None of these can be created from this session (no GitHub or scheduler access); the user picks one.
+- **Failed forwards** are retried by `/api/cron/retry-webhooks`, which the workflow also calls; with options (b) and (c) that second call must be scheduled the same way, or the retry waits for the daily 03:00 Vercel cron.
+- **`INBOX_POLL_SINCE`** (new, uncommitted): only mail that arrived on or after that day (WITA) is looked at, judged by IMAP arrival time, never further back than 7 days. Set to `2026-10-20` on the Vercel `staging` environment on 2026-10-20 (production not set; production has none of this code live). With it, the two older Wahana test mails (16 and 18 Oct) are no longer seen.
+
+### Scheduling, 2026-10-20 (latest; supersedes the GitHub Actions plan above)
+
+- **The Vercel team is on Pro** (the team switcher shows "Pro"). Sub-daily crons would be allowed, **but Vercel only invokes cron jobs for production deployments** (Vercel docs, "Cron jobs quickstart"; the README says the same). Staging is a custom environment, so **no Vercel cron can run on staging.**
+- **The user decided: staging only for now, nothing set up on production.** So `vercel.json` is **unchanged** (an entry would only ever fire on production, after a release to `main`), and the GitHub workflow was removed (default branch is `main`, the repo is public).
+- **The staging site is behind Vercel Authentication** (an unauthenticated call to `https://gilijet.vercel.app/api/cron/poll-operator-inbox` answers 302 "Protected by Vercel Authentication"). Anything outside Vercel that calls staging needs a "Protection Bypass for Automation" secret (header `x-vercel-protection-bypass`) in addition to the `CRON_SECRET`.
+- **Staging-only ways to run the poll** (the user picks): (a) call it by hand; (b) a "Check mailbox now" button on `/admin/eticket-delivery` (the admin is already past the login wall; **built, chosen by the user on 2026-10-20**); (c) an external scheduler or the droplet's crontab, with the bypass secret and the staging `CRON_SECRET`; (d) run it from the developer's machine in a loop for the test window. Chosen: (b), plus manual calls.
+- **Production later (not now):** add the two entries to `vercel.json` (`poll-operator-inbox` every 5 minutes; optionally `retry-webhooks` every 30 minutes instead of daily), set `INBOX_POLL_SINCE` (and later `INBOX_POLL_LIVE=true`) on the production Vercel environment, and release `staging` → `main` with the two warnings of CLAUDE.md rule 9. Production already holds `INBOX_IMAP_*`, `SMTP_*`, `EMAIL_FROM` and `CRON_SECRET` (added 2026-10-19; nothing reads them until a release).
+- **`INBOX_POLL_SINCE`** (uncommitted): only mail that arrived on or after that day (WITA) is looked at, judged by IMAP arrival time, never further back than 7 days. Set to `2026-10-20` on the Vercel `staging` environment only.
 
 ### e2e on staging (2026-10-20, staging database `asymnwikxyhipoezoggp`, user's go)
 
