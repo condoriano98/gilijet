@@ -6,12 +6,11 @@ import {
   extractBookingCode,
   extractDepartures,
   extractGreetingName,
-  hasForwardBlock,
   htmlToText,
   normalizeName,
-  sanitizeEmailHtml,
   senderAddress,
   stripForwardBlock,
+  textToHtml,
 } from '@/features/tickets/operator-ticket-parse';
 
 describe('extractBookingCode', () => {
@@ -27,6 +26,16 @@ describe('extractBookingCode', () => {
 
   it("ignores the operator's own code format", () => {
     expect(extractBookingCode('Booking code BK-260915-UZ1XEB')).toBeNull();
+  });
+
+  it("never reads the operator's own code as ours, even when its letters fit our alphabet (real Wahana codes)", () => {
+    // Six digits then six letters: without a required separator this became year 2610, month 16.
+    expect(extractBookingCode('Booking Code BK-261016-QSZPC4')).toBeNull();
+    expect(extractBookingCode('Your E-Ticket & Booking Confirmation — BK-261018-VW7GAA')).toBeNull();
+  });
+
+  it('still finds our code when the operator code sits next to it', () => {
+    expect(extractBookingCode('Hi Andy BK-2026-10-ABC234,\nBooking Code BK-261016-QSZPC4')).toBe('BK-2026-10-ABC234');
   });
 
   it('rejects letters outside the booking alphabet (I, O, 0, 1)', () => {
@@ -101,7 +110,6 @@ describe('subject and forward block', () => {
       '',
       'Hi Andy,',
     ].join('\n');
-    expect(hasForwardBlock(text)).toBe(true);
     expect(stripForwardBlock(text)).toBe('Hi Andy,');
   });
 
@@ -110,7 +118,6 @@ describe('subject and forward block', () => {
   });
 
   it('leaves a plain email alone', () => {
-    expect(hasForwardBlock('Hi Andy,')).toBe(false);
     expect(stripForwardBlock('Hi Andy,')).toBe('Hi Andy,');
   });
 });
@@ -146,20 +153,19 @@ describe('real Wahana email (fixture from an .eml of 2026-10-18)', () => {
   });
 });
 
-describe('sanitizeEmailHtml', () => {
-  it('drops scripts, links, remote images and handlers but keeps the text and layout', () => {
-    const out = sanitizeEmailHtml(
-      '<div onclick="x()"><script>alert(1)</script><p>Hi <a href="https://evil.test">Pay here</a></p><img src="https://evil.test/p.png"><table><tr><td>Padang Bai</td></tr></table></div>',
-    );
-    expect(out).not.toMatch(/script|href|<img|onclick|evil/i);
-    expect(out).toContain('Pay here');
-    expect(out).toContain('<td>Padang Bai</td>');
-  });
-
-  it('leaves the real Wahana email readable', () => {
+describe('the forwarded body is plain text', () => {
+  it('htmlToText + textToHtml leaves no markup from the real Wahana email, only escaped text', () => {
     const html = readFileSync(join(__dirname, '../../fixtures/wahana-ticket.html'), 'utf-8');
-    const out = sanitizeEmailHtml(html);
+    const out = textToHtml(htmlToText(html));
     expect(out).toContain('BK-261018-TTODAW');
     expect(out).toContain('Padang Bai');
+    expect(out.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')).not.toMatch(/<(?!\/?div)/);
+  });
+
+  it('turns hostile markup into inert text, including tag-reassembly tricks', () => {
+    const out = textToHtml(htmlToText('<<a>a href="https://evil.test">pay</a><p/onclick=x()>hi'));
+    // The only markup left is our own wrapper; whatever the sender wrote is escaped text.
+    expect(out.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')).not.toContain('<');
+    expect(out).toContain('&gt;');
   });
 });

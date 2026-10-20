@@ -50,19 +50,28 @@ const envSchema = z.object({
   // = the PIC message is skipped. See features/messaging/pic-notifications.ts.
   PIC_ORDER_TEMPLATE: z.string().optional(),
 
-  // Svix signing secret (whsec_…) of the Resend inbound webhook. Unset = the
-  // route rejects every call. See features/messaging/resend-inbound.ts.
-  RESEND_INBOUND_SECRET: z.string().optional(),
-
   CRON_SECRET: z.string().optional(),
 
-  RESEND_API_KEY: z.string().optional(),
-  RESEND_FROM_EMAIL: z
+  // Outbound mail over SMTP (Gmail app password), see features/messaging/mailer.ts.
+  // Any of host / user / password / from missing = mock mode (console only).
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional().transform((v) => v?.replace(/\s+/g, '')),
+  EMAIL_FROM: z.string().optional(),
+
+  // The operator's e-ticket inbox, read over IMAP by /api/cron/poll-operator-inbox.
+  // Unset = the poller does nothing. INBOX_POLL_LIVE must be exactly "true" for
+  // it to forward or mark mail as read; otherwise it only reports what it would do.
+  INBOX_IMAP_HOST: z.string().optional(),
+  INBOX_IMAP_PORT: z.coerce.number().int().positive().optional().default(993),
+  INBOX_IMAP_USER: z.string().optional(),
+  INBOX_IMAP_PASSWORD: z.string().optional().transform((v) => v?.replace(/\s+/g, '')),
+  INBOX_POLL_LIVE: z
     .string()
-    .email()
     .optional()
-    .or(z.literal(''))
-    .transform((v) => (v === '' ? undefined : v)),
+    .transform((v) => v === 'true')
+    .default('false'),
 
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),

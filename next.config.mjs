@@ -19,7 +19,7 @@ const nextConfig = {
     ],
   },
   // Stable since Next 15; was experimental.serverComponentsExternalPackages.
-  serverExternalPackages: ['@prisma/client'],
+  serverExternalPackages: ['@prisma/client', 'imapflow', 'mailparser', 'nodemailer'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

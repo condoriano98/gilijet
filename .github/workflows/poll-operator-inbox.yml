@@ -1,0 +1,45 @@
+name: Poll operator inbox
+
+# Vercel Hobby only runs daily crons, so the operator e-ticket mailbox is polled
+# from here. The route reads admin@gilifast.com over IMAP and forwards each new
+# operator ticket email to its buyer (dry run unless INBOX_POLL_LIVE=true on the
+# target deployment), then runs the webhook retry so failed forwards go out soon. Scheduled workflows run from the default branch only.
+#
+# Setup (repository settings → Secrets and variables → Actions):
+#   secret   CRON_SECRET     same value as the target deployment's CRON_SECRET
+#   variable POLL_BASE_URL   e.g. https://gilijet.vercel.app (no trailing slash)
+# Without both, the job does nothing.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: poll-operator-inbox
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the poll route
+        env:
+          BASE_URL: ${{ vars.POLL_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "POLL_BASE_URL or CRON_SECRET is not set; nothing to do."
+            exit 0
+          fi
+          # Only the status code is printed: the response can name customers.
+          curl --silent --show-error --fail --max-time 90 -o /dev/null -w "poll-operator-inbox: HTTP %{http_code}\n" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BASE_URL/api/cron/poll-operator-inbox"
+          # A forward that failed (mail server down) is retried here, not at 03:00.
+          curl --silent --show-error --fail --max-time 90 -o /dev/null -w "retry-webhooks: HTTP %{http_code}\n" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BASE_URL/api/cron/retry-webhooks"

@@ -21,7 +21,7 @@ Prisma + Postgres. All customer-facing times are **WITA (Asia/Makassar)**.
   audience (customer / operator / admin)
 - **Payments:** DOKU Checkout (primary, settles IDR) with PayPal as the backup
   for cards DOKU declines (charged in USD at a stored FX rate)
-- **Email:** Resend, with a mock fallback when `RESEND_API_KEY` is absent. Also receives the operator's e-ticket email (Resend inbound → `/api/webhooks/resend-inbound`, `RESEND_INBOUND_SECRET`) and forwards it to the buyer
+- **Email:** Gmail SMTP (`nodemailer`, app password: `SMTP_*`, `EMAIL_FROM`), with a console-only mock fallback when they are absent. Also reads the operator's e-ticket mailbox over IMAP (`imapflow`, `INBOX_IMAP_*`; `/api/cron/poll-operator-inbox`, meant to be called every 5 minutes by `.github/workflows/poll-operator-inbox.yml`, which only runs once it is on the default branch and its secret/variable are set; dry run until `INBOX_POLL_LIVE=true`) and forwards each ticket to the buyer
 - **Storage:** Supabase Storage, for operator KYB documents
 - **i18n:** `next-intl` — `en`, `id`, `zh`, `ja` on the customer surface
 
@@ -258,7 +258,7 @@ the flag costs one wasted round-trip and logs a warning suggesting you flip it.
 **Putting sandbox credentials there is the only mechanism.** `pnpm
 paypal:selftest` asks both hosts and names the one that answers.
 
-`RESEND_*` and `WATI_*` are left unset on staging. Neither transport has an
+`SMTP_*`, `INBOX_IMAP_*` and `WATI_*` are left unset on staging unless a test needs them. Neither transport has an
 environment guard — they send to whatever address or number is on the booking,
 so a production dump restored into staging would message real customers. Unset,
 both log to the console and the rendered output still shows in function logs.
@@ -383,7 +383,7 @@ src/app/
   operator/             — back office (Indonesian nav; English canonical routes)
   admin/(authed)/       — operator onboarding, bookings, webhook log, refunds, reschedules
     console/            — owner-only coupons + platform economics
-  api/                  — REST, DOKU/Xendit/Resend-inbound webhooks, cron
+  api/                  — REST, DOKU/Xendit webhooks, cron (incl. the operator-inbox poll)
   print/                — printable tickets and manifests
 src/features/           — domain logic, one folder per domain
   booking/              — engine, expiry, helpers, notifications, references (+ components/)

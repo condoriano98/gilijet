@@ -1,17 +1,17 @@
-import { env } from '@/shared/server/env';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 import { formatIDR } from '@/shared/lib/utils';
 import { renderQrSvgDataUrl } from '@/features/tickets/qr-render';
 import type { IssuedTicket } from '@/features/tickets/ticket-issuer';
+import { mailConfigured, sendMail, type MailAttachment, type MailResult } from '@/features/messaging/mailer';
 
 /**
- * Transactional email. Wired up to Resend when RESEND_API_KEY is set;
- * otherwise we log the rendered HTML to the server console so the rest of
+ * Transactional email. Sent over SMTP (mailer.ts) when SMTP_* and EMAIL_FROM
+ * are set; otherwise we log a summary to the server console so the rest of
  * the booking flow stays exercisable in dev.
  */
 
-/** A file to attach. `content` is raw bytes; Resend wants them base64-encoded. */
-export type EmailAttachment = { filename: string; content: Buffer };
+/** A file to attach. `content` is raw bytes. */
+export type EmailAttachment = MailAttachment;
 
 type BookingConfirmationArgs = {
   to: string;
@@ -35,13 +35,13 @@ type BookingConfirmationArgs = {
 
 export async function sendBookingConfirmation(
   args: BookingConfirmationArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = `Your Gilifast booking ${args.bookingReference}`;
   const html = await renderBookingConfirmationHtml(args);
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+  if (!mailConfigured()) {
     console.log(
-      `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
+      `\n[email] (no SMTP) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n` +
         `        tickets: ${args.tickets.map((t) => t.ticketCode).join(', ')}\n` +
@@ -54,33 +54,7 @@ export async function sendBookingConfirmation(
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-      ...(args.attachments?.length
-        ? {
-            attachments: args.attachments.map((a) => ({
-              filename: a.filename,
-              content: a.content.toString('base64'),
-            })),
-          }
-        : {}),
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html, attachments: args.attachments });
 }
 
 async function renderBookingConfirmationHtml(
@@ -182,7 +156,7 @@ type PaymentReceivedArgs = {
  */
 export async function sendPaymentReceivedEmail(
   args: PaymentReceivedArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = `Payment received for ${args.bookingReference} — confirming your seat`;
 
   const outboundSection = `
@@ -234,34 +208,16 @@ export async function sendPaymentReceivedEmail(
   <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Selamat jalan! — Gilifast</p>
 </body></html>`;
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+  if (!mailConfigured()) {
     console.log(
-      `\n[email] (no RESEND_API_KEY) → would send to ${args.to}\n` +
+      `\n[email] (no SMTP) → would send to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        lookup : ${args.lookupUrl}\n`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html });
 }
 
 // ─── Password reset email ─────────────────────────────────────────────────────
@@ -273,7 +229,7 @@ type PasswordResetArgs = {
 
 export async function sendPasswordResetEmail(
   args: PasswordResetArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = 'Reset your Gilifast password';
   const html = `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:0 auto;padding:24px;">
@@ -287,33 +243,15 @@ export async function sendPasswordResetEmail(
   <p style="color:#94a3b8;font-size:12px;">If you didn't request this, you can safely ignore this email.</p>
 </body></html>`;
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+  if (!mailConfigured()) {
     console.log(
-      `[email] (no RESEND_API_KEY) password-reset → ${args.to}\n` +
+      `[email] (no SMTP) password-reset → ${args.to}\n` +
         `        url: ${args.resetUrl}`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend password-reset failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html });
 }
 
 // ─── Departure reminder email ─────────────────────────────────────────────────
@@ -331,38 +269,20 @@ type DepartureReminderArgs = {
 
 export async function sendDepartureReminder(
   args: DepartureReminderArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = `Reminder: your boat departs tomorrow — ${args.bookingReference}`;
   const html = await renderDepartureReminderHtml(args);
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+  if (!mailConfigured()) {
     console.log(
-      `[email] (no RESEND_API_KEY) departure-reminder → ${args.to}\n` +
+      `[email] (no SMTP) departure-reminder → ${args.to}\n` +
         `        booking: ${args.bookingReference}\n` +
         `        tickets: ${args.tickets.map((t) => t.ticketCode).join(', ')}`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend departure-reminder failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html });
 }
 
 async function renderDepartureReminderHtml(
@@ -436,7 +356,7 @@ type CancellationEmailArgs = {
 
 export async function sendCancellationEmail(
   args: CancellationEmailArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = `Booking ${args.bookingReference} cancelled`;
 
   const refundLine =
@@ -488,30 +408,12 @@ export async function sendCancellationEmail(
   <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilifast</p>
 </body></html>`;
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
-    console.log(`[email] (no RESEND_API_KEY) cancellation → ${args.to}`);
+  if (!mailConfigured()) {
+    console.log(`[email] (no SMTP) cancellation → ${args.to}`);
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend cancellation failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html });
 }
 
 // ─── Refund processed email ───────────────────────────────────────────────────
@@ -526,7 +428,7 @@ type RefundEmailArgs = {
 
 export async function sendRefundProcessedEmail(
   args: RefundEmailArgs,
-): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+): Promise<MailResult> {
   const subject = `Refund processed for ${args.bookingReference}`;
 
   const html = `<!doctype html>
@@ -540,30 +442,12 @@ export async function sendRefundProcessedEmail(
   <p style="margin-top:8px;color:#94a3b8;font-size:12px;">Gilifast</p>
 </body></html>`;
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
-    console.log(`[email] (no RESEND_API_KEY) refund-processed → ${args.to}`);
+  if (!mailConfigured()) {
+    console.log(`[email] (no SMTP) refund-processed → ${args.to}`);
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      subject,
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend refund-processed failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
+  return sendMail({ to: args.to, subject, html });
 }
 
 // ─── Operator e-ticket forward ────────────────────────────────────────────────
@@ -579,41 +463,24 @@ export async function sendOperatorTicketForward(args: {
   bodyHtml: string;
   bookingReference: string;
   attachments: EmailAttachment[];
-}): Promise<{ delivered: boolean; provider: 'resend' | 'console' }> {
+}): Promise<MailResult> {
   const subject = `${args.subject}_${args.bookingReference}`;
   const html = `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;margin-bottom:16px;"><strong>Gilifast Booking code : ${escapeHtml(args.bookingReference)}</strong></div>${args.bodyHtml}`;
 
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+  if (!mailConfigured()) {
     console.log(
-      `\n[email] (no RESEND_API_KEY) → would forward operator ticket to ${args.to}\n` +
+      `\n[email] (no SMTP) → would forward operator ticket to ${args.to}\n` +
         `        subject: ${subject}\n` +
         `        attach : ${args.attachments.map((a) => a.filename).join(', ') || '(none)'}\n`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.RESEND_FROM_EMAIL,
-      to: [args.to],
-      reply_to: 'admin@gilifast.com',
-      subject,
-      html,
-      attachments: args.attachments.map((a) => ({
-        filename: a.filename,
-        content: a.content.toString('base64'),
-      })),
-    }),
+  return sendMail({
+    to: args.to,
+    subject,
+    html,
+    replyTo: 'admin@gilifast.com',
+    attachments: args.attachments,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[email] Resend failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'resend' };
-  }
-  return { delivered: true, provider: 'resend' };
 }

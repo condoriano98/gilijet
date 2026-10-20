@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
-import { createHmac } from 'node:crypto';
 import { requireMockPayments } from './support/mock-payments';
 import { removeBookings, removeSchedules } from './support/fixtures';
 
@@ -9,50 +8,70 @@ loadEnvConfig(process.cwd());
 requireMockPayments();
 
 /**
- * E-ticket Part B: the operator's ticket email, auto-forwarded to our Resend
- * inbound address, reaches /api/webhooks/resend-inbound and is forwarded to the
- * buyer; an email that cannot be matched waits on /admin/eticket-delivery.
+ * E-ticket Part B: the operator's ticket email, read from the admin@ mailbox over
+ * IMAP, is forwarded to the buyer; an email that cannot be matched waits on
+ * /admin/eticket-delivery.
  *
- * Messaging keys are blanked (requireMockPayments), so the processor reads the
- * email from `data.mock_email` and the forward is only logged; what is asserted
- * is the webhook answer, the `operator_ticket_forwarded` audit row and what the
- * admin page shows. Needs RESEND_INBOUND_SECRET in the dev server's env (the
- * spec signs with the same value) and skips itself otherwise.
- * Builds its own route (2096), booking and PIC row and removes them.
- * Relies on `pnpm seed:qa` (boat and admin account).
+ * IMAP itself is not exercised here (it would read a real mailbox; see the
+ * poller unit tests and the QC notes in the spike doc). The spec stores the
+ * WebhookEvent the poller would have written, with the email in
+ * `data.mock_email`, and drives it through the same paths production uses:
+ * the admin Retry button and the admin page. The keys are blanked
+ * (requireMockPayments), so the processor reads the mock email and the forward
+ * is only logged; what is asserted is the event outcome, the
+ * `operator_ticket_forwarded` audit row and what the admin page shows. Also
+ * checks the poll route's auth. Builds its own route (2096), booking and PIC row
+ * and removes them. Relies on `pnpm seed:qa` (boat and admin account), and on
+ * CRON_SECRET in the dev server's env (skips itself otherwise).
  */
 const prisma = new PrismaClient();
-const SECRET = process.env.RESEND_INBOUND_SECRET?.trim();
-test.skip(!SECRET, 'RESEND_INBOUND_SECRET is not set');
+const CRON_SECRET = process.env.CRON_SECRET?.trim();
+test.skip(!CRON_SECRET, 'CRON_SECRET is not set');
 test.describe.configure({ mode: 'serial' });
 
 const ORIGIN = 'E2E Op Mail Origin';
 const REF = 'BK-2096-06-PQMAL2';
 const SENDER = 'e2e-wahana@example.invalid';
-const EMAIL_IDS = ['e2e-em-code', 'e2e-em-dup', 'e2e-em-stranger', 'e2e-em-lost'];
+const EMAIL_IDS = ['e2e-em-code', 'e2e-em-dup', 'e2e-em-stranger', 'e2e-em-lost', 'e2e-em-nopdf'];
 const DEPARTURE_UTC = new Date('2096-06-12T01:00:00Z'); // 12 Jun 2096 09:00 WITA
+const PDF = [{ filename: 'ticket.pdf', content_base64: Buffer.from('%PDF-1.4 e2e').toString('base64') }];
 
-function signed(body: object) {
-  const raw = JSON.stringify(body);
-  const id = `msg_${Math.random().toString(36).slice(2)}`;
-  const ts = Math.floor(Date.now() / 1000);
-  const key = Buffer.from(SECRET!.replace(/^whsec_/, ''), 'base64');
-  const sig = createHmac('sha256', key).update(`${id}.${ts}.${raw}`).digest('base64');
-  return { raw, headers: { 'svix-id': id, 'svix-timestamp': String(ts), 'svix-signature': `v1,${sig}`, 'content-type': 'application/json' } };
+type Mock = { from: string; subject: string; message_id: string; text: string; attachments?: typeof PDF; authenticated?: boolean };
+
+/** Store the event the poller would write, ready for the retry cron to pick up. */
+async function storeEvent(emailId: string, mock: Mock) {
+  await prisma.webhookEvent.create({
+    data: {
+      provider: 'imap-inbox',
+      eventType: 'email.received',
+      externalRef: emailId,
+      status: 'FAILED',
+      attempts: 1,
+      lastAttemptAt: new Date(Date.now() - 10 * 60 * 1000),
+      errorMessage: 'queued by e2e',
+      rawPayload: {
+        type: 'email.received',
+        data: { email_id: emailId, from: mock.from, subject: mock.subject, mock_email: { attachments: PDF, ...mock } },
+      },
+    },
+  });
 }
 
-const event = (emailId: string, mock: { from: string; subject: string; message_id: string; text: string }) => ({
-  type: 'email.received',
-  data: {
-    email_id: emailId,
-    mock_email: { ...mock, attachments: [{ filename: 'ticket.pdf', content_base64: Buffer.from('%PDF-1.4 e2e').toString('base64') }] },
-  },
-});
+/** Run one stored event through the admin Retry button (the retry cron would sweep every FAILED event of the shared DB). */
+async function retryViaAdmin(page: Page, emailId: string) {
+  await login(page);
+  await page.goto(`/admin/webhooks?q=${emailId}`);
+  const row = page.getByRole('row', { name: new RegExp(emailId) });
+  await row.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.locator('body')).toContainText(/Event processed\.|Retry ran/, { timeout: 15_000 });
+}
+
+const eventFor = (emailId: string) => prisma.webhookEvent.findFirstOrThrow({ where: { provider: 'imap-inbox', externalRef: emailId } });
 
 async function cleanup() {
   const bookings = await prisma.booking.findMany({ where: { bookingReference: REF }, select: { id: true } });
   await prisma.auditLog.deleteMany({ where: { entityId: { in: bookings.map((b) => b.id) } } });
-  await prisma.webhookEvent.deleteMany({ where: { provider: 'resend-inbound', externalRef: { in: EMAIL_IDS } } });
+  await prisma.webhookEvent.deleteMany({ where: { provider: 'imap-inbox', externalRef: { in: EMAIL_IDS } } });
   await removeBookings(prisma, { bookingReference: REF });
   await removeSchedules(prisma, [ORIGIN]);
   await prisma.operatorPicContact.deleteMany({ where: { emailKonfirmasiTrigger: SENDER } });
@@ -93,32 +112,34 @@ test.afterAll(async () => {
 
 async function login(page: Page) {
   await page.goto('/admin/login');
+  // Already signed in (a second call in the same test): the login page redirects.
+  if (!new URL(page.url()).pathname.includes('/login')) return;
   await page.getByLabel(/email/i).fill('qa-admin@gilifast.local');
   await page.getByLabel(/password/i).fill('qaqaqaqa');
   await page.getByRole('button', { name: /log ?in|sign ?in/i }).click();
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 });
 }
 
-test('a bad signature is refused and an unsigned call forwards nothing', async ({ request }) => {
-  const { raw } = signed(event('e2e-em-stranger', { from: SENDER, subject: 'x', message_id: '<bad>', text: `Hi A ${REF}` }));
-  const res = await request.post('/api/webhooks/resend-inbound', {
-    data: raw,
-    headers: { 'svix-id': 'x', 'svix-timestamp': String(Math.floor(Date.now() / 1000)), 'svix-signature': 'v1,AAAA', 'content-type': 'application/json' },
-  });
-  expect(res.status()).toBe(401);
+test('the poll route refuses a missing or wrong secret', async ({ request }) => {
+  expect((await request.get('/api/cron/poll-operator-inbox')).status()).toBe(401);
+  expect((await request.get('/api/cron/poll-operator-inbox', { headers: { authorization: 'Bearer wrong' } })).status()).toBe(401);
 });
 
-test('an email with our booking code is forwarded to the buyer, once', async ({ request }) => {
-  const body = event('e2e-em-code', {
-    from: `Wahana <${SENDER}>`,
+test('with no mailbox configured the poll route is a harmless no-op', async ({ request }) => {
+  const res = await request.get('/api/cron/poll-operator-inbox', { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+  expect(res.status()).toBe(200);
+  expect(await res.json()).toMatchObject({ ok: true, configured: false, forwarded: 0 });
+});
+
+test('an email with our booking code is forwarded to the buyer, once', async ({ page }) => {
+  await storeEvent('e2e-em-code', {
+    from: SENDER,
     subject: 'Fwd: E-Ticket Wahana',
     message_id: '<e2e-code@wahana>',
     text: `Hi E2E Mail Buyer ${REF.toLowerCase()},\nSanur → Nusa Penida · 12 Jun 2096 09:00`,
   });
-  const first = signed(body);
-  const res = await request.post('/api/webhooks/resend-inbound', { data: first.raw, headers: first.headers });
-  expect(res.status()).toBe(200);
-  expect((await res.json()).status).toBe('forwarded');
+  await retryViaAdmin(page, 'e2e-em-code');
+  expect((await eventFor('e2e-em-code')).status).toBe('PROCESSED');
 
   const booking = await prisma.booking.findUniqueOrThrow({ where: { bookingReference: REF }, include: { tickets: true } });
   const rows = await prisma.auditLog.findMany({ where: { entityId: booking.id, action: 'operator_ticket_forwarded' } });
@@ -128,27 +149,33 @@ test('an email with our booking code is forwarded to the buyer, once', async ({ 
   expect(booking.status).toBe('AWAITING_CONFIRMATION');
   expect(booking.tickets).toHaveLength(0);
 
-  // Same Resend event delivered again, and the same Message-ID under a new email id: neither forwards again.
-  const again = signed(body);
-  expect((await (await request.post('/api/webhooks/resend-inbound', { data: again.raw, headers: again.headers })).json()).idempotent).toBe(true);
-  const dup = signed(event('e2e-em-dup', { from: SENDER, subject: 'E-Ticket Wahana', message_id: '<e2e-code@wahana>', text: `Hi E2E Mail Buyer ${REF}` }));
-  expect((await (await request.post('/api/webhooks/resend-inbound', { data: dup.raw, headers: dup.headers })).json()).status).toBe('already-forwarded');
+  // The same Message-ID under another event: not forwarded again.
+  await storeEvent('e2e-em-dup', { from: SENDER, subject: 'E-Ticket Wahana', message_id: '<e2e-code@wahana>', text: `Hi E2E Mail Buyer ${REF}` });
+  await retryViaAdmin(page, 'e2e-em-dup');
+  expect((await eventFor('e2e-em-dup')).status).toBe('PROCESSED');
   expect(await prisma.auditLog.count({ where: { entityId: booking.id, action: 'operator_ticket_forwarded' } })).toBe(1);
 });
 
-test('mail from a stranger is skipped and nothing is forwarded', async ({ request }) => {
-  const s = signed(event('e2e-em-stranger', { from: 'stranger@evil.test', subject: 'E-Ticket', message_id: '<e2e-stranger>', text: `Hi A ${REF}` }));
-  const res = await request.post('/api/webhooks/resend-inbound', { data: s.raw, headers: s.headers });
-  expect((await res.json()).status).toBe('sender-not-allowed');
-  const ev = await prisma.webhookEvent.findFirstOrThrow({ where: { provider: 'resend-inbound', externalRef: 'e2e-em-stranger' } });
-  expect(ev.status).toBe('SKIPPED');
+test('mail from a stranger is skipped and nothing is forwarded', async ({ page }) => {
+  await storeEvent('e2e-em-stranger', { from: 'stranger@evil.test', subject: 'E-Ticket', message_id: '<e2e-stranger>', text: `Hi A ${REF}` });
+  await retryViaAdmin(page, 'e2e-em-stranger');
+  expect((await eventFor('e2e-em-stranger')).status).toBe('SKIPPED');
 });
 
-test('an email without a code that matches nothing waits for the admin, who forwards it', async ({ request, page }) => {
-  const s = signed(event('e2e-em-lost', { from: SENDER, subject: 'E-Ticket lost', message_id: '<e2e-lost>', text: 'Hi Nobody Known,\nSanur → Nusa Penida · 01 Jan 2096 09:00' }));
-  const res = await request.post('/api/webhooks/resend-inbound', { data: s.raw, headers: s.headers });
-  expect(res.status()).toBe(200); // acknowledged, so Resend does not redeliver
-  expect((await prisma.webhookEvent.findFirstOrThrow({ where: { externalRef: 'e2e-em-lost' } })).status).toBe('FAILED');
+test('an email without a PDF waits for the admin and nothing is forwarded', async ({ page }) => {
+  await storeEvent('e2e-em-nopdf', { from: SENDER, subject: 'E-Ticket', message_id: '<e2e-nopdf>', text: `Hi E2E Mail Buyer ${REF}`, attachments: [] });
+  await retryViaAdmin(page, 'e2e-em-nopdf');
+  const ev = await eventFor('e2e-em-nopdf');
+  expect(ev.status).toBe('FAILED');
+  expect(ev.errorMessage).toBe('Needs review: No PDF attached');
+  const booking = await prisma.booking.findUniqueOrThrow({ where: { bookingReference: REF } });
+  expect(await prisma.auditLog.count({ where: { action: 'operator_ticket_forwarded', entityId: booking.id } })).toBe(1);
+});
+
+test('an email without a code that matches nothing waits for the admin, who forwards it', async ({ page }) => {
+  await storeEvent('e2e-em-lost', { from: SENDER, subject: 'E-Ticket lost', message_id: '<e2e-lost>', text: 'Hi Nobody Known,\nSanur → Nusa Penida · 01 Jan 2096 09:00' });
+  await retryViaAdmin(page, 'e2e-em-lost');
+  expect((await eventFor('e2e-em-lost')).status).toBe('FAILED');
 
   await login(page);
   await page.goto('/admin/eticket-delivery');

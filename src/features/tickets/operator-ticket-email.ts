@@ -1,8 +1,8 @@
 import { prisma } from '@/shared/server/db';
 import { sendOperatorTicketForward } from '@/features/messaging/email';
-import { loadReceivedEmail, type ReceivedEmail } from '@/features/messaging/resend-inbound';
+import { mailConfigured } from '@/features/messaging/mailer';
+import { MessageGoneError, loadReceivedEmail, type ReceivedEmail } from '@/features/messaging/inbox';
 import { parsePicPassengers } from '@/features/messaging/pic-notifications';
-import { env } from '@/shared/server/env';
 import {
   NEEDS_REVIEW_PREFIX,
   SENDER_NOT_ALLOWED,
@@ -13,9 +13,7 @@ import {
   extractBookingCode,
   extractDepartures,
   extractGreetingName,
-  hasForwardBlock,
   htmlToText,
-  sanitizeEmailHtml,
   normalizeName,
   senderAddress,
   stripForwardBlock,
@@ -37,12 +35,17 @@ import {
  * matching name. Everything else FAILs with a reason for the admin page.
  */
 
-export const OPERATOR_TICKET_PROVIDER = 'resend-inbound';
+export const OPERATOR_TICKET_PROVIDER = 'imap-inbox';
 export const OPERATOR_TICKET_EVENT = 'email.received';
 export const FORWARDED_ACTION = 'operator_ticket_forwarded';
 export { NEEDS_REVIEW_PREFIX };
 
 const PAID = ['AWAITING_CONFIRMATION', 'CONFIRMED'] as const;
+
+// A claim without `sent: true` this old belongs to a run that died between the
+// claim and the send: it is dropped and the mail is sent again (a duplicate is
+// better than a ticket that never arrives).
+const CLAIM_STALE_MS = 10 * 60 * 1000;
 
 const legSelect = { select: { departureDate: true } } as const;
 const bookingSelect = {
@@ -97,19 +100,39 @@ async function operatorsForSender(email: ReceivedEmail): Promise<string[]> {
 
 export async function processOperatorTicketEmail(
   payload: Record<string, unknown>,
-  opts: { forceBookingReference?: string; adminUserId?: string } = {},
+  opts: {
+    forceBookingReference?: string;
+    adminUserId?: string;
+    /** Already read from the mailbox (the poller has it in hand). */
+    email?: ReceivedEmail;
+    /** Match only: report what would be forwarded, send and write nothing. */
+    dryRun?: boolean;
+  } = {},
 ): Promise<ProcessResult> {
-  const email = await loadReceivedEmail(payload);
+  let email: ReceivedEmail;
+  try {
+    email = opts.email ?? (await loadReceivedEmail(payload));
+  } catch (err) {
+    // A message that is gone will not come back: keep it on the admin's list
+    // with the reason instead of failing it into a retry loop.
+    if (err instanceof MessageGoneError) return review(err.message);
+    throw err;
+  }
   const body = email.html && !email.text ? htmlToText(email.html) : email.text;
   const text = body || (email.html ? htmlToText(email.html) : '');
 
   const operatorIds = await operatorsForSender(email);
   if (operatorIds.length === 0) return { ok: true, status: SENDER_NOT_ALLOWED };
 
-  // The ticket is a PDF. Anything else attached (or a PDF that is not one) is
-  // not something we pass on under our name.
+  // The ticket is a PDF. An email without one is not a ticket, and anything else
+  // attached (or a PDF that is not one) is not something we pass on under our name.
+  if (email.attachments.length === 0) return review('No PDF attached');
   if (email.attachments.some((a) => a.content.subarray(0, 5).toString('latin1') !== '%PDF-')) {
     return review('An attachment is not a PDF');
+  }
+  // An admin's pick is a deliberate human decision; automatic matching is not.
+  if (!email.authenticated && !opts.forceBookingReference) {
+    return review('The sender could not be verified (no SPF/DKIM/DMARC pass)');
   }
 
   const departures = extractDepartures(text);
@@ -136,34 +159,54 @@ export async function processOperatorTicketEmail(
   }
 
   // One mail is forwarded once. The key is the Message-ID (the same mail can
-  // reach us under two Resend ids), else the Resend id. Looked up per booking so
+  // show up under two events), else the event's own id. Looked up per booking so
   // it uses the (entityType, entityId) index. An admin's pick is deliberate, so
   // it skips the check.
-  const dedupeKey = email.messageId ?? `resend:${email.id}`;
+  const dedupeKey = email.messageId ?? `id:${email.id}`;
   if (matchedBy !== 'admin') {
-    const done = await prisma.auditLog.findFirst({
+    const prior = await prisma.auditLog.findFirst({
       where: {
         entityType: 'BOOKING',
         entityId: booking.id,
         action: FORWARDED_ACTION,
         newState: { path: ['messageId'], equals: dedupeKey },
       },
-      select: { id: true },
+      select: { id: true, createdAt: true, newState: true },
     });
-    if (done) return { ok: true, status: 'already-forwarded' };
+    if (prior) {
+      if ((prior.newState as { sent?: boolean } | null)?.sent === true) {
+        return { ok: true, status: 'already-forwarded' };
+      }
+      if (Date.now() - prior.createdAt.getTime() < CLAIM_STALE_MS) {
+        return { ok: false, error: 'Another run is forwarding this message' };
+      }
+      await prisma.auditLog.delete({ where: { id: prior.id } }).catch(() => undefined);
+    }
+  }
+
+  if (opts.dryRun) {
+    return { ok: true, status: `dry-run: would forward to booking ${booking.bookingReference} (matched by ${matchedBy})` };
   }
 
   const legs = legsOf(booking);
   const matchedLeg =
     legs.find((l) => departures.some((d) => d.getTime() === l.at.getTime()))?.label ?? null;
 
-  const bodyHtml =
-    email.html && !hasForwardBlock(text)
-      ? sanitizeEmailHtml(email.html)
-      : textToHtml(stripForwardBlock(text));
+  // Plain text only: the operator's HTML is attacker-reachable markup that would
+  // be sent under our name, and the ticket itself is the attached PDF.
+  const bodyHtml = textToHtml(stripForwardBlock(text));
 
   // Claim before sending, and let a failed write stop the send: audit() swallows
   // errors, so relying on it would leave no record and let a retry send twice.
+  const claimState = {
+    emailId: email.id,
+    messageId: dedupeKey,
+    matchedBy,
+    leg: matchedLeg,
+    timeMatched: matchedLeg !== null || departures.length === 0,
+    attachments: email.attachments.length,
+    mock: !mailConfigured(),
+  };
   const claim = await prisma.auditLog.create({
     data: {
       entityType: 'BOOKING',
@@ -171,32 +214,40 @@ export async function processOperatorTicketEmail(
       action: FORWARDED_ACTION,
       userId: opts.adminUserId ?? null,
       userRole: opts.adminUserId ? 'ADMIN' : 'SYSTEM',
-      newState: {
-        emailId: email.id,
-        messageId: dedupeKey,
-        matchedBy,
-        leg: matchedLeg,
-        timeMatched: matchedLeg !== null || departures.length === 0,
-        attachments: email.attachments.length,
-        mock: !env.RESEND_API_KEY,
-      },
+      newState: claimState,
     },
     select: { id: true },
   });
 
-  const sent = await sendOperatorTicketForward({
-    to: booking.customerEmail,
-    subject: cleanSubject(email.subject),
-    bodyHtml,
-    bookingReference: booking.bookingReference,
-    attachments: email.attachments,
-  });
-  // Console mode is a success only when the whole app is in mock mode (no
-  // RESEND_API_KEY); with a key but no from-address nothing was sent.
-  if (!sent.delivered && env.RESEND_API_KEY) {
-    await prisma.auditLog.delete({ where: { id: claim.id } }).catch(() => undefined);
-    return { ok: false, error: 'Resend could not send the forward' };
+  // The claim must not outlive a send that did not happen: a retry would see it
+  // and report "already forwarded" while the buyer never got the ticket.
+  const release = () => prisma.auditLog.delete({ where: { id: claim.id } }).catch(() => undefined);
+  let delivered = false;
+  let sendError: string | undefined;
+  try {
+    ({ delivered, error: sendError } = await sendOperatorTicketForward({
+      to: booking.customerEmail,
+      subject: cleanSubject(email.subject),
+      bodyHtml,
+      bookingReference: booking.bookingReference,
+      attachments: email.attachments,
+    }));
+  } catch (err) {
+    await release();
+    throw err;
   }
+  // With no SMTP configured at all (dev, CI) the forward is only logged, which
+  // counts as done; with SMTP configured, not delivered means not sent.
+  if (!delivered && mailConfigured()) {
+    await release();
+    return { ok: false, error: `The mail server could not send the forward${sendError ? `: ${sendError}` : ''}` };
+  }
+
+  // Only a claim marked sent counts as "already forwarded" later. If this write
+  // fails the mail has gone out; the stale-claim rule above covers the rest.
+  await prisma.auditLog
+    .update({ where: { id: claim.id }, data: { newState: { ...claimState, sent: true } } })
+    .catch((err) => console.error('[operator-ticket] could not mark the claim sent:', err));
 
   return { ok: true, status: 'forwarded' };
 }

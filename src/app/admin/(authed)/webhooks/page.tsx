@@ -34,11 +34,11 @@ const STATUSES: WebhookEventStatus[] = [
   'PROCESSED',
   'SKIPPED',
 ];
-const PROVIDERS = ['doku', 'paypal', 'resend-inbound'];
+const PROVIDERS = ['doku', 'paypal', 'imap-inbox'];
 const PROVIDER_LABELS: Record<string, string> = {
   doku: 'DOKU',
   paypal: 'PayPal',
-  'resend-inbound': 'Operator email',
+  'imap-inbox': 'Operator email',
 };
 
 const MESSAGES: Record<string, string> = {

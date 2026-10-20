@@ -725,12 +725,14 @@ const PLATFORM: Feature[] = [
     modules: [
       'src/features/messaging/email.ts',
       'src/features/messaging/pic-notifications.ts',
-      'src/features/messaging/resend-inbound.ts',
+      'src/features/messaging/mailer.ts',
+      'src/features/messaging/inbox.ts',
+      'src/features/tickets/operator-ticket-inbox.ts',
       'src/features/tickets/operator-ticket-email.ts',
     ],
     models: ['NotificationLog', 'OperatorNotification', 'OperatorPicContact'],
     notes:
-      'Resend with a mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send. Paying a booking sends the operator PICs a WATI template (PIC_ORDER_TEMPLATE; skipped when unset). The operator ticket email arrives at /api/webhooks/resend-inbound and is forwarded to the buyer; unmatched ones wait at /admin/eticket-delivery.',
+      'Email goes out over SMTP (Gmail app password: SMTP_* and EMAIL_FROM) with a console-only mock fallback. Departure reminders exist but their cron is unscheduled, so they do not send. Paying a booking sends the operator PICs a WATI template (PIC_ORDER_TEMPLATE; skipped when unset). The operator ticket email is read from the admin@ mailbox over IMAP (INBOX_IMAP_*) by /api/cron/poll-operator-inbox, which only reports until INBOX_POLL_LIVE=true, and is forwarded to the buyer; unmatched ones wait at /admin/eticket-delivery.',
   },
   {
     id: 'platform-fx',

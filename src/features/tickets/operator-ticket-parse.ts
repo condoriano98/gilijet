@@ -10,10 +10,10 @@ import { localDateTimeToUtc } from '@/shared/lib/datetime';
  * is typed by hand: extraction is case-insensitive and tolerates stray spaces.
  */
 
-// Same alphabet as booking/references.ts (no I, O, 0, 1). Wahana's own code
-// (BK-260915-UZ1XEB: six digits, then letters) cannot match: the year is four
-// digits and the month two, separated.
-const BOOKING_CODE = /\bBK[\s-]*(\d{4})[\s-]*(\d{2})[\s-]*([A-HJ-NP-Z2-9]{6})\b/i;
+// Same alphabet as booking/references.ts (no I, O, 0, 1). The year, month and
+// suffix must be separated by a space or dash: Wahana's own code (BK-261016-QSZPC4,
+// six digits then letters) would otherwise read as year 2610, month 16.
+const BOOKING_CODE = /\bBK[\s-]*(\d{4})[\s-]+(\d{2})[\s-]+([A-HJ-NP-Z2-9]{6})\b/i;
 
 export function extractBookingCode(text: string): string | null {
   const m = text.match(BOOKING_CODE);
@@ -64,20 +64,6 @@ export function senderAddress(from: string): string | null {
   return m ? m[1].trim().toLowerCase() : null;
 }
 
-const FORWARD_HEADER = /^[ \t]*-{3,}\s*(?:forwarded message|original message)\s*-{3,}[ \t]*$/im;
-
-export function hasForwardBlock(text: string): boolean {
-  return FORWARD_HEADER.test(text);
-}
-
-/** Original sender when a human forwarded the mail instead of a filter. */
-export function forwardedFromAddress(text: string): string | null {
-  const m = text.match(
-    /-{3,}\s*(?:forwarded message|original message)\s*-{3,}[\s\S]{0,200}?^\s*From:\s*(.+)$/im,
-  );
-  return m ? senderAddress(m[1]) : null;
-}
-
 /** Remove the "---- Forwarded Message ----" header block and its From/Date/Subject/To lines. */
 export function stripForwardBlock(text: string): string {
   return text
@@ -121,19 +107,4 @@ export function escapeHtml(s: string): string {
 
 export function textToHtml(text: string): string {
   return `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;white-space:pre-wrap;">${escapeHtml(text)}</div>`;
-}
-
-/**
- * The operator's HTML is forwarded under our name, and anyone who can email the
- * inbox could put a link or script in it. Keep the markup (it is a simple
- * table), drop everything that can run or lead somewhere: scripts, frames,
- * forms, remote images, event handlers, and links (their text stays).
- */
-export function sanitizeEmailHtml(html: string): string {
-  return html
-    .replace(/<(script|style|iframe|object|embed|form|svg|link|meta|base)\b[\s\S]*?(?:<\/\1\s*>|$)/gi, '')
-    .replace(/<(?:img|input|button|source|video|audio)\b[^>]*>/gi, '')
-    .replace(/<\/?a\b[^>]*>/gi, '')
-    .replace(/\s(?:on\w+|srcdoc|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/(?:javascript|data|vbscript)\s*:/gi, '');
 }

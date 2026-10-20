@@ -12,7 +12,7 @@ import {
 
 /**
  * Cron job: retries PENDING, FAILED and abandoned PROCESSING webhook events.
- * Called by Vercel cron every 5 minutes.
+ * Called by Vercel cron daily (vercel.json) and, every 5 minutes, by .github/workflows/poll-operator-inbox.yml so a failed ticket forward is retried soon.
  * Secured by CRON_SECRET header (set in vercel.json and env).
  */
 export async function GET(req: NextRequest) {

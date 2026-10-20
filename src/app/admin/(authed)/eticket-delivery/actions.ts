@@ -9,7 +9,7 @@ import {
   OPERATOR_TICKET_PROVIDER,
   processOperatorTicketEmail,
 } from '@/features/tickets/operator-ticket-email';
-import { failWebhookEvent, settleWebhookEvent } from '@/features/payments/webhook-events';
+import { settleWebhookEvent } from '@/features/payments/webhook-events';
 
 const BACK = '/admin/eticket-delivery';
 
@@ -42,7 +42,11 @@ export async function forwardOperatorEmailAction(formData: FormData) {
     await settleWebhookEvent(id, result);
     if (!result.ok || result.status !== 'forwarded') outcome = 'still_failing';
   } catch (err) {
-    await failWebhookEvent(id, err);
+    // Still waiting for a human: keep the row on the Needs review list.
+    await settleWebhookEvent(id, {
+      ok: false,
+      error: `${NEEDS_REVIEW_PREFIX}${err instanceof Error ? err.message : String(err)}`,
+    });
     outcome = 'still_failing';
   }
   redirect(`${BACK}?ok=${outcome}`);

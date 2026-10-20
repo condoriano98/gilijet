@@ -1,9 +1,38 @@
 # Feature: e-ticket issuance — PIC WhatsApp on payment, operator ticket email forwarded to the customer
 
-**Status (2026-10-18):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B (inbound operator email forward) is built and QC'd on staging (below), uncommitted. Release 1.4.0 is prepared in the changelog and `package.json` but NOT tagged; the tag waits for the user's go-ahead and the real Resend/Gmail setup. A real Wahana sample email (2026-10-18) is in `tests/unit/fixtures/wahana-ticket.html`.
+**Status (2026-10-20):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B was committed as `9333eb0` on Resend inbound and then moved to **IMAP polling + Gmail SMTP** (release 1.5.0, committed and pushed to `staging`, tag `v1.5.0`; see "Checkpoint"). Unit, lint, typecheck, e2e on staging and a read-only dry run against the real mailbox are done. Not yet verified: a real SMTP send and a live (non-dry) poll; that is the manual test on staging. `main`/production are untouched.
 **Created:** 2026-10-17
 **Target version:** 1.4.0 (MINOR: new notification + inbound email feature). No schema change.
 **Ticket:** "4 Penerbitan E-Tiket".
+
+## Checkpoint (implementation, updated as it goes)
+
+**Last updated 2026-10-20 (end of day).** The user said "implement" on 2026-10-20. Order: 1 SMTP → 2 Part B fixes → 3 IMAP poller → 4 cleanup of Resend → 5 QC and docs sweep. Committed and pushed to `staging` as v1.5.0 (user's go, 2026-10-20); `main` is untouched.
+
+| Step | State |
+|---|---|
+| 0 Libraries: `nodemailer` 10.1.7, `imapflow` 2.5.8, `mailparser` 3.10.0 (+ `@types/nodemailer`, `@types/mailparser`), exact versions | done |
+| 1 SMTP transport: `src/features/messaging/mailer.ts` (`sendMail`, never throws), `email.ts` uses it for all 7 sends, `SMTP_*` / `EMAIL_FROM` in `env.ts`; tests `mailer.test.ts`, `email.test.ts` | done, unit tests pass |
+| 2 Part B fixes: claim released on any thrown send error and the send is retried cleanly; an email with no PDF goes to Needs review; unauthenticated sender goes to Needs review (admin pick bypasses); dry-run mode in `processOperatorTicketEmail` | done, unit tests pass (`operator-ticket-email.test.ts`, 25 tests) |
+| 3 IMAP poller: `messaging/inbox.ts` (IMAP read-only, MIME parse, `isAuthenticated`), `tickets/operator-ticket-inbox.ts` (`pollOperatorInbox`), route `/api/cron/poll-operator-inbox`, `.github/workflows/poll-operator-inbox.yml`, `INBOX_POLL_LIVE` (default off = dry run) | code and unit tests done; not yet run against the real mailbox |
+| 4 Resend removed: inbound route, `resend-inbound.ts`, their tests, `RESEND_API_KEY`, `RESEND_INBOUND_SECRET`; provider key is now `imap-inbox` | code done; docs sweep still todo (step 5) |
+| 5a Docs sweep, `CHANGELOG.md` 1.5.0, `package.json` 1.5.0, `.env.example`, README, STRUCTURE, CLAUDE.md, security-auditor agent, pic-contacts doc | done (grep for `resend`/`svix` finds only intentional historical mentions) |
+| 5b Unit (69 files, 1082 tests), lint (0 errors, 1 old warning), typecheck, `next build` compile | done and passing (re-run after the review fixes) |
+| 5b2 code-reviewer and security-auditor agents; their findings fixed | done, see "Reviews of the IMAP change" |
+| 5c Dry run against the real mailbox via the dev server | done, see "QC 2026-10-20" |
+| 5d e2e `eticket-operator-email.spec.ts` (rewritten for IMAP) and `eticket-pic.spec.ts`, `customer-booking.spec.ts` on the staging DB | done 2026-10-20 with the user's go: all pass, fixtures removed (read-only count afterwards: 0 left) |
+| 5e Commit, push to `staging`, tag `v1.5.0` | done 2026-10-20 with the user's go (see the commit); `main` untouched |
+| 5f Manual test on staging after the push | todo, user + Claude (see "Manual test plan") |
+| 6 Go-live setup: GitHub secret `CRON_SECRET` + variable `POLL_BASE_URL`; `CRON_SECRET` set on the target deployment; `INBOX_POLL_LIVE=true` only after a clean dry run; rotate the app password | todo, user |
+
+**Design changes made while building (differs from "Decision 2026-10-19" above):**
+- **No `\Seen` flags and no writes to the mailbox.** People read this inbox, so a mail opened in Gmail must not vanish from the poller. "Handled" is a `WebhookEvent` row keyed by the Message-ID; the poller searches the last 7 days from the operators' confirmation addresses and skips known Message-IDs (envelope fetched first, body only for new mail). The IMAP lock is always read-only.
+- **Dry run is the default**, switched off only by `INBOX_POLL_LIVE=true` (exactly that string). It runs the real matcher and reports `dry-run: would forward to booking … (matched by …)` without sending or writing anything.
+- **Sender authentication:** only the topmost `Authentication-Results` header written by `mx.google.com` counts; DMARC pass, or DKIM pass aligned with the From domain. Otherwise Needs review (an admin's pick may override).
+- **Retries and the admin pick re-read the message from the mailbox** by `(UIDVALIDITY, UID)` stored in the event; if the mailbox was reset or the message deleted, the retry fails visibly.
+- **The poll route is called by GitHub Actions**, not Vercel cron (Hobby). The workflow does nothing until the repo secret `CRON_SECRET` and variable `POLL_BASE_URL` are set, and scheduled workflows only run from the default branch.
+
+**Scheduling decision:** the Vercel team is a personal one ("condoriano98's projects", so almost certainly Hobby: daily crons only; a `*/5` entry in `vercel.json` would fail the deploy on Hobby). The poll is therefore scheduled by a GitHub Actions workflow that calls the route with `CRON_SECRET`; `vercel.json` is not touched. Not yet confirmed by the user.
 
 ## Ticket (translated)
 
@@ -155,6 +184,68 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 - **Resend API facts (docs, 2026-10-18):** the webhook carries metadata only (`data.email_id`, `from`, `to`, `subject`, `message_id`, `attachments[]`). Body and headers: `GET /emails/receiving/{id}`. Attachments: `GET /emails/receiving/{id}/attachments` (`download_url`, valid 1 hour). Webhook signature: Svix headers `svix-id`, `svix-timestamp`, `svix-signature` over the raw body.
 - **Mock mode:** without `RESEND_API_KEY` the processor reads the email from `data.mock_email` in the payload, so the flow is testable offline. Production always has the key, so the branch never runs there.
 
+## Decision 2026-10-19: IMAP, not Resend inbound
+
+The user decided: **we do not use Resend for inbound; the app reads admin@gilifast.com over IMAP.** This supersedes the "Transport" bullets in "Part B" and in "Decisions 2026-10-18" (Gmail filter → Resend inbound address, `RESEND_INBOUND_SECRET`, MX on `in.gilifast.com`). Those sections stay as the historical record. Sending the forward still goes through `src/features/messaging/email.ts` (Resend, outbound) unless the user also says otherwise (open item 3 below).
+
+**Variables the user supplied (names only, values live in `.env.local` / Vercel, never in a tracked file):** `INBOX_IMAP_HOST` (imap.gmail.com), `INBOX_IMAP_PORT` (993), `INBOX_IMAP_USER` (admin@gilifast.com), `INBOX_IMAP_PASSWORD` (Gmail app password), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`. None is read by the app yet.
+
+**Login check, 2026-10-19 (read-only, local scratch script, no project file touched):** `LOGIN` to `imap.gmail.com:993` with the pasted `INBOX_IMAP_*` values returned `NO [AUTHENTICATIONFAILED] Invalid credentials`. The pasted password is the placeholder shape from the GIL-39 note (`abcd efgh ijkl mnop`), and `SMTP_PASSWORD` is literally `(app password)`. So **the mailbox has not been reached yet**. Needed from the user: a real Gmail app password for admin@gilifast.com (Google account needs 2-step verification; IMAP enabled in Gmail settings), kept out of chat and tracked files. The probe used `EXAMINE` (read-only), so nothing in the mailbox can change.
+
+**What changes in the design**
+- Replace the push route with a poller: `src/features/tickets/operator-ticket-inbox.ts` opens IMAP, searches unseen mail `FROM` the active `emailKonfirmasiTrigger` addresses, and hands each message (raw RFC 822: headers, body, PDF parts) to the existing `processOperatorTicketEmail`. `loadReceivedEmail` (Resend receiving API) is replaced by a MIME parse of the IMAP message.
+- Dedupe stays on the `Message-ID` header (`WebhookEvent.externalRef` + the audit-row check). IMAP gives a real `Message-ID` and the sender straight from the server, which is better than the Gmail-forward path that might rewrite `From`. The spoofed-`From` risk is smaller here, since mail comes from the mailbox itself; SPF/DKIM results are in the `Authentication-Results` header and should be checked.
+- Mark a message `\Seen` only after it is settled (forwarded, skipped, or logged as Needs review), never before, so a crash retries it.
+- `/admin/webhooks` Retry, `/admin/eticket-delivery` and the one-click pick keep working on the same `WebhookEvent` rows.
+
+**Choices made 2026-10-19 (the user: "choose the best way, we use IMAP"; Claude's picks, change them if wrong)**
+1. **Polling: a cron route, because the app runs on serverless Vercel.** (IMAP IDLE would push instead of poll, but it needs a connection that stays open, which a serverless function cannot hold; the only alternative is a separate always-on worker on the droplet. Cron is the simpler fit.) The route can be called by any scheduler. `GET /api/cron/poll-operator-inbox`, guarded by `CRON_SECRET` like the other cron routes, `runtime = 'nodejs'`. Each run connects, handles what is new, and disconnects, so no always-on worker is needed. Schedule: `*/5 * * * *` in `vercel.json` if the Vercel plan allows sub-daily crons (Hobby does not; the current crons are daily). If it does not, a GitHub Actions schedule (every 5 minutes, `curl` with the secret) calls the same route on any plan. Five minutes is fine: the PIC creates the ticket by hand, and the customer is not watching a spinner.
+2. **Libraries: `imapflow` (IMAP), `mailparser` (MIME), `nodemailer` (SMTP).** `npm view` on 2026-10-19: imapflow 2.5.7, mailparser 3.9.47, nodemailer 10.1.7 (all the current releases; pin exact versions at install). Both are the standard pair, maintained by the same author, no native build. Nothing in the repo covers IMAP, so CLAUDE.md's "no new libraries" rule does not apply to this need.
+3. **Sending: Gmail SMTP (`nodemailer`) from admin@gilifast.com, for all outbound email, in `email.ts` only.** Decided because the user does not use Resend and the Vercel check below shows no Resend key anywhere, so no email leaves the app today. `SMTP_HOST/PORT/USER/PASSWORD` and `EMAIL_FROM` feed one transport inside `src/features/messaging/email.ts` (still the single source of truth; mock fallback when `SMTP_*` is absent). The forward then comes from the same address that received the mail, as the ticket asks. Gmail/Workspace caps sending (about 500 mails a day on Workspace, fewer on a free Gmail), fine for this volume; revisit if bookings grow. This swap is its own step in the plan (before the poller is useful), with its own tests and changelog line; the Resend code and `RESEND_*` docs go with the Resend-inbound cleanup.
+4. **Secrets:** `INBOX_IMAP_*` set per environment (Vercel `staging` and `production` separately, `.env.local` locally), never in git. Rotate the app password if it was pasted in chat.
+5. **Staging first, read-only first.** A dry-run mode (`INBOX_POLL_DRY_RUN=1`, default on in staging): search and fetch, log what would be matched and forwarded, no `\Seen`, no send. Switch it off only after the user has looked at the list.
+
+> **Status note 2026-10-20:** the "Poller rules" below and the `\\Seen`/`UNSEEN` wording in this section are **outdated**. As built, the poller searches the last 7 days (no unseen filter), never sets flags, tracks handled mail by Message-ID in `WebhookEvent`, and keeps only mail whose From is exactly one operator address. See "Checkpoint" and "Reviews of the IMAP change".
+
+**Poller rules**
+- Search `UNSEEN FROM <active emailKonfirmasiTrigger>` per run, cap the batch (e.g. 20 messages), oldest first. Messages over a size cap (PDF tickets are small) are logged as Needs review without download.
+- One `WebhookEvent` per message: provider `imap-inbox`, `externalRef` = `Message-ID`; `\Seen` is set only after the event is settled.
+- The IMAP connection has a connect and idle timeout well under the function limit; a failed login is a loud error on `/admin/console/alerts`, not a silent empty run.
+- The `From` check uses the parsed header; `Authentication-Results` (SPF/DKIM pass) is required for a forward and otherwise goes to Needs review.
+
+**Cleanup when the poller lands:** remove `/api/webhooks/resend-inbound`, `src/features/messaging/resend-inbound.ts`, `RESEND_INBOUND_SECRET`, the `resend-inbound` mentions in `README.md`, `STRUCTURE.md`, `.env.example`, `.claude/agents/security-auditor.md`, and `CHANGELOG.md` (dated note, not a rewrite). Until then those docs describe code that is still in the tree.
+
+**Vercel env check, 2026-10-19 (read-only, variable names only, nothing decrypted; project `gilifast`, all environments: production, preview, and the `staging` custom environment):** there is **no** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_INBOUND_SECRET`, `WATI_*`, `PIC_ORDER_TEMPLATE`, `INBOX_IMAP_*`, `SMTP_*` or `EMAIL_FROM` in any of them. Present for the e-ticket work: `CRON_SECRET` (production and staging), `QR_HMAC_SECRET` (both), `DATABASE_URL` / `DIRECT_URL`. Consequence: on the deployed sites every email and WhatsApp is console-only today, and the IMAP/SMTP variables must be added to staging first, production later.
+
+**Login check, 2026-10-19 (second run, with a real app password):** `LOGIN` to `imap.gmail.com:993` as admin@gilifast.com succeeded, and `EXAMINE INBOX` (read-only) reported 105 messages, UIDNEXT 107. The mailbox is reachable; nothing was read beyond those counts and nothing was changed. The app password is in `.env.local` only (gitignored, mode 600) as `INBOX_IMAP_*` and `SMTP_*`. It was pasted in chat, so it should be revoked and reissued before production. SMTP (port 465) has not been tested yet. The account is a Google Workspace one (the Gmail IMAP page says "access gilifast Mail"); IMAP has no enable toggle there and its default settings are fine for a read-and-flag poller.
+
+**Vercel env written, 2026-10-19 (user asked for staging and production):** project `gilifast`, the nine variables `INBOX_IMAP_HOST/PORT/USER/PASSWORD`, `SMTP_HOST/PORT/USER/PASSWORD` and `EMAIL_FROM`, added to the `staging` custom environment and to `production` (passwords as type `sensitive`, so they cannot be read back). The first call created staging only and reported a false `ENV_CONFLICT` for production; a listing showed nothing existed there and a second call created all nine. Nothing in the deployed code reads them yet, and Vercel applies env changes only on the next deployment, so no running site changed. The same app password sits in both, and it was pasted in chat: rotate it before go-live (update the four password values in `.env.local`, staging and production).
+
+## Handover 2026-10-19: what is needed from the user, and the order of work
+
+**Needed from the user (blocking, in this order)**
+1. **A Gmail app password for admin@gilifast.com.** Not the normal Gmail password, which must never go in this project or in chat. Steps: sign in to the account, turn on 2-Step Verification, create the password at myaccount.google.com/apppasswords (shown once, 16 letters), and turn IMAP on in Gmail → Settings → Forwarding and POP/IMAP. On Google Workspace the admin may need to allow app passwords. The password pasted on 2026-10-19 was the placeholder from the GIL-39 note and failed to log in.
+2. **Put it in `.env.local` (gitignored), not in chat:** `INBOX_IMAP_HOST=imap.gmail.com`, `INBOX_IMAP_PORT=993`, `INBOX_IMAP_USER=admin@gilifast.com`, `INBOX_IMAP_PASSWORD`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=admin@gilifast.com`, `SMTP_PASSWORD` (the same app password), `EMAIL_FROM="Gilifast <admin@gilifast.com>"`. Then tell Claude, who reruns the read-only login probe (`EXAMINE`, nothing in the mailbox can change).
+3. **The go to implement** (docs first, rule from the user's memory).
+4. **The Vercel plan:** does it allow crons more often than daily? If not, the poll is scheduled by GitHub Actions calling the same route.
+
+**Order of work once the user says go**
+1. SMTP transport in `src/features/messaging/email.ts` (`nodemailer`), mock fallback kept; unit + e2e tests.
+2. Review 2026-10-19 gaps 1 and 2 (release the claim on any thrown send error and time the request out; no attachment → Needs review). Patch version + changelog.
+3. IMAP poller: `/api/cron/poll-operator-inbox`, `operator-ticket-inbox.ts`, `imapflow` + `mailparser`, dry-run on staging first, then live on staging, then ask before production.
+4. Cleanup: remove the Resend inbound route, `resend-inbound.ts`, `RESEND_INBOUND_SECRET` and every doc mention; docs sweep (rule 7).
+5. Add the IMAP/SMTP variables to the Vercel `staging` environment (ask first, name the target); production only when the user asks.
+
+**Not blocking, still open:** a Wahana sample email carrying a real Gilifast code; whether a name-only match auto-forwards or waits for an admin click (code currently auto-forwards); tagging `v1.4.0`; the production PIC phone fix; WATI account and template approval.
+
+## Review 2026-10-19 (Part B as committed in `9333eb0`)
+
+Read, not re-run. Gaps in `src/features/tickets/operator-ticket-email.ts` and `sendOperatorTicketForward` (`src/features/messaging/email.ts`), independent of the transport:
+
+1. **A thrown send loses the ticket for good.** The audit claim is written before the send and released only on `delivered: false` with a key set. The Resend `fetch` has no try/catch or timeout, so a network error throws with the claim left in place; the retry then returns `already-forwarded` and the customer never gets the ticket, with no flag. Fix: release the claim on any thrown error and time the request out.
+2. **No attachment is forwarded anyway.** The PDF check is `attachments.some(not a PDF)`, which is false for an empty list. A ticket email whose PDF is missing reaches the buyer as a bare body. Fix: no attachment → Needs review.
+3. **Name-only matches auto-forward** (open question below, still not answered by the user).
+
 ## Findings 2026-10-18 (environment and transport, end of day)
 
 - **WhatsApp and email are not connected anywhere we can see.** A read-only look at the variable names of the Vercel project `gilifast` (the only project; production, preview and the staging environment) found no `WATI_*`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_WHATSAPP_NUMBER` or `ADMIN_ALERT_TEMPLATE`. The code for WATI and Resend is on `main` (old layout: `lib/whatsapp.ts`, `lib/email.ts`) and on `staging`, but with no keys every send is only logged to the console. So payment-received, boarding-pass and cancellation messages, staff alerts and confirmation emails do not go out from that project. Not checked: another host (the repo has Docker/Caddy files and the README mentions a droplet), the Resend and WATI dashboards. Quick check: `/admin/console/alerts` on each site says whether WATI credentials are present.
@@ -178,7 +269,7 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 
 ## Checklist
 
-**Next session (2026-10-19):** decide WATI vs Meta-direct and confirm the WATI account/number; Resend account, verified `gilifast.com`, API key, inbound domain/MX and webhook secret; the WATI template `order_masuk_operator`; the Gmail forwarding filter; a sample email with a real Gilifast code; name-only auto-forward vs admin click; tag `v1.4.0` after the live test. Production is untouched (rule 1), including the PIC phone fix.
+**Next session (2026-10-19):** decide WATI vs Meta-direct and confirm the WATI account/number; ~~Resend account, verified `gilifast.com`, API key, inbound domain/MX and webhook secret~~ (inbound is IMAP now, see the 2026-10-19 decision; Resend is only for sending); the WATI template `order_masuk_operator`; ~~the Gmail forwarding filter~~ (not needed with IMAP); a sample email with a real Gilifast code; name-only auto-forward vs admin click; tag `v1.4.0` after the live test. Production is untouched (rule 1), including the PIC phone fix.
 
 - [x] Spike doc (this file)
 - [ ] User confirms with the Wahana team that the PIC types our booking code in the name. Real sample email received (2026-10-18); its greeting held a placeholder code (`BK-ujicobaxxx-xxx`), so a sample with a real code is still wanted
@@ -190,7 +281,12 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 - [x] `code-reviewer`, `security-auditor`, `db-query-auditor` on Part B; findings below
 - [x] Part B E2E `tests/e2e/eticket-operator-email.spec.ts`; [x] QC recorded below (live Resend not verified)
 - [x] Docs (`docs/pic-contacts.md`, README, `STRUCTURE.md`, `.env.example`, `feature-catalog.ts`, `.claude/agents/security-auditor.md`), `CHANGELOG.md` 1.4.0, `package.json`
-- [ ] Commit / tag with confirmation (rule 5)
+- [x] Part B committed (`9333eb0`, v1.4.0; Resend inbound transport, now superseded)
+- [ ] Tag `v1.4.0`: wait until the transport is settled; user's go-ahead (rule 5)
+- [ ] IMAP: real app password from the user; read-only login probe passes (2026-10-19: failed with the pasted placeholder)
+- [x] IMAP: constraints 1-5 chosen in "Decision 2026-10-19"; [ ] user answers item 3 (outbound email) and says "implement"
+- [x] Review 2026-10-19 gaps 1 and 2 fixed with unit tests; e2e spec rewritten (run pending, see Checkpoint 5d)
+- [x] Resend inbound route, `resend-inbound.ts`, `RESEND_*` removed; docs swept (2026-10-20)
 
 ## Test plan
 
@@ -220,6 +316,52 @@ Consequences (this supersedes the layered name/time matching below, which stays 
 - **Data finding:** the three staging `OperatorPicContact` rows stored numbers without the leading 0 (`8133…`), which WATI cannot route. Fixed on staging to `628…`; `seed-pic-contacts.ts` now normalizes. **Production rows are not fixed yet** and must be before Part A is released.
 - **Not verified:** real WATI delivery (the template is not created or approved yet); a round trip through the running app (unit tests only); the production database.
 - Subagent reviews (`code-reviewer`, `db-query-auditor`): see the commit; findings fixed before it.
+
+### Part B on IMAP (2026-10-20, staging database `asymnwikxyhipoezoggp`, real mailbox admin@gilifast.com)
+
+- **Unit:** `pnpm test:unit` 69 files / 1063 tests pass. New: `mailer`, `inbox` (authentication verdict, MIME parse, mock path), `operator-ticket-inbox` (poller: dry run, live, dedupe, read-only lock, time budget, failures), the poll route, and more cases in `operator-ticket-email` (no PDF, unauthenticated, thrown send releases the claim, dry run) and `operator-ticket-parse`. `pnpm lint` 0 errors (1 old warning), `pnpm typecheck` clean, `pnpm exec next build` compiles with `imapflow`/`mailparser`/`nodemailer` as external packages and lists the new route. (`pnpm build` was not used: it also runs `prisma migrate deploy`.)
+- **Real mailbox, dry run (read-only):** `pnpm dev` with a throwaway `CRON_SECRET` (the one in `.env.local` is blank) and `INBOX_POLL_LIVE` unset. `GET /api/cron/poll-operator-inbox` logged in to Gmail, found 1 operator sender (`no-reply@virendrafastferry.com`) and 2 candidate mails in the last 7 days (UID 101 and 103, real Wahana test tickets with a PDF each), and reported them as Needs review without forwarding or writing anything. The mailbox has 105 messages; nothing in it was changed (read-only lock, no flags).
+- **Bugs this run found, fixed, with tests:** (1) Wahana's own code `BK-261016-QSZPC4` matched our code pattern (six digits read as year 2610, month 16) because the separators were optional; our code now needs separators between year, month and suffix. (2) Gmail names the DKIM signing domain in `header.i=@domain`, not `header.d=`; both are read now. After the fixes the same two mails report "No booking code, and no paid booking matches …" (names typed by the PIC: `test return 2` and `ANDY TEST GF-20261018-ABCD`).
+- **Finding for the Wahana team:** these two real emails carry **no Gilifast code**; the second has an old-style `GF-20261018-ABCD` after the name. Our code format is `BK-YYYY-MM-XXXXXX`. Until the PIC types that, every email will sit in Needs review and the admin forwards it with one click. The Wahana emails are HTML-only (no text part) and are sent through Resend by Wahana, signed with DKIM for `virendrafastferry.com`.
+- **Not verified:** the e2e on staging (waiting for go); SMTP sending to a real address (port 465 was never exercised; mock mode and unit tests only); a live (non-dry) run; a real email carrying a real Gilifast code; the GitHub Actions workflow (needs the repo secret and variable, and only runs from the default branch); production.
+- **Local env note:** `.env.local` now holds the real mailbox and SMTP password, so e2e specs refuse to run (`requireMockPayments`) unless `SMTP_PASSWORD=` and `INBOX_IMAP_PASSWORD=` are blanked on the command line, like the payment keys.
+
+### e2e on staging (2026-10-20, staging database `asymnwikxyhipoezoggp`, user's go)
+
+`eticket-operator-email.spec.ts` (6 tests: poll route auth, no-op without a mailbox, forward by code once, stranger skipped, no-PDF waits for the admin, unmatched waits and the admin forwards it), `eticket-pic.spec.ts` (with `PIC_ORDER_TEMPLATE=test_pic_order`) and `customer-booking.spec.ts` all pass. Run with `DOKU_*`, `PAYPAL_*`, `WATI_API_KEY`, `SMTP_PASSWORD`, `INBOX_IMAP_PASSWORD` blanked and a throwaway `CRON_SECRET` (the one in `.env.local` is blank, which makes the spec skip itself), so no real mail was sent or read. The spec drives the admin Retry button, not the global retry cron, because that cron would also re-run real FAILED events in the shared staging DB. A read-only count afterwards found none of the spec's rows (events, booking, PIC row, schedule). Bug found and fixed in the spec: a second `login()` in one test hit the already-signed-in redirect. Playwright's Chromium was missing on this machine and was installed with `pnpm exec playwright install chromium`.
+
+### Manual test plan on staging (after the push)
+
+1. Deploy: the Vercel `staging` environment builds from the `staging` branch. It already has the `INBOX_IMAP_*`, `SMTP_*` and `EMAIL_FROM` variables (added 2026-10-19). `CRON_SECRET` is set there; `INBOX_POLL_LIVE` is not (so the poll is a dry run).
+2. Dry run: `GET /api/cron/poll-operator-inbox?detail=1` with the staging `CRON_SECRET`; expect the two Wahana test mails as Needs review.
+3. Real send: add the tester's address as `emailKonfirmasiTrigger` on one staging PIC row, make a paid staging booking whose `customerEmail` is a readable address, mail admin@gilifast.com from the tester's address with `Hi <name> <booking code>,` and a PDF, set `INBOX_POLL_LIVE=true` on staging, call the route, and check the buyer's inbox (subject `…_<reference>`, "Gilifast Booking code" line, PDF). Then set it back to dry run.
+4. Check `/admin/eticket-delivery` (Delivered) and `/admin/webhooks` (event PROCESSED), and that a second poll does not send again.
+
+### Reviews of the IMAP change (2026-10-20): code-reviewer and security-auditor agents
+
+Both read the uncommitted diff and ran nothing. **Fixed, each with a unit test:**
+
+| Finding | Fix |
+|---|---|
+| A message that cannot be parsed (over 12 MB decoded, corrupt) was re-downloaded every poll and never listed for the admin | recorded as `Needs review: Could not read the message …` |
+| An admin's pick (or retry) of a message that is gone from INBOX, or after a UIDVALIDITY reset, dropped the row off the Needs review list | `MessageGoneError` → stays `Needs review` with the reason; the admin action also keeps the prefix on any error |
+| 20 spoofed or junk mails could fill the batch; the IMAP FROM search is a substring match | candidates are filtered to an envelope From that is exactly one operator address, before the batch is cut; newest 100 only; one ranged envelope fetch |
+| Transient failures waited for the 03:00 retry cron | the workflow also calls `/api/cron/retry-webhooks` every 5 minutes |
+| A run killed between claim and send reported "already forwarded" and lost the ticket | the claim is marked `sent: true` after the send; an unsent claim older than 10 minutes is dropped and the mail is sent again; a recent unsent claim means "another run is on it" |
+| `sanitizeEmailHtml` was a single-pass regex (tag-reassembly bypasses) | removed; the forward is plain text (`textToHtml`) plus the PDF |
+| The Actions log and the route response carried subjects and customer names | the workflow prints only status codes; the route returns counts (per-message detail only with `?detail=1` and the secret); 500 says `Poll failed`; `permissions: {}` on the workflow |
+| Sender trust: DMARC pass for another domain, multi-address From | DMARC counts only when Gmail's `header.from` equals the From domain; a From with several addresses has no sender and is not authenticated |
+| SMTP failure reason lost | `MailResult.error` is shown in the event (`The mail server could not send the forward: …`) |
+| STARTTLS not enforced on 587; attachment names and count | `requireTLS` off 465; attachments are renamed `.pdf`, at most 5 |
+| Unbounded Message-ID; time budget vs `maxDuration` | capped at 200 chars; budget 30 s (Gmail IMAP alone takes 10-20 s here), SMTP timeouts 8/8/15 s |
+| Privacy page said "Email provider (Resend)" | now "Google Workspace / Gmail" |
+
+**Known and left open (decided, say so if you want them done):**
+- **Double-forward window.** `WebhookEvent` has no unique key on `(provider, eventType, externalRef)` and the audit claim is check-then-create, so two runs at the same instant (a manual call during a poll, an overrun) could both send. Closing it needs a migration (unique index) or an advisory lock, which is a schema task with its own confirmation (rule 4). The claim-sent marker above narrows the window; it does not remove it.
+- **`CRON_SECRET` is compared with `!==`**, like every other cron route; switching all of them to a constant-time compare is a separate change. The same secret now also lives in GitHub Actions.
+- **The sender check trusts only a topmost `Authentication-Results` written by `mx.google.com`.** If admin@ ever leaves Gmail/Workspace, every ticket will go to Needs review until `isAuthenticated` is adapted.
+- **The workflow runs from the default branch only:** it does not run until it is on the default branch and the secret and variable exist; README says so.
+- Not re-reviewed after the fixes: a second pass was not run; the unit tests cover each fix.
 
 ### Part B (2026-10-18, staging database `asymnwikxyhipoezoggp`)
 

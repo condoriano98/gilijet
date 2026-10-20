@@ -24,7 +24,7 @@ const SKIP_REASONS: Record<string, string> = {
 /** Event types a retry can act on. Everything else is a record, not work. */
 export const RETRYABLE_EVENTS: { provider: string; eventTypes: string[] }[] = [
   { provider: 'doku', eventTypes: ['payment.success'] },
-  { provider: 'resend-inbound', eventTypes: ['email.received'] },
+  { provider: 'imap-inbox', eventTypes: ['email.received'] },
   {
     provider: 'paypal',
     eventTypes: [

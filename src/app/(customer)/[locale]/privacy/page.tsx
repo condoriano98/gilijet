@@ -38,7 +38,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Boat operators:</strong> Only the data necessary for transport (passenger names, departure, contact phone in case of disruption).</li>
           <li><strong>DOKU (payment gateway):</strong> Payment details so the transaction can be processed.</li>
-          <li><strong>Email provider (Resend):</strong> Recipient email and ticket details to deliver e-tickets.</li>
+          <li><strong>Email provider (Google Workspace / Gmail):</strong> Recipient email and ticket details to deliver e-tickets.</li>
           <li><strong>Law enforcement:</strong> When required by valid legal request under Indonesian law.</li>
         </ul>
         <p>

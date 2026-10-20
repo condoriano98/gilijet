@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/shared/server/env', () => ({
-  env: { RESEND_API_KEY: 're_test', RESEND_FROM_EMAIL: 'Gilifast <no-reply@example.com>' },
+const mocks = vi.hoisted(() => ({ sendMail: vi.fn(), configured: vi.fn() }));
+vi.mock('@/features/messaging/mailer', () => ({
+  sendMail: mocks.sendMail,
+  mailConfigured: mocks.configured,
 }));
 
 import { sendCancellationEmail } from '@/features/messaging/email';
-
-const mockFetch = vi.fn();
 
 const base = {
   to: 'jane@example.com',
@@ -19,12 +19,12 @@ const base = {
   lookupUrl: 'https://gilifast.com/b/GILI-ABC123',
 };
 
-const sentHtml = () => JSON.parse(mockFetch.mock.calls[0][1].body).html as string;
+const sentHtml = () => mocks.sendMail.mock.calls[0][0].html as string;
 
 beforeEach(() => {
-  mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true });
-  vi.stubGlobal('fetch', mockFetch);
+  mocks.sendMail.mockReset();
+  mocks.sendMail.mockResolvedValue({ delivered: true, provider: 'smtp' });
+  mocks.configured.mockReturnValue(true);
 });
 
 describe('sendCancellationEmail: reason', () => {
@@ -44,5 +44,24 @@ describe('sendCancellationEmail: reason', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).not.toContain('y'.repeat(200));
+  });
+});
+
+describe('sendCancellationEmail: transport', () => {
+  it('hands the message to the mailer', async () => {
+    const res = await sendCancellationEmail(base);
+    expect(res).toEqual({ delivered: true, provider: 'smtp' });
+    expect(mocks.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'jane@example.com', subject: expect.stringContaining('GILI-ABC123') }),
+    );
+  });
+
+  it('only logs when mail is not configured', async () => {
+    mocks.configured.mockReturnValue(false);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const res = await sendCancellationEmail(base);
+    log.mockRestore();
+    expect(res).toEqual({ delivered: false, provider: 'console' });
+    expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });

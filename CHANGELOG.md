@@ -18,7 +18,30 @@ bump. A version is live in production once its tag is merged into `main`.
 - `scripts/seed-pic-contacts.ts` stores PIC phone numbers as `628…` digits (a spreadsheet drops the leading 0).
 - Agent rules (`CLAUDE.md` rule 9): a direct push to `main` needs two separate warnings and confirmations.
 
+## [1.5.0] - 2026-10-20
+
+Replaces the Resend transport that 1.4.0 introduced (1.4.0 was never tagged or released): mail now goes out over Gmail SMTP and the operator's ticket emails are read over IMAP.
+
+### Added
+
+- The operator ticket mailbox (admin@gilifast.com) is read over IMAP by `/api/cron/poll-operator-inbox` (secured by `CRON_SECRET`, called every 5 minutes by a GitHub Actions workflow because Vercel Hobby only runs daily crons). It looks at the last 7 days of mail from the operators' confirmation addresses, never changes the mailbox, and remembers what it has handled by Message-ID. It is a dry run, reporting what it would forward, until `INBOX_POLL_LIVE=true` is set. Needs `INBOX_IMAP_*` and a Gmail app password.
+- A ticket email is forwarded only when the receiving server vouches for the sender (DMARC pass for the From domain, or DKIM aligned with it), the From has exactly one address, and it is exactly an operator's confirmation address.
+- The forwarded message is plain text plus the original PDF: the operator's HTML is no longer passed on.
+
+### Changed
+
+- All email now goes out over SMTP (`nodemailer`, Gmail app password; `SMTP_*`, `EMAIL_FROM`) instead of Resend. Without them nothing is sent and the message is only logged, as before. `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `RESEND_INBOUND_SECRET` are no longer read, and `/api/webhooks/resend-inbound` is removed.
+- The `/admin/webhooks` provider for operator emails is now `imap-inbox` (older `resend-inbound` rows from staging testing stay as history).
+
+### Fixed
+
+- A network error while sending the forwarded ticket left a record saying it was already forwarded, so the retry skipped it and the buyer never got the ticket. A failed send now always releases that record.
+- An operator email with no PDF attached was forwarded as a bare message. It now waits for the admin on the E-tickets page, as does one that cannot be read (too large, corrupt) or is no longer in the mailbox when the admin picks a booking.
+- The operator's own booking code (for example `BK-261016-QSZPC4`) could be misread as one of ours; a Gilifast code now needs separators between its year, month and suffix.
+
 ## [1.4.0] - 2026-10-18
+
+> **2026-10-20:** the Resend inbound transport described below was replaced by IMAP polling in 1.5.0 before 1.4.0 was released. The matching, forwarding and admin page are unchanged.
 
 ### Added
 
@@ -141,7 +164,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/condoriano98/gilijet/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/condoriano98/gilijet/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/condoriano98/gilijet/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/condoriano98/gilijet/compare/v1.2.0...v1.3.0

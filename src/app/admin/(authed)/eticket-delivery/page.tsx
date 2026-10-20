@@ -143,9 +143,7 @@ export default async function ETicketDeliveryPage({
                 </TableRow>
               )}
               {review.map((e) => {
-                type Meta = { from?: string; subject?: string };
-                const raw = (e.rawPayload as { data?: Meta & { mock_email?: Meta } })?.data;
-                const data = { from: raw?.from ?? raw?.mock_email?.from, subject: raw?.subject ?? raw?.mock_email?.subject };
+                const data = (e.rawPayload as { data?: { from?: string; subject?: string } })?.data ?? {};
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="whitespace-nowrap text-sm">{formatLocalDateTime(e.createdAt)}</TableCell>
