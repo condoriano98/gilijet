@@ -32,7 +32,7 @@
 - **Dry run is the default**, switched off only by `INBOX_POLL_LIVE=true` (exactly that string). It runs the real matcher and reports `dry-run: would forward to booking … (matched by …)` without sending or writing anything.
 - **Sender authentication:** only the topmost `Authentication-Results` header written by `mx.google.com` counts; DMARC pass, or DKIM pass aligned with the From domain. Otherwise Needs review (an admin's pick may override).
 - **Retries and the admin pick re-read the message from the mailbox** by `(UIDVALIDITY, UID)` stored in the event; if the mailbox was reset or the message deleted, the retry fails visibly.
-- **The poll route is called by GitHub Actions**, not Vercel cron (Hobby). The workflow does nothing until the repo secret `CRON_SECRET` and variable `POLL_BASE_URL` are set, and scheduled workflows only run from the default branch.
+- **The poll route is not scheduled anywhere yet.** (Updated 2026-10-20: the GitHub Actions workflow planned here was removed. The team is on Vercel Pro, but Vercel Cron only runs on production and the user wants staging only for now, so on staging the poll runs from the admin "Check mailbox now" button or by hand. See "Scheduling, 2026-10-20".)
 
 **Scheduling decision (updated 2026-10-20):** the Vercel team is on **Pro**, but Vercel Cron only runs on production, and the user wants staging only for now: nothing is scheduled yet. The earlier Hobby / GitHub Actions plan is withdrawn; see "Scheduling, 2026-10-20" below.
 
@@ -200,6 +200,8 @@ The user decided: **we do not use Resend for inbound; the app reads admin@gilifa
 - Mark a message `\Seen` only after it is settled (forwarded, skipped, or logged as Needs review), never before, so a crash retries it.
 - `/admin/webhooks` Retry, `/admin/eticket-delivery` and the one-click pick keep working on the same `WebhookEvent` rows.
 
+> **Status note 2026-10-20:** choice 1 below ("cron route, GitHub Actions fallback on Hobby") and the Hobby assumption are outdated: see "Scheduling, 2026-10-20". Choices 2 and 3 stand (`imapflow`/`mailparser`/`nodemailer`, Gmail SMTP). The versions are now `imapflow` 2.5.8 and `mailparser` 3.10.0.
+
 **Choices made 2026-10-19 (the user: "choose the best way, we use IMAP"; Claude's picks, change them if wrong)**
 1. **Polling: a cron route, because the app runs on serverless Vercel.** (IMAP IDLE would push instead of poll, but it needs a connection that stays open, which a serverless function cannot hold; the only alternative is a separate always-on worker on the droplet. Cron is the simpler fit.) The route can be called by any scheduler. `GET /api/cron/poll-operator-inbox`, guarded by `CRON_SECRET` like the other cron routes, `runtime = 'nodejs'`. Each run connects, handles what is new, and disconnects, so no always-on worker is needed. Schedule: `*/5 * * * *` in `vercel.json` if the Vercel plan allows sub-daily crons (Hobby does not; the current crons are daily). If it does not, a GitHub Actions schedule (every 5 minutes, `curl` with the secret) calls the same route on any plan. Five minutes is fine: the PIC creates the ticket by hand, and the customer is not watching a spinner.
 2. **Libraries: `imapflow` (IMAP), `mailparser` (MIME), `nodemailer` (SMTP).** `npm view` on 2026-10-19: imapflow 2.5.7, mailparser 3.9.47, nodemailer 10.1.7 (all the current releases; pin exact versions at install). Both are the standard pair, maintained by the same author, no native build. Nothing in the repo covers IMAP, so CLAUDE.md's "no new libraries" rule does not apply to this need.
@@ -256,6 +258,8 @@ Read, not re-run. Gaps in `src/features/tickets/operator-ticket-email.ts` and `s
 - **Customer WhatsApp messages are session messages** (payment received, boarding pass, cancellation). WhatsApp only delivers them inside 24 hours of the customer writing to the number. Worth checking with WATI before connecting the keys, because connecting them turns on all five WhatsApp features at once.
 
 ## Open questions
+
+> **Status note 2026-10-20:** the transport questions (1, 8) are closed: IMAP polling and Gmail SMTP, no Resend. Question 5 (name collisions) is built as "nothing is sent". Still open: 3 (WATI template approval), 4 (per-passenger nationality), 6 (the PIC typing our code: the two real Wahana test mails of 16 and 18 Oct carry no Gilifast code), 9 (WATI account), and whether a name-only match should auto-forward.
 
 **Status 2026-10-18 evening:** answered or changed by the findings above and the Part B work: 1 and 8 (inbox transport: Gmail filter to Resend inbound, decided; account, domain and MX still to do), 2 (a real Wahana sample arrived, see Part B QC; still wanted: one with a real Gilifast code), 6 and 7 (several emails per booking are each forwarded; our code in the greeting still to be confirmed by Wahana), 9 (WATI is the transport in the code; confirm the account exists). Still open: 3, 4, 5 (built as: nothing is sent when two bookings match).
 
