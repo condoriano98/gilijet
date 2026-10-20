@@ -7,7 +7,7 @@
 
 ## Checkpoint (implementation, updated as it goes)
 
-**Last updated 2026-10-20 (end of day; v1.6.0 = button + INBOX_POLL_SINCE).** The user said "implement" on 2026-10-20. Order: 1 SMTP → 2 Part B fixes → 3 IMAP poller → 4 cleanup of Resend → 5 QC and docs sweep. Committed and pushed to `staging` as v1.5.0 (user's go, 2026-10-20); `main` is untouched.
+**Last updated 2026-10-20 (end of day; v1.6.0 = button + INBOX_POLL_SINCE, tagged and on `staging`).** **Next step:** the live send test on staging (needs the tester's sender address, the test customer address and the go to set `INBOX_POLL_LIVE=true` on the Vercel staging environment). The user said "implement" on 2026-10-20. Order: 1 SMTP → 2 Part B fixes → 3 IMAP poller → 4 cleanup of Resend → 5 QC and docs sweep. Committed and pushed to `staging` as v1.5.0 (user's go, 2026-10-20); `main` is untouched.
 
 | Step | State |
 |---|---|
@@ -22,6 +22,7 @@
 | 5c Dry run against the real mailbox via the dev server | done, see "QC 2026-10-20" |
 | 5d e2e `eticket-operator-email.spec.ts` (rewritten for IMAP) and `eticket-pic.spec.ts`, `customer-booking.spec.ts` on the staging DB | done 2026-10-20 with the user's go: all pass, fixtures removed (read-only count afterwards: 0 left) |
 | 5e Commit, push to `staging`, tag `v1.5.0` | done 2026-10-20 with the user's go (see the commit); `main` untouched |
+| 5e2 Tags `v1.5.0` (`acc6092`) and `v1.6.0` (`cf37d34`, button + `INBOX_POLL_SINCE`) created and pushed 2026-10-20 | done |
 | 5f Manual test on staging after the push | todo, user + Claude (see "Manual test plan") |
 | 6a **"Check mailbox now" button** on `/admin/eticket-delivery` (server action `checkMailboxNowAction`, `requireAdmin()`, same `pollOperatorInbox` as the cron route, `maxDuration` 60) | done 2026-10-20 (user chose option 2): guard test, e2e (no mailbox configured), and a real run in the dev server against the real mailbox: dry run, 6 s, "0 new" |
 | 6b Automatic scheduling on staging | not done: Vercel Cron cannot run on staging; the button and manual calls are the staging way. Production scheduling is deliberately not set up (user's decision); `CRON_SECRET` set on the target deployment; `INBOX_POLL_LIVE=true` only after a clean dry run; rotate the app password | todo, user |
