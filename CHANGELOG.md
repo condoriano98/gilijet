@@ -12,6 +12,12 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-10-22
+
+### Fixed
+
+- Admin bookings: the Passengers column showed 0 for every booking waiting for confirmation, because it counted issued tickets and tickets only exist after the admin confirms. It now counts the passengers on the booking itself.
+
 ## [1.7.1] - 2026-10-22
 
 ### Fixed
@@ -184,7 +190,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.2...HEAD
+[1.7.2]: https://github.com/condoriano98/gilijet/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/condoriano98/gilijet/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/condoriano98/gilijet/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/condoriano98/gilijet/compare/v1.5.0...v1.6.0

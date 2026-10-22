@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
 import type { Booking, Leg } from '@prisma/client';
 import { getMainLeg, getReturnLeg } from '@/features/booking/helpers';
+import { bookingPassengerCount } from '@/features/booking/display';
 
 /**
  * Unit tests for admin booking display (round-trip support)
@@ -199,5 +200,27 @@ describe('Admin booking display - round-trip support', () => {
       const expectedTotal = outboundPrice + returnPrice;
       expect(Number(booking.totalAmount)).toBe(expectedTotal);
     });
+  });
+});
+
+describe('bookingPassengerCount', () => {
+  const two = JSON.stringify({
+    passengers: [
+      { name: 'Ana', idNumber: null, type: 'ADULT' },
+      { name: 'Budi', idNumber: null, type: 'CHILD' },
+    ],
+  });
+
+  it('counts the passengers in notes while no ticket exists yet (awaiting confirmation)', () => {
+    expect(bookingPassengerCount(two, 0)).toBe(2);
+  });
+
+  it('prefers the passenger list over the ticket count', () => {
+    expect(bookingPassengerCount(two, 4)).toBe(2);
+  });
+
+  it('falls back to the ticket count when notes carry no passenger list', () => {
+    expect(bookingPassengerCount(null, 3)).toBe(3);
+    expect(bookingPassengerCount('free text note', 1)).toBe(1);
   });
 });

@@ -63,6 +63,12 @@ test.beforeAll(async () => {
       ...common,
       bookingReference: ONE_WAY,
       legId: out.id,
+      notes: JSON.stringify({
+        passengers: [
+          { name: 'E2E Ana', idNumber: null, type: 'ADULT' },
+          { name: 'E2E Budi', idNumber: null, type: 'CHILD' },
+        ],
+      }),
       totalAmount: 100_000,
       payment: { create: { amount: 100_000, method: 'BANK_TRANSFER', status: 'SUCCESSFUL' } },
     },
@@ -144,4 +150,16 @@ test('the CSV export contains exactly what the filters select', async ({ page })
   const none = await csv('&tripType=ROUND_TRIP&paymentMethod=BANK_TRANSFER');
   expect(none).not.toContain(ONE_WAY);
   expect(none).not.toContain(ROUND_TRIP);
+});
+
+test('the Passengers column counts the passengers on a booking that has no tickets yet', async ({ page }) => {
+  await page.goto('/admin/login');
+  await page.getByLabel(/email/i).fill('qa-admin@gilifast.local');
+  await page.getByLabel(/password/i).fill('qaqaqaqa');
+  await page.getByRole('button', { name: /log ?in|sign ?in/i }).click();
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 });
+
+  await page.goto('/admin/bookings?q=E2E-FILTER');
+  const row = page.locator('tr', { hasText: ONE_WAY });
+  await expect(row.getByRole('button', { name: '2', exact: true })).toBeVisible({ timeout: 15_000 });
 });

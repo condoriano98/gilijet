@@ -8,6 +8,7 @@ import { formatIDR } from '@/shared/lib/utils';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 import { adminBookingStatusLabel } from '@/features/booking/status-label';
 import {
+  bookingPassengerCount,
   parsePassengersFromNotes,
   calculateArrivalTime,
 } from '@/features/booking/display';
@@ -132,7 +133,7 @@ export function BookingRow({ booking }: { booking: BookingWithDetails }) {
             onClick={() => setModalOpen(true)}
             className="cursor-pointer rounded px-2 py-1 font-semibold text-sky-700 hover:bg-sky-50"
           >
-            {booking.tickets.length}
+            {bookingPassengerCount(booking.notes, booking.tickets.length)}
           </button>
         </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
