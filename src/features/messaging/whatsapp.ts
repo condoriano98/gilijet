@@ -1,10 +1,9 @@
-import { env } from '@/shared/server/env';
 import { formatLocalDateTime } from '@/shared/lib/datetime';
 
 /**
- * WhatsApp delivery via WATI. Falls back to logging the rendered message when
- * the WATI credentials are absent, so the booking flow stays exercisable in
- * dev and in CI — same contract as lib/email.ts.
+ * WhatsApp delivery via the Meta WhatsApp Cloud API. Falls back to logging the
+ * rendered message when the credentials are absent, so the booking flow stays
+ * exercisable in dev and in CI — same contract as email.ts.
  *
  * WhatsApp matters more than email here: most customers on this route are
  * reached on WhatsApp, and the operators themselves work entirely by phone.
@@ -12,22 +11,49 @@ import { formatLocalDateTime } from '@/shared/lib/datetime';
 
 export type WhatsappResult = {
   delivered: boolean;
-  provider: 'wati' | 'console';
+  provider: 'meta' | 'console';
 };
+
+const DEFAULT_API_VERSION = 'v26.0';
+const DEFAULT_TEMPLATE_LANG = 'id';
 
 export function isWhatsappConfigured(): boolean {
   // Check process.env directly (not cached env) to allow tests to change config
   return Boolean(
-    process.env.WATI_API_KEY &&
-      process.env.WATI_TENANT_ID &&
-      process.env.WATI_API_URL,
+    process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID,
   );
 }
 
+function graphUrl(path: 'messages' | 'media'): string {
+  const version = process.env.WHATSAPP_API_VERSION?.trim() || DEFAULT_API_VERSION;
+  return `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/${path}`;
+}
+
+function authHeader(): Record<string, string> {
+  return { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}` };
+}
+
+async function postMessage(
+  payload: Record<string, unknown>,
+  what: string,
+): Promise<WhatsappResult> {
+  const res = await fetch(graphUrl('messages'), {
+    method: 'POST',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error(`[whatsapp] Meta ${what} failed ${res.status}: ${text}`);
+    return { delivered: false, provider: 'meta' };
+  }
+  return { delivered: true, provider: 'meta' };
+}
+
 /**
- * WATI addresses recipients by digits only — no `+`, spaces or dashes. A local
- * Indonesian number written `08…` is the same subscriber as `628…`, so it is
- * normalised to the country-code form rather than rejected.
+ * The Cloud API addresses recipients by digits only — no `+`, spaces or
+ * dashes. A local Indonesian number written `08…` is the same subscriber as
+ * `628…`, so it is normalised to the country-code form rather than rejected.
  */
 export function normalizeWhatsappNumber(raw: string): string | null {
   const digits = raw.replace(/\D/g, '');
@@ -46,34 +72,21 @@ async function sendText(to: string, body: string): Promise<WhatsappResult> {
 
   if (!isWhatsappConfigured()) {
     console.log(
-      `\n[whatsapp] (no WATI_API_KEY) → would send to ${number}\n${body}\n`,
+      `\n[whatsapp] (no WHATSAPP_ACCESS_TOKEN) → would send to ${number}\n${body}\n`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
-  const url = `${base}/api/v1/sendSessionMessage/${number}?messageText=${encodeURIComponent(body)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.WATI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[whatsapp] WATI failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'wati' };
-  }
-  return { delivered: true, provider: 'wati' };
+  return postMessage({ to: number, type: 'text', text: { body } }, 'text');
 }
 
 /**
  * Send a file as a WhatsApp document.
  *
- * WATI takes the bytes directly as multipart/form-data, so the PDF never has
- * to be parked at a public URL — which matters here, because a boarding pass
- * carries passenger names and a scannable QR.
+ * The Cloud API takes the bytes through a media upload and then references the
+ * returned media id, so the PDF never has to be parked at a public URL — which
+ * matters here, because a boarding pass carries passenger names and a
+ * scannable QR.
  */
 async function sendDocument(
   to: string,
@@ -89,36 +102,42 @@ async function sendDocument(
 
   if (!isWhatsappConfigured()) {
     console.log(
-      `\n[whatsapp] (no WATI_API_KEY) → would send ${filename} ` +
+      `\n[whatsapp] (no WHATSAPP_ACCESS_TOKEN) → would send ${filename} ` +
         `(${(file.length / 1024).toFixed(0)} KB) to ${number}\n${caption}\n`,
     );
     return { delivered: false, provider: 'console' };
   }
 
   const form = new FormData();
+  form.append('messaging_product', 'whatsapp');
+  form.append('type', 'application/pdf');
   form.append(
     'file',
     new Blob([new Uint8Array(file)], { type: 'application/pdf' }),
     filename,
   );
-
-  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
-  const url =
-    `${base}/api/v1/sendSessionFile/${number}` +
-    `?caption=${encodeURIComponent(caption)}`;
   // No Content-Type header: fetch sets it with the multipart boundary, and
-  // overriding it produces a body WATI cannot parse.
-  const res = await fetch(url, {
+  // overriding it produces a body Meta cannot parse.
+  const upload = await fetch(graphUrl('media'), {
     method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.WATI_API_KEY}` },
+    headers: authHeader(),
     body: form,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(`[whatsapp] WATI file send failed ${res.status}: ${text}`);
-    return { delivered: false, provider: 'wati' };
+  if (!upload.ok) {
+    const text = await upload.text().catch(() => '');
+    console.error(`[whatsapp] Meta media upload failed ${upload.status}: ${text}`);
+    return { delivered: false, provider: 'meta' };
   }
-  return { delivered: true, provider: 'wati' };
+  const { id } = (await upload.json().catch(() => ({}))) as { id?: string };
+  if (!id) {
+    console.error('[whatsapp] Meta media upload returned no id');
+    return { delivered: false, provider: 'meta' };
+  }
+
+  return postMessage(
+    { to: number, type: 'document', document: { id, filename, caption } },
+    'document',
+  );
 }
 
 /** The boarding pass PDF itself, as a WhatsApp document. */
@@ -149,7 +168,7 @@ export async function sendBoardingPassDocument(args: {
 }
 
 /**
- * Send a pre-approved WATI template.
+ * Send a pre-approved template.
  *
  * WhatsApp only lets a business open a conversation with a template; a plain
  * session message reaches someone only within 24 hours of *them* messaging the
@@ -157,14 +176,14 @@ export async function sendBoardingPassDocument(args: {
  * messages in, so a session message there fails every time. Templates are the
  * only mechanism that works.
  *
- * `params` map to the {{placeholders}} declared on the template in WATI, by
- * name. A name the template does not declare is ignored by WATI rather than
- * rejected, so a template edited to drop a variable degrades quietly.
+ * The templates are positional: the values of `params` are sent in key order
+ * as {{1}}, {{2}}, … so the order of the keys must match the template body.
+ * The keys themselves only name the values for readers and logs. Meta rejects
+ * empty values and newlines, so both are cleaned here.
  */
 export async function sendTemplateMessage(args: {
   to: string;
   templateName: string;
-  broadcastName: string;
   params: Record<string, string>;
 }): Promise<WhatsappResult> {
   const number = normalizeWhatsappNumber(args.to);
@@ -174,44 +193,35 @@ export async function sendTemplateMessage(args: {
   }
 
   const rendered = Object.entries(args.params)
-    .map(([k, v]) => `  ${k}: ${v}`)
+    .map(([k, v], i) => `  {{${i + 1}}} ${k}: ${v}`)
     .join('\n');
 
   if (!isWhatsappConfigured()) {
     console.log(
-      `\n[whatsapp] (no WATI_API_KEY) → would send template ` +
+      `\n[whatsapp] (no WHATSAPP_ACCESS_TOKEN) → would send template ` +
         `"${args.templateName}" to ${number}\n${rendered}\n`,
     );
     return { delivered: false, provider: 'console' };
   }
 
-  const base = process.env.WATI_API_URL!.replace(/\/+$/, '');
-  const res = await fetch(
-    `${base}/api/v1/sendTemplateMessage?whatsappNumber=${number}`,
+  const parameters = Object.values(args.params).map((value) => ({
+    type: 'text',
+    text: value.replace(/\s+/g, ' ').trim() || '-',
+  }));
+  return postMessage(
     {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.WATI_API_KEY}`,
-        'Content-Type': 'application/json',
+      to: number,
+      type: 'template',
+      template: {
+        name: args.templateName,
+        language: {
+          code: process.env.WHATSAPP_TEMPLATE_LANG?.trim() || DEFAULT_TEMPLATE_LANG,
+        },
+        components: [{ type: 'body', parameters }],
       },
-      body: JSON.stringify({
-        template_name: args.templateName,
-        broadcast_name: args.broadcastName,
-        parameters: Object.entries(args.params).map(([name, value]) => ({
-          name,
-          value,
-        })),
-      }),
     },
+    `template "${args.templateName}"`,
   );
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error(
-      `[whatsapp] WATI template "${args.templateName}" failed ${res.status}: ${text}`,
-    );
-    return { delivered: false, provider: 'wati' };
-  }
-  return { delivered: true, provider: 'wati' };
 }
 
 export async function sendBoardingPassWhatsapp(args: {

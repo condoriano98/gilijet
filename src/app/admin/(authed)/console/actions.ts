@@ -368,7 +368,7 @@ export async function savePaymentModes(formData: FormData) {
 
 const alertSchema = z.object({
   // Free-form because normalizeWhatsappNumber accepts 08…, +62…, 62… and
-  // strips punctuation; validating a shape here would reject numbers WATI
+  // strips punctuation; validating a shape here would reject numbers WhatsApp
   // takes. Blank clears the setting and turns alerts off.
   adminWhatsappNumber: z.string().trim().max(32),
   adminAlertTemplate: z.string().trim().max(128),

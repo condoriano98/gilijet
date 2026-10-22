@@ -36,19 +36,24 @@ const envSchema = z.object({
   XENDIT_SECRET_KEY: z.string().optional(),
   XENDIT_WEBHOOK_VERIFICATION_TOKEN: z.string().optional(),
 
-  WATI_API_KEY: z.string().optional(),
-  WATI_TENANT_ID: z.string().optional(),
-  WATI_API_URL: z.string().optional(),
+  // WhatsApp Cloud API (Meta), see features/messaging/whatsapp.ts. The sender
+  // reads these from process.env directly; they are listed here for the
+  // template name and as the one place the variables are documented. Token or
+  // phone number id missing = mock mode (console only).
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_API_VERSION: z.string().optional(),
+  WHATSAPP_TEMPLATE_LANG: z.string().optional(),
 
-  // Fallback destination + WATI template for staff booking alerts. The
+  // Fallback destination + template for staff booking alerts. The
   // PlatformConfig row wins when set, so these only cover a fresh environment
   // that has no config row yet. See lib/admin-alerts.ts.
   ADMIN_WHATSAPP_NUMBER: z.string().optional(),
   ADMIN_ALERT_TEMPLATE: z.string().optional(),
 
-  // Approved WATI template for the "order paid" message to operator PICs. Unset
+  // Approved template for the "order paid" message to operator PICs. Unset
   // = the PIC message is skipped. See features/messaging/pic-notifications.ts.
-  PIC_ORDER_TEMPLATE: z.string().optional(),
+  WHATSAPP_TEMPLATE_ORDER_NOTIF: z.string().optional(),
 
   CRON_SECRET: z.string().optional(),
 

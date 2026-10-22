@@ -5,7 +5,7 @@ describe('livePaymentKeys', () => {
   it('is empty when every credential is blank or missing', () => {
     expect(livePaymentKeys({})).toEqual([]);
     expect(
-      livePaymentKeys({ DOKU_CLIENT_ID: '', DOKU_SECRET_KEY: '  ', PAYPAL_CLIENT_ID: '', WATI_API_KEY: '', SMTP_PASSWORD: '', INBOX_IMAP_PASSWORD: '' }),
+      livePaymentKeys({ DOKU_CLIENT_ID: '', DOKU_SECRET_KEY: '  ', PAYPAL_CLIENT_ID: '', WHATSAPP_ACCESS_TOKEN: '', SMTP_PASSWORD: '', INBOX_IMAP_PASSWORD: '' }),
     ).toEqual([]);
   });
 
@@ -20,15 +20,15 @@ describe('livePaymentKeys', () => {
         DOKU_SECRET_KEY: 'x',
         PAYPAL_CLIENT_ID: 'x',
         PAYPAL_CLIENT_SECRET: 'x',
-        WATI_API_KEY: 'x',
+        WHATSAPP_ACCESS_TOKEN: 'x',
         SMTP_PASSWORD: 'x',
         INBOX_IMAP_PASSWORD: 'x',
       }),
-    ).toEqual(['DOKU_CLIENT_ID', 'DOKU_SECRET_KEY', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'WATI_API_KEY', 'SMTP_PASSWORD', 'INBOX_IMAP_PASSWORD']);
+    ).toEqual(['DOKU_CLIENT_ID', 'DOKU_SECRET_KEY', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'WHATSAPP_ACCESS_TOKEN', 'SMTP_PASSWORD', 'INBOX_IMAP_PASSWORD']);
   });
 
   it('flags a lone live messaging key', () => {
-    expect(livePaymentKeys({ WATI_API_KEY: 'live' })).toEqual(['WATI_API_KEY']);
+    expect(livePaymentKeys({ WHATSAPP_ACCESS_TOKEN: 'live' })).toEqual(['WHATSAPP_ACCESS_TOKEN']);
   });
 
   it('flags a live mailbox or SMTP password, so e2e never sends or reads real mail', () => {

@@ -123,7 +123,7 @@ export async function reserveSeatsAndCreateBooking(
   });
 
   // Fired after the commit, never inside it: a rolled-back reservation must
-  // not ping anyone, and an unreachable WATI must not fail the booking. The
+  // not ping anyone, and an unreachable WhatsApp API must not fail the booking. The
   // alert swallows its own errors, so this is deliberately not awaited.
   void alertAdminNewBooking(reserved.bookingId);
 

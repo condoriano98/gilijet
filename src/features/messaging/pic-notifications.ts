@@ -14,14 +14,14 @@ import {
  * in, so they can create the ticket in the operator's dashboard.
  *
  * Information only: the booking stays AWAITING_CONFIRMATION and the admin still
- * confirms at /admin/confirmations. Sent as a WATI template for the same reason
+ * confirms at /admin/confirmations. Sent as a template for the same reason
  * as admin-alerts.ts (business-initiated, the PIC never messages in).
  *
  * Swallows its own errors: a failed PIC message must never roll back the
  * payment that triggered it.
  */
 
-const CATEGORY_LABEL = { ADULT: 'Adult', CHILD: 'Child', INFANT: 'Infant' } as const;
+const CATEGORY_LABEL = { ADULT: 'Dewasa', CHILD: 'Anak', INFANT: 'Bayi' } as const;
 
 export type PicPassenger = { name: string; category: string };
 
@@ -32,6 +32,9 @@ type PicLeg = {
 
 export type PicOrder = {
   bookingReference: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   customerNationality: string | null;
   notes: string | null;
   tripType: 'ONE_WAY' | 'ROUND_TRIP';
@@ -64,9 +67,12 @@ function routeLabel(leg: PicLeg): string {
 }
 
 /**
- * WhatsApp template params cannot contain newlines, so the passenger list is a
- * single `;`-joined param; the line layout lives in the WATI template text.
- * Nationality is per booking (the form collects one), repeated for each name.
+ * The values of the `order_masuk_operator` template, in the order of its
+ * {{1}}…{{9}} placeholders (the sender is positional, so key order matters).
+ * Params cannot contain newlines, so the passenger list is a single
+ * `;`-joined value. Nationality is per booking (the form collects one),
+ * repeated for each name; the form has no gender, so the list gives name,
+ * category and nationality.
  */
 export function formatPicOrderParams(order: PicOrder): Record<string, string> | null {
   const main = getMainLeg(order);
@@ -77,19 +83,19 @@ export function formatPicOrderParams(order: PicOrder): Record<string, string> | 
 
   return {
     booking_code: order.bookingReference,
+    boat: order.operator.companyName,
+    route: ret ? `${routeLabel(main)} (pulang-pergi)` : routeLabel(main),
+    departure: ret
+      ? `${formatLocalDateTime(main.departureDate)} WITA; pulang ${routeLabel(ret)}, ${formatLocalDateTime(ret.departureDate)} WITA`
+      : `${formatLocalDateTime(main.departureDate)} WITA`,
+    customer_name: order.customerName.trim() || '-',
+    customer_email: order.customerEmail.trim() || '-',
+    customer_phone: order.customerPhone.trim() || '-',
     passenger_count: String(passengers.length),
-    // WATI rejects an empty param value.
     passengers:
       passengers
-        .map((p) => `${p.name || '-'} (${p.category}, ${nationality})`)
+        .map((p, i) => `${i + 1}) ${p.name || '-'}, ${p.category}, ${nationality}`)
         .join('; ') || '-',
-    boat: order.operator.companyName,
-    trip_type: ret ? 'Round trip' : 'One way',
-    route: routeLabel(main),
-    departure: `${formatLocalDateTime(main.departureDate)} WITA`,
-    return_trip: ret
-      ? `${routeLabel(ret)}, ${formatLocalDateTime(ret.departureDate)} WITA`
-      : '-',
   };
 }
 
@@ -123,9 +129,9 @@ const legSelect = {
 
 export async function notifyOperatorPicsOrderPaid(bookingId: string): Promise<void> {
   try {
-    const template = env.PIC_ORDER_TEMPLATE?.trim();
+    const template = env.WHATSAPP_TEMPLATE_ORDER_NOTIF?.trim();
     if (!template) {
-      console.log('[pic-notify] PIC_ORDER_TEMPLATE not set — skipping');
+      console.log('[pic-notify] WHATSAPP_TEMPLATE_ORDER_NOTIF not set — skipping');
       return;
     }
 
@@ -134,6 +140,9 @@ export async function notifyOperatorPicsOrderPaid(bookingId: string): Promise<vo
       select: {
         operatorId: true,
         bookingReference: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
         customerNationality: true,
         notes: true,
         tripType: true,
@@ -154,7 +163,6 @@ export async function notifyOperatorPicsOrderPaid(bookingId: string): Promise<vo
         sendTemplateMessage({
           to,
           templateName: template,
-          broadcastName: 'gilifast_pic_order_paid',
           params,
         }),
       ),

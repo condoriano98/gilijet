@@ -607,7 +607,7 @@ model PlatformConfig {
   adultMultiplier   Decimal  @default(1) @db.Decimal(5, 4)
   childMultiplier   Decimal  @default(0.5) @db.Decimal(5, 4)
   infantMultiplier  Decimal  @default(0) @db.Decimal(5, 4)
-  // Where booking alerts go, and the WATI template that carries them. Kept on
+  // Where booking alerts go, and the WhatsApp template that carries them. Kept on
   // the config row rather than only in env so the on-call number can move
   // between staff without a redeploy. Env supplies the fallback; see
   // lib/admin-alerts.ts.

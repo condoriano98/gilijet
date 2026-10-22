@@ -32,7 +32,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 - **Email** → `src/features/messaging/email.ts`. Sent over SMTP via `src/features/messaging/mailer.ts`; mock-fallback (console only) when `SMTP_*` / `EMAIL_FROM` are absent. The operator ticket mailbox is read over IMAP (`src/features/messaging/inbox.ts`, `src/features/tickets/operator-ticket-inbox.ts`).
 - **QR / ticket codes** → `src/features/tickets/qr.ts` + `src/features/booking/references.ts`. QR HMAC uses `QR_HMAC_SECRET`.
 - **Payment → ticket gate** → `src/features/tickets/ticket-issuer.ts`. Settling money only moves a booking to `AWAITING_CONFIRMATION`; tickets are minted by `issueTicketsForBooking` after an admin confirms availability with the operator by phone at `/admin/confirmations`. Never issue a boarding pass straight from a payment path.
-- **Customer notifications** → `src/features/booking/notifications.ts` (email + WhatsApp together). WhatsApp transport is `src/features/messaging/whatsapp.ts` (WATI, mock-falls-back when `WATI_*` absent).
+- **Customer notifications** → `src/features/booking/notifications.ts` (email + WhatsApp together). WhatsApp transport is `src/features/messaging/whatsapp.ts` (Meta WhatsApp Cloud API, mock-falls-back when `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` are absent; templates are positional, so param order matters).
 
 ## DB
 

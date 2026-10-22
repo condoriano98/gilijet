@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   bookingFind: vi.fn(),
   sendTemplate: vi.fn(),
   audit: vi.fn(),
-  env: { PIC_ORDER_TEMPLATE: 'pic_order_paid' as string | undefined },
+  env: { WHATSAPP_TEMPLATE_ORDER_NOTIF: 'pic_order_paid' as string | undefined },
 }));
 
 vi.mock('@/shared/server/db', () => ({
@@ -47,6 +47,9 @@ const NOTES = JSON.stringify({
 const ONE_WAY = {
   operatorId: 'op-1',
   bookingReference: 'BK-2026-09-ABC234',
+  customerName: 'Andy',
+  customerEmail: 'andy@example.com',
+  customerPhone: '08133399869',
   customerNationality: 'Argentina',
   notes: NOTES,
   tripType: 'ONE_WAY' as const,
@@ -57,18 +60,18 @@ const ONE_WAY = {
 beforeEach(() => {
   mocks.picFind.mockReset().mockResolvedValue([{ nohpNotifikasi: '0812 3456 7890' }]);
   mocks.bookingFind.mockReset().mockResolvedValue(ONE_WAY);
-  mocks.sendTemplate.mockReset().mockResolvedValue({ delivered: true, provider: 'wati' });
+  mocks.sendTemplate.mockReset().mockResolvedValue({ delivered: true, provider: 'meta' });
   mocks.audit.mockReset().mockResolvedValue(undefined);
-  mocks.env.PIC_ORDER_TEMPLATE = 'pic_order_paid';
+  mocks.env.WHATSAPP_TEMPLATE_ORDER_NOTIF = 'pic_order_paid';
 });
 
 describe('parsePicPassengers', () => {
   it('maps type to a label and defaults to Adult', () => {
     expect(parsePicPassengers(NOTES).map((p) => p.category)).toEqual([
-      'Adult',
-      'Child',
-      'Infant',
-      'Adult',
+      'Dewasa',
+      'Anak',
+      'Bayi',
+      'Dewasa',
     ]);
   });
 
@@ -79,25 +82,41 @@ describe('parsePicPassengers', () => {
 });
 
 describe('formatPicOrderParams', () => {
-  it('describes a one-way booking in WITA, one nationality for everyone', () => {
+  it('lists the nine template values in placeholder order, in WITA', () => {
     const p = formatPicOrderParams(ONE_WAY)!;
+    expect(Object.keys(p)).toEqual([
+      'booking_code',
+      'boat',
+      'route',
+      'departure',
+      'customer_name',
+      'customer_email',
+      'customer_phone',
+      'passenger_count',
+      'passengers',
+    ]);
     expect(p.booking_code).toBe('BK-2026-09-ABC234');
-    expect(p.passenger_count).toBe('4');
-    expect(p.passengers).toBe(
-      'Anita (Adult, Argentina); Suli (Child, Argentina); Baby (Infant, Argentina); NoType (Adult, Argentina)',
-    );
-    expect(p.passengers).not.toContain('\n');
     expect(p.boat).toBe('PT WAHANA VIRENDRA GROUP');
-    expect(p.trip_type).toBe('One way');
     expect(p.route).toBe('Sanur to Nusa Penida');
     // 23:00Z is 07:00 WITA the next day
     expect(p.departure).toContain('07:00');
     expect(p.departure).toContain('04 Sep 2026');
     expect(p.departure.endsWith('WITA')).toBe(true);
-    expect(p.return_trip).toBe('-');
+    expect(p.customer_name).toBe('Andy');
+    expect(p.customer_email).toBe('andy@example.com');
+    expect(p.customer_phone).toBe('08133399869');
+    expect(p.passenger_count).toBe('4');
   });
 
-  it('includes the return leg for a round trip', () => {
+  it('numbers the passengers, with one nationality for everyone and no newlines', () => {
+    const p = formatPicOrderParams(ONE_WAY)!;
+    expect(p.passengers).toBe(
+      '1) Anita, Dewasa, Argentina; 2) Suli, Anak, Argentina; 3) Baby, Bayi, Argentina; 4) NoType, Dewasa, Argentina',
+    );
+    expect(p.passengers).not.toContain('\n');
+  });
+
+  it('adds the return leg to the route and departure for a round trip', () => {
     const p = formatPicOrderParams({
       ...ONE_WAY,
       tripType: 'ROUND_TRIP',
@@ -105,20 +124,19 @@ describe('formatPicOrderParams', () => {
       outboundLeg: leg('Sanur', 'Nusa Penida', '2026-09-03T23:00:00Z'),
       returnLeg: leg('Nusa Penida', 'Sanur', '2026-09-06T04:00:00Z'),
     })!;
-    expect(p.trip_type).toBe('Round trip');
-    expect(p.route).toBe('Sanur to Nusa Penida');
-    expect(p.return_trip).toContain('Nusa Penida to Sanur');
-    expect(p.return_trip).toContain('12:00');
+    expect(p.route).toBe('Sanur to Nusa Penida (pulang-pergi)');
+    expect(p.departure).toContain('pulang Nusa Penida to Sanur');
+    expect(p.departure).toContain('12:00');
   });
 
   it('shows a dash for a missing nationality and returns null without a leg', () => {
     expect(formatPicOrderParams({ ...ONE_WAY, customerNationality: null })!.passengers).toContain(
-      'Anita (Adult, -)',
+      'Anita, Dewasa, -',
     );
     expect(formatPicOrderParams({ ...ONE_WAY, leg: null })).toBeNull();
   });
 
-  it('never leaves a param empty when the booking has no passenger list', () => {
+  it('never leaves a value empty when the booking has no passenger list', () => {
     const p = formatPicOrderParams({ ...ONE_WAY, notes: null })!;
     expect(p.passenger_count).toBe('0');
     expect(p.passengers).toBe('-');
@@ -172,8 +190,8 @@ describe('notifyOperatorPicsOrderPaid', () => {
     );
   });
 
-  it('is skipped when PIC_ORDER_TEMPLATE is unset', async () => {
-    mocks.env.PIC_ORDER_TEMPLATE = undefined;
+  it('is skipped when WHATSAPP_TEMPLATE_ORDER_NOTIF is unset', async () => {
+    mocks.env.WHATSAPP_TEMPLATE_ORDER_NOTIF = undefined;
     await notifyOperatorPicsOrderPaid('bk-1');
     expect(mocks.bookingFind).not.toHaveBeenCalled();
     expect(mocks.sendTemplate).not.toHaveBeenCalled();
@@ -191,8 +209,8 @@ describe('notifyOperatorPicsOrderPaid', () => {
       { nohpNotifikasi: '081999000111' },
     ]);
     mocks.sendTemplate
-      .mockRejectedValueOnce(new Error('WATI down'))
-      .mockResolvedValueOnce({ delivered: true, provider: 'wati' });
+      .mockRejectedValueOnce(new Error('WhatsApp down'))
+      .mockResolvedValueOnce({ delivered: true, provider: 'meta' });
     await expect(notifyOperatorPicsOrderPaid('bk-1')).resolves.toBeUndefined();
     expect(mocks.sendTemplate).toHaveBeenCalledTimes(2);
     expect(mocks.audit).toHaveBeenCalledWith(

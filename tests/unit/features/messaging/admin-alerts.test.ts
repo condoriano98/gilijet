@@ -44,7 +44,7 @@ const BOOKING = {
 beforeEach(() => {
   mocks.configFind.mockReset().mockResolvedValue(CONFIG);
   mocks.bookingFind.mockReset().mockResolvedValue(BOOKING);
-  mocks.sendTemplate.mockReset().mockResolvedValue({ delivered: true, provider: 'wati' });
+  mocks.sendTemplate.mockReset().mockResolvedValue({ delivered: true, provider: 'meta' });
   mocks.env.ADMIN_WHATSAPP_NUMBER = '';
   mocks.env.ADMIN_ALERT_TEMPLATE = '';
 });
@@ -142,8 +142,8 @@ describe('admin booking alerts', () => {
     expect(mocks.sendTemplate).not.toHaveBeenCalled();
   });
 
-  it('never throws when WATI rejects the send', async () => {
-    mocks.sendTemplate.mockRejectedValue(new Error('WATI 500'));
+  it('never throws when WhatsApp rejects the send', async () => {
+    mocks.sendTemplate.mockRejectedValue(new Error('WhatsApp 500'));
 
     await expect(alertAdminBookingPaid('bk-1')).resolves.toBeUndefined();
   });

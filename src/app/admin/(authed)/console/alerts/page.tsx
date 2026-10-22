@@ -90,7 +90,7 @@ export default async function AlertsConsolePage({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="adminAlertTemplate">WATI template name</Label>
+              <Label htmlFor="adminAlertTemplate">WhatsApp template name</Label>
               <Input
                 id="adminAlertTemplate"
                 name="adminAlertTemplate"
@@ -99,7 +99,7 @@ export default async function AlertsConsolePage({
                 autoComplete="off"
               />
               <p className="text-xs text-muted-foreground">
-                Must be an approved template in WATI. WhatsApp only allows a
+                Must be an approved template in the WhatsApp Business account. WhatsApp only allows a
                 business to start a conversation with a template — a plain
                 message reaches someone only within 24 hours of them messaging
                 you, which staff never do.
@@ -145,12 +145,12 @@ export default async function AlertsConsolePage({
           </p>
           <p className={live ? '' : 'text-amber-700'}>
             {live
-              ? '✓ WATI credentials are present, so alerts send for real.'
-              : '✗ WATI credentials are absent — alerts are written to the server log instead of sent. Set WATI_API_KEY, WATI_TENANT_ID and WATI_API_URL.'}
+              ? '✓ WhatsApp credentials are present, so alerts send for real.'
+              : '✗ WhatsApp credentials are absent — alerts are written to the server log instead of sent. Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID.'}
           </p>
           <p className="text-xs text-muted-foreground">
-            The template needs these variables: event, reference, route,
-            departure, boat, customer, pax, amount, action.
+            The template needs nine variables, in this order: event, reference,
+            route, departure, boat, customer, pax, amount, action (1 to 9).
           </p>
         </CardContent>
       </Card>

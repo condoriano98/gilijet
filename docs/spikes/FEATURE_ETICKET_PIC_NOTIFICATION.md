@@ -36,6 +36,12 @@
 
 **Scheduling decision (updated 2026-10-20):** the Vercel team is on **Pro**, but Vercel Cron only runs on production, and the user wants staging only for now: nothing is scheduled yet. The earlier Hobby / GitHub Actions plan is withdrawn; see "Scheduling, 2026-10-20" below.
 
+## Status note 2026-10-22: WhatsApp moved from WATI to the Meta Cloud API (v1.7.0)
+
+Everything above that says WATI, `PIC_ORDER_TEMPLATE` or `sendTemplateMessage` via WATI is outdated. The PIC "order paid" message now goes through the Meta WhatsApp Cloud API (`src/features/messaging/whatsapp.ts`) with the approved template `order_masuk_operator` (Meta, 2026-10-22: APPROVED, language `id`, UTILITY, 9 positional variables: booking code, boat, route, date and time, buyer name, email, phone, passenger count, passenger list). Env: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_ORDER_NOTIF` (+ optional `WHATSAPP_API_VERSION`, `WHATSAPP_TEMPLATE_LANG`). These five were added to the Vercel `staging` environment on 2026-10-22; they take effect with the first `staging` deployment that contains v1.7.0.
+
+Checked read-only on 2026-10-22: the staging database has one PIC row (PT WAHANA VIRENDRA GROUP, with a real notification number) and no platform row, and `PlatformConfig.dokuMode` is `LIVE`, so a payment test on staging charges real money (use the Rp 1 departure). The template header still says "nama, gender, usia, kewarganegaraan" while the message sends name, category, nationality (no gender). No WhatsApp webhook route exists (`/api/webhooks/whatsapp` is not built); delivery status and replies are not tracked, sending does not need it.
+
 ## Ticket (translated)
 
 E-tickets are generated automatically (PDF / web page) with name, route, schedule, booking number and a check-in QR code. Flow:

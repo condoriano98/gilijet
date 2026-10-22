@@ -6,14 +6,14 @@ loadEnvConfig(process.cwd());
 
 /**
  * Specs that open the checkout page or pay must run against mock gateways.
- * Local env files can hold production DOKU, PayPal, WATI, SMTP and mailbox keys, and
+ * Local env files can hold production DOKU, PayPal, WhatsApp, SMTP and mailbox keys, and
  * opening checkout with a live DOKU key creates a real payment session. Call
  * this at the top of the spec file: with any live key set the whole file is
  * skipped before a single page is opened or a row is written.
  *
  * Run them with the keys blanked, e.g.
  *   DOKU_CLIENT_ID= DOKU_SECRET_KEY= PAYPAL_CLIENT_ID= PAYPAL_CLIENT_SECRET= \
- *   WATI_API_KEY= SMTP_PASSWORD= INBOX_IMAP_PASSWORD= pnpm test:e2e
+ *   WHATSAPP_ACCESS_TOKEN= SMTP_PASSWORD= INBOX_IMAP_PASSWORD= pnpm test:e2e
  */
 export function requireMockPayments() {
   const live = livePaymentKeys(process.env);

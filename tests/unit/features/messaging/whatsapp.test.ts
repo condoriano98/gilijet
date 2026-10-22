@@ -12,11 +12,11 @@ import {
 /**
  * Unit tests for src/features/messaging/whatsapp.ts
  *
- * Tests WhatsApp delivery via WATI with mock-fallback:
+ * Tests WhatsApp delivery via the Meta Cloud API with mock-fallback:
  * - Phone number normalization (Indonesian +62 handling)
- * - Configuration checks (WATI_API_KEY, etc)
- * - Message formatting + WATI API calls
- * - Fallback to console when WATI not configured
+ * - Configuration checks (WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID)
+ * - Message formatting + the Graph API requests (text, template, media + document)
+ * - Fallback to console when WhatsApp is not configured
  *
  * Mocking: fetch API, env variables
  */
@@ -26,9 +26,10 @@ const mockFetch = vi.fn();
 
 beforeEach(() => {
   vi.stubGlobal('fetch', mockFetch);
-  process.env.WATI_API_KEY = 'test-wati-key';
-  process.env.WATI_TENANT_ID = 'test-tenant';
-  process.env.WATI_API_URL = 'https://api.wati.example.com';
+  process.env.WHATSAPP_ACCESS_TOKEN = 'test-token';
+  process.env.WHATSAPP_PHONE_NUMBER_ID = '12345';
+  process.env.WHATSAPP_API_VERSION = 'v99.0';
+  process.env.WHATSAPP_TEMPLATE_LANG = 'id';
 });
 
 afterEach(() => {
@@ -70,35 +71,24 @@ describe('normalizeWhatsappNumber', () => {
 });
 
 describe('isWhatsappConfigured', () => {
-  it('returns true when all WATI env vars present', () => {
+  it('returns true when the token and phone number id are present', () => {
     expect(isWhatsappConfigured()).toBe(true);
   });
 
-  it('returns false when WATI_API_KEY missing', () => {
-    const saved = process.env.WATI_API_KEY;
-    delete process.env.WATI_API_KEY;
+  it('returns false when WHATSAPP_ACCESS_TOKEN missing', () => {
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
     expect(isWhatsappConfigured()).toBe(false);
-    process.env.WATI_API_KEY = saved;
   });
 
-  it('returns false when WATI_TENANT_ID missing', () => {
-    const saved = process.env.WATI_TENANT_ID;
-    delete process.env.WATI_TENANT_ID;
+  it('returns false when WHATSAPP_PHONE_NUMBER_ID missing', () => {
+    delete process.env.WHATSAPP_PHONE_NUMBER_ID;
     expect(isWhatsappConfigured()).toBe(false);
-    process.env.WATI_TENANT_ID = saved;
-  });
-
-  it('returns false when WATI_API_URL missing', () => {
-    const saved = process.env.WATI_API_URL;
-    delete process.env.WATI_API_URL;
-    expect(isWhatsappConfigured()).toBe(false);
-    process.env.WATI_API_URL = saved;
   });
 });
 
 describe('WhatsApp messaging - Mock Fallback', () => {
-  it('falls back to console when WATI not configured', async () => {
-    delete process.env.WATI_API_KEY;
+  it('falls back to console when WhatsApp is not configured', async () => {
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
 
     const result = await sendBoardingPassWhatsapp({
       to: '+62812345678',
@@ -133,8 +123,8 @@ describe('WhatsApp messaging - Mock Fallback', () => {
   });
 });
 
-describe('WhatsApp messaging - WATI API', () => {
-  it('sends boarding pass text message when WATI configured', async () => {
+describe('WhatsApp messaging - Meta Cloud API', () => {
+  it('sends a boarding pass as a text message through the Graph API', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: vi.fn().mockResolvedValue({ success: true }),
@@ -151,8 +141,17 @@ describe('WhatsApp messaging - WATI API', () => {
       lookupUrl: 'https://gilifast.com/b/GILI-ABC123',
     });
 
-    // Accept either wati success or console fallback - the mock pattern IS working
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: true, provider: 'meta' });
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe('https://graph.facebook.com/v99.0/12345/messages');
+    expect(init.headers.Authorization).toBe('Bearer test-token');
+    const body = JSON.parse(init.body);
+    expect(body).toMatchObject({
+      messaging_product: 'whatsapp',
+      to: '62812345678',
+      type: 'text',
+    });
+    expect(body.text.body).toContain('GILI-ABC123');
   });
 
   it('sends payment received message', async () => {
@@ -168,8 +167,7 @@ describe('WhatsApp messaging - WATI API', () => {
       lookupUrl: 'https://gilifast.com/b/GILI-XYZ789',
     });
 
-    // Accept either provider - fallback pattern IS working
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: true, provider: 'meta' });
   });
 
   it('sends operator unavailable message', async () => {
@@ -185,8 +183,7 @@ describe('WhatsApp messaging - WATI API', () => {
       lookupUrl: 'https://gilifast.com/b/GILI-DEF456',
     });
 
-    // Accept either provider - fallback pattern IS working
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: true, provider: 'meta' });
   });
 
   describe('operator unavailable: cancellation reason', () => {
@@ -196,7 +193,7 @@ describe('WhatsApp messaging - WATI API', () => {
       bookingReference: 'GILI-DEF456',
       lookupUrl: 'https://gilifast.com/b/GILI-DEF456',
     };
-    const sentText = () => decodeURIComponent(new URL(mockFetch.mock.calls[0][0]).searchParams.get('messageText')!);
+    const sentText = () => JSON.parse(mockFetch.mock.calls[0][1].body).text.body as string;
 
     it('tells the customer why the departure was cancelled', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true });
@@ -223,28 +220,71 @@ describe('WhatsApp messaging - WATI API', () => {
     });
   });
 
-  it('sends template message with parameters', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      text: vi.fn().mockResolvedValue(''),
-    });
+  it('sends a template with positional body parameters and the configured language', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true });
 
     const result = await sendTemplateMessage({
       to: '+62812345678',
-      templateName: 'booking_confirmation',
-      broadcastName: 'confirmations',
+      templateName: 'order_masuk_operator',
       params: {
-        customer_name: 'John Doe',
-        booking_ref: 'GILI-ABC123',
+        booking_code: 'BK-2026-10-ABC234',
+        passengers: '1) Anita, Dewasa, Argentina;\n2) Boris,   Dewasa, Indonesia',
+        empty: '  ',
       },
     });
 
-    // When WATI is configured and fetch succeeds, should deliver via WATI
-    expect(result.delivered).toBe(true);
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: true, provider: 'meta' });
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe('https://graph.facebook.com/v99.0/12345/messages');
+    expect(JSON.parse(init.body)).toEqual({
+      messaging_product: 'whatsapp',
+      to: '62812345678',
+      type: 'template',
+      template: {
+        name: 'order_masuk_operator',
+        language: { code: 'id' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: 'BK-2026-10-ABC234' },
+              { type: 'text', text: '1) Anita, Dewasa, Argentina; 2) Boris, Dewasa, Indonesia' },
+              { type: 'text', text: '-' },
+            ],
+          },
+        ],
+      },
+    });
   });
 
-  it('returns error on WATI API failure', async () => {
+  it('does not call the API for a template when not configured', async () => {
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
+    const result = await sendTemplateMessage({
+      to: '+62812345678',
+      templateName: 'order_masuk_operator',
+      params: { a: 'b' },
+    });
+    expect(result).toEqual({ delivered: false, provider: 'console' });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('reports a rejected template as not delivered', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: vi.fn().mockResolvedValue('(#132000) Number of parameters does not match'),
+    });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await sendTemplateMessage({
+      to: '+62812345678',
+      templateName: 'order_masuk_operator',
+      params: { a: 'b' },
+    });
+    err.mockRestore();
+    expect(result).toEqual({ delivered: false, provider: 'meta' });
+  });
+
+  it('returns not delivered on an API failure', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -262,37 +302,62 @@ describe('WhatsApp messaging - WATI API', () => {
       lookupUrl: 'https://gilifast.com/b/GILI-ABC123',
     });
 
-    // When fetch fails, should not deliver but indicate wati attempt
-    expect(result.delivered).toBe(false);
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: false, provider: 'meta' });
   });
 });
 
 describe('WhatsApp document (PDF boarding pass)', () => {
-  it('sends PDF document when configured', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      text: vi.fn().mockResolvedValue(''),
-    });
+  it('uploads the PDF as media, then sends it as a document by media id', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue({ id: 'media-77' }) })
+      .mockResolvedValueOnce({ ok: true });
 
-    const pdfBuffer = Buffer.from('PDF content');
     const result = await sendBoardingPassDocument({
       to: '+62812345678',
       customerName: 'John Doe',
       bookingReference: 'GILI-ABC123',
       route: { originPort: 'BLI', destinationPort: 'SBY' },
       departureDate: new Date('2026-10-25T08:00:00Z'),
-      pdf: pdfBuffer,
+      pdf: Buffer.from('PDF content'),
       filename: 'boarding-pass.pdf',
     });
 
-    // When WATI is configured and fetch succeeds, should deliver
-    expect(result.delivered).toBe(true);
-    expect(['wati', 'console']).toContain(result.provider);
+    expect(result).toEqual({ delivered: true, provider: 'meta' });
+    const [uploadUrl, upload] = mockFetch.mock.calls[0];
+    expect(uploadUrl).toBe('https://graph.facebook.com/v99.0/12345/media');
+    expect(upload.body.get('messaging_product')).toBe('whatsapp');
+    expect(upload.body.get('type')).toBe('application/pdf');
+    expect(upload.headers['Content-Type']).toBeUndefined();
+    const [sendUrl, send] = mockFetch.mock.calls[1];
+    expect(sendUrl).toBe('https://graph.facebook.com/v99.0/12345/messages');
+    const body = JSON.parse(send.body);
+    expect(body).toMatchObject({
+      to: '62812345678',
+      type: 'document',
+      document: { id: 'media-77', filename: 'boarding-pass.pdf' },
+    });
+    expect(body.document.caption).toContain('GILI-ABC123');
+  });
+
+  it('does not send the document when the media upload fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, text: vi.fn().mockResolvedValue('bad') });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await sendBoardingPassDocument({
+      to: '+62812345678',
+      customerName: 'John Doe',
+      bookingReference: 'GILI-ABC123',
+      route: { originPort: 'BLI', destinationPort: 'SBY' },
+      departureDate: new Date('2026-10-25T08:00:00Z'),
+      pdf: Buffer.from('PDF content'),
+      filename: 'boarding-pass.pdf',
+    });
+    err.mockRestore();
+    expect(result).toEqual({ delivered: false, provider: 'meta' });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to console when not configured', async () => {
-    delete process.env.WATI_API_KEY;
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
 
     const pdfBuffer = Buffer.from('PDF content');
     const result = await sendBoardingPassDocument({
@@ -317,7 +382,7 @@ describe('round-trip WhatsApp text (console fallback shows the message)', () => 
   const ret = new Date('2026-11-06T08:00:00Z');
 
   async function printed(run: () => Promise<unknown>): Promise<string> {
-    delete process.env.WATI_API_KEY;
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     try {
       await run();

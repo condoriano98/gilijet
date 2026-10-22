@@ -176,7 +176,7 @@ describe('notifyPaymentReceived', () => {
 
     vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(mockBooking as any);
     vi.mocked(sendPaymentReceivedEmail).mockResolvedValueOnce(EMAIL_RESULT);
-    vi.mocked(sendPaymentReceivedWhatsapp).mockRejectedValueOnce(new Error('WATI down'));
+    vi.mocked(sendPaymentReceivedWhatsapp).mockRejectedValueOnce(new Error('WhatsApp down'));
     vi.mocked(alertAdminBookingPaid).mockResolvedValueOnce(undefined);
 
     // Should not throw even though WhatsApp failed
@@ -352,7 +352,7 @@ describe('notifyOperatorUnavailable', () => {
     };
 
     vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(mockBooking as any);
-    vi.mocked(sendOperatorUnavailableWhatsapp).mockRejectedValueOnce(new Error('WATI error'));
+    vi.mocked(sendOperatorUnavailableWhatsapp).mockRejectedValueOnce(new Error('WhatsApp error'));
 
     // Should not throw
     await expect(notifyOperatorUnavailable('booking-1', 500000)).resolves.toBeUndefined();
@@ -773,7 +773,7 @@ describe('round-trip boarding pass: two passes over WhatsApp and email', () => {
     vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(rtBooking() as any);
     vi.mocked(generateBoardingPassPdfsForBooking).mockResolvedValueOnce(pdfs);
     vi.mocked(sendBoardingPassDocument)
-      .mockRejectedValueOnce(new Error('WATI down'))
+      .mockRejectedValueOnce(new Error('WhatsApp down'))
       .mockResolvedValueOnce(WHATSAPP_RESULT);
     vi.mocked(sendBookingConfirmation).mockResolvedValue(EMAIL_RESULT);
 

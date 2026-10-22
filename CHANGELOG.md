@@ -12,6 +12,13 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-22
+
+### Changed
+
+- WhatsApp now goes out through the Meta WhatsApp Cloud API instead of WATI (WATI was never connected, so nothing was sent before). The PIC "order paid" message uses the approved `order_masuk_operator` template: booking code, boat, route, date and time, buyer name, email and phone, passenger count and the passenger list (name, category, nationality; no gender, the booking form does not collect it). A round trip puts the return leg into the route and date lines. Payment-received, boarding-pass and cancellation messages are still plain session messages, which WhatsApp delivers only within 24 hours of the customer writing to the number. Without `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` nothing is sent and the message is only logged, as before.
+- Environment variables: `WATI_API_KEY`, `WATI_TENANT_ID` and `WATI_API_URL` are replaced by `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION` and `WHATSAPP_TEMPLATE_LANG`; `PIC_ORDER_TEMPLATE` is now `WHATSAPP_TEMPLATE_ORDER_NOTIF`. The staff alert template (`/admin/console/alerts`) takes nine positional variables, in the order listed on that page.
+
 ### Changed
 
 - Staging test tooling: Rp 1 Padang Bai ⇄ Senggigi departures (`pnpm seed:one-rupiah`) and an opt-in e2e for the live DOKU hand-off. Nothing changes for customers on production.
@@ -171,7 +178,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/condoriano98/gilijet/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/condoriano98/gilijet/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/condoriano98/gilijet/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/condoriano98/gilijet/compare/v1.3.1...v1.4.0

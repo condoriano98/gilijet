@@ -6,7 +6,7 @@ import * as readline from 'readline';
 const prisma = new PrismaClient();
 
 // Spreadsheets drop the leading 0 of a phone number, leaving `8123…`. PICs are
-// Indonesian, so store every number as `628…` digits (what WATI expects).
+// Indonesian, so store every number as `628…` digits (what WhatsApp expects).
 function normalizePicPhone(raw: string | undefined): string | null {
   const digits = (raw ?? '').replace(/\D/g, '');
   if (!digits) return null;

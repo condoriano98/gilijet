@@ -11,7 +11,7 @@ export function livePaymentKeys(env: Record<string, string | undefined>): string
 
   const dokuId = env.DOKU_CLIENT_ID?.trim();
   if (dokuId && !dokuId.startsWith('test_mock_')) live.push('DOKU_CLIENT_ID');
-  for (const name of ['DOKU_SECRET_KEY', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'WATI_API_KEY', 'SMTP_PASSWORD', 'INBOX_IMAP_PASSWORD']) {
+  for (const name of ['DOKU_SECRET_KEY', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'WHATSAPP_ACCESS_TOKEN', 'SMTP_PASSWORD', 'INBOX_IMAP_PASSWORD']) {
     if (set(name)) live.push(name);
   }
   return live;

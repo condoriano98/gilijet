@@ -258,7 +258,7 @@ the flag costs one wasted round-trip and logs a warning suggesting you flip it.
 **Putting sandbox credentials there is the only mechanism.** `pnpm
 paypal:selftest` asks both hosts and names the one that answers.
 
-`SMTP_*`, `INBOX_IMAP_*` and `WATI_*` are left unset on staging unless a test needs them. Neither transport has an
+`SMTP_*`, `INBOX_IMAP_*` and `WHATSAPP_*` are left unset on staging unless a test needs them. Neither transport has an
 environment guard — they send to whatever address or number is on the booking,
 so a production dump restored into staging would message real customers. Unset,
 both log to the console and the rendered output still shows in function logs.

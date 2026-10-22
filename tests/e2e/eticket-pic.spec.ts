@@ -11,13 +11,13 @@ requireMockPayments();
  * E-ticket Part A: paying a booking sends the operator's PICs the "order paid"
  * message and records it in the audit log.
  *
- * Messaging keys are blanked (requireMockPayments), so the WATI template is only
+ * Messaging keys are blanked (requireMockPayments), so the WhatsApp template is only
  * logged; what is asserted is the `pic_order_notified` audit row with the number
  * of recipients, and that the booking itself is untouched (still waiting for the
  * admin to confirm with the operator).
  *
  * Builds its own route (2095) and its own OperatorPicContact row, and removes
- * them afterwards. The dev server needs PIC_ORDER_TEMPLATE set, otherwise the
+ * them afterwards. The dev server needs WHATSAPP_TEMPLATE_ORDER_NOTIF set, otherwise the
  * notification is skipped by design and the spec skips itself.
  * Relies on `pnpm seed:qa` (boat).
  */
@@ -29,7 +29,7 @@ const EMAIL = 'e2e-eticket-pic@example.invalid';
 const PIC_PHONE = '+62 800 0000 0412';
 const DATE = '2095-06-12';
 
-test.skip(!process.env.PIC_ORDER_TEMPLATE?.trim(), 'PIC_ORDER_TEMPLATE is not set');
+test.skip(!process.env.WHATSAPP_TEMPLATE_ORDER_NOTIF?.trim(), 'WHATSAPP_TEMPLATE_ORDER_NOTIF is not set');
 
 async function cleanup() {
   const bookings = await prisma.booking.findMany({ where: { customerEmail: EMAIL }, select: { id: true } });

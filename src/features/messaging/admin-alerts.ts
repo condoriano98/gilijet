@@ -8,7 +8,7 @@ import { getMainLeg } from '@/features/booking/helpers';
 /**
  * WhatsApp alerts to whoever is on call for bookings.
  *
- * Sent as a WATI template, not a session message: WhatsApp only lets a
+ * Sent as a template, not a session message: WhatsApp only lets a
  * business open a conversation with a pre-approved template, and a session
  * message reaches someone only within 24 hours of *them* messaging in. Staff
  * never do, so a session message here would fail every time — silently.
@@ -111,7 +111,6 @@ async function alert(bookingId: string, event: AlertEvent): Promise<void> {
     await sendTemplateMessage({
       to: config.number,
       templateName: config.template,
-      broadcastName: `gilifast_${event}`,
       params: {
         event: paid ? 'PAID — confirm with operator' : 'New booking (unpaid)',
         reference: booking.bookingReference,
