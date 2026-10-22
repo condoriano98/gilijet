@@ -119,6 +119,35 @@ describe('notifyPaymentReceived', () => {
     expect(notifyOperatorPicsOrderPaid).toHaveBeenCalled();
   });
 
+  it('waits for the PIC message to finish before resolving (a frozen function drops floating work)', async () => {
+    const mockBooking = {
+      id: 'booking-1',
+      bookingReference: 'GILI-ABC123',
+      customerName: 'Test User',
+      customerEmail: 'test@example.com',
+      customerPhone: '+628123456789',
+      totalAmount: 100000,
+      tripType: 'ONE_WAY',
+      leg: {
+        departureDate: new Date('2026-07-25T10:00:00Z'),
+        schedule: { originPort: 'Padang Bai', destinationPort: 'Gili Trawangan', boat: { name: 'Boat 1' } },
+      },
+    };
+    vi.mocked(prisma.booking.findUnique).mockResolvedValueOnce(mockBooking as never);
+    vi.mocked(sendPaymentReceivedEmail).mockResolvedValueOnce(EMAIL_RESULT);
+    vi.mocked(sendPaymentReceivedWhatsapp).mockResolvedValueOnce(WHATSAPP_RESULT);
+    vi.mocked(alertAdminBookingPaid).mockResolvedValueOnce(undefined);
+    let picDone = false;
+    vi.mocked(notifyOperatorPicsOrderPaid).mockImplementationOnce(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+      picDone = true;
+    });
+
+    await notifyPaymentReceived('booking-1');
+
+    expect(picDone).toBe(true);
+  });
+
   it('swallows email send errors', async () => {
     const mockBooking = {
       id: 'booking-1',

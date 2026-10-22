@@ -12,6 +12,12 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-22
+
+### Fixed
+
+- The "order paid" WhatsApp to the operator's PICs, the staff alert and the customer's payment-received email and WhatsApp were started after the payment callback had already been answered, so the hosting platform froze the function and they were dropped or only resumed on a later request. They now run to completion after the response (`after()`), and the staff and PIC messages no longer wait behind a slow customer email.
+
 ## [1.7.0] - 2026-10-22
 
 ### Changed
@@ -178,7 +184,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/condoriano98/gilijet/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/condoriano98/gilijet/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/condoriano98/gilijet/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/condoriano98/gilijet/compare/v1.4.0...v1.5.0

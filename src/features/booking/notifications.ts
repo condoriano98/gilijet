@@ -111,6 +111,16 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
   const returnLeg = getReturnLeg(booking);
   const url = lookupUrl(booking.bookingReference);
 
+  // Staff alert: this is the moment the admin has something to do — ring the
+  // operator and confirm the boat. Info-only message to the operator's PICs so
+  // they can create the ticket. Both swallow their own errors, start before the
+  // customer sends (a slow SMTP must not hold the PIC back) and are awaited
+  // below so the function is not frozen with them half done.
+  const staff = Promise.allSettled([
+    alertAdminBookingPaid(bookingId),
+    notifyOperatorPicsOrderPaid(bookingId),
+  ]);
+
   await Promise.allSettled([
     sendPaymentReceivedEmail({
       to: booking.customerEmail,
@@ -143,11 +153,7 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
     }),
   ]).then(logFailures('payment-received'));
 
-  // Staff alert: this is the moment the admin has something to do — ring the
-  // operator and confirm the boat. Swallows its own errors.
-  void alertAdminBookingPaid(bookingId);
-  // Info-only message to the operator's PICs so they can create the ticket.
-  void notifyOperatorPicsOrderPaid(bookingId);
+  await staff;
 }
 
 /** The admin reached the operator and the seat is real. Boarding pass goes out. */

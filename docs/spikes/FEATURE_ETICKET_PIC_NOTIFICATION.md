@@ -42,6 +42,10 @@ Everything above that says WATI, `PIC_ORDER_TEMPLATE` or `sendTemplateMessage` v
 
 Checked read-only on 2026-10-22: the staging database has one PIC row (PT WAHANA VIRENDRA GROUP, with a real notification number) and no platform row, and `PlatformConfig.dokuMode` is `LIVE`, so a payment test on staging charges real money (use the Rp 1 departure). The template header still says "nama, gender, usia, kewarganegaraan" while the message sends name, category, nationality (no gender). No WhatsApp webhook route exists (`/api/webhooks/whatsapp` is not built); delivery status and replies are not tracked, sending does not need it.
 
+### Finding 2026-10-22: the PIC message was never sent after a real payment (fixed in v1.7.1)
+
+First live QRIS payment on staging (booking `BK-2026-10-UFHYDF`, Rp 1): the DOKU webhook arrived (notify URL switched to staging, Vercel protection bypass), the event was `PROCESSED` and the booking went to `AWAITING_CONFIRMATION`, but no `pic_order_notified` audit row and no `[pic-notify]` log appeared; the only related log line was the customer email's SMTP `Connection timeout` surfacing 37 s later on an unrelated `GET /api/auth/me`. Cause: `webhook-processor.ts` / `psp.ts` fired `notifyPaymentReceived` without awaiting it, and `notifyPaymentReceived` itself fired the staff alert and the PIC message with `void`. On Vercel the function is frozen once the response is sent, so that work is dropped or resumes on a later request. Fix: `src/shared/server/after-response.ts` (`after()` from `next/server`) keeps the function alive for the notification, and `notifyPaymentReceived` now awaits the staff and PIC messages (started before the customer email so a slow SMTP does not hold them back). Cause is inferred from the evidence above, not reproduced in isolation; the proof is the next real payment. Also seen: SMTP from Vercel to Gmail:465 timed out once, not yet explained (freeze artifact or a real block).
+
 ## Ticket (translated)
 
 E-tickets are generated automatically (PDF / web page) with name, route, schedule, booking number and a check-in QR code. Flow:

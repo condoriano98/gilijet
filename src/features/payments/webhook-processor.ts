@@ -7,6 +7,7 @@ import { PaymentMethod } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
 import { notifyPaymentReceived } from '@/features/booking/notifications';
+import { afterResponse } from '@/shared/server/after-response';
 import { normalizePaymentMethod, paypalFeeAsIdr } from '@/features/payments/psp';
 import { readNotification } from '@/features/payments/doku';
 import { readCaptureFromWebhook } from '@/features/payments/paypal';
@@ -90,8 +91,10 @@ export async function processDokuPaymentSuccess(
   });
 
   if (!result.alreadyRecorded) {
-    notifyPaymentReceived(booking.id).catch((err) =>
-      console.error('[doku-webhook] notify failed:', err),
+    afterResponse(
+      notifyPaymentReceived(booking.id).catch((err) =>
+        console.error('[doku-webhook] notify failed:', err),
+      ),
     );
   }
 
@@ -148,8 +151,10 @@ export async function processPaypalEvent(
       });
 
       if (!result.alreadyRecorded) {
-        notifyPaymentReceived(booking.id).catch((err) =>
-          console.error('[paypal-webhook] notify failed:', err),
+        afterResponse(
+          notifyPaymentReceived(booking.id).catch((err) =>
+            console.error('[paypal-webhook] notify failed:', err),
+          ),
         );
       }
 

@@ -35,6 +35,7 @@ import { quoteForeignCharge, type ForeignChargeQuote } from '@/features/pricing/
 import { applyGatewayModeOverrides } from '@/features/payments/payment-mode';
 import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
 import { notifyPaymentReceived } from '@/features/booking/notifications';
+import { afterResponse } from '@/shared/server/after-response';
 
 /** True when a real (non-mock) gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
@@ -279,8 +280,10 @@ export async function capturePaypalOrder(
   });
 
   if (!result.alreadyRecorded) {
-    notifyPaymentReceived(booking.id).catch((err) =>
-      console.error('[psp] notify failed:', err),
+    afterResponse(
+      notifyPaymentReceived(booking.id).catch((err) =>
+        console.error('[psp] notify failed:', err),
+      ),
     );
   }
 
