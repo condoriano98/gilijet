@@ -340,6 +340,8 @@ dashboard session.
 
 Honest state, so nobody plans against features that do not work:
 
+- **WhatsApp webhook.** `/api/webhooks/whatsapp` answers Meta's verification (`WHATSAPP_WEBHOOK_VERIFY_TOKEN`) and logs delivery statuses of the messages we send to `/admin/webhooks` (provider `whatsapp`, signature `WHATSAPP_APP_SECRET`). Replies are counted, not stored, and drive nothing. Sending does not need the webhook. A callback URL behind Vercel Authentication (staging) needs the Protection Bypass secret in its query string.
+
 - **Unscheduled cron endpoints.** `send-reminders` and `poll-bmkg` are
   implemented and callable but absent from `vercel.json`, so departure
   reminders and BMKG weather never run on their own. Only `retry-webhooks`,

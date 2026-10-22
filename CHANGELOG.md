@@ -12,6 +12,12 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-22
+
+### Added
+
+- WhatsApp webhook (`/api/webhooks/whatsapp`): answers Meta's callback-URL verification and records the delivery status of the messages we send (sent, delivered, read, failed, with Meta's reason) in the admin Webhooks page under provider `whatsapp`, so a PIC message that was rejected or not delivered is visible. Replies are not stored. Needs `WHATSAPP_WEBHOOK_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET`; without them the route answers 503.
+
 ## [1.7.2] - 2026-10-22
 
 ### Fixed
@@ -190,7 +196,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.7.2...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/condoriano98/gilijet/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/condoriano98/gilijet/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/condoriano98/gilijet/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/condoriano98/gilijet/compare/v1.6.0...v1.7.0

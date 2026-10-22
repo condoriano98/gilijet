@@ -44,6 +44,10 @@ const envSchema = z.object({
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_API_VERSION: z.string().optional(),
   WHATSAPP_TEMPLATE_LANG: z.string().optional(),
+  // Webhook (/api/webhooks/whatsapp): the verify token is our own string, typed
+  // into the same field in the Meta app; the app secret signs each delivery.
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
+  WHATSAPP_APP_SECRET: z.string().optional(),
 
   // Fallback destination + template for staff booking alerts. The
   // PlatformConfig row wins when set, so these only cover a fresh environment
