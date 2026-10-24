@@ -21,6 +21,15 @@ export function extractBookingCode(text: string): string | null {
   return `BK-${m[1]}-${m[2]}-${m[3].toUpperCase()}`;
 }
 
+// The operator's own code, e.g. "BK-261024-K5DNVL": six digits, then letters or
+// digits. Ours has a year and month group ("BK-2026-10-ABC234"), so it never matches.
+const OPERATOR_CODE = /\bBK-\d{6}-[A-Z0-9]{4,8}\b/i;
+
+export function extractOperatorBookingCode(text: string): string | null {
+  const m = text.match(OPERATOR_CODE);
+  return m ? m[0].toUpperCase() : null;
+}
+
 /** Name from the greeting line, with any booking code removed. */
 export function extractGreetingName(text: string): string | null {
   const m = text.match(/\b(?:hi|hello|halo|dear)\s+([^\n\r,<]{1,120})/i);
@@ -64,25 +73,6 @@ export function senderAddress(from: string): string | null {
   return m ? m[1].trim().toLowerCase() : null;
 }
 
-/** Remove the "---- Forwarded Message ----" header block and its From/Date/Subject/To lines. */
-export function stripForwardBlock(text: string): string {
-  return text
-    .replace(
-      /^[ \t]*-{3,}\s*(?:forwarded message|original message)\s*-{3,}[ \t]*\r?\n(?:[ \t]*(?:From|Date|Subject|To|Cc|Reply-To|Sent):.*\r?\n)*/gim,
-      '',
-    )
-    .replace(/^\s+/, '');
-}
-
-/** Strip "Fwd:" / "FW:" (repeated) from the front of a subject. */
-export function cleanSubject(subject: string): string {
-  return subject
-    .replace(/[\u0000-\u001f]/g, ' ')
-    .replace(/^(?:\s*(?:fwd?|fw)\s*:\s*)+/i, '')
-    .trim()
-    .slice(0, 200);
-}
-
 export function htmlToText(html: string): string {
   return html
     .replace(/<(?:style|script)[\s\S]*?<\/(?:style|script)>/gi, '')
@@ -103,8 +93,4 @@ export function htmlToText(html: string): string {
 
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-export function textToHtml(text: string): string {
-  return `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;white-space:pre-wrap;">${escapeHtml(text)}</div>`;
 }

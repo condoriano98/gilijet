@@ -38,6 +38,7 @@ export async function sendMail(args: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
   replyTo?: string;
   attachments?: MailAttachment[];
 }): Promise<MailResult> {
@@ -48,6 +49,7 @@ export async function sendMail(args: {
       to: args.to,
       subject: args.subject,
       html: args.html,
+      ...(args.text ? { text: args.text } : {}),
       ...(args.replyTo ? { replyTo: args.replyTo } : {}),
       ...(args.attachments?.length
         ? { attachments: args.attachments.map((a) => ({ filename: a.filename, content: a.content })) }

@@ -48,8 +48,6 @@ const ONE_WAY = {
   operatorId: 'op-1',
   bookingReference: 'BK-2026-09-ABC234',
   customerName: 'Andy',
-  customerEmail: 'andy@example.com',
-  customerPhone: '08133399869',
   customerNationality: 'Argentina',
   notes: NOTES,
   tripType: 'ONE_WAY' as const,
@@ -103,8 +101,8 @@ describe('formatPicOrderParams', () => {
     expect(p.departure).toContain('04 Sep 2026');
     expect(p.departure.endsWith('WITA')).toBe(true);
     expect(p.customer_name).toBe('Andy');
-    expect(p.customer_email).toBe('andy@example.com');
-    expect(p.customer_phone).toBe('08133399869');
+    expect(p.customer_email).toBe('admin@gilifast.com');
+    expect(p.customer_phone).toBe('+62 813-3399-869');
     expect(p.passenger_count).toBe('4');
   });
 

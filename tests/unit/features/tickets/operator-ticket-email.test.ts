@@ -32,13 +32,18 @@ import { SENDER_NOT_ALLOWED } from '@/features/payments/webhook-events';
 import { MessageGoneError } from '@/features/messaging/inbox';
 
 const DEPARTURE = new Date('2027-07-21T23:00:00Z'); // 22 Jul 2027 07:00 WITA
-const leg = { departureDate: DEPARTURE };
+const leg = {
+  departureDate: DEPARTURE,
+  schedule: { originPort: 'Sanur', destinationPort: 'Nusa Penida', durationMinutes: 45 },
+};
 
 const booking = (over: Record<string, unknown> = {}) => ({
   id: 'bk-1',
   bookingReference: 'BK-2026-10-ABC234',
   customerName: 'Andy Buyer',
   customerEmail: 'andy@example.com',
+  customerNationality: 'Indonesia',
+  operator: { companyName: 'PT WAHANA VIRENDRA GROUP' },
   notes: JSON.stringify({ passengers: [{ name: 'Andy Buyer' }, { name: 'Sita Friend' }] }),
   tripType: 'ONE_WAY',
   operatorId: 'op-1',
@@ -134,14 +139,13 @@ describe('re-reading the message', () => {
 });
 
 describe('match by booking code', () => {
-  it('forwards to the buyer with the cleaned subject, and writes the audit row', async () => {
+  it('forwards to the buyer with our subject, and writes the audit row', async () => {
     const r = await processOperatorTicketEmail(payload);
     expect(r).toEqual({ ok: true, status: 'forwarded' });
     expect(mocks.send).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'andy@example.com',
-        subject: 'E-Ticket Wahana',
-        bookingReference: 'BK-2026-10-ABC234',
+        subject: 'Your E-Ticket & Booking Confirmation - BK-2026-10-ABC234',
       }),
     );
     expect(mocks.auditCreate).toHaveBeenCalledWith(
@@ -181,7 +185,7 @@ describe('match by booking code', () => {
       booking({
         tripType: 'ROUND_TRIP',
         leg: null,
-        outboundLeg: { departureDate: new Date('2027-07-18T23:00:00Z') },
+        outboundLeg: { ...leg, departureDate: new Date('2027-07-18T23:00:00Z') },
         returnLeg: leg,
       }),
     );
@@ -261,12 +265,26 @@ describe('safety', () => {
     expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards the operator email as plain text: its HTML is never passed on', async () => {
-    mocks.load.mockResolvedValue(email({ html: '<p onclick=x()>Hi <a href="https://evil.test">pay</a></p>', text: 'Hi Andy Buyer BK-2026-10-ABC234,' }));
+  it('sends our own text, never the operator markup, with the operator code and the PDF', async () => {
+    mocks.load.mockResolvedValue(email({
+      html: '<p onclick=x()>Hi <a href="https://evil.test">pay</a></p>',
+      text: 'Hi Andy Buyer BK-2026-10-ABC234,\nBooking Code\nBK-261024-K5DNVL',
+    }));
     await processOperatorTicketEmail(payload);
-    const body = mocks.send.mock.calls[0][0].bodyHtml as string;
-    expect(body).not.toMatch(/evil\.test|onclick/);
-    expect(body).toContain('Hi Andy Buyer BK-2026-10-ABC234');
+    const sent = mocks.send.mock.calls[0][0];
+    expect(sent.to).toBe('andy@example.com');
+    expect(sent.subject).toBe('Your E-Ticket & Booking Confirmation - BK-2026-10-ABC234');
+    expect(sent.html).not.toMatch(/evil\.test|onclick/);
+    expect(sent.text).toContain('Halo Andy Buyer, e-tiket fastboat Anda sudah terbit.');
+    expect(sent.text).toContain('Kode booking operator: BK-261024-K5DNVL');
+    expect(sent.text).toContain('Berangkat: Sanur → Nusa Penida, 22 Jul 2027 07:00 WITA');
+    expect(sent.attachments).toHaveLength(1);
+  });
+
+  it('writes English for a foreign contact', async () => {
+    mocks.bookingFindFirst.mockResolvedValue(booking({ customerNationality: 'Australia' }));
+    await processOperatorTicketEmail(payload);
+    expect(mocks.send.mock.calls[0][0].text).toContain('Hello Andy Buyer, your fast boat e-ticket has been issued.');
   });
 
   it('fails (retryable) when the mail server cannot send, and releases the claim', async () => {

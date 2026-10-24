@@ -60,7 +60,7 @@ Route-private components live in `_components/` beside the route that uses them 
 | `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
 | `payments/` | `doku`, `paypal`, `psp`, `webhook-processor` (what a callback does), `webhook-events` (WebhookEvent bookkeeping), `payment-mode`, `components/` |
 | `refunds/` | `refunds` (tier math), `refund-gateway` |
-| `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin`, `operator-ticket-email` (forward the operator's ticket email to the buyer), `operator-ticket-parse` |
+| `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin`, `operator-ticket-email` (forward the operator's ticket PDF to the buyer), `operator-ticket-parse`, `ticket-forward-copy` (the EN/ID text of that email) |
 | `schedules/` | `legs`, `connection-search`, `sales-channel`, `wahana-schedule` (generated), `home-data`, `components/` (search-form, days-picker) |
 | `operators/` | `data` (active-entity helpers), `erp-queries`, `documents`, `purge`, `components/templates/` (list/detail/form page templates) |
 | `ports/` | `port-info`, `geo`, `sea-conditions`, `weather-policy`, `destination-photos` |

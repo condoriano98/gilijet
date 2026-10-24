@@ -21,6 +21,12 @@ import {
  * payment that triggered it.
  */
 
+// The PIC creates the ticket in the operator's dashboard with these contact
+// details, so the operator's ticket email lands in our mailbox (Part B) and
+// the PIC never sees the buyer's own email or number.
+const GILIFAST_EMAIL = 'admin@gilifast.com';
+const GILIFAST_PHONE = '+62 813-3399-869';
+
 const CATEGORY_LABEL = { ADULT: 'Dewasa', CHILD: 'Anak', INFANT: 'Bayi' } as const;
 
 export type PicPassenger = { name: string; category: string };
@@ -33,8 +39,6 @@ type PicLeg = {
 export type PicOrder = {
   bookingReference: string;
   customerName: string;
-  customerEmail: string;
-  customerPhone: string;
   customerNationality: string | null;
   notes: string | null;
   tripType: 'ONE_WAY' | 'ROUND_TRIP';
@@ -72,7 +76,7 @@ function routeLabel(leg: PicLeg): string {
  * Params cannot contain newlines, so the passenger list is a single
  * `;`-joined value. Nationality is per booking (the form collects one),
  * repeated for each name; the form has no gender, so the list gives name,
- * category and nationality.
+ * category and nationality. Email and phone are always Gilifast's, never the buyer's.
  */
 export function formatPicOrderParams(order: PicOrder): Record<string, string> | null {
   const main = getMainLeg(order);
@@ -89,8 +93,8 @@ export function formatPicOrderParams(order: PicOrder): Record<string, string> | 
       ? `${formatLocalDateTime(main.departureDate)} WITA; pulang ${routeLabel(ret)}, ${formatLocalDateTime(ret.departureDate)} WITA`
       : `${formatLocalDateTime(main.departureDate)} WITA`,
     customer_name: order.customerName.trim() || '-',
-    customer_email: order.customerEmail.trim() || '-',
-    customer_phone: order.customerPhone.trim() || '-',
+    customer_email: GILIFAST_EMAIL,
+    customer_phone: GILIFAST_PHONE,
     passenger_count: String(passengers.length),
     passengers:
       passengers
@@ -141,8 +145,6 @@ export async function notifyOperatorPicsOrderPaid(bookingId: string): Promise<vo
         operatorId: true,
         bookingReference: true,
         customerName: true,
-        customerEmail: true,
-        customerPhone: true,
         customerNationality: true,
         notes: true,
         tripType: true,

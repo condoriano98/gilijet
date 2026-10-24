@@ -12,6 +12,13 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-24
+
+### Changed
+
+- The operator's ticket email is no longer passed on as it came. The buyer now gets an email written by Gilifast with the operator's PDF attached: subject `Your E-Ticket & Booking Confirmation - <Gilifast booking code>`, then operator, Gilifast code, the operator's own code (read from its email, `-` if absent), departure, arrival (departure plus the schedule's duration, WITA) and passengers. A round trip repeats the block under "Departure 1" / "Departure 2" ("Keberangkatan 1" / "Keberangkatan 2"). The text is Indonesian when the booking's contact nationality is Indonesia and English for every other nationality (or none). Design: `docs/spikes/FEATURE_ETICKET_FORWARD_TEMPLATE.md`.
+- The PIC "order paid" WhatsApp (`order_masuk_operator`) now carries Gilifast's email (`admin@gilifast.com`) and phone (`+62 813-3399-869`) in the email and phone variables instead of the buyer's, so the PIC creates the operator ticket with our contact details and the buyer's details are not shared. The template and its nine variables are unchanged (the 1.7.0 entry above still lists the buyer's email and phone; that is outdated).
+
 ## [1.8.0] - 2026-10-22
 
 ### Added

@@ -2,15 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
-  cleanSubject,
   extractBookingCode,
   extractDepartures,
   extractGreetingName,
+  extractOperatorBookingCode,
   htmlToText,
   normalizeName,
   senderAddress,
-  stripForwardBlock,
-  textToHtml,
 } from '@/features/tickets/operator-ticket-parse';
 
 describe('extractBookingCode', () => {
@@ -93,32 +91,12 @@ describe('extractDepartures', () => {
   });
 });
 
-describe('subject and forward block', () => {
-  it('removes Fwd:/FW: once or repeatedly', () => {
-    expect(cleanSubject('Fwd: E-Ticket Wahana')).toBe('E-Ticket Wahana');
-    expect(cleanSubject('FW: Fwd: E-Ticket')).toBe('E-Ticket');
-    expect(cleanSubject('E-Ticket')).toBe('E-Ticket');
-  });
-
-  it('strips the forwarded-message header block', () => {
-    const text = [
-      '---------- Forwarded message ---------',
-      'From: Wahana <no-reply@virendrafastferry.com>',
-      'Date: Mon, 1 Jan 2027',
-      'Subject: E-Ticket',
-      'To: admin@gilifast.com',
-      '',
-      'Hi Andy,',
-    ].join('\n');
-    expect(stripForwardBlock(text)).toBe('Hi Andy,');
-  });
-
-  it('also handles the "------ Forwarded Message ------" form', () => {
-    expect(stripForwardBlock('------ Forwarded Message ------\nFrom: a@b.co\n\nHello')).toBe('Hello');
-  });
-
-  it('leaves a plain email alone', () => {
-    expect(stripForwardBlock('Hi Andy,')).toBe('Hi Andy,');
+describe('extractOperatorBookingCode', () => {
+  it("reads the operator's own code and ignores ours", () => {
+    expect(extractOperatorBookingCode('Booking Code\nBK-261024-K5DNVL\n→ Departure')).toBe('BK-261024-K5DNVL');
+    expect(extractOperatorBookingCode('bk-261024-k5dnvl')).toBe('BK-261024-K5DNVL');
+    expect(extractOperatorBookingCode('Hi Andy BK-2026-10-ABC234,')).toBeNull();
+    expect(extractOperatorBookingCode('no code here')).toBeNull();
   });
 });
 
@@ -153,19 +131,9 @@ describe('real Wahana email (fixture from an .eml of 2026-10-18)', () => {
   });
 });
 
-describe('the forwarded body is plain text', () => {
-  it('htmlToText + textToHtml leaves no markup from the real Wahana email, only escaped text', () => {
+describe('the real Wahana email', () => {
+  it("carries the operator's code", () => {
     const html = readFileSync(join(__dirname, '../../fixtures/wahana-ticket.html'), 'utf-8');
-    const out = textToHtml(htmlToText(html));
-    expect(out).toContain('BK-261018-TTODAW');
-    expect(out).toContain('Padang Bai');
-    expect(out.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')).not.toMatch(/<(?!\/?div)/);
-  });
-
-  it('turns hostile markup into inert text, including tag-reassembly tricks', () => {
-    const out = textToHtml(htmlToText('<<a>a href="https://evil.test">pay</a><p/onclick=x()>hi'));
-    // The only markup left is our own wrapper; whatever the sender wrote is escaped text.
-    expect(out.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, '')).not.toContain('<');
-    expect(out).toContain('&gt;');
+    expect(extractOperatorBookingCode(htmlToText(html))).toBe('BK-261018-TTODAW');
   });
 });

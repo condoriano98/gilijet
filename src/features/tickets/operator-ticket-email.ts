@@ -9,16 +9,15 @@ import {
   type ProcessResult,
 } from '@/features/payments/webhook-events';
 import {
-  cleanSubject,
   extractBookingCode,
   extractDepartures,
   extractGreetingName,
+  extractOperatorBookingCode,
   htmlToText,
   normalizeName,
   senderAddress,
-  stripForwardBlock,
-  textToHtml,
 } from '@/features/tickets/operator-ticket-parse';
+import { renderTicketForward } from '@/features/tickets/ticket-forward-copy';
 
 /**
  * Forward the operator's e-ticket email to the customer who bought the booking.
@@ -47,12 +46,19 @@ const PAID = ['AWAITING_CONFIRMATION', 'CONFIRMED'] as const;
 // better than a ticket that never arrives).
 const CLAIM_STALE_MS = 10 * 60 * 1000;
 
-const legSelect = { select: { departureDate: true } } as const;
+const legSelect = {
+  select: {
+    departureDate: true,
+    schedule: { select: { originPort: true, destinationPort: true, durationMinutes: true } },
+  },
+} as const;
 const bookingSelect = {
   id: true,
   bookingReference: true,
   customerName: true,
   customerEmail: true,
+  customerNationality: true,
+  operator: { select: { companyName: true } },
   notes: true,
   tripType: true,
   operatorId: true,
@@ -192,9 +198,20 @@ export async function processOperatorTicketEmail(
   const matchedLeg =
     legs.find((l) => departures.some((d) => d.getTime() === l.at.getTime()))?.label ?? null;
 
-  // Plain text only: the operator's HTML is attacker-reachable markup that would
-  // be sent under our name, and the ticket itself is the attached PDF.
-  const bodyHtml = textToHtml(stripForwardBlock(text));
+  // Our own text, never the operator's: its HTML is attacker-reachable markup
+  // that would be sent under our name. The operator's email only supplies the
+  // PDF and its own booking code.
+  const forward = renderTicketForward({
+    customerName: booking.customerName,
+    customerNationality: booking.customerNationality,
+    bookingReference: booking.bookingReference,
+    operatorName: booking.operator.companyName,
+    operatorBookingCode: extractOperatorBookingCode(text),
+    legs: [booking.leg, booking.outboundLeg, booking.returnLeg].filter(
+      (l): l is NonNullable<typeof l> => Boolean(l),
+    ),
+    passengerNames: parsePicPassengers(booking.notes).map((p) => p.name),
+  });
 
   // Claim before sending, and let a failed write stop the send: audit() swallows
   // errors, so relying on it would leave no record and let a retry send twice.
@@ -227,9 +244,9 @@ export async function processOperatorTicketEmail(
   try {
     ({ delivered, error: sendError } = await sendOperatorTicketForward({
       to: booking.customerEmail,
-      subject: cleanSubject(email.subject),
-      bodyHtml,
-      bookingReference: booking.bookingReference,
+      subject: forward.subject,
+      html: forward.html,
+      text: forward.text,
       attachments: email.attachments,
     }));
   } catch (err) {

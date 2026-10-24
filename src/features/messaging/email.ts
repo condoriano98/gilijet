@@ -453,24 +453,20 @@ export async function sendRefundProcessedEmail(
 // ─── Operator e-ticket forward ────────────────────────────────────────────────
 
 /**
- * The operator's own ticket email (with its PDF), forwarded to the buyer with
- * our booking code added. Subject: the original with "Fwd:" removed plus
- * `_<bookingReference>`.
+ * The operator's ticket PDF, sent to the buyer under our own text
+ * (`renderTicketForward`).
  */
 export async function sendOperatorTicketForward(args: {
   to: string;
   subject: string;
-  bodyHtml: string;
-  bookingReference: string;
+  html: string;
+  text: string;
   attachments: EmailAttachment[];
 }): Promise<MailResult> {
-  const subject = `${args.subject}_${args.bookingReference}`;
-  const html = `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;margin-bottom:16px;"><strong>Gilifast Booking code : ${escapeHtml(args.bookingReference)}</strong></div>${args.bodyHtml}`;
-
   if (!mailConfigured()) {
     console.log(
       `\n[email] (no SMTP) → would forward operator ticket to ${args.to}\n` +
-        `        subject: ${subject}\n` +
+        `        subject: ${args.subject}\n` +
         `        attach : ${args.attachments.map((a) => a.filename).join(', ') || '(none)'}\n`,
     );
     return { delivered: false, provider: 'console' };
@@ -478,8 +474,9 @@ export async function sendOperatorTicketForward(args: {
 
   return sendMail({
     to: args.to,
-    subject,
-    html,
+    subject: args.subject,
+    html: args.html,
+    text: args.text,
     replyTo: 'admin@gilifast.com',
     attachments: args.attachments,
   });
