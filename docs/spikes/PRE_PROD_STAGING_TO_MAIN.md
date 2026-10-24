@@ -16,11 +16,13 @@ Production today is the pre-versioning `main`: no migrations table, no season ca
 | Admin trip-type filter, round-trip fare breakdown (v1.2.0) | Admin bookings filter | CHANGELOG | none |
 | Admin webhook log, DOKU/PayPal retry fix, paid-booking label (v1.3.0, v1.3.1) | `/admin/webhooks`; `retry-webhooks` now really records the payment | `BUG_PAYMENT_STATUS_WEBHOOK.md`, `BUG_DOKU_PAYMENT_CONFIRMATION.md` | Look at old `FAILED`/`PENDING` webhook rows first (section 4); `BUG_DOKU...` still says production verification and its open questions are unanswered |
 | Cron secret now effective | `/api/cron/*` start running on the first deploy (`CRON_SECRET` is set in prod) | `RELEASING.md` | Check cron logs the next morning |
-| E-ticket Part A: PIC WhatsApp on payment (v1.4.0, 1.7.x) | Operator PICs get the `order_masuk_operator` template when a booking is paid | `FEATURE_ETICKET_PIC_NOTIFICATION.md` | Meta env vars, approved template, published Meta app, `62` phone fix (section 3) |
+| E-ticket Part A: PIC WhatsApp on payment (v1.4.0, 1.7.x) | Operator PICs get the `order_masuk_operator` template when a booking is paid | `FEATURE_ETICKET_PIC_NOTIFICATION.md` | Meta env vars, approved template, published Meta app, `62` phone fix (section 3). v1.9.0 and v1.10.1: the message carries Gilifast's email and phone and prints `<name> <booking code>` on the contact line |
 | WhatsApp moved from WATI to Meta Cloud API (v1.7.0) | All WhatsApp goes through Meta; WATI env vars are dead | same | **Customer-facing messages (payment received, boarding pass, cancellation) are session messages and probably will not be delivered in production** (open item, section 5) |
-| E-ticket Part B: operator ticket email forwarded to customer (v1.4.0 to v1.6.0) | IMAP poll of the operator mailbox, forward to the buyer, "Check mailbox now" button | same | IMAP/SMTP env vars; not live-tested yet (section 5) |
+| E-ticket Part B: operator ticket email forwarded to customer (v1.4.0 to v1.6.0) | IMAP poll of the operator mailbox, forward to the buyer, "Check mailbox now" button | same | IMAP/SMTP env vars; live-tested on staging with a real Wahana email on 2026-10-24 (old format); v1.9.0 sends our own EN/ID text, not yet run live (section 5) |
 | WhatsApp webhook (v1.8.0) | `/api/webhooks/whatsapp` delivery status in `/admin/webhooks` | same | Callback URL for the production domain in Meta; `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` |
 | Fixes 1.7.1, 1.7.2 | Notifications kept alive with `after()`; Passengers column counts from the booking | CHANGELOG | none |
+| Gilifast-written e-ticket email, EN/ID (v1.9.0) | The buyer gets our own text with the operator's PDF; language by the booking's nationality; subject `Your E-Ticket & Booking Confirmation - <code>` | `FEATURE_ETICKET_FORWARD_TEMPLATE.md` | Live run with a real Wahana email still to do |
+| Check-in guide blog article (v1.10.0) | `/blog/wahana-virendra-checkin-guide`, linked from the e-ticket email | `FEATURE_BLOG_CHECKIN_GUIDE.md` | The email link points at the production domain: it is a dead link until this merge ships |
 
 Not yet on staging either, so not in this merge unless done first: `FEATURE_SECURITY_CHECKS_CI.md` (planned, after the PIC task).
 
@@ -46,22 +48,32 @@ Check each; the staging values do not carry over. Values are never written here.
 
 - DOKU Back Office (brand gilifast.com) QRIS Notify URL: back to `https://www.gilifast.com/api/webhooks/doku`. Until then production QRIS payments are not reported to production. **Must be done before the merge, not after.**
 - Delete/regenerate the Vercel Protection Bypass secret; update the Meta callback URL that carries it.
-- Staging DB: restore the real Wahana PIC number (tester number is in two rows).
+- Staging DB: the PIC table already matches production (2026-10-24: two Wahana rows and the platform row, test rows removed). Still temporary on staging: `INBOX_POLL_LIVE=true` (Vercel `staging`), and the hand-added Rp 2 Wahana-boat schedules (Padang Bai → Senggigi 07:00 and Senggigi → Padang Bai 13:00; they live only in the staging database).
 - Rotate secrets that were pasted in chat: WhatsApp token, app secret, verify token, bypass secret, Gmail app password.
 - Look at old `FAILED`/`PENDING` webhook rows in production before the first `retry-webhooks` run.
 
 ## 5. Open product issues that decide what we say "yes" to
 
 - Customer WhatsApp (payment received, boarding pass, cancellation) needs approved UTILITY templates; today those are session messages, likely undelivered outside the 24h window. Decide: ship with email only for customers, or write the templates first. Also subscribe the `messages` field and confirm the theory.
-- Part B has never run live against a real Wahana email. Unknown: where the booking code appears in Wahana's email (the matcher reads the greeting).
+- Part B ran live on staging against a real Wahana email on 2026-10-24 (old format): the code in the greeting matched and the PDF was forwarded. The v1.9.0 format (our own EN/ID text) has not run live yet; the guide link in it works only after this merge.
 - Business questions: two tickets for the customer (operator PDF and our boarding pass); should the operator's ticket email itself confirm the seat; who confirms; the "first PIC wins" idea.
 - E2E not yet run for `admin-bookings-filter.spec.ts` (Passengers) and `whatsapp-webhook.spec.ts` (they write to the staging DB, need a go).
 - Spike docs to mark "deployed vX.Y.Z" and move to `docs/spikes/done/` after the release (`RELEASING.md` step 6): all rows of section 1.
 
+## 5b. Making Part B (operator ticket email) actually run in production
+
+Merging alone does **not** start it. Three things are closed on purpose (decided 2026-10-24, nothing changed in code yet):
+
+1. **No schedule.** `vercel.json` has only `retry-webhooks`, `topup-legs` and `refresh-fx`. Add `{ "path": "/api/cron/poll-operator-inbox", "schedule": "*/5 * * * *" }` (a code change, commit it before or after the merge; the team is on Pro so 5 minutes is allowed; Vercel only runs crons on production, so staging is unaffected). Env vars cannot start it.
+2. **`INBOX_POLL_LIVE` is not `true`**, so any poll is a dry run (reads and reports, forwards nothing). Production already has `INBOX_IMAP_*`, `SMTP_*`, `EMAIL_FROM`, `CRON_SECRET`; it has neither `INBOX_POLL_SINCE` nor `INBOX_POLL_LIVE`.
+3. **Sender match.** Only a sender equal to a PIC row's `emailKonfirmasiTrigger` is processed (Wahana row 1: `no-reply@virendrafastferry.com`; Wahana row 2 has none).
+
+Order: merge with it in dry run → set `INBOX_POLL_SINCE` to the day of the release (without it the first poll looks back up to 7 days) → "Check mailbox now" at `/admin/eticket-delivery`, read the dry-run result with a real Wahana email → set `INBOX_POLL_LIVE=true` and redeploy → then the cron entry, if it was not added with the merge. Still unproven: where the booking code appears in Wahana's real email; if absent, the match falls back to name plus departure time, and otherwise the admin picks the booking at `/admin/webhooks`. Not checked: whether a dry run marks mail as read in the mailbox.
+
 ## 6. Release order (draft)
 
 1. Section 4 reverts and section 3 env vars ready.
-2. Staging `/admin/diagnostics` shows the intended version and commit (v1.8.0 plus whatever lands before).
+2. Staging `/admin/diagnostics` shows the intended version and commit (v1.10.1 plus whatever lands before; tags v1.9.0, v1.10.0 and v1.10.1 exist locally, push them with the release).
 3. Production backup, baseline (`migrate resolve --applied 0_init`), schema diff clean.
 4. PR `staging` → `main`; read the migration SQL; the two separate warnings and go-aheads (`CLAUDE.md` rule 9) before any merge.
 5. Check the build log for `[db-migrate] OK`; `pnpm db:status`; `pnpm seed:seasons`; PIC phone fix.

@@ -12,6 +12,10 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Changed
+
+- Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
+
 ## [1.10.1] - 2026-10-24
 
 ### Changed

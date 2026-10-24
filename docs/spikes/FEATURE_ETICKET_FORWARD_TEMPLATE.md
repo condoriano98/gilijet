@@ -1,6 +1,6 @@
 # E-ticket forward: Gilifast-written email (EN / ID)
 
-**Status (2026-10-24):** implemented in v1.9.0 (committed locally, not pushed). Live run of the new format still to do (see QC).
+**Status (2026-10-24):** implemented in v1.9.0 (tag `v1.9.0`) and pushed to `staging`; the guide link came with v1.10.0. Live run of the new format still to do (see QC).
 **Part of:** e-ticket Part B (`FEATURE_ETICKET_PIC_NOTIFICATION.md`).
 
 ## Problem

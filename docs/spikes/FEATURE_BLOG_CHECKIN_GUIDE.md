@@ -1,6 +1,6 @@
 # Blog: Wahana Virendra check-in guide
 
-**Status (2026-10-24):** implemented in v1.10.0, not committed yet.
+**Status (2026-10-24):** implemented in v1.10.0 (tag `v1.10.0`), pushed to `staging`.
 **Source:** the user's standalone page `wahana-virendra-checkin-guide.html` (outside the repo).
 
 ## What was built
