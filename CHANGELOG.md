@@ -12,6 +12,12 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-24
+
+### Added
+
+- Blog article "Where to check in for Wahana Virendra fast boats: a harbour-by-harbour guide" at `/blog/wahana-virendra-checkin-guide`: where the counter is at Sanur, Nusa Penida (Banjar Nyuh), Padang Bai, Gili Trawangan, Gili Air, Senggigi and Bangsal, with a landmark, a Maps link and the harbour tax at each, plus a short pre-boarding checklist. English only. The e-ticket email's "check-in guideline" line now ends with this link, in both languages. Design and QC: `docs/spikes/FEATURE_BLOG_CHECKIN_GUIDE.md`.
+
 ## [1.9.0] - 2026-10-24
 
 ### Changed
@@ -203,7 +209,9 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/condoriano98/gilijet/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/condoriano98/gilijet/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/condoriano98/gilijet/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/condoriano98/gilijet/compare/v1.7.0...v1.7.1

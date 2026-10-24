@@ -63,7 +63,7 @@ Need help? Contact Gilifast Customer Service on WhatsApp/Telegram at +6281333998
 
 1. **Round trip:** repeat the block (Operator, Gilifast code, Operator code, Departure, Arrival, Passengers) once per leg, each under a heading: "Departure 1" / "Departure 2" (ID: "Keberangkatan 1" / "Keberangkatan 2"). A one-way booking has a single block and no heading.
 2. **Operator code missing:** show `-`.
-3. **Check-in guideline:** a static page will be built later; until then the template text has no link. Adding the link is a follow-up.
+3. **Check-in guideline:** a static page will be built later; until then the template text has no link. **Done 2026-10-24:** the guide is the blog article `/blog/wahana-virendra-checkin-guide` (`FEATURE_BLOG_CHECKIN_GUIDE.md`); its URL (`CHECKIN_GUIDE_URL` in `ticket-forward-copy.ts`) is at the end of the "check-in guideline" line in both languages, a clickable link in the HTML. The URL is Wahana-specific and hardcoded to the production domain.
 4. **Subject:** `Your E-Ticket & Booking Confirmation - <Gilifast booking code>`. Assumed to be the same for Indonesian and English (the user gave one subject); the operator's subject and the `_<code>` suffix are dropped.
 5. **Body:** simple HTML plus a text alternative, no operator markup.
 
@@ -91,4 +91,4 @@ Need help? Contact Gilifast Customer Service on WhatsApp/Telegram at +6281333998
 - **E2E (staging database `asymnwikxyhipoezoggp`, owner's go):** `eticket-operator-email.spec.ts` and `eticket-pic.spec.ts`, 8 of 8 pass, with the DOKU, PayPal, WhatsApp, SMTP and IMAP keys blanked (nothing was sent) and a throwaway `CRON_SECRET` (the one in `.env.local` is empty, so the operator-email spec skipped itself without it). The forward there is only logged, so the specs prove the new booking select and the forward path work against the real schema, not the wording (that is the unit test). Not run: the rest of the golden-path suite.
 - **Dev server (`pnpm dev`, 2026-10-24):** started with the real IMAP and SMTP settings, WhatsApp blanked, dry run, `INBOX_POLL_SINCE=2026-10-24`. `GET /api/cron/poll-operator-inbox` answered `ok, configured: true, dryRun: true, candidates 0`: the mailbox is reachable and nothing new was waiting. A live forward with the new body still needs a new Wahana ticket email; not done yet.
 - **Not run:** how the mail looks in Gmail/Outlook (user checks by hand); real SMTP delivery of the HTML + text parts.
-- **Not covered:** the guideline link (the static page does not exist yet); the operator code is only read in Wahana's format (`BK-` + six digits + code), other operators show `-`.
+- **Not covered:** the operator code is only read in Wahana's format (`BK-` + six digits + code), other operators show `-`.

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  CHECKIN_GUIDE_URL,
   forwardLanguage,
   renderTicketForward,
   ticketForwardSubject,
@@ -51,7 +52,7 @@ describe('renderTicketForward', () => {
         'Tiba: 22 Jul 2027 08:30 WITA',
         'Penumpang: Andy Buyer, Sita Friend',
         '',
-        'Mohon baca panduan check-in sebelum hari keberangkatan.',
+        'Mohon baca panduan check-in sebelum hari keberangkatan: https://www.gilifast.com/blog/wahana-virendra-checkin-guide',
         'Butuh bantuan? Hubungi Customer Service Gilifast di WhatsApp/Telegram +628133399869.',
       ].join('\n'),
     );
@@ -67,6 +68,14 @@ describe('renderTicketForward', () => {
     expect(text).toContain('Passengers: Andy Buyer, Sita Friend');
     expect(text).toContain('Need help? Contact Gilifast Customer Service on WhatsApp/Telegram at +628133399869.');
     expect(text).not.toContain('Halo');
+  });
+
+  it('links the check-in guide in both languages, as a clickable link in the HTML', () => {
+    for (const nationality of ['Indonesia', 'Australia']) {
+      const { text, html } = renderTicketForward({ ...BASE, customerNationality: nationality });
+      expect(text).toContain(`departure date: ${CHECKIN_GUIDE_URL}`.replace('departure date', nationality === 'Indonesia' ? 'hari keberangkatan' : 'departure date'));
+      expect(html).toContain(`<a href="${CHECKIN_GUIDE_URL}">${CHECKIN_GUIDE_URL}</a>`);
+    }
   });
 
   it('has no heading for a one-way booking', () => {

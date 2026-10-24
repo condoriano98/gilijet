@@ -20,8 +20,9 @@ export type Post = {
 import * as choosingFastBoat from './posts/choosing-fast-boat-bali-gili';
 import * as bestSeason from './posts/best-season-cross-lombok';
 import * as seasicknessTips from './posts/seasickness-on-the-crossing';
+import * as wahanaCheckinGuide from './posts/wahana-virendra-checkin-guide';
 
-const MODULES = [choosingFastBoat, bestSeason, seasicknessTips] as const;
+const MODULES = [choosingFastBoat, bestSeason, seasicknessTips, wahanaCheckinGuide] as const;
 
 export const POSTS: Post[] = MODULES.map((m) => ({
   meta: m.meta,

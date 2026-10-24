@@ -9,6 +9,10 @@ import { escapeHtml } from '@/features/tickets/operator-ticket-parse';
  * everyone else (and for an empty nationality).
  */
 
+// The Wahana Virendra check-in guide (blog). Operator-specific: every operator
+// that sends tickets today is Wahana; add a per-operator guide when that changes.
+export const CHECKIN_GUIDE_URL = 'https://www.gilifast.com/blog/wahana-virendra-checkin-guide';
+
 export type ForwardLanguage = 'id' | 'en';
 
 export type ForwardLeg = {
@@ -40,7 +44,7 @@ const COPY = {
     passengers: 'Penumpang',
     heading: (n: number) => `Keberangkatan ${n}`,
     outro: [
-      'Mohon baca panduan check-in sebelum hari keberangkatan.',
+      `Mohon baca panduan check-in sebelum hari keberangkatan: ${CHECKIN_GUIDE_URL}`,
       'Butuh bantuan? Hubungi Customer Service Gilifast di WhatsApp/Telegram +628133399869.',
     ],
   },
@@ -55,7 +59,7 @@ const COPY = {
     passengers: 'Passengers',
     heading: (n: number) => `Departure ${n}`,
     outro: [
-      'Please read the check-in guideline before your departure date.',
+      `Please read the check-in guideline before your departure date: ${CHECKIN_GUIDE_URL}`,
       'Need help? Contact Gilifast Customer Service on WhatsApp/Telegram at +628133399869.',
     ],
   },
@@ -116,7 +120,10 @@ export function renderTicketForward(input: TicketForwardInput): { subject: strin
       if (l.kind === 'blank') return '<div style="height:12px;"></div>';
       if (l.kind === 'heading') return `<div style="font-weight:600;">${escapeHtml(l.value)}</div>`;
       if (l.kind === 'field') return `<div>${escapeHtml(l.label ?? '')}: <strong>${escapeHtml(l.value)}</strong></div>`;
-      return `<div>${escapeHtml(l.value)}</div>`;
+      return `<div>${escapeHtml(l.value).replace(
+        escapeHtml(CHECKIN_GUIDE_URL),
+        `<a href="${CHECKIN_GUIDE_URL}">${CHECKIN_GUIDE_URL}</a>`,
+      )}</div>`;
     })
     .join('');
   const html = `<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;line-height:1.5;">${body}</div>`;
