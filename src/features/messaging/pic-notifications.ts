@@ -92,7 +92,9 @@ export function formatPicOrderParams(order: PicOrder): Record<string, string> | 
     departure: ret
       ? `${formatLocalDateTime(main.departureDate)} WITA; pulang ${routeLabel(ret)}, ${formatLocalDateTime(ret.departureDate)} WITA`
       : `${formatLocalDateTime(main.departureDate)} WITA`,
-    customer_name: order.customerName.trim() || '-',
+    // The PIC copies this line into the operator's dashboard, so the greeting of the
+    // operator's ticket email carries our code (Part B matches on it).
+    customer_name: `${order.customerName.trim() || '-'} ${order.bookingReference}`,
     customer_email: GILIFAST_EMAIL,
     customer_phone: GILIFAST_PHONE,
     passenger_count: String(passengers.length),

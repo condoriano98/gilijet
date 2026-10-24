@@ -100,7 +100,7 @@ describe('formatPicOrderParams', () => {
     expect(p.departure).toContain('07:00');
     expect(p.departure).toContain('04 Sep 2026');
     expect(p.departure.endsWith('WITA')).toBe(true);
-    expect(p.customer_name).toBe('Andy');
+    expect(p.customer_name).toBe('Andy BK-2026-09-ABC234');
     expect(p.customer_email).toBe('admin@gilifast.com');
     expect(p.customer_phone).toBe('+62 813-3399-869');
     expect(p.passenger_count).toBe('4');

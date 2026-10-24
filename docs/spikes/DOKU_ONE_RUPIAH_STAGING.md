@@ -87,3 +87,7 @@ So the deployed staging site most likely runs the mock checkout. Not proven: whe
 | `seed:one-rupiah` on staging DB | Ran twice with the project ref; read back: 2 schedules (07:00 out, 12:00 back), 59 legs each, price 1, no fare matrix, ports linked, the 4 Wahana rows unchanged |
 | Vercel variable names and scopes | DOKU keys not assigned to `staging` (Blocker); effect on the deployed site inferred, not observed |
 | Deployed site search/booking, DOKU page, payment | **Not run** (blocked) |
+
+## Status note 2026-10-24: Rp 2 legs on the Wahana boat (staging only, by hand)
+
+Outside `pnpm seed:one-rupiah`, two Rp 2 schedules were added by hand on staging (project `asymnwikxyhipoezoggp`) on Cantika 09 (PT WAHANA VIRENDRA GROUP), `fareMatrix` null, every day, ports linked: Padang Bai → Senggigi 07:00 (165 min, id ends `4fkf0q`, legs 2026-10-24 to 2027-12-30) and, for a round trip on 1 Jan 2027, Senggigi → Padang Bai **13:00** (165 min, id `cmvmiqcyk0001q88qdkw2mxr1`, 365 legs, 2027-01-01 to 2027-12-31, via `generateLegsForSchedule`). They are real Wahana-boat rows, so the operator's manifests and reports see these sales; the real Wahana schedules were not touched. The nightly top-up does not run on staging (Vercel Cron is production-only): extend the window by hand if needed. Remove both before the production merge matters (they live only in the staging database).

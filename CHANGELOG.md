@@ -12,6 +12,12 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-10-24
+
+### Changed
+
+- The PIC "order paid" WhatsApp now prints the buyer's name followed by the Gilifast booking code on the contact line ("Nama: Rafath Test BK-2026-10-ABC234"), so the PIC types both into the operator's dashboard and the operator's ticket email greets "Hi <name> <code>", which is what the e-ticket forward matches on. The template and its nine variables are unchanged.
+
 ## [1.10.0] - 2026-10-24
 
 ### Added
@@ -209,7 +215,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/condoriano98/gilijet/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/condoriano98/gilijet/compare/v1.7.2...v1.8.0
