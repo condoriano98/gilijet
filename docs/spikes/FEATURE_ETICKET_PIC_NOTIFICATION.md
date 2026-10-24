@@ -54,6 +54,32 @@ In the WABA dashboard (Meta app "Gilifast Booking" → WhatsApp → Configuratio
 
 Also noted 2026-10-22: the Meta app is still in development (unpublished) mode ("Apps will only be able to receive test webhooks … while the app is unpublished"), so messages reach only numbers registered as test recipients. Publish the app before the real Wahana PICs are meant to receive messages.
 
+### Open issue 2026-10-22: customer-facing WhatsApp (payment received, boarding pass) does not reach the customer
+
+Staging, booking `BK-2026-10-UFHYDF`, confirmed at `/admin/confirmations` on 2026-10-22: the boarding pass email arrived (Gmail), the WhatsApp did not. The server logged no send failure. Likely cause (not yet proven by a delivery status): payment-received, boarding-pass and cancellation WhatsApp messages are plain **session messages**, which WhatsApp delivers only inside 24 hours of the customer writing to the business number; Meta accepts the request and then fails it asynchronously, so the app cannot see it. Only the PIC message works, because it is an approved utility template. In production almost no customer will have written first, so these messages would mostly not be delivered. Test to prove it: write from the customer's number to the business number (`+62 813-5777-701`), then confirm another paid booking and check that the pass arrives; and subscribe the `messages` field in the Meta webhook so a `failed` status (131047) shows in `/admin/webhooks`. Proper fix (needs a business decision): approved UTILITY templates for payment received and for the boarding pass (document header), sent through `sendTemplateMessage`; templates are positional, so parameter order matters. Also open for the business: the customer can receive both the operator's ticket PDF (forwarded by Part B) and our boarding pass after confirmation; which one is the ticket at boarding, and whether the operator's ticket email should itself count as the seat confirmation.
+
+Verified the same day: outbound email over SMTP from Vercel works (payment-received and boarding-pass emails arrived), and the staging `APP_BASE_URL` still points to the production domain (links in emails go to gilibali.com); not yet changed.
+
+### Checkpoint 2026-10-22 (end of day): what is done, what is temporary, what is next
+
+**Done and verified on staging today:** the PIC "order paid" WhatsApp reaches the tester's phone (Meta Cloud API, template `order_masuk_operator`, v1.7.0; needed v1.7.1: `after()` so the function is not frozen before the notifications finish); payment by QRIS reaches staging through a DOKU webhook (event `PROCESSED`, booking `AWAITING_CONFIRMATION`); the Passengers column fix (v1.7.2); the WhatsApp webhook route (v1.8.0, Meta verified the callback URL); outbound email over SMTP from Vercel works (payment-received and boarding-pass emails arrived).
+
+**Temporary test setup that must be undone** (none of it is in code):
+- DOKU Back Office, brand `gilifast.com`, QRIS Notify URL: changed to `https://gilijet.vercel.app/api/webhooks/doku?x-vercel-protection-bypass=<secret>`. **Restore `https://www.gilifast.com/api/webhooks/doku`**; until then QRIS payments made on production are not reported to production.
+- Vercel project `gilifast` → Deployment Protection → Protection Bypass for Automation ("For Payment Testing"): delete or regenerate when the tests are over; the secret is in the DOKU and Meta callback URLs and was pasted in chat.
+- Meta webhook callback URL carries the same bypass secret.
+- Staging database: one `OperatorPicContact` platform row (`operatorId` null) and the Wahana row both hold the tester's number (`6285246052359`); the real Wahana PIC number is no longer on staging. Restore from `trigger_tiket.csv` (via `scripts/seed-pic-contacts.ts` logic) before any test that should reach the real PIC.
+- Secrets pasted in chat to rotate before go-live: WhatsApp access token, app secret, verify token (weak), the Vercel bypass secret, the Gmail app password (earlier).
+
+**Open, in the order they should be taken:**
+1. Staging `APP_BASE_URL` points to the production domain (links in emails go to gilibali.com): give `staging` its own entry (`https://gilijet.vercel.app`); the current entry is shared with production.
+2. Part B live test with a real Wahana email: needs a paid Wahana-operator booking on staging (a test booking inserted in the staging DB is proposed, not a real DOKU payment), `INBOX_POLL_LIVE=true` on staging, then "Check mailbox now" (dry run first). Still unknown: where the booking code appears in Wahana's email (the PIC template says "kolom catatan tiket", the matcher reads the greeting).
+3. Customer-facing WhatsApp needs approved templates (see the open issue above); subscribe the `messages` webhook field in Meta.
+4. Publish the Meta app (it is unpublished, so only registered test numbers receive messages) before the real Wahana PICs are meant to receive them.
+5. Production: PIC phone fix (`62` prefix), the production database baseline, then the `staging` → `main` release with the two warnings (`docs/RELEASING.md`, `CLAUDE.md` rule 9).
+6. Questions for the business: two tickets for the customer (operator PDF plus our boarding pass), whether the operator's ticket email should itself confirm the seat, who confirms (admin phone call vs PIC WhatsApp reply), the "first PIC to answer wins" idea.
+7. E2E not run today (they write to the staging DB and need confirmation): `admin-bookings-filter.spec.ts` (new Passengers test) and `whatsapp-webhook.spec.ts`.
+
 ## Ticket (translated)
 
 E-tickets are generated automatically (PDF / web page) with name, route, schedule, booking number and a check-in QR code. Flow:
