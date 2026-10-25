@@ -12,6 +12,23 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-10-25
+
+### Changed
+
+- **Every coupon works on the fares of the passengers who need a seat** (adults and children), per leg. **Nett** is the price each of those passengers pays, replacing their listed fare (a seat already cheaper than the nett price is left alone). **Percent** takes that % off those fares and **Flat** takes that many IDR off them, never more than they cost. An infant on a parent's lap needs no seat and is never discounted. The child fare is the one set for the departure (its fare matrix, or the Pricing console multiplier), not a fixed half. A round trip counts the seats of both legs.
+- **Max total uses is the only cap on a coupon, and it is required.** "Budget cap" and "Per-customer limit" are gone from the coupon form, the coupon list, the coupon page and the review MCP `list_coupons`, and nothing reads them any more. A coupon that was bounded only by a budget cap or a discount cap needs a quota the next time it is edited. The columns stay in the database so old coupons keep their history.
+- **First booking only recognises a buyer by email or phone number.** It turns away an account, email or phone that already has a live booking, or already redeemed the code. The phone is compared as digits (`+62 812…` and `+620812…` are the same line). Other people using up part of the quota never blocks a buyer who has not booked; only the quota itself does. Migration `3_coupon_redemption_phone` adds the phone to each redemption and fills it in for the existing ones.
+- The homepage banner shows only a coupon the owner created that anyone could use right now: active, not archived, started, not expired, not used up, and not limited to certain routes or operators. There is no built-in code; with no such coupon there is no banner. The page is cached for up to 10 minutes.
+
+### Added
+
+- Entering a first-booking-only code that the buyer's email or phone has already used shows a "Not valid coupon" pop-up on the booking page. It closes with the X at its top right or by itself after 2 seconds. The booking page sends the email and phone typed so far, and asks again when the buyer leaves one of those fields after the code was accepted.
+
+### Removed
+
+- The "e.g. GILIFAST15" placeholder in the promo code box.
+
 ## [1.11.0] - 2026-10-25
 
 ### Added
@@ -234,7 +251,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.12.0...HEAD
+[1.12.0]: https://github.com/condoriano98/gilijet/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/condoriano98/gilijet/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0

@@ -160,9 +160,6 @@ export async function listCoupons(args: { limit?: number }) {
         expiresAt: true,
         maxUses: true,
         usedCount: true,
-        budgetCap: true,
-        budgetSpent: true,
-        perCustomerLimit: true,
         firstBookingOnly: true,
       },
     }),
@@ -176,16 +173,12 @@ export async function listCoupons(args: { limit?: number }) {
         p.discountType === 'PERCENT'
           ? `${Number(p.discountValue)}%`
           : p.discountType === 'NET'
-            ? `Nett IDR ${money(p.discountValue)} per adult`
+            ? `Nett IDR ${money(p.discountValue)} per seat`
             : `IDR ${money(p.discountValue)}`,
       whoAbsorbsIt: p.costBearer,
       active: p.isActive && !p.archivedAt,
       window: { from: witaTime(p.startsAt), to: witaTime(p.expiresAt) },
       uses: `${p.usedCount}${p.maxUses ? ` / ${p.maxUses}` : ' (uncapped)'}`,
-      budget: p.budgetCap
-        ? `${money(p.budgetSpent)} / ${money(p.budgetCap)}`
-        : `${money(p.budgetSpent)} spent (uncapped)`,
-      perCustomerLimit: p.perCustomerLimit,
       firstBookingOnly: p.firstBookingOnly,
     })),
     total,

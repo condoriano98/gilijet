@@ -91,32 +91,26 @@ export function CouponFields({
       </div>
 
       <p className="-mt-2 text-xs text-muted-foreground">
-        Percent takes that % off the fare. Flat takes that many IDR off the
-        booking. Nett is the price each adult pays per leg, replacing the listed
-        fare: children and infants follow the child and infant multipliers, and
-        a round trip pays it on each leg.
+        All three work on the listed fares of the passengers who need a seat
+        (adults and children). Percent takes that % off those fares. Flat takes
+        that many IDR off them. Nett is the price each of those passengers pays
+        per leg, replacing their listed fare. An infant on a parent's lap needs
+        no seat and is never discounted. A round trip pays the nett price on
+        each leg.
       </p>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="minAmount">Min spend (IDR)</Label>
           <Input id="minAmount" name="minAmount" type="number" min="0" defaultValue={promo ? Number(promo.minAmount) : 0} />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="maxUses">Max total uses</Label>
-          <Input id="maxUses" name="maxUses" type="number" min="1" defaultValue={promo?.maxUses ?? ''} placeholder="unlimited" />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="perCustomerLimit">Per-customer limit</Label>
-          <Input id="perCustomerLimit" name="perCustomerLimit" type="number" min="1" defaultValue={promo?.perCustomerLimit ?? ''} placeholder="unlimited" />
+          <Label htmlFor="maxUses">Max total uses (quota)</Label>
+          <Input id="maxUses" name="maxUses" type="number" min="1" defaultValue={promo?.maxUses ?? ''} required />
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="budgetCap">Budget cap (IDR)</Label>
-          <Input id="budgetCap" name="budgetCap" type="number" min="0" defaultValue={promo?.budgetCap != null ? Number(promo.budgetCap) : ''} placeholder="unlimited" />
-        </div>
+      <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="startsAt">Starts (WITA)</Label>
           <Input id="startsAt" name="startsAt" type="datetime-local" defaultValue={witaLocal(promo?.startsAt)} />
@@ -159,8 +153,10 @@ export function CouponFields({
         </label>
       </div>
       <p className="text-xs text-muted-foreground">
-        Gilifast pays for every coupon (the operator is paid in full), so set a
-        budget cap, max uses, or max discount to bound the cost.
+        Gilifast pays for every coupon (the operator is paid in full), so Max
+        total uses is required: it is the most times the code can be used. First
+        booking only lets a buyer use it once, recognised by email or phone
+        number; other people using it does not block a buyer who never booked.
       </p>
 
       <div className="grid gap-1.5">

@@ -28,7 +28,7 @@ type Promo = Awaited<ReturnType<typeof prisma.promotion.findMany>>[number];
 function discountLabel(p: Promo): string {
   const cap = p.maxDiscountAmount != null ? ` ≤${formatIDR(Number(p.maxDiscountAmount))}` : '';
   if (p.discountType === 'PERCENT') return `${Number(p.discountValue)}%${cap}`;
-  if (p.discountType === 'NET') return `Nett ${formatIDR(Number(p.discountValue))}/adult${cap}`;
+  if (p.discountType === 'NET') return `Nett ${formatIDR(Number(p.discountValue))}/seat${cap}`;
   return formatIDR(Number(p.discountValue));
 }
 
@@ -39,7 +39,6 @@ function status(p: Promo): { label: string; variant: 'success' | 'destructive' |
   if (p.startsAt && p.startsAt.getTime() > now) return { label: 'Scheduled', variant: 'secondary' };
   if (p.expiresAt && p.expiresAt.getTime() < now) return { label: 'Expired', variant: 'destructive' };
   if (p.maxUses != null && p.usedCount >= p.maxUses) return { label: 'Exhausted', variant: 'destructive' };
-  if (p.budgetCap != null && Number(p.budgetSpent) >= Number(p.budgetCap)) return { label: 'Budget spent', variant: 'destructive' };
   return { label: 'Active', variant: 'success' };
 }
 
@@ -67,7 +66,7 @@ export default async function CouponsPage({
         <div>
           <h2 className="text-lg font-semibold">Coupons</h2>
           <p className="text-sm text-muted-foreground">
-            Discount codes, targeting and budgets. Gilifast absorbs every discount.
+            Discount codes, targeting and quotas. Gilifast absorbs every discount.
           </p>
         </div>
         <Button asChild>
@@ -95,7 +94,6 @@ export default async function CouponsPage({
                   <TableHead>Code</TableHead>
                   <TableHead>Discount</TableHead>
                   <TableHead>Usage</TableHead>
-                  <TableHead>Budget</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -119,11 +117,6 @@ export default async function CouponsPage({
                       <TableCell>
                         {p.usedCount}
                         {p.maxUses != null ? ` / ${p.maxUses}` : ''}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {p.budgetCap != null
-                          ? `${formatIDR(Number(p.budgetSpent))} / ${formatIDR(Number(p.budgetCap))}`
-                          : '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={st.variant}>{st.label}</Badge>

@@ -242,15 +242,30 @@ export type ActivePromo = {
   expiresAt: string | null; // ISO
 };
 
+/**
+ * The newest coupon the owner created that a visitor could use right now. The
+ * banner prints the code, so a coupon that is archived, not started, used up, or
+ * limited to certain routes or operators is never shown: its code is not meant
+ * for everyone. There is no built-in code; with no such coupon there is no banner.
+ */
 export async function getActivePromo(): Promise<ActivePromo | null> {
   const now = new Date();
-  const promo = await prisma.promotion.findFirst({
+  const candidates = await prisma.promotion.findMany({
     where: {
       isActive: true,
-      OR: [{ expiresAt: { gt: now } }, { expiresAt: null }],
+      archivedAt: null,
+      AND: [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      ],
+      appliesToRouteCodes: { isEmpty: true },
+      appliesToOperatorIds: { isEmpty: true },
     },
     orderBy: { createdAt: 'desc' },
+    take: 20,
   });
+  // usedCount against maxUses compares two columns, which Prisma can't filter on.
+  const promo = candidates.find((c) => c.maxUses == null || c.usedCount < c.maxUses);
   if (!promo) return null;
   return {
     id: promo.id,

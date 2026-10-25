@@ -4,6 +4,7 @@ import { env } from '@/shared/server/env';
 import { audit } from '@/shared/server/audit';
 import {
   computeBookingPriceWithTypes,
+  seatFaresForLeg,
   type PassengerType,
   type CostBearer,
 } from '@/features/pricing/pricing';
@@ -16,6 +17,7 @@ import {
   validatePromoCode,
   applyPromoCode,
   releasePromoRedemption,
+  NOT_VALID_COUPON,
 } from '@/features/pricing/promotions';
 import { isDokuMock } from '@/features/payments/doku';
 
@@ -185,9 +187,14 @@ async function createOneWayBooking(
       routeCode,
       operatorId: leg.operatorId,
       customerEmail: args.customer.email,
+      customerPhone: args.customer.phone,
       customerId: args.customerId ?? null,
-      passengerTypes,
-      multipliers: pricing.multipliers,
+      seatFares: seatFaresForLeg({
+        unitPrice,
+        passengerTypes,
+        multipliers: pricing.multipliers,
+        categoryUnitPrices,
+      }),
     });
     if (!validation.valid) {
       throw new BookingError('PROMO_INVALID', validation.error);
@@ -314,10 +321,16 @@ async function createRoundTripBooking(
       routeCode,
       operatorId: outboundLeg.operatorId,
       customerEmail: args.customer.email,
+      customerPhone: args.customer.phone,
       customerId: args.customerId ?? null,
-      passengerTypes,
-      multipliers: pricing.multipliers,
-      legCount: 2,
+      seatFares: [outbound, inbound].flatMap((leg) =>
+        seatFaresForLeg({
+          unitPrice: leg.unitPrice,
+          passengerTypes,
+          multipliers: pricing.multipliers,
+          categoryUnitPrices: leg.categoryUnitPrices,
+        }),
+      ),
     });
     if (!validation.valid) {
       throw new BookingError('PROMO_INVALID', validation.error);
@@ -464,6 +477,7 @@ async function createBookingRow(
       await applyPromoCode(promotionId, tx, {
         bookingId: booking.id,
         customerEmail: args.customer.email,
+        customerPhone: args.customer.phone,
         customerId: args.customerId ?? null,
         amount: discountAmount,
       });
@@ -471,10 +485,8 @@ async function createBookingRow(
       const code = err instanceof Error ? err.message : '';
       const message =
         code === 'PROMO_CUSTOMER_LIMIT'
-          ? 'You have already used this promo code'
-          : code === 'PROMO_BUDGET_EXHAUSTED'
-            ? 'Promo code budget is exhausted'
-            : 'This promo code is no longer available';
+          ? NOT_VALID_COUPON
+          : 'This promo code is no longer available';
       throw new BookingError('PROMO_INVALID', message);
     }
   }

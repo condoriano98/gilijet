@@ -9,12 +9,12 @@ function form(fields: Record<string, string | string[]>): FormData {
   return fd;
 }
 
-/** A valid coupon: 10% off, capped, every route and operator. */
+/** A valid coupon: 10% off, 100 uses, every route and operator. */
 const valid = {
   code: 'summer25',
   discountType: 'PERCENT',
   discountValue: '10',
-  maxDiscountAmount: '50000',
+  maxUses: '100',
   appliesToRouteCodesAll: 'on',
   appliesToOperatorIdsAll: 'on',
 };
@@ -45,15 +45,25 @@ describe('readCouponForm', () => {
     ).toBe(true);
   });
 
-  it('needs something to bound the cost, because Gilifast pays for every coupon', () => {
-    const { maxDiscountAmount: _drop, ...unbounded } = valid;
-    const parsed = readCouponForm(form(unbounded));
+  it('needs Max total uses, because Gilifast pays for every coupon', () => {
+    const { maxUses: _drop, ...noQuota } = valid;
+    const parsed = readCouponForm(form(noQuota));
     expect(parsed.success).toBe(false);
-    if (!parsed.success) expect(parsed.error.issues[0].message).toMatch(/pays for every coupon/);
+    if (!parsed.success) expect(parsed.error.issues[0].message).toMatch(/Max total uses/);
 
-    const bounds: Record<string, string>[] = [{ budgetCap: '1000000' }, { maxUses: '100' }];
-    for (const bound of bounds) {
-      expect(readCouponForm(form({ ...unbounded, ...bound })).success).toBe(true);
+    // A cap on the discount alone does not bound how many times it is used.
+    expect(readCouponForm(form({ ...noQuota, maxDiscountAmount: '50000' })).success).toBe(false);
+    expect(readCouponForm(form({ ...valid, maxUses: '0' })).success).toBe(false);
+  });
+
+  it('no longer reads a budget cap or a per-customer limit', () => {
+    const parsed = readCouponForm(form({ ...valid, budgetCap: '1000000', perCustomerLimit: '2' }));
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      const record = couponRecord(parsed.data);
+      expect(record).not.toHaveProperty('budgetCap');
+      expect(record).not.toHaveProperty('perCustomerLimit');
+      expect(record.maxUses).toBe(100);
     }
   });
 

@@ -10,10 +10,12 @@ requireMockPayments();
 /**
  * Coupons end to end: a Nett coupon through the real booking form (preview,
  * booking row, status page), the coupon coming back when the customer cancels,
- * the route rule agreeing between preview and engine, and the owner console
- * form (Nett option, no cost-bearer field, route and operator dropdowns).
+ * the route rule agreeing between preview and engine, a first-booking-only code
+ * turning away a repeat buyer by email or by phone with the "Not valid coupon"
+ * pop-up, and the owner console form (Nett option, no cost-bearer, budget or
+ * per-customer field, route and operator dropdowns, quota required).
  *
- * It never pays. Own fixtures (a 2095 departure, three coupons), removed
+ * It never pays. Own fixtures (a 2095 departure, four coupons), removed
  * afterwards. Relies on `pnpm seed:qa` (QA boat, QA admin).
  */
 const prisma = new PrismaClient();
@@ -22,17 +24,19 @@ const ORIGIN = 'E2E Coupon Origin';
 const DESTINATION = 'E2E Coupon Dest';
 const ROUTE = `${ORIGIN}-${DESTINATION}`;
 const EMAIL = 'e2e-coupon@example.invalid';
-const NETT = 'E2ENETT150';
+const NETT = 'E2ENETT100';
 const OTHER_ROUTE = 'E2EOTHERROUTE';
 const FORM_CODE = 'E2EFORMNETT';
-const CODES = [NETT, OTHER_ROUTE, FORM_CODE];
+const FIRST_ONLY = 'E2EFIRSTONLY';
+const OTHER_EMAIL = 'e2e-coupon-other@example.invalid';
+const CODES = [NETT, OTHER_ROUTE, FORM_CODE, FIRST_ONLY];
 
 let legId: string;
 
 async function cleanup() {
-  await removeBookings(prisma, { customerEmail: EMAIL });
+  await removeBookings(prisma, { customerEmail: { in: [EMAIL, OTHER_EMAIL] } });
   // Redemptions point at bookings and promotions with Restrict, so they go first.
-  await prisma.promotionRedemption.deleteMany({ where: { customerEmail: EMAIL } });
+  await prisma.promotionRedemption.deleteMany({ where: { customerEmail: { in: [EMAIL, OTHER_EMAIL] } } });
   await prisma.promotion.deleteMany({ where: { code: { in: CODES } } });
   await removeSchedules(prisma, [ORIGIN]);
 }
@@ -62,6 +66,8 @@ async function applyCode(page: Page, code: string) {
   await page.getByRole('button', { name: /^Apply$/ }).click();
 }
 
+const NOT_VALID = (page: Page) => page.getByRole('dialog').getByText('Not valid coupon');
+
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
@@ -77,8 +83,8 @@ test.beforeAll(async () => {
       basePrice: 200_000,
       daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
       status: 'ACTIVE',
-      // Adult 200k, child 100k, whatever the season.
-      fareMatrix: flatFares(200_000),
+      // Adult 200k, child 120k (not half of the adult), whatever the season.
+      fareMatrix: flatFares(200_000, 120_000),
     },
   });
   const leg = await prisma.leg.create({
@@ -94,7 +100,7 @@ test.beforeAll(async () => {
 
   const common = {
     discountType: 'NET' as const,
-    discountValue: 150_000,
+    discountValue: 100_000,
     maxUses: 5,
     costBearer: 'PLATFORM' as const,
   };
@@ -102,6 +108,15 @@ test.beforeAll(async () => {
     data: [
       { code: NETT, ...common, appliesToRouteCodes: [ROUTE] },
       { code: OTHER_ROUTE, ...common, appliesToRouteCodes: ['Somewhere-Else'] },
+      {
+        code: FIRST_ONLY,
+        discountType: 'PERCENT',
+        discountValue: 10,
+        maxUses: 50,
+        costBearer: 'PLATFORM',
+        firstBookingOnly: true,
+        appliesToRouteCodes: [ROUTE],
+      },
     ],
   });
 });
@@ -114,9 +129,10 @@ test.afterAll(async () => {
 test('Nett coupon: the preview, the booking and the status page agree', async ({ page }) => {
   await fillBookingForm(page);
   await applyCode(page, NETT);
-  // Fare 200k + 100k = 300k; Nett 150k + 75k = 225k; saving 75k.
+  // Fare 200k adult + 120k child = 320k. Nett 100k replaces the fare of every
+  // seat: 100k + 100k = 200k, saving 120k.
   await expect(page.locator('body')).toContainText('saves', { timeout: 15_000 });
-  await expect(page.locator('body')).toContainText('Rp 75.000');
+  await expect(page.locator('body')).toContainText('Rp 120.000');
 
   await page.getByRole('button', { name: /^Pay\s/ }).click();
   await page.waitForURL((u) => !u.pathname.includes('/book'), { timeout: 30_000 });
@@ -126,16 +142,16 @@ test('Nett coupon: the preview, the booking and the status page agree', async ({
     include: { promotion: true, promotionRedemption: true },
   });
   expect(booking.status).toBe('PENDING_PAYMENT');
-  expect(Number(booking.totalAmount)).toBe(225_000);
-  expect(Number(booking.discountAmount)).toBe(75_000);
+  expect(Number(booking.totalAmount)).toBe(200_000);
+  expect(Number(booking.discountAmount)).toBe(120_000);
   expect(booking.promotion?.code).toBe(NETT);
-  expect(Number(booking.promotionRedemption!.amount)).toBe(75_000);
+  expect(Number(booking.promotionRedemption!.amount)).toBe(120_000);
   expect(booking.promotion?.usedCount).toBe(1);
 
   await page.goto(`/b/${booking.bookingReference}`);
   await expect(page.locator('body')).toContainText(`Promo ${NETT}`, { timeout: 15_000 });
-  await expect(page.locator('body')).toContainText('-Rp 75.000');
-  await expect(page.locator('body')).toContainText('Rp 225.000');
+  await expect(page.locator('body')).toContainText('-Rp 120.000');
+  await expect(page.locator('body')).toContainText('Rp 200.000');
 });
 
 test('cancelling the booking gives the coupon back', async ({ page }) => {
@@ -156,15 +172,64 @@ test('cancelling the booking gives the coupon back', async ({ page }) => {
   expect(after.promotionRedemption).toBeNull();
   const promo = await prisma.promotion.findUniqueOrThrow({ where: { code: NETT } });
   expect(promo.usedCount).toBe(0);
-  expect(Number(promo.budgetSpent)).toBe(0);
   // The booking keeps the discount it was made with, as history.
-  expect(Number(after.discountAmount)).toBe(75_000);
+  expect(Number(after.discountAmount)).toBe(120_000);
 });
 
 test('the preview refuses a coupon for another route, as the booking would', async ({ page }) => {
   await fillBookingForm(page);
   await applyCode(page, OTHER_ROUTE);
   await expect(page.locator('body')).toContainText('not valid for this route', { timeout: 15_000 });
+});
+
+test.describe('first booking only', () => {
+  test('lets a buyer who never booked use it, then turns the same email away', async ({ page }) => {
+    await fillBookingForm(page);
+    await applyCode(page, FIRST_ONLY);
+    await expect(page.locator('body')).toContainText('saves', { timeout: 15_000 });
+    await expect(NOT_VALID(page)).toHaveCount(0);
+
+    await page.getByRole('button', { name: /^Pay\s/ }).click();
+    await page.waitForURL((u) => !u.pathname.includes('/book'), { timeout: 30_000 });
+    const promo = await prisma.promotion.findUniqueOrThrow({ where: { code: FIRST_ONLY } });
+    expect(promo.usedCount).toBe(1);
+
+    // The same buyer comes back with the code.
+    await fillBookingForm(page);
+    await applyCode(page, FIRST_ONLY);
+    await expect(NOT_VALID(page)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('the pop-up closes by itself after about two seconds', async ({ page }) => {
+    await fillBookingForm(page);
+    await applyCode(page, FIRST_ONLY);
+    await expect(NOT_VALID(page)).toBeVisible({ timeout: 15_000 });
+    await expect(NOT_VALID(page)).toBeHidden({ timeout: 4_000 });
+  });
+
+  test('the pop-up closes with the X at its top right', async ({ page }) => {
+    await fillBookingForm(page);
+    await applyCode(page, FIRST_ONLY);
+    await expect(NOT_VALID(page)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+    await expect(NOT_VALID(page)).toBeHidden({ timeout: 1_000 });
+  });
+
+  test('knows the buyer by phone number when the email is new', async ({ page }) => {
+    await fillBookingForm(page);
+    await page.locator('#customerEmail').fill(OTHER_EMAIL);
+    await applyCode(page, FIRST_ONLY);
+    await expect(NOT_VALID(page)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('does not stop a buyer whose email and phone are new, though others used the code', async ({ page }) => {
+    await fillBookingForm(page);
+    await page.locator('#customerEmail').fill(OTHER_EMAIL);
+    await page.getByPlaceholder('812 3456 7890').fill('8999000111');
+    await applyCode(page, FIRST_ONLY);
+    await expect(page.locator('body')).toContainText('saves', { timeout: 15_000 });
+    await expect(NOT_VALID(page)).toHaveCount(0);
+  });
 });
 
 test.describe('owner console form', () => {
@@ -174,6 +239,9 @@ test.describe('owner console form', () => {
 
     await expect(page.locator('#discountType option[value="NET"]')).toHaveText(/Nett/);
     await expect(page.locator('body')).not.toContainText('Who absorbs the discount');
+    await expect(page.locator('#budgetCap')).toHaveCount(0);
+    await expect(page.locator('#perCustomerLimit')).toHaveCount(0);
+    await expect(page.locator('#maxUses')).toHaveAttribute('required', '');
 
     // Both start on All, so "no restriction" is a visible answer.
     await expect(page.locator('#appliesToRouteCodes')).toContainText('All routes');

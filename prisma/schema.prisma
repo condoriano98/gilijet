@@ -548,7 +548,10 @@ model Promotion {
   archivedAt    DateTime?
   description   String?
 
-  // Owner-console targeting & controls
+  // Owner-console targeting & controls. perCustomerLimit, budgetCap and
+  // budgetSpent are no longer read or written: "Max total uses" is the only
+  // cap and "First booking only" the only per-customer rule. The columns stay
+  // so old coupons keep their history.
   perCustomerLimit     Int?
   firstBookingOnly     Boolean         @default(false)
   maxDiscountAmount    Decimal?        @db.Decimal(12, 2)
@@ -581,6 +584,8 @@ model PromotionRedemption {
   promotionId   String
   bookingId     String   @unique
   customerEmail String
+  /// The buyer's phone reduced by `phoneKey` (digits only); null on rows from before it was kept.
+  customerPhone String?
   amount        Decimal  @db.Decimal(12, 2)
   createdAt     DateTime @default(now())
 
@@ -589,6 +594,7 @@ model PromotionRedemption {
 
   @@index([promotionId])
   @@index([customerEmail])
+  @@index([customerPhone])
 }
 
 /// Singleton platform-economics config (id is always "default"). Holds the

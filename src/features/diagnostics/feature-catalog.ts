@@ -562,7 +562,7 @@ const ADMIN: Feature[] = [
     ],
     models: ['Promotion', 'PromotionRedemption'],
     notes:
-      'SUPER_ADMIN only. Percent, flat and Nett (per-adult price) coupons, budget caps, per-customer limits, route/operator targeting from the live routes and active operators, and bulk code generation. Gilifast absorbs every discount. A coupon is given back when its booking expires or is cancelled.',
+      'SUPER_ADMIN only. Percent, flat and Nett (per-adult price) coupons, a required Max total uses quota, first-booking-only by email or phone, route/operator targeting from the live routes and active operators, and bulk code generation. Gilifast absorbs every discount. A coupon is given back when its booking expires or is cancelled.',
   },
   {
     id: 'admin-console-pricing',
@@ -583,7 +583,7 @@ const ADMIN: Feature[] = [
     routes: ['src/app/admin/(authed)/console/page.tsx'],
     modules: [],
     models: ['Promotion', 'PromotionRedemption', 'Booking'],
-    notes: 'GMV, effective take-rate net of discounts, budget burn, top coupons.',
+    notes: 'GMV, effective take-rate net of discounts, discount spend, top coupons.',
   },
   {
     id: 'admin-promos-aliases',

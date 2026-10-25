@@ -20,9 +20,13 @@ export async function removeSchedules(prisma: PrismaClient, originPorts: string[
   await prisma.schedule.deleteMany({ where: { id: { in: ids } } });
 }
 
-/** Fare matrix whose low/high/peak cells are equal, so no season can change the price. */
-export const flatFares = (adult: number) => {
-  const cell = { adult, child: adult / 2, infant: 0 };
+/**
+ * Fare matrix whose low/high/peak cells are equal, so no season can change the
+ * price. The child fare defaults to half the adult one; pass `child` to set it
+ * apart from any fixed fraction.
+ */
+export const flatFares = (adult: number, child = adult / 2) => {
+  const cell = { adult, child, infant: 0 };
   const season = { low: cell, high: cell, peak: cell };
   return { oneWay: season, return: season };
 };

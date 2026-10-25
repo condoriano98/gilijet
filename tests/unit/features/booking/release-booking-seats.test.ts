@@ -44,10 +44,7 @@ describe('releaseBookingSeats: coupon', () => {
 
       expect(tx.promotion.update).toHaveBeenCalledWith({
         where: { id: 'promo-1' },
-        data: {
-          usedCount: { decrement: 1 },
-          budgetSpent: { decrement: redemption.amount },
-        },
+        data: { usedCount: { decrement: 1 } },
       });
     },
   );

@@ -300,8 +300,18 @@ Duplicating any of these is a bug:
 | Port names | `src/features/ports/port-info.ts` |
 | QR / ticket codes | `src/features/tickets/qr.ts`, `src/features/booking/references.ts` |
 | Coupon validation, redemption and release (when a booking expires or is cancelled) | `src/features/pricing/promotions.ts` |
+| Phone numbers compared as digits (coupon first-booking rule) | `src/shared/lib/phone.ts` |
 | Coupon form parsing and the route / operator choices | `src/features/pricing/coupon-form.ts`, `src/features/pricing/coupon-options.ts` |
 | What the platform does | `src/features/diagnostics/feature-catalog.ts` |
+
+## Passenger categories and fares
+
+A booking prices each passenger by category, and the price of each category is **set in its own place, never derived from another category in code**:
+
+- **Adult / child / infant fares of a departure** come from the schedule's `fareMatrix` (season × category), resolved by `legPricingInputs` in `src/features/pricing/seasons.ts`.
+- A leg with no matrix, or a hand-set price, falls back to the **Owner console → Pricing** multipliers (`PlatformConfig` adult / child / infant multiplier) applied to the leg's adult price. The child multiplier defaults to 0.5 and the infant multiplier to 0; both are settings, not rules.
+- **Infants are free on some fast boats** because they sit on a parent's lap and need no seat. That is why an infant fare of 0 is normal, and why an infant is never counted in `seatCount` (seats held and capacity use only adults and children). A boat that does charge for infants sets the fare in its matrix.
+- **Coupons never touch these settings.** They work on the listed fares of the passengers who need a seat (adults and children): Percent and Flat come off those fares, and Nett replaces them. An infant on a lap is never discounted.
 
 ## Review MCP
 
@@ -395,7 +405,7 @@ src/features/           — domain logic, one folder per domain
   refunds/  tickets/  schedules/  operators/  ports/  messaging/  diagnostics/
 src/shared/             — cross-cutting, must not import features/ or app/
   server/               — db, auth, env, audit, login-throttle, platform-config
-  lib/                  — datetime, utils, serialize-decimals, countries
+  lib/                  — datetime, utils, serialize-decimals, countries, phone
   ui/                   — shadcn-style primitives
 src/mcp/                — read-only review MCP server
 prisma/

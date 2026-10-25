@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Prisma } from '@prisma/client';
 import {
+  getActivePromo,
   getAvailablePorts,
   getDepartingSoon,
   getPopularRoutes,
@@ -35,6 +36,9 @@ vi.mock('@/shared/server/db', () => ({
       findMany: vi.fn(),
     },
     review: {
+      findMany: vi.fn(),
+    },
+    promotion: {
       findMany: vi.fn(),
     },
   },
@@ -460,5 +464,61 @@ describe('getRecentReviews', () => {
     const result = await getRecentReviews();
 
     expect(result).toEqual([]);
+  });
+});
+
+describe('getActivePromo', () => {
+  const promo = (overrides: Record<string, unknown> = {}) => ({
+    id: 'promo-1',
+    code: 'WELCOME10',
+    discountType: 'PERCENT',
+    discountValue: new Prisma.Decimal('10'),
+    description: null,
+    expiresAt: null,
+    maxUses: null,
+    usedCount: 0,
+    ...overrides,
+  });
+
+  it('has no banner when the owner created no coupon: there is no built-in code', async () => {
+    vi.mocked(prisma.promotion.findMany).mockResolvedValueOnce([]);
+
+    expect(await getActivePromo()).toBeNull();
+  });
+
+  it('only asks for coupons anyone could use right now', async () => {
+    vi.mocked(prisma.promotion.findMany).mockResolvedValueOnce([]);
+
+    await getActivePromo();
+
+    const query = vi.mocked(prisma.promotion.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(query.where).toMatchObject({
+      isActive: true,
+      archivedAt: null,
+      appliesToRouteCodes: { isEmpty: true },
+      appliesToOperatorIds: { isEmpty: true },
+    });
+    // Started and not expired.
+    expect(JSON.stringify(query.where.AND)).toContain('startsAt');
+    expect(JSON.stringify(query.where.AND)).toContain('expiresAt');
+  });
+
+  it('skips a coupon whose quota is used up and shows the next one', async () => {
+    vi.mocked(prisma.promotion.findMany).mockResolvedValueOnce([
+      promo({ id: 'used-up', code: 'GONE', maxUses: 5, usedCount: 5 }),
+      promo({ id: 'open', code: 'OPEN', maxUses: 5, usedCount: 4 }),
+    ] as any);
+
+    const result = await getActivePromo();
+
+    expect(result?.code).toBe('OPEN');
+  });
+
+  it('returns nothing when every candidate is used up', async () => {
+    vi.mocked(prisma.promotion.findMany).mockResolvedValueOnce([
+      promo({ maxUses: 1, usedCount: 1 }),
+    ] as any);
+
+    expect(await getActivePromo()).toBeNull();
   });
 });

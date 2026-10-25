@@ -28,6 +28,7 @@ vi.mock('@/shared/server/db', () => ({
     booking: {
       findFirst: vi.fn(),
     },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -83,13 +84,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -115,13 +113,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -148,13 +143,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -181,13 +173,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -215,13 +204,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -234,41 +220,6 @@ describe('validatePromoCode', () => {
       if (!result.valid) expect(result.error).toBe('Promo code is fully redeemed');
     });
 
-    it('rejects when per-customer limit exceeded', async () => {
-      const mockPromo = {
-        id: 'promo-1',
-        code: 'PERUSER',
-        isActive: true,
-        archivedAt: null,
-        startsAt: null,
-        expiresAt: null,
-        maxUses: null,
-        usedCount: 0,
-        minAmount: new Prisma.Decimal('0'),
-        appliesToOperatorIds: [],
-        appliesToRouteCodes: [],
-        perCustomerLimit: 2,
-        firstBookingOnly: false,
-        discountType: 'PERCENT' as const,
-        discountValue: new Prisma.Decimal('10'),
-        maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
-        costBearer: 'PLATFORM' as const,
-        description: null,
-      };
-
-      vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(mockPromo as any);
-      vi.mocked(prisma.promotionRedemption.count).mockResolvedValueOnce(2);
-
-      const result = await validatePromoCode('PERUSER', {
-        totalAmount: 100000,
-        customerEmail: 'user@example.com',
-      });
-
-      expect(result.valid).toBe(false);
-      if (!result.valid) expect(result.error).toBe('You have already used this promo code');
-    });
   });
 
   describe('Discount computation', () => {
@@ -285,13 +236,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -317,13 +265,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'FLAT' as const,
         discountValue: new Prisma.Decimal('50000'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -349,13 +294,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('25'),
         maxDiscountAmount: new Prisma.Decimal('20000'),
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -384,13 +326,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'FLAT' as const,
         discountValue: new Prisma.Decimal('500000'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -418,13 +357,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: ['op-A', 'op-B'],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -453,13 +389,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: ['BLI-SBY', 'BLI-DPS'],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -490,13 +423,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('500000'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -513,75 +443,103 @@ describe('validatePromoCode', () => {
     });
   });
 
-  describe('Budget cap', () => {
-    it('rejects when budget exhausted', async () => {
-      const mockPromo = {
-        id: 'promo-1',
-        code: 'BUDGET',
-        isActive: true,
-        archivedAt: null,
-        startsAt: null,
-        expiresAt: null,
-        maxUses: null,
-        usedCount: 0,
-        minAmount: new Prisma.Decimal('0'),
-        appliesToOperatorIds: [],
-        appliesToRouteCodes: [],
-        perCustomerLimit: null,
-        firstBookingOnly: false,
-        discountType: 'FLAT' as const,
-        discountValue: new Prisma.Decimal('50000'),
-        maxDiscountAmount: null,
-        budgetCap: new Prisma.Decimal('100000'),
-        budgetSpent: new Prisma.Decimal('100000'),
-        costBearer: 'PLATFORM' as const,
-        description: null,
-      };
-
-      vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(mockPromo as any);
-
-      const result = await validatePromoCode('BUDGET', { totalAmount: 100000 });
-
-      expect(result.valid).toBe(false);
-      if (!result.valid) expect(result.error).toBe('Promo code budget is exhausted');
-    });
-  });
-
   describe('First booking only', () => {
-    it('rejects when customer has prior booking', async () => {
-      const mockPromo = {
-        id: 'promo-1',
-        code: 'FIRST',
-        isActive: true,
-        archivedAt: null,
-        startsAt: null,
-        expiresAt: null,
-        maxUses: null,
-        usedCount: 0,
-        minAmount: new Prisma.Decimal('0'),
-        appliesToOperatorIds: [],
-        appliesToRouteCodes: [],
-        perCustomerLimit: null,
-        firstBookingOnly: true,
-        discountType: 'PERCENT' as const,
-        discountValue: new Prisma.Decimal('15'),
-        maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
-        costBearer: 'PLATFORM' as const,
-        description: null,
-      };
+    const firstOnly = () => ({
+      id: 'promo-1',
+      code: 'FIRST',
+      isActive: true,
+      archivedAt: null,
+      startsAt: null,
+      expiresAt: null,
+      maxUses: 100,
+      usedCount: 40, // other people have used part of the quota
+      minAmount: new Prisma.Decimal('0'),
+      appliesToOperatorIds: [],
+      appliesToRouteCodes: [],
+      firstBookingOnly: true,
+      discountType: 'PERCENT' as const,
+      discountValue: new Prisma.Decimal('15'),
+      maxDiscountAmount: null,
+      costBearer: 'PLATFORM' as const,
+      description: null,
+    });
 
-      vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(mockPromo as any);
+    beforeEach(() => {
+      vi.mocked(prisma.promotion.findUnique).mockResolvedValue(firstOnly() as any);
+      vi.mocked(prisma.booking.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([]);
+    });
+
+    it('turns away an email that has booked before', async () => {
       vi.mocked(prisma.booking.findFirst).mockResolvedValueOnce({ id: 'booking-1' } as any);
 
       const result = await validatePromoCode('FIRST', {
         totalAmount: 100000,
-        customerEmail: 'repeat@example.com',
+        customerEmail: 'Repeat@Example.com',
+      });
+
+      expect(result).toEqual({
+        valid: false,
+        error: 'Not valid coupon',
+        reason: 'FIRST_BOOKING_USED',
+      });
+      expect(prisma.booking.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ customerEmail: 'repeat@example.com' }],
+          }),
+        }),
+      );
+    });
+
+    it('turns away a phone number that has booked before, under another email', async () => {
+      vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([{ id: 'booking-9' }]);
+
+      const result = await validatePromoCode('FIRST', {
+        totalAmount: 100000,
+        customerEmail: 'new-address@example.com',
+        customerPhone: '+62 812-3456-7890',
       });
 
       expect(result.valid).toBe(false);
-      if (!result.valid) expect(result.error).toBe('Promo code is for first bookings only');
+      if (!result.valid) expect(result.reason).toBe('FIRST_BOOKING_USED');
+      // The phone is compared as digits, with the trunk "0" after +62 dropped.
+      const query = vi.mocked(prisma.$queryRaw).mock.calls[0][0] as unknown as { values: unknown[] };
+      expect(query.values).toContain('6281234567890');
+    });
+
+    it('lets a buyer who never booked use it although others used part of the quota', async () => {
+      const result = await validatePromoCode('FIRST', {
+        totalAmount: 100000,
+        customerEmail: 'brand-new@example.com',
+        customerPhone: '+62 811 000 111',
+      });
+
+      expect(result.valid).toBe(true);
+      if (result.valid) expect(result.discountAmount).toBe(15000);
+    });
+
+    it('still honours the quota for a buyer who never booked', async () => {
+      vi.mocked(prisma.promotion.findUnique).mockResolvedValue({
+        ...firstOnly(),
+        usedCount: 100,
+      } as any);
+
+      const result = await validatePromoCode('FIRST', {
+        totalAmount: 100000,
+        customerEmail: 'brand-new@example.com',
+      });
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) expect(result.error).toBe('Promo code is fully redeemed');
+    });
+
+    it('cannot tell who the buyer is before the form has an email or phone, so it lets the preview pass', async () => {
+      const result = await validatePromoCode('FIRST', { totalAmount: 100000 });
+
+      expect(result.valid).toBe(true);
+      expect(prisma.booking.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
     });
   });
 
@@ -599,13 +557,10 @@ describe('validatePromoCode', () => {
         minAmount: new Prisma.Decimal('0'),
         appliesToOperatorIds: [],
         appliesToRouteCodes: [],
-        perCustomerLimit: null,
         firstBookingOnly: false,
         discountType: 'PERCENT' as const,
         discountValue: new Prisma.Decimal('10'),
         maxDiscountAmount: null,
-        budgetCap: null,
-        budgetSpent: new Prisma.Decimal('0'),
         costBearer: 'PLATFORM' as const,
         description: null,
       };
@@ -629,9 +584,6 @@ describe('applyPromoCode', () => {
         findUnique: vi.fn().mockResolvedValue({
           id: 'promo-1',
           maxUses: null,
-          budgetCap: null,
-          budgetSpent: new Prisma.Decimal('0'),
-          perCustomerLimit: null,
           firstBookingOnly: false,
         }),
       },
@@ -649,10 +601,7 @@ describe('applyPromoCode', () => {
 
     expect(mockTx.promotion.updateMany).toHaveBeenCalledWith({
       where: { id: 'promo-1', isActive: true, archivedAt: null },
-      data: {
-        usedCount: { increment: 1 },
-        budgetSpent: { increment: expect.any(Object) },
-      },
+      data: { usedCount: { increment: 1 } },
     });
   });
 
@@ -680,9 +629,6 @@ describe('applyPromoCode', () => {
           id: 'promo-1',
           maxUses: 5,
           usedCount: 6, // over limit
-          budgetCap: null,
-          budgetSpent: new Prisma.Decimal('0'),
-          perCustomerLimit: null,
           firstBookingOnly: false,
         }),
       },
@@ -697,57 +643,75 @@ describe('applyPromoCode', () => {
     ).rejects.toThrow('PROMO_EXHAUSTED');
   });
 
-  it('throws PROMO_BUDGET_EXHAUSTED when exceeding budgetCap', async () => {
-    const mockTx = {
-      promotion: {
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'promo-1',
-          maxUses: null,
-          usedCount: 1,
-          budgetCap: new Prisma.Decimal('100000'),
-          budgetSpent: new Prisma.Decimal('100001'), // over limit
-          perCustomerLimit: null,
-          firstBookingOnly: false,
+  describe('first booking only', () => {
+    const firstOnlyTx = (priorRedemptions: number) =>
+      ({
+        promotion: {
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+          findUnique: vi.fn().mockResolvedValue({
+            id: 'promo-1',
+            maxUses: 100,
+            usedCount: 1,
+            firstBookingOnly: true,
+          }),
+        },
+        promotionRedemption: {
+          count: vi.fn().mockResolvedValue(priorRedemptions),
+          create: vi.fn().mockResolvedValue({}),
+        },
+      }) as any;
+
+    it('throws PROMO_CUSTOMER_LIMIT when the email or the phone already redeemed it', async () => {
+      const tx = firstOnlyTx(1);
+
+      await expect(
+        applyPromoCode('promo-1', tx, {
+          bookingId: 'booking-2',
+          customerEmail: 'Repeat@Example.com',
+          customerPhone: '+62 812 3456 7890',
+          amount: 50000,
         }),
-      },
-    } as any;
+      ).rejects.toThrow('PROMO_CUSTOMER_LIMIT');
 
-    await expect(
-      applyPromoCode('promo-1', mockTx, {
-        bookingId: 'booking-1',
-        customerEmail: 'user@example.com',
+      expect(tx.promotionRedemption.count).toHaveBeenCalledWith({
+        where: {
+          promotionId: 'promo-1',
+          OR: [{ customerEmail: 'repeat@example.com' }, { customerPhone: '6281234567890' }],
+        },
+      });
+      expect(tx.promotionRedemption.create).not.toHaveBeenCalled();
+    });
+
+    it('redeems for a buyer nobody else matches', async () => {
+      const tx = firstOnlyTx(0);
+
+      await applyPromoCode('promo-1', tx, {
+        bookingId: 'booking-3',
+        customerEmail: 'new@example.com',
+        customerPhone: '+62 811 000 111',
         amount: 50000,
-      }),
-    ).rejects.toThrow('PROMO_BUDGET_EXHAUSTED');
-  });
+      });
 
-  it('throws PROMO_CUSTOMER_LIMIT when exceeding per-customer limit', async () => {
-    const mockTx = {
-      promotion: {
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'promo-1',
-          maxUses: null,
-          usedCount: 1,
-          budgetCap: null,
-          budgetSpent: new Prisma.Decimal('0'),
-          perCustomerLimit: 2,
-          firstBookingOnly: false,
-        }),
-      },
-      promotionRedemption: {
-        count: vi.fn().mockResolvedValue(2), // already used 2 times
-      },
-    } as any;
+      expect(tx.promotionRedemption.create).toHaveBeenCalled();
+    });
 
-    await expect(
-      applyPromoCode('promo-1', mockTx, {
-        bookingId: 'booking-1',
-        customerEmail: 'user@example.com',
+    it('does not look at redemptions for a code open to repeat buyers', async () => {
+      const tx = firstOnlyTx(5);
+      tx.promotion.findUnique.mockResolvedValue({
+        id: 'promo-1',
+        maxUses: 100,
+        usedCount: 1,
+        firstBookingOnly: false,
+      });
+
+      await applyPromoCode('promo-1', tx, {
+        bookingId: 'booking-4',
+        customerEmail: 'repeat@example.com',
         amount: 50000,
-      }),
-    ).rejects.toThrow('PROMO_CUSTOMER_LIMIT');
+      });
+
+      expect(tx.promotionRedemption.count).not.toHaveBeenCalled();
+    });
   });
 
   it('creates PromotionRedemption record on success', async () => {
@@ -758,9 +722,6 @@ describe('applyPromoCode', () => {
           id: 'promo-1',
           maxUses: null,
           usedCount: 1,
-          budgetCap: null,
-          budgetSpent: new Prisma.Decimal('0'),
-          perCustomerLimit: null,
           firstBookingOnly: false,
         }),
       },
@@ -773,6 +734,7 @@ describe('applyPromoCode', () => {
     await applyPromoCode('promo-1', mockTx, {
       bookingId: 'booking-1',
       customerEmail: 'User@Example.com', // should be lowercased
+      customerPhone: '+620812 3456 7890', // kept as digits
       customerId: 'cust-1',
       amount: 50000,
     });
@@ -782,6 +744,7 @@ describe('applyPromoCode', () => {
         promotionId: 'promo-1',
         bookingId: 'booking-1',
         customerEmail: 'user@example.com', // lowercased
+        customerPhone: '6281234567890',
         amount: expect.any(Object),
       },
     });
@@ -801,13 +764,10 @@ function nettPromo(overrides: Record<string, unknown> = {}) {
     minAmount: new Prisma.Decimal('0'),
     appliesToOperatorIds: [],
     appliesToRouteCodes: [],
-    perCustomerLimit: null,
     firstBookingOnly: false,
     discountType: 'NET' as const,
     discountValue: new Prisma.Decimal('150000'),
     maxDiscountAmount: null,
-    budgetCap: null,
-    budgetSpent: new Prisma.Decimal('0'),
     costBearer: 'PLATFORM' as const,
     description: null,
     ...overrides,
@@ -818,11 +778,11 @@ describe('validatePromoCode: Nett coupons', () => {
   const lookup = (promo: ReturnType<typeof nettPromo>) =>
     vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(promo as any);
 
-  it('brings an adult fare down to the nett price', async () => {
+  it('brings the fare of a seat down to the nett price', async () => {
     lookup(nettPromo());
     const result = await validatePromoCode('NETT150', {
       totalAmount: 200_000,
-      passengerTypes: ['ADULT'],
+      seatFares: [200_000],
     });
 
     expect(result.valid).toBe(true);
@@ -832,88 +792,118 @@ describe('validatePromoCode: Nett coupons', () => {
     }
   });
 
-  it('prices children at the child multiplier and infants free', async () => {
-    lookup(nettPromo());
-    // Fare: adult 200k + child 100k + infant 0 = 300k. Nett: 150k + 75k + 0 = 225k.
-    const result = await validatePromoCode('NETT150', {
-      totalAmount: 300_000,
-      passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
+  it('replaces the fare of the child as well as the adult, at the child\'s own fare', async () => {
+    lookup(nettPromo({ discountValue: new Prisma.Decimal('100000') }));
+    // Adult 200k + child 120k = 320k; both seats at the nett 100k = 200k.
+    const result = await validatePromoCode('NETT100', {
+      totalAmount: 320_000,
+      seatFares: [200_000, 120_000],
     });
 
     expect(result.valid).toBe(true);
-    if (result.valid) expect(result.discountAmount).toBe(75_000);
+    if (result.valid) expect(result.discountAmount).toBe(120_000);
   });
 
-  it('uses the platform multipliers passed in', async () => {
+  it('leaves a seat that already costs less than the nett price alone', async () => {
     lookup(nettPromo());
-    // Child multiplier 0.8: fare 200k + 160k = 360k, nett 150k + 120k = 270k.
     const result = await validatePromoCode('NETT150', {
-      totalAmount: 360_000,
-      passengerTypes: ['ADULT', 'CHILD'],
-      multipliers: { CHILD: 0.8 },
+      totalAmount: 320_000,
+      seatFares: [200_000, 120_000],
     });
 
     expect(result.valid).toBe(true);
-    if (result.valid) expect(result.discountAmount).toBe(90_000);
+    if (result.valid) expect(result.discountAmount).toBe(50_000);
   });
 
-  it('applies the nett price on both legs of a round trip', async () => {
+  it('applies the nett price to the seats of each leg of a round trip', async () => {
     lookup(nettPromo());
-    // Fare 2 x 200k = 400k; nett 2 x 150k = 300k.
+    // Out 200k + 120k, back 180k + 110k.
     const result = await validatePromoCode('NETT150', {
-      totalAmount: 400_000,
-      passengerTypes: ['ADULT'],
-      legCount: 2,
+      totalAmount: 610_000,
+      seatFares: [200_000, 120_000, 180_000, 110_000],
     });
 
     expect(result.valid).toBe(true);
-    if (result.valid) expect(result.discountAmount).toBe(100_000);
+    if (result.valid) expect(result.discountAmount).toBe(80_000);
   });
 
   it('caps the discount with maxDiscountAmount', async () => {
     lookup(nettPromo({ maxDiscountAmount: new Prisma.Decimal('30000') }));
     const result = await validatePromoCode('NETT150', {
       totalAmount: 200_000,
-      passengerTypes: ['ADULT'],
+      seatFares: [200_000],
     });
 
     expect(result.valid).toBe(true);
     if (result.valid) expect(result.discountAmount).toBe(30_000);
   });
 
-  it('refuses when the nett price is not below the fare', async () => {
+  it('refuses when the nett price is not below any seat fare', async () => {
     lookup(nettPromo());
     const result = await validatePromoCode('NETT150', {
       totalAmount: 150_000,
-      passengerTypes: ['ADULT'],
+      seatFares: [150_000],
     });
 
     expect(result.valid).toBe(false);
     if (!result.valid) expect(result.error).toBe('Promo code gives no discount on this trip');
   });
 
-  it('asks for the passengers when it cannot price them', async () => {
+  it('asks for the passengers when it cannot price the seats', async () => {
     lookup(nettPromo());
     const result = await validatePromoCode('NETT150', { totalAmount: 200_000 });
 
     expect(result.valid).toBe(false);
     if (!result.valid) expect(result.error).toBe('Add the passengers to use this promo code');
   });
+});
 
-  it('still runs the budget check on the computed discount', async () => {
-    lookup(
-      nettPromo({
-        budgetCap: new Prisma.Decimal('100000'),
-        budgetSpent: new Prisma.Decimal('60000'),
-      }),
+describe('validatePromoCode: Percent and Flat work on the seat fares', () => {
+  const coupon = (overrides: Record<string, unknown>) =>
+    vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(
+      nettPromo({ code: 'SEATS', ...overrides }) as any,
     );
-    const result = await validatePromoCode('NETT150', {
-      totalAmount: 200_000, // discount 50k > 40k left
-      passengerTypes: ['ADULT'],
+
+  it('takes the percent off the adult and child fares only', async () => {
+    coupon({ discountType: 'PERCENT', discountValue: new Prisma.Decimal('10') });
+    // Seats 200k + 120k; the infant has a 50k fare on this boat and is left out.
+    const result = await validatePromoCode('SEATS', {
+      totalAmount: 370_000,
+      seatFares: [200_000, 120_000],
     });
 
-    expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.error).toBe('Promo code budget is exhausted');
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(32_000);
+  });
+
+  it('takes a flat amount off, but never more than the seat fares', async () => {
+    coupon({ discountType: 'FLAT', discountValue: new Prisma.Decimal('400000') });
+    const result = await validatePromoCode('SEATS', {
+      totalAmount: 370_000,
+      seatFares: [200_000, 120_000],
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(320_000);
+  });
+
+  it('takes a flat amount off as it is when the seats cost more', async () => {
+    coupon({ discountType: 'FLAT', discountValue: new Prisma.Decimal('50000') });
+    const result = await validatePromoCode('SEATS', {
+      totalAmount: 320_000,
+      seatFares: [200_000, 120_000],
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(50_000);
+  });
+
+  it('falls back to the whole fare when the seats are not listed', async () => {
+    coupon({ discountType: 'PERCENT', discountValue: new Prisma.Decimal('10') });
+    const result = await validatePromoCode('SEATS', { totalAmount: 150_000 });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(15_000);
   });
 });
 
@@ -936,7 +926,7 @@ describe('releasePromoRedemption', () => {
     };
   }
 
-  it('returns the use and the spend to the code and logs it', async () => {
+  it('returns the use to the code and logs it', async () => {
     const tx = makeTx(redemption);
 
     const released = await releasePromoRedemption(tx as any, 'booking-1', 'expired');
@@ -950,10 +940,7 @@ describe('releasePromoRedemption', () => {
     });
     expect(tx.promotion.update).toHaveBeenCalledWith({
       where: { id: 'promo-1' },
-      data: {
-        usedCount: { decrement: 1 },
-        budgetSpent: { decrement: redemption.amount },
-      },
+      data: { usedCount: { decrement: 1 } },
     });
     expect(tx.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

@@ -42,7 +42,8 @@ vi.mock('@/shared/server/platform-config', () => ({
   }),
 }));
 
-vi.mock('@/features/pricing/pricing', () => ({
+vi.mock('@/features/pricing/pricing', async (importOriginal) => ({
+  seatFaresForLeg: (await importOriginal<typeof import('@/features/pricing/pricing')>()).seatFaresForLeg,
   computeBookingPriceWithTypes: vi.fn((args) => {
     const passengerTypes = args.passengerTypes || [];
     let total = 0;

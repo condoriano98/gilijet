@@ -183,7 +183,7 @@ const TOOLS: ToolDef[] = [
   {
     name: 'list_coupons',
     description:
-      'Coupons with budget burn, redemption counts and which side absorbs the discount.',
+      'Coupons with their discount, active window, redemption count against the quota and first-booking rule.',
     inputSchema: {
       type: 'object',
       properties: { limit: int('Max rows, default 25, max 100.') },

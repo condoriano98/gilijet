@@ -32,10 +32,11 @@ export const couponSchema = z
     discountType: z.enum(['PERCENT', 'FLAT', 'NET']),
     discountValue: z.coerce.number().positive(),
     minAmount: z.coerce.number().min(0).default(0),
-    maxUses: z.coerce.number().int().positive().optional(),
+    maxUses: z.coerce
+      .number({ message: 'Set Max total uses: Gilifast pays for every coupon, so each one needs a quota' })
+      .int()
+      .positive('Max total uses must be at least 1'),
     maxDiscountAmount: z.coerce.number().positive().optional(),
-    perCustomerLimit: z.coerce.number().int().positive().optional(),
-    budgetCap: z.coerce.number().positive().optional(),
     firstBookingOnly: z.boolean().default(false),
     description: z.string().max(200).optional(),
     startsAt: z.date().nullable(),
@@ -49,14 +50,6 @@ export const couponSchema = z
     message: 'Percent discount cannot exceed 100',
     path: ['discountValue'],
   })
-  .refine(
-    (d) => d.budgetCap != null || d.maxUses != null || d.maxDiscountAmount != null,
-    {
-      message:
-        'Gilifast pays for every coupon, so set a budget cap, max uses, or a max discount to bound the cost',
-      path: ['budgetCap'],
-    },
-  )
   .refine((d) => d.allRoutes || d.routeCodes.length > 0, {
     message: 'Pick at least one route, or choose All routes',
     path: ['routeCodes'],
@@ -76,8 +69,6 @@ export function readCouponForm(formData: FormData) {
     minAmount: formData.get('minAmount') || 0,
     maxUses: formData.get('maxUses') || undefined,
     maxDiscountAmount: formData.get('maxDiscountAmount') || undefined,
-    perCustomerLimit: formData.get('perCustomerLimit') || undefined,
-    budgetCap: formData.get('budgetCap') || undefined,
     firstBookingOnly: formData.get('firstBookingOnly') === 'on',
     description: String(formData.get('description') ?? '').trim() || undefined,
     startsAt: parseWita(formData.get('startsAt')),
@@ -99,10 +90,8 @@ export function couponRecord(d: CouponInput) {
     discountType: d.discountType,
     discountValue: d.discountValue,
     minAmount: d.minAmount,
-    maxUses: d.maxUses ?? null,
+    maxUses: d.maxUses,
     maxDiscountAmount: d.maxDiscountAmount ?? null,
-    perCustomerLimit: d.perCustomerLimit ?? null,
-    budgetCap: d.budgetCap ?? null,
     firstBookingOnly: d.firstBookingOnly,
     costBearer: 'PLATFORM' as const,
     description: d.description ?? null,

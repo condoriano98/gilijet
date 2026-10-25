@@ -430,10 +430,7 @@ describe('cancelLeg', () => {
     expect(promotionUpdate).toHaveBeenCalledTimes(1);
     expect(promotionUpdate).toHaveBeenCalledWith({
       where: { id: 'promo-1' },
-      data: {
-        usedCount: { decrement: 1 },
-        budgetSpent: { decrement: new Prisma.Decimal('100000') },
-      },
+      data: { usedCount: { decrement: 1 } },
     });
   });
 

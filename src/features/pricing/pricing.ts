@@ -61,23 +61,53 @@ export const TRAVELER_MULTIPLIERS: Record<PassengerType, number> = {
 };
 
 /**
- * What a "Nett" coupon charges for a booking's fare: the nett price is the
- * adult price per leg, and children and infants follow the traveler
- * multipliers (child half, infant free by default). `legCount` is 2 for a
- * round trip, where the nett price applies to each leg.
+ * The fare one passenger pays on one leg: the leg's absolute fare for their
+ * category when it has one (the schedule's fare matrix), else the adult price
+ * times the category multiplier.
  */
-export function netFareForPassengers(args: {
-  netPrice: number;
+export function passengerFare(args: {
+  unitPrice: Prisma.Decimal | string | number;
+  type: PassengerType;
+  multipliers?: Partial<Record<PassengerType, number>>;
+  categoryUnitPrices?: Partial<Record<PassengerType, Prisma.Decimal | string | number>>;
+}): Prisma.Decimal {
+  const override = args.categoryUnitPrices?.[args.type];
+  if (override != null) return new Prisma.Decimal(override);
+  return new Prisma.Decimal(args.unitPrice).mul(
+    args.multipliers?.[args.type] ?? TRAVELER_MULTIPLIERS[args.type],
+  );
+}
+
+/**
+ * The listed fares of the passengers who need a seat (adults and children) on
+ * one leg, one entry per passenger. Infants ride on a lap and are left out:
+ * coupons work on seat fares only.
+ */
+export function seatFaresForLeg(args: {
+  unitPrice: Prisma.Decimal | string | number;
   passengerTypes: PassengerType[];
   multipliers?: Partial<Record<PassengerType, number>>;
-  legCount?: number;
-}): number {
-  const mult = (t: PassengerType) => args.multipliers?.[t] ?? TRAVELER_MULTIPLIERS[t];
-  const perLeg = args.passengerTypes.reduce(
-    (sum, t) => sum.add(new Prisma.Decimal(args.netPrice).mul(mult(t))),
-    new Prisma.Decimal(0),
-  );
-  return perLeg.mul(args.legCount ?? 1).toDecimalPlaces(0).toNumber();
+  categoryUnitPrices?: Partial<Record<PassengerType, Prisma.Decimal | string | number>>;
+}): number[] {
+  return args.passengerTypes
+    .filter((type) => type !== 'INFANT')
+    .map((type) => passengerFare({ ...args, type }).toNumber());
+}
+
+/**
+ * What a "Nett" coupon takes off: the nett price replaces the listed fare of
+ * every passenger who needs a seat, on every leg, so the discount is the gap
+ * between each of those fares and the nett price. A seat already cheaper than
+ * the nett price is left alone.
+ */
+export function netDiscountForSeats(args: { netPrice: number; seatFares: number[] }): number {
+  return args.seatFares
+    .reduce(
+      (sum, fare) => sum.add(Prisma.Decimal.max(new Prisma.Decimal(fare).sub(args.netPrice), 0)),
+      new Prisma.Decimal(0),
+    )
+    .toDecimalPlaces(0)
+    .toNumber();
 }
 
 export type PriceBreakdownWithTypes = PriceBreakdown & {
@@ -136,12 +166,7 @@ export function computeBookingPriceWithTypes(args: {
     throw new Error('at least one passenger required');
   }
 
-  const mult = (t: PassengerType) =>
-    args.multipliers?.[t] ?? TRAVELER_MULTIPLIERS[t];
-  const fareFor = (t: PassengerType) => {
-    const override = args.categoryUnitPrices?.[t];
-    return override != null ? new Prisma.Decimal(override) : unitPrice.mul(mult(t));
-  };
+  const fareFor = (type: PassengerType) => passengerFare({ ...args, unitPrice, type });
 
   let adultCount = 0;
   let childCount = 0;

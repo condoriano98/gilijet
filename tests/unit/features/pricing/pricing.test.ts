@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   computeBookingPrice,
   computeBookingPriceWithTypes,
-  netFareForPassengers,
+  netDiscountForSeats,
+  passengerFare,
+  seatFaresForLeg,
 } from '@/features/pricing/pricing';
 import { Prisma } from '@prisma/client';
 
@@ -258,48 +260,85 @@ describe('computeBookingPriceWithTypes — payout floor & service fee', () => {
   });
 });
 
-describe('netFareForPassengers', () => {
-  it('charges the nett price for each adult', () => {
+describe('passengerFare', () => {
+  it("uses the leg's own fare for a category when it has one", () => {
     expect(
-      netFareForPassengers({ netPrice: 150_000, passengerTypes: ['ADULT', 'ADULT'] }),
-    ).toBe(300_000);
+      passengerFare({
+        unitPrice: 200_000,
+        type: 'CHILD',
+        categoryUnitPrices: { CHILD: 120_000 },
+      }).toNumber(),
+    ).toBe(120_000);
   });
 
-  it('puts children at the child multiplier and infants at the infant multiplier', () => {
+  it('falls back to the adult price times the multiplier', () => {
+    expect(passengerFare({ unitPrice: 200_000, type: 'CHILD' }).toNumber()).toBe(100_000);
     expect(
-      netFareForPassengers({
-        netPrice: 200_000,
+      passengerFare({ unitPrice: 200_000, type: 'CHILD', multipliers: { CHILD: 0.75 } }).toNumber(),
+    ).toBe(150_000);
+  });
+});
+
+describe('seatFaresForLeg', () => {
+  it('lists adults and children and leaves the infant on the lap out', () => {
+    expect(
+      seatFaresForLeg({
+        unitPrice: 200_000,
         passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
+        categoryUnitPrices: { CHILD: 120_000, INFANT: 0 },
       }),
-    ).toBe(300_000); // 200k + 100k (child 50%) + 0 (infant free)
+    ).toEqual([200_000, 120_000]);
   });
 
-  it('uses the platform multipliers over the defaults', () => {
+  it('leaves out an infant even when its boat charges for infants', () => {
     expect(
-      netFareForPassengers({
-        netPrice: 100_000,
-        passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
-        multipliers: { CHILD: 0.75, INFANT: 0.1 },
+      seatFaresForLeg({
+        unitPrice: 200_000,
+        passengerTypes: ['INFANT', 'ADULT'],
+        categoryUnitPrices: { INFANT: 50_000 },
       }),
-    ).toBe(185_000);
+    ).toEqual([200_000]);
+  });
+});
+
+describe('netDiscountForSeats', () => {
+  it('takes the gap between each seat fare and the nett price off', () => {
+    expect(netDiscountForSeats({ netPrice: 100_000, seatFares: [200_000, 120_000] })).toBe(120_000);
   });
 
-  it('applies the nett price on each leg of a round trip', () => {
+  it('covers every leg of a round trip', () => {
     expect(
-      netFareForPassengers({
-        netPrice: 120_000,
-        passengerTypes: ['ADULT', 'CHILD'],
-        legCount: 2,
-      }),
-    ).toBe(2 * (120_000 + 60_000));
+      netDiscountForSeats({ netPrice: 150_000, seatFares: [200_000, 120_000, 180_000, 110_000] }),
+    ).toBe(50_000 + 30_000);
   });
 
-  it('rounds to whole rupiah', () => {
-    expect(
-      netFareForPassengers({
-        netPrice: 100_001,
-        passengerTypes: ['CHILD'],
-      }),
-    ).toBe(50_001); // 50,000.5 rounds half up
+  it('never raises a seat that costs less than the nett price', () => {
+    expect(netDiscountForSeats({ netPrice: 150_000, seatFares: [120_000, 100_000] })).toBe(0);
+    expect(netDiscountForSeats({ netPrice: 150_000, seatFares: [200_000, 100_000] })).toBe(50_000);
+  });
+
+  it('is zero with no seats', () => {
+    expect(netDiscountForSeats({ netPrice: 150_000, seatFares: [] })).toBe(0);
+  });
+});
+
+describe('a Nett coupon next to an infant on a lap', () => {
+  it('prices every seat at the nett price and leaves the free infant free', () => {
+    const types = ['ADULT', 'CHILD', 'INFANT'] as const;
+    const categoryUnitPrices = { CHILD: 120_000, INFANT: 0 };
+    const seatFares = seatFaresForLeg({
+      unitPrice: 200_000,
+      passengerTypes: [...types],
+      categoryUnitPrices,
+    });
+    const net = computeBookingPriceWithTypes({
+      unitPrice: 200_000,
+      passengerTypes: [...types],
+      categoryUnitPrices,
+      discountAmount: netDiscountForSeats({ netPrice: 150_000, seatFares }),
+    });
+
+    // 150k adult + 120k child (already under the nett price) + free infant.
+    expect(net.fareAmount.toString()).toBe('270000');
   });
 });

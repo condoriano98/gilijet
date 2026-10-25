@@ -70,7 +70,7 @@ Route-private components live in `_components/` beside the route that uses them 
 ### `src/shared/`
 
 - `server/` — `db` (the only Prisma client), `auth`, `env`, `audit`, `login-throttle`, `platform-config`, `google-oauth`, `build-info` (running version + commit)
-- `lib/` — `datetime` (WITA), `utils`, `serialize-decimals`, `countries`
+- `lib/` — `datetime` (WITA), `utils`, `serialize-decimals`, `countries`, `phone`
 - `ui/` — shadcn-style primitives
 
 ## Where does new code go?

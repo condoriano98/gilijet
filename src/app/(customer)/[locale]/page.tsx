@@ -204,7 +204,7 @@ export default async function HomePage() {
                     {promo.discountType === 'PERCENT'
                       ? `Save ${promo.discountValue}% on your next trip`
                       : promo.discountType === 'NET'
-                        ? `Pay just IDR ${promo.discountValue.toLocaleString('id-ID')} per adult on your next trip`
+                        ? `Pay just IDR ${promo.discountValue.toLocaleString('id-ID')} per seat on your next trip`
                         : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
                   </h3>
                 </div>

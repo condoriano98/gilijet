@@ -69,11 +69,9 @@ export default async function EditCouponPage({
         <CardHeader>
           <CardTitle>Settings</CardTitle>
           <CardDescription>
-            Used {promo.usedCount} time{promo.usedCount === 1 ? '' : 's'}
-            {promo.budgetCap != null
-              ? ` · ${formatIDR(Number(promo.budgetSpent))} of ${formatIDR(Number(promo.budgetCap))} budget spent`
-              : ''}
-            .
+            Used {promo.usedCount}
+            {promo.maxUses != null ? ` of ${promo.maxUses}` : ''} time
+            {promo.usedCount === 1 && promo.maxUses == null ? '' : 's'}.
           </CardDescription>
         </CardHeader>
         <CardContent>

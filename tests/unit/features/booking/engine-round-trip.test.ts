@@ -21,7 +21,8 @@ vi.mock('@/shared/server/db', () => ({
   },
 }));
 
-vi.mock('@/features/pricing/pricing', () => ({
+vi.mock('@/features/pricing/pricing', async (importOriginal) => ({
+  seatFaresForLeg: (await importOriginal<typeof import('@/features/pricing/pricing')>()).seatFaresForLeg,
   computeBookingPriceWithTypes: vi.fn((args) => {
     const unitPrice = new Prisma.Decimal(args.unitPrice || 0);
     const passengerCount = args.passengerTypes?.length || 1;
@@ -637,11 +638,16 @@ describe('createRoundTripBooking - Phase 3 Round-Trip', () => {
 
       expect(result.bookingId).toBe('booking-promo');
 
-      // A Nett coupon prices the booking from the passengers, per leg.
+      // Coupons work on the fare of every seat (adults and children) of each leg;
+      // a first-booking-only coupon recognises the buyer by email or phone.
       const { validatePromoCode } = await import('@/features/pricing/promotions');
       expect(vi.mocked(validatePromoCode)).toHaveBeenCalledWith(
         'SAVE50',
-        expect.objectContaining({ passengerTypes: ['ADULT'], legCount: 2 }),
+        expect.objectContaining({
+          seatFares: [250000, 250000],
+          customerEmail: 'test@example.com',
+          customerPhone: '+62000',
+        }),
       );
     });
   });
