@@ -64,7 +64,7 @@ Check each; the staging values do not carry over. Values are never written here.
 
 Merging alone does **not** start it. Three things are closed on purpose (decided 2026-10-24, nothing changed in code yet):
 
-1. **No schedule.** `vercel.json` has only `retry-webhooks`, `topup-legs` and `refresh-fx`. Add `{ "path": "/api/cron/poll-operator-inbox", "schedule": "*/5 * * * *" }` (a code change, commit it before or after the merge; the team is on Pro so 5 minutes is allowed; Vercel only runs crons on production, so staging is unaffected). Env vars cannot start it.
+1. **Schedule.** Done 2026-10-25 (uncommitted until the user approves): `vercel.json` now has `{ "path": "/api/cron/poll-operator-inbox", "schedule": "*/5 * * * *" }` next to `retry-webhooks`, `topup-legs` and `refresh-fx`; it ships with the merge (the team is on Pro so 5 minutes is allowed; Vercel only runs crons on production, so staging is unaffected). Env vars cannot start it.
 2. **`INBOX_POLL_LIVE` is not `true`**, so any poll is a dry run (reads and reports, forwards nothing). Production already has `INBOX_IMAP_*`, `SMTP_*`, `EMAIL_FROM`, `CRON_SECRET`; it has neither `INBOX_POLL_SINCE` nor `INBOX_POLL_LIVE`.
 3. **Sender match.** Only a sender equal to a PIC row's `emailKonfirmasiTrigger` is processed (Wahana row 1: `no-reply@virendrafastferry.com`; Wahana row 2 has none).
 

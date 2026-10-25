@@ -14,6 +14,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Changed
 
+- `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
 
 ## [1.10.1] - 2026-10-24

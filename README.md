@@ -345,7 +345,9 @@ Honest state, so nobody plans against features that do not work:
 - **Unscheduled cron endpoints.** `send-reminders` and `poll-bmkg` are
   implemented and callable but absent from `vercel.json`, so departure
   reminders and BMKG weather never run on their own. Only `retry-webhooks`,
-  `topup-legs` and `refresh-fx` are scheduled there.
+  `topup-legs`, `refresh-fx` and `poll-operator-inbox` (every 5 minutes) are
+  scheduled there. The inbox poll only forwards for real when
+  `INBOX_POLL_LIVE=true`; otherwise it is a dry run.
 - **Live keys must be set in the hosting environment, not just in a
   dashboard.** Until `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` are set the app
   runs in mock mode and takes no real money — checkout falls back to the
