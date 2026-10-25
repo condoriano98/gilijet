@@ -140,4 +140,4 @@ name the target project.
 - `prod-search-mode-fix` is an older ad-hoc tag, kept as history. New tags are
   always `vX.Y.Z`.
 - The database schema is versioned with Prisma migrations since 2026-10-14
-  (`prisma/migrations/`). Design and QC: `docs/spikes/VERSIONING.md`.
+  (`prisma/migrations/`). Design and QC: `docs/spikes/in-progress/VERSIONING.md`.

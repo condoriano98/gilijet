@@ -6,7 +6,7 @@ operator side — currently done by an admin calling the operator by phone
 (see `/admin/confirmations`, `lib/ticket-issuer.ts`). This table stores
 *who to contact*. Since 2026-10-18 `src/features/messaging/pic-notifications.ts`
 reads `nohpNotifikasi` and sends the "order paid" WhatsApp (e-ticket Part A,
-`docs/spikes/FEATURE_ETICKET_PIC_NOTIFICATION.md`). The email trigger and the
+`docs/spikes/in-progress/FEATURE_ETICKET_PIC_NOTIFICATION.md`). The email trigger and the
 "first responder wins" race are not implemented yet — future work.
 
 ## Schema
