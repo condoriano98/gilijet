@@ -11,7 +11,7 @@ datasource db {
   // Required on serverless platforms (Vercel) — without it you exhaust
   // Postgres connections within minutes.
   url       = env("DATABASE_URL")
-  // Migrations and `prisma db push` need a direct, non-pooled connection
+  // Migrations need a direct, non-pooled connection
   // (port 5432). Only needed when running prisma CLI; runtime ignores it.
   directUrl = env("DIRECT_URL")
 }
@@ -38,10 +38,10 @@ enum PaymentMethod {
 enum PaymentProvider {
   MIDTRANS
   PAYPAL
-  // Legacy values retained (unused by the app) so `prisma db push` without
-  // --accept-data-loss stays additive: dropping enum values that existing rows
-  // still reference is destructive and would fail the whole push, leaving the
-  // DB without the columns/values it needs.
+  // Legacy values retained (unused by the app) so schema changes stay
+  // additive: dropping enum values that existing rows still reference is
+  // destructive and would fail the migration, leaving the DB without the
+  // columns/values it needs.
   XENDIT
   MAYAR
   STRIPE
@@ -68,6 +68,7 @@ enum AuditEntityType {
   PROMOTION
   RESCHEDULE_REQUEST
   PLATFORM_CONFIG
+  SEASON
 }
 
 enum AuditUserRole {
@@ -228,22 +229,49 @@ model Leg {
   operatorId         String
   departureDate      DateTime // UTC instant of this specific departure
   basePrice          Decimal   @db.Decimal(12, 2)
+  // Set by adjustDeparturePrice; the season resolver skips legs with a manual price.
+  priceOverridden    Boolean   @default(false)
   status             LegStatus @default(OPEN)
   cancellationReason String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  schedule               Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
-  operator               Operator            @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  bookings               Booking[]
-  reschedulesAsOriginal  RescheduleRequest[] @relation("OriginalLeg")
-  reschedulesAsRequested RescheduleRequest[] @relation("RequestedLeg")
-  seatHolds              SeatHold[]
-  weatherSnapshots       WeatherSnapshot[]
+  schedule                     Schedule            @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  operator                     Operator            @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  bookings                     Booking[]           @relation("OneWayBooking")
+  outboundBookings             Booking[]           @relation("OutboundBooking")
+  returnBookings               Booking[]           @relation("ReturnBooking")
+  ticketCheckins               TicketCheckin[]
+  reschedulesAsOriginal        RescheduleRequest[] @relation("OriginalLeg")
+  reschedulesAsRequested       RescheduleRequest[] @relation("RequestedLeg")
+  seatHolds                    SeatHold[]
+  weatherSnapshots             WeatherSnapshot[]
 
   @@unique([scheduleId, departureDate])
   @@index([departureDate, status])
   @@index([operatorId, departureDate])
+}
+
+enum SeasonType {
+  LOW
+  HIGH
+  PEAK
+  OFF
+}
+
+// Calendar only: date range -> season type. Prices live in Schedule.fareMatrix.
+model Season {
+  id        String     @id @default(cuid())
+  type      SeasonType
+  startDate DateTime   @db.Date
+  endDate   DateTime   @db.Date
+  note      String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@index([startDate, endDate])
 }
 
 enum LegStatus {
@@ -258,7 +286,15 @@ enum LegStatus {
 model Booking {
   id                   String        @id @default(cuid())
   bookingReference     String        @unique
-  legId                String
+  legId                String?       // ONE_WAY: references outbound leg; ROUND_TRIP: NULL (use outboundLegId + returnLegId)
+
+  // ROUND_TRIP specific fields
+  outboundLegId        String?       // ROUND_TRIP: reference to outbound leg
+  returnLegId          String?       // ROUND_TRIP: reference to return leg
+  tripType             TripType      @default(ONE_WAY)
+  // Season used to price this booking, for audit. Totals are never recomputed from it.
+  seasonSnapshot       Json?
+
   customerId           String?
   operatorId           String
   agentId              String?
@@ -299,24 +335,29 @@ model Booking {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-  leg               Leg                @relation(fields: [legId], references: [id], onDelete: Restrict)
-  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  operator          Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
-  agent             Agent?             @relation(fields: [agentId], references: [id])
-  salesStaff        OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
-  salesAgent        TravelAgent?       @relation(fields: [salesAgentId], references: [id])
-  promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  leg                Leg?               @relation("OneWayBooking", fields: [legId], references: [id], onDelete: Restrict)
+  outboundLeg        Leg?               @relation("OutboundBooking", fields: [outboundLegId], references: [id], onDelete: Restrict)
+  returnLeg          Leg?               @relation("ReturnBooking", fields: [returnLegId], references: [id], onDelete: Restrict)
+  customer           Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  operator           Operator           @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  agent              Agent?             @relation(fields: [agentId], references: [id])
+  salesStaff         OperatorStaff?     @relation("SalesStaff", fields: [salesStaffId], references: [id])
+  salesAgent         TravelAgent?       @relation(fields: [salesAgentId], references: [id])
+  promotion          Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict)
   promotionRedemption PromotionRedemption?
-  tickets           Ticket[]
-  payment           Payment?
-  refund            Refund?
-  review            Review?
-  rescheduleRequest RescheduleRequest?
-  addons            BookingAddon[]
-  seatHold          SeatHold?
+  tickets            Ticket[]
+  payment            Payment?
+  refund             Refund?
+  review             Review?
+  rescheduleRequest  RescheduleRequest?
+  addons             BookingAddon[]
+  seatHold           SeatHold?
   loyaltyTransactions LoyaltyTransaction[]
 
   @@index([legId])
+  @@index([outboundLegId])
+  @@index([returnLegId])
+  @@index([tripType])
   @@index([status])
   @@index([customerEmail])
   @@index([customerId])
@@ -340,6 +381,11 @@ enum BookingStatus {
   EXPIRED
 }
 
+enum TripType {
+  ONE_WAY
+  ROUND_TRIP
+}
+
 model Ticket {
   id                String       @id @default(cuid())
   ticketCode        String       @unique // TK-2026-05-000001-1
@@ -355,10 +401,27 @@ model Ticket {
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   checkedInByStaff OperatorStaff? @relation("CheckedInBy", fields: [checkedInById], references: [id])
+  checkins TicketCheckin[]
 
   @@index([bookingId])
   @@index([qrHash])
   @@index([checkedInById])
+}
+
+// One row per boarding: a round-trip ticket is scanned once per leg, so
+// Ticket.status alone cannot say which leg a passenger has boarded.
+model TicketCheckin {
+  id          String   @id @default(cuid())
+  ticketId    String
+  legId       String
+  checkedInAt DateTime @default(now())
+  checkedInBy String?
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  leg    Leg    @relation(fields: [legId], references: [id], onDelete: Restrict)
+
+  @@unique([ticketId, legId])
+  @@index([legId])
 }
 
 enum TicketStatus {
@@ -544,7 +607,7 @@ model PlatformConfig {
   adultMultiplier   Decimal  @default(1) @db.Decimal(5, 4)
   childMultiplier   Decimal  @default(0.5) @db.Decimal(5, 4)
   infantMultiplier  Decimal  @default(0) @db.Decimal(5, 4)
-  // Where booking alerts go, and the WATI template that carries them. Kept on
+  // Where booking alerts go, and the WhatsApp template that carries them. Kept on
   // the config row rather than only in env so the on-call number can move
   // between staff without a redeploy. Env supplies the fallback; see
   // lib/admin-alerts.ts.
@@ -1058,7 +1121,7 @@ enum SalesChannel {
   GILIFAST
   // Pre-rename value for the same thing: our own platform. Existing Booking
   // rows still carry it, and dropping an enum value those rows reference is
-  // destructive — `prisma db push` would refuse the whole push. Kept for the
+  // destructive — the migration would fail. Kept for the
   // same reason as the legacy PaymentProvider values above. Anything asking
   // "was this sold on our platform?" must match both; see DIRECT_SALES_CHANNELS
   // in lib/operator-erp-queries.ts.

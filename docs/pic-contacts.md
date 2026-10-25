@@ -3,8 +3,10 @@
 Contact channels (phone/email) for a boat operator's PIC (Person In Charge).
 This is the data foundation for automating booking confirmation with the
 operator side — currently done by an admin calling the operator by phone
-(see `/admin/confirmations`, `lib/ticket-issuer.ts`). This table only stores
-*who to contact*; the actual WhatsApp/email trigger automation and the
+(see `/admin/confirmations`, `lib/ticket-issuer.ts`). This table stores
+*who to contact*. Since 2026-10-18 `src/features/messaging/pic-notifications.ts`
+reads `nohpNotifikasi` and sends the "order paid" WhatsApp (e-ticket Part A,
+`docs/spikes/FEATURE_ETICKET_PIC_NOTIFICATION.md`). The email trigger and the
 "first responder wins" race are not implemented yet — future work.
 
 ## Schema
@@ -48,6 +50,12 @@ model OperatorPicContact {
   whichever one responds first is the one that counts — that race is
   application logic for a future automation ticket, not enforced by this
   table (no `respondedAt` / priority column exists here).
+  Since 1.4.0 `emailKonfirmasiTrigger` is also read by the e-ticket
+  forward (`src/features/tickets/operator-ticket-email.ts`; since 1.5.0 the
+  mailbox is polled over IMAP by `operator-ticket-inbox.ts`, which searches for
+  mail from these addresses): an email is only accepted when its sender equals an operator's
+  `emailKonfirmasiTrigger` (Wahana: `no-reply@virendrafastferry.com`).
+  The platform row (`operatorId` null) is not a sender.
 
 ## RLS
 
@@ -57,7 +65,7 @@ This app doesn't use Supabase Auth — `requireAdmin()` / `requireOperator()`
 (custom JWT cookies, see `lib/auth.ts`) are the actual authorization
 boundary, and the backend connects to Postgres directly via `DATABASE_URL`
 (not through Supabase's PostgREST/anon-key layer). The connecting role is
-this table's **owner** (it created the table via `prisma db push`), and
+this table's **owner** (it created the table via `prisma db push`, before migrations existed), and
 Postgres table owners bypass RLS by default — so the backend keeps reading
 and writing normally. Enabling RLS with zero policies is defense-in-depth:
 it denies any `anon` / `authenticated` role, i.e. blocks the table entirely
@@ -79,3 +87,7 @@ pnpm tsx scripts/seed-pic-contacts.ts
 An earlier version of the CSV had one corrupted value (a spreadsheet
 scientific-notation artifact that ate a phone number's digits); the
 current CSV has been corrected and fully seeded to staging.
+
+> **Update 2026-10-18:** phone numbers are stored as `628…` digits (no `0`, no `+`); `seed-pic-contacts.ts` now normalizes them. Staging rows were fixed on 2026-10-18; **production rows still need the same fix** before Part A is released.
+
+> **Update 2026-10-14:** `ENABLE ROW LEVEL SECURITY` on `OperatorPicContact` is recorded in migration `prisma/migrations/0_init`, so a database built from migrations matches the existing ones. See `docs/RELEASING.md`.

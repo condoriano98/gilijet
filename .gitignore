@@ -54,3 +54,7 @@ test-results/
 # database backups (contain user data - never commit)
 backups/
 scripts/prod/
+
+# local agent files
+.codegraph/
+docs/database.pdf

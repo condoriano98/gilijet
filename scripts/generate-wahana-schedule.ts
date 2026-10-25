@@ -1,5 +1,5 @@
 /**
- * Generate lib/wahana-schedule.ts from the CSV price sheet.
+ * Generate src/features/schedules/wahana-schedule.ts from the CSV price sheet.
  *
  * Usage:
  *   pnpm gen:wahana
@@ -117,7 +117,7 @@ function parseCSV(content: string): PriceRow[] {
 
 async function main() {
   const csvPath = path.join(process.cwd(), 'price_schedule_pt wahana virendra group.csv');
-  const outputPath = path.join(process.cwd(), 'lib', 'wahana-schedule.ts');
+  const outputPath = path.join(process.cwd(), 'src', 'features', 'schedules', 'wahana-schedule.ts');
 
   if (!fs.existsSync(csvPath)) {
     throw new Error(`CSV not found at ${csvPath}`);
@@ -245,7 +245,7 @@ async function main() {
 // (price_schedule_pt_wahana_virendra_group.csv, ${rows.length} rows -> ${result.length} departures).
 // Do not hand-edit: re-run scripts/generate-wahana-schedule.ts instead.
 
-import type { FareMatrix } from "@/lib/fares";
+import type { FareMatrix } from "@/features/pricing/fares";
 
 export type WahanaDeparture = {
   /** PRICE_CODE values this departure was collapsed from, for traceability. */

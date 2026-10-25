@@ -10,8 +10,8 @@
  */
 
 import bcrypt from 'bcryptjs';
-import { prisma } from '../lib/db';
-import { generateLegsForSchedule } from '../lib/legs';
+import { prisma } from '../src/shared/server/db';
+import { generateLegsForSchedule } from '../src/features/schedules/legs';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

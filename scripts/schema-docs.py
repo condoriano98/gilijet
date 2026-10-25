@@ -562,21 +562,19 @@ def build(models, enums, out_path: Path):
             "<font face='Courier'>XENDIT</font>, <font face='Courier'>MAYAR</font> "
             "and <font face='Courier'>STRIPE</font>. They are kept because existing "
             "rows reference them, and dropping an in-use enum value makes "
-            "<font face='Courier'>prisma db push</font> refuse the entire push. "
+            "a schema migration fail. "
             "<font face='Courier'>lib/sales-channel.ts</font> folds the legacy "
             "channel onto the current one for every report and display; anything "
             "asking \"was this sold on our own platform?\" must match both.",
         ),
         Spacer(1, 2 * mm),
         para(
-            "<b>No migration history.</b> There is no "
-            "<font face='Courier'>prisma/migrations/</font> directory. Schema "
-            "reaches the database through "
-            "<font face='Courier'>prisma db push</font> during the build, run by "
-            "<font face='Courier'>scripts/db-push-if-configured.mjs</font>, never "
-            "with <font face='Courier'>--accept-data-loss</font>. A destructive "
-            "change fails the build rather than executing — including any table "
-            "created by hand in the SQL editor that the schema does not know about.",
+            "<b>Migration history.</b> Schema changes are Prisma migrations in "
+            "<font face='Courier'>prisma/migrations/</font>, applied in the build by "
+            "<font face='Courier'>scripts/db-migrate-if-configured.mjs</font> "
+            "(<font face='Courier'>prisma migrate deploy</font>) on production and "
+            "staging only. Migrations are forward-only; a change that cannot be "
+            "applied fails the build instead of executing.",
             "note",
         ),
         PageBreak(),

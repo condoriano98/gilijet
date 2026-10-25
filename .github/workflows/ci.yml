@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "claude/*"]
+    branches: [main, staging, "claude/*"]
   pull_request:
     branches: [main]
 
@@ -38,6 +38,42 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  migrations:
+    name: Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gilifast_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gilifast_migrations
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/gilifast_migrations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
+      # The migrations must build the whole schema on an empty database...
+      - run: pnpm prisma migrate deploy
+      # ...and the result must equal schema.prisma, so the schema can never
+      # change without a migration (exit code 2 = there is a difference).
+      - run: pnpm prisma migrate diff --from-url "$DIRECT_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -57,7 +93,7 @@ jobs:
     name: E2E tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [typecheck, lint, unit-tests]
+    needs: [typecheck, lint, unit-tests, migrations]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
     services:
       postgres:
@@ -93,7 +129,7 @@ jobs:
       # launch. Only chromium is needed — it is the sole project in
       # playwright.config.ts.
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm prisma db push
+      - run: pnpm prisma migrate deploy
       # The specs assert against fixed QA ids, so an empty database fails them
       # all regardless of the app being correct.
       - run: pnpm seed:qa

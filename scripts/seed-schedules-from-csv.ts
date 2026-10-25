@@ -179,7 +179,7 @@ async function main() {
   console.log(`✓ Created ${created} schedules`);
 
   // Generate legs
-  const { generateLegsForSchedule, seasonSeedParams } = await import('../lib/legs');
+  const { generateLegsForSchedule, seasonSeedParams } = await import('../src/features/schedules/legs');
   const schedules = await prisma.schedule.findMany({
     where: { boat: { operatorId: operator.id }, status: 'ACTIVE', deletedAt: null },
     select: { id: true },

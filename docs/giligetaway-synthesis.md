@@ -1,3 +1,5 @@
+> **Status note (2026-10-14):** historical plan, not rewritten. File paths below (`app/…`, `lib/…`, `components/…`) predate the `src/` restructure; see `STRUCTURE.md` for current locations. This is market research and a seed plan, not a feature spec; whether each action was carried out was not checked.
+
 # Giligetaway Data Synthesis — Action Plan
 
 ## Context
@@ -88,7 +90,7 @@ That's the only comment to add. Do not add per-row comments. Do not add a commen
 ### G1.3 — Run seed locally and confirm
 
 ```bash
-pnpm db:push       # ensures schema is up to date
+pnpm db:deploy     # applies pending migrations
 pnpm db:seed:real  # idempotent; safe to re-run
 pnpm dev
 # Visit http://localhost:3000 and search Serangan → Gili Trawangan on a future date

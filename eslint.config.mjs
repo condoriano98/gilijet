@@ -26,6 +26,29 @@ export default defineConfig([
       'no-unused-vars': 'off', // disabled in favor of TypeScript
     },
   },
+  // Layering: app -> features -> shared. Imports may only point 'down'.
+  // Features may import each other (booking/payments/tickets are one
+  // interlocking flow), but neither features nor shared may reach into app/.
+  {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/features/*', '@/app/*', '@/mcp/*', '**/features/**', '**/app/**', '**/mcp/**'], message: 'shared/ is the lowest layer: it must not import features/, app/ or mcp/.' },
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/features/**/*.{ts,tsx}', 'src/mcp/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/app/*', '**/app/**'], message: 'features/ must not import from app/ (routes depend on features, not the other way round).' },
+        ],
+      }],
+    },
+  },
   globalIgnores([
     '.next/**',
     'out/**',

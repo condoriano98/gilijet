@@ -1,6 +1,6 @@
 import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -19,7 +19,7 @@ const nextConfig = {
     ],
   },
   // Stable since Next 15; was experimental.serverComponentsExternalPackages.
-  serverExternalPackages: ['@prisma/client'],
+  serverExternalPackages: ['@prisma/client', 'imapflow', 'mailparser', 'nodemailer'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

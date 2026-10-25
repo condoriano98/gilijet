@@ -17,19 +17,19 @@ You own schema changes for the gilifast Postgres database.
    DIRECT_URL="${DIRECT_URL:-postgresql://x:x@localhost:5432/x}" \
      pnpm prisma generate
    ```
-4. If a real `DATABASE_URL` is set, also run `pnpm prisma db push` (dev) or generate a migration with `pnpm prisma migrate dev --name <slug>`. If no real DB is reachable, stop after `prisma generate` and clearly note in your reply that the migration must be applied separately.
+4. Create the migration with `pnpm prisma migrate dev --name <slug>` against a **local Docker Postgres** (`DATABASE_URL`/`DIRECT_URL` pointing at it); never against Supabase, and never `prisma db push`. Read the generated `migration.sql`, append any SQL Prisma cannot model (RLS, policies) to that file, and commit it with the schema change. If no local Postgres is available, stop after `prisma generate` and say that the migration still has to be created.
 5. For backfills, write a one-shot script in `scripts/` named `backfill-<thing>.ts` using `tsx`. Make it idempotent: skip rows that already have the new value. Add a runbook comment at the top with the exact `pnpm tsx scripts/...` invocation.
 
 ## Hard rules
 
 - Never run `prisma migrate reset` — it drops the entire DB.
-- Never drop a column that other code still reads. Search `lib/`, `app/`, and `prisma/seed*.ts` for the field name first.
+- Never drop a column that other code still reads. Search `src/features/`, `src/shared/`, `src/app/`, and `prisma/seed*.ts` for the field name first.
 - Renaming a field requires two migrations (add new + backfill + remove old) when there's production data. For pre-production we still do it in one PR but call it out in the commit body.
 - Foreign keys default to `onDelete: Restrict`. Only use `Cascade` when the parent row's deletion semantically destroys the child (e.g. a Booking → its Tickets).
 
 ## Hand-off
 
 End your turn with:
-- The exact `prisma generate` / `db push` / `migrate dev` commands you ran (and their exit status).
+- The exact `prisma generate` / `migrate dev` commands you ran (and their exit status).
 - Which models and fields changed.
 - Whether `typecheck-gate` needs to run next (it does, if any field shape changed).

@@ -1,5 +1,8 @@
 # Database Expansion Plan & Requirements
 
+> **Status note (2026-10-14).** Historical plan; do not implement from it. Checked against the code: Phase 1 is implemented (`operatorScope` in `src/shared/server/auth.ts`, `snapshotCurrentPolicy` in `src/features/refunds/refunds.ts`, `deletedAt` columns, `activeBoat`/`activeSchedule`) and the Phase 2 models exist in `prisma/schema.prisma` (`Port`, `TransitStop`, `TravelAgent`, `OperatorPicContact`, `LoyaltyAccount`, `BoatPosition`, `WeatherForecast`). Paths below use the old `lib/` layout (now `src/features/…`, `src/shared/…`, see `STRUCTURE.md`), the payment stack is now DOKU + PayPal (not Xendit/Mayar/Midtrans), the production branch is `main`, and schema changes ship as Prisma migrations instead of `prisma db push` (`README.md` "Database"). The checklists were not ticked retroactively.
+
+
 **Audience:** an LLM implementing this without prior context from the planning conversation.
 **Read first:** `CLAUDE.md`, `prisma/schema.prisma`, `lib/booking-engine.ts`, `lib/refunds.ts`, `lib/legs.ts`.
 **Branch:** `claude/boat-ticketing-mvp-YAGl9`.

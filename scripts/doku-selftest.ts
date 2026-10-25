@@ -21,7 +21,7 @@ import {
   dokuTimestamp,
   signComponents,
   signatureComponents,
-} from '../lib/doku';
+} from '../src/features/payments/doku';
 
 const CHECKOUT_PATH = '/checkout/v1/payment';
 

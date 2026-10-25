@@ -11,12 +11,12 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-import { generateLegsForSchedule, seasonSeedParams } from '../lib/legs';
-import { ymdInZone } from '../lib/datetime';
-import { signTicketCode } from '../lib/qr';
-import { newBookingReference, newTicketCode } from '../lib/references';
-import { computeBookingPrice } from '../lib/pricing';
-import { computeRefundDeadline, snapshotCurrentPolicy } from '../lib/refunds';
+import { generateLegsForSchedule, seasonSeedParams } from '../src/features/schedules/legs';
+import { ymdInZone } from '../src/shared/lib/datetime';
+import { signTicketCode } from '../src/features/tickets/qr';
+import { newBookingReference, newTicketCode } from '../src/features/booking/references';
+import { computeBookingPrice } from '../src/features/pricing/pricing';
+import { computeRefundDeadline, snapshotCurrentPolicy } from '../src/features/refunds/refunds';
 
 const prisma = new PrismaClient();
 

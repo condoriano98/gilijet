@@ -5,6 +5,17 @@ import * as readline from 'readline';
 
 const prisma = new PrismaClient();
 
+// Spreadsheets drop the leading 0 of a phone number, leaving `8123…`. PICs are
+// Indonesian, so store every number as `628…` digits (what WhatsApp expects).
+function normalizePicPhone(raw: string | undefined): string | null {
+  const digits = (raw ?? '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  if (digits.startsWith('8')) return `62${digits}`;
+  return digits;
+}
+
 // Operator lookups are by companyName string match (no dedicated key in the
 // source CSV) — same approach scripts/seed-schedules-from-csv.ts already
 // uses for the same operator. A row whose company has no matching Operator
@@ -58,9 +69,9 @@ async function seedPicContacts() {
     await prisma.operatorPicContact.create({
       data: {
         operatorId: operator?.id ?? null,
-        nohpNotifikasi: nohpNotifikasi || null,
+        nohpNotifikasi: normalizePicPhone(nohpNotifikasi),
         emailNotifikasi: emailNotifikasi || null,
-        nohpKonfirmasiTrigger: nohpKonfirmasiTrigger || null,
+        nohpKonfirmasiTrigger: normalizePicPhone(nohpKonfirmasiTrigger),
         emailKonfirmasiTrigger: emailKonfirmasiTrigger || null,
       },
     });
