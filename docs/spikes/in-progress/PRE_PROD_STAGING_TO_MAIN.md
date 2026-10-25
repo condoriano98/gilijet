@@ -40,7 +40,7 @@ Check each; the staging values do not carry over. Values are never written here.
 - WhatsApp (Meta): `WHATSAPP_ACCESS_TOKEN` (permanent system-user token), `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `WHATSAPP_TEMPLATE_LANG`, `WHATSAPP_TEMPLATE_ORDER_NOTIF`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` (new, strong), `WHATSAPP_APP_SECRET`. The old `WATI_*` can go.
 - Email: `SMTP_HOST/PORT/USER/PASSWORD`, `EMAIL_FROM` (replaces Resend). Outbound SMTP from Vercel was verified on staging only.
 - Operator mailbox: `INBOX_IMAP_HOST/PORT/USER/PASSWORD`, `INBOX_POLL_SINCE`, `INBOX_POLL_LIVE` (keep `false` until the live test passes).
-- `APP_BASE_URL`: staging currently shares the production entry (links in staging emails go to the production domain). Production keeps its own; give `staging` a separate entry.
+- `APP_BASE_URL`: staging currently shares the production entry (links in staging emails go to the production domain). Production keeps its own; give `staging` a separate entry. **Done 2026-10-25** in Vercel (Production `https://www.gilifast.com`, `staging` `https://gilijet.vercel.app`); it takes effect only with the next deployment, so the merge also turns `robots.txt` and the canonical on `www.gilifast.com` from `Disallow: /` / gilibali.com to crawlable / gilifast.com. Check them after the release (`FEATURE_SUNSET_GILIBALI.md`).
 - `CRON_SECRET` already set (2026-10-14). `ADMIN_WHATSAPP_NUMBER` and the staff alert template take nine positional variables (see `/admin/console/alerts`).
 - Meta side: callback URL `https://www.gilifast.com/api/webhooks/whatsapp` with the production verify token, and the Meta app **published** so non-test numbers receive messages.
 

@@ -16,6 +16,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 - `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
+- Docs only: `docs/spikes/` is now sorted by status into `todo/`, `in-progress/` and `done/`; paths that pointed at the old flat layout were updated.
 
 ## [1.10.1] - 2026-10-24
 
@@ -27,13 +28,13 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Added
 
-- Blog article "Where to check in for Wahana Virendra fast boats: a harbour-by-harbour guide" at `/blog/wahana-virendra-checkin-guide`: where the counter is at Sanur, Nusa Penida (Banjar Nyuh), Padang Bai, Gili Trawangan, Gili Air, Senggigi and Bangsal, with a landmark, a Maps link and the harbour tax at each, plus a short pre-boarding checklist. English only. The e-ticket email's "check-in guideline" line now ends with this link, in both languages. Design and QC: `docs/spikes/FEATURE_BLOG_CHECKIN_GUIDE.md`.
+- Blog article "Where to check in for Wahana Virendra fast boats: a harbour-by-harbour guide" at `/blog/wahana-virendra-checkin-guide`: where the counter is at Sanur, Nusa Penida (Banjar Nyuh), Padang Bai, Gili Trawangan, Gili Air, Senggigi and Bangsal, with a landmark, a Maps link and the harbour tax at each, plus a short pre-boarding checklist. English only. The e-ticket email's "check-in guideline" line now ends with this link, in both languages. Design and QC: `docs/spikes/done/FEATURE_BLOG_CHECKIN_GUIDE.md`.
 
 ## [1.9.0] - 2026-10-24
 
 ### Changed
 
-- The operator's ticket email is no longer passed on as it came. The buyer now gets an email written by Gilifast with the operator's PDF attached: subject `Your E-Ticket & Booking Confirmation - <Gilifast booking code>`, then operator, Gilifast code, the operator's own code (read from its email, `-` if absent), departure, arrival (departure plus the schedule's duration, WITA) and passengers. A round trip repeats the block under "Departure 1" / "Departure 2" ("Keberangkatan 1" / "Keberangkatan 2"). The text is Indonesian when the booking's contact nationality is Indonesia and English for every other nationality (or none). Design: `docs/spikes/FEATURE_ETICKET_FORWARD_TEMPLATE.md`.
+- The operator's ticket email is no longer passed on as it came. The buyer now gets an email written by Gilifast with the operator's PDF attached: subject `Your E-Ticket & Booking Confirmation - <Gilifast booking code>`, then operator, Gilifast code, the operator's own code (read from its email, `-` if absent), departure, arrival (departure plus the schedule's duration, WITA) and passengers. A round trip repeats the block under "Departure 1" / "Departure 2" ("Keberangkatan 1" / "Keberangkatan 2"). The text is Indonesian when the booking's contact nationality is Indonesia and English for every other nationality (or none). Design: `docs/spikes/in-progress/FEATURE_ETICKET_FORWARD_TEMPLATE.md`.
 - The PIC "order paid" WhatsApp (`order_masuk_operator`) now carries Gilifast's email (`admin@gilifast.com`) and phone (`+62 813-3399-869`) in the email and phone variables instead of the buyer's, so the PIC creates the operator ticket with our contact details and the buyer's details are not shared. The template and its nine variables are unchanged (the 1.7.0 entry above still lists the buyer's email and phone; that is outdated).
 
 ## [1.8.0] - 2026-10-22
