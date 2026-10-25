@@ -1,6 +1,6 @@
 # Sunset gilibali.com: one production domain (gilifast.com)
 
-**Status (2026-10-25):** planning. Research done, nothing changed in code, Vercel, DNS or any provider. Waiting for "implement".
+**Status (2026-10-25):** in progress. Done: Vercel `APP_BASE_URL` changed (Production `https://www.gilifast.com`, `staging` its own entry `https://gilijet.vercel.app`; the Production value is `sensitive` and could not be read back). DOKU Notify URL, Meta WhatsApp (callback and templates) checked by the owner and fine. Google OAuth left as is on purpose (a gilibali.com entry there is harmless now). **Not done: no deployment since the env change.** Live `www.gilifast.com` still answers `Disallow: /` and canonical `https://www.gilibali.com` (checked 2026-10-25). The new value takes effect with the next deployment, which will be the `staging` → `main` release; after it, check `robots.txt`, canonical, `og:url` and `sitemap.xml`, then move this doc to `done/`. PayPal not confirmed.
 **Goal:** production answers on **one** domain, `www.gilifast.com`. `gilibali.com` stops being a second site and only redirects.
 
 ## What is true today (checked 2026-10-25)
@@ -87,3 +87,11 @@ All of these follow `APP_BASE_URL` (`src/shared/server/env.ts`), so one value mo
 - The actual value of Production `APP_BASE_URL` (sensitive). Inferred from the rendered canonical and robots output.
 - Whether the Vercel domain redirect keeps path and query for this project; verify in step 5.
 - All third-party consoles in the table above.
+
+## Update 2026-10-25: gilibali.com no longer exists
+
+`gilibali.com` and `www.gilibali.com` no longer resolve in DNS (`curl`: could not resolve host) and are no longer domains of the Vercel project, so they do not 404 and cannot redirect. This replaces part of the design above:
+
+- Design 2 (308 redirect), Design 4 (old links keep working), Design 5 (keep the domain) and order steps 4, 5 and 8 no longer apply. Links like `https://www.gilibali.com/b/<reference>` in emails and WhatsApp messages already sent are dead.
+- Still applies: Design 1 (`APP_BASE_URL`, done in Vercel, live after the release), Design 6 (robots), the third-party checks (done except PayPal), Search Console (step 6) and the docs notes (step 7).
+- Tests: the planned unit test for `robots()` and the canonical is still to write.
