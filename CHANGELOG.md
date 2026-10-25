@@ -12,9 +12,24 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-10-25
+
+### Added
+
+- Coupon type **Nett (IDR)**: the coupon value is the price each adult pays per leg, replacing the listed fare. Children and infants follow the child and infant multipliers (child half, infant free by default) and a round trip pays the nett price on each leg. The platform service fee, when one is set, is added on top. A Nett coupon that would not bring the fare down is refused ("Promo code gives no discount on this trip"), and "Max discount" caps it like it caps a percent coupon.
+- Coupon routes and operators are now dropdowns of checkboxes, fed by the routes that have a live schedule and the operators that are active, each with an explicit **All routes** / **All operators** choice instead of a blank field. A coupon that already holds a route or operator that is no longer offered keeps it, marked "(no longer active)".
+- The price on the payment page and on the booking status page shows "Price before promo", the promo code and the amount taken off. The "Payment received" and boarding pass emails show the same rows above the total.
+
 ### Changed
 
+- Every coupon is paid for by Gilifast (the operator is paid in full). The "Who absorbs the discount" field is gone from the owner console, new coupons are always `PLATFORM`, and the existing ones are moved to `PLATFORM` by migration `2_coupon_net_and_platform_cost`. Because of that, every coupon now needs a budget cap, a max-uses limit or a max discount (before, only non-shared coupons did). Bookings already made are not affected.
+- The booking page's promo check now sends the passengers and the departure, so the preview runs the same route, operator and Nett rules as the booking and its saving follows the passenger mix.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
+
+### Fixed
+
+- A coupon is given back when its booking ends without being used: an unpaid booking that expires or fails payment, a booking the customer cancels, and a booking the operator or an admin cancels (including a cancelled departure). The use count, the budget spent and the per-customer and first-booking limits all return, so a held-but-unpaid order no longer burns a code. The booking keeps its discount as history and the release is logged on the coupon.
+- Editing a coupon no longer resets its (unused) "stackable" flag, which the form never showed.
 
 ## [1.10.1] - 2026-10-24
 
@@ -219,7 +234,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/condoriano98/gilijet/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/condoriano98/gilijet/compare/v1.8.0...v1.9.0

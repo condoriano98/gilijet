@@ -3,6 +3,10 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/shared/server/db';
 import { requireSuperAdmin } from '@/shared/server/auth';
 import {
+  getCouponTargetOptions,
+  withKeptValues,
+} from '@/features/pricing/coupon-options';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -44,6 +48,7 @@ export default async function EditCouponPage({
     },
   });
   if (!promo) notFound();
+  const targets = await getCouponTargetOptions();
 
   return (
     <div className="space-y-6">
@@ -74,7 +79,12 @@ export default async function EditCouponPage({
         <CardContent>
           <form action={updateCoupon} className="grid gap-5">
             <input type="hidden" name="id" value={promo.id} />
-            <CouponFields promo={promo} editing />
+            <CouponFields
+              promo={promo}
+              editing
+              routeOptions={withKeptValues(targets.routes, promo.appliesToRouteCodes)}
+              operatorOptions={withKeptValues(targets.operators, promo.appliesToOperatorIds)}
+            />
             <div className="flex justify-end gap-3">
               <Button asChild variant="ghost">
                 <Link href="/admin/console/coupons">Cancel</Link>

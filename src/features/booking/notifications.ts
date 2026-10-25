@@ -6,6 +6,7 @@ import {
   sendBookingConfirmation,
   sendCancellationEmail,
   sendPaymentReceivedEmail,
+  type PromoLine,
 } from '@/features/messaging/email';
 import {
   sendBoardingPassDocument,
@@ -41,6 +42,8 @@ const bookingForNotify = {
   customerEmail: true,
   customerPhone: true,
   totalAmount: true,
+  discountAmount: true,
+  promotion: { select: { code: true } },
   tickets: { select: { id: true } },
   leg: {
     select: {
@@ -99,6 +102,15 @@ async function load(bookingId: string) {
   });
 }
 
+/** The coupon taken off the booking, or undefined when none was used. */
+function promoLine(booking: {
+  discountAmount: { toString(): string };
+  promotion: { code: string } | null;
+}): PromoLine | undefined {
+  const amount = Number(booking.discountAmount);
+  return amount > 0 ? { code: booking.promotion?.code ?? null, amount } : undefined;
+}
+
 function lookupUrl(reference: string): string {
   return `${env.APP_BASE_URL}/b/${reference}`;
 }
@@ -133,6 +145,7 @@ export async function notifyPaymentReceived(bookingId: string): Promise<void> {
       boatName: mainLeg.schedule.boat.name,
       departureDate: mainLeg.departureDate,
       totalAmount: Number(booking.totalAmount),
+      discount: promoLine(booking),
       lookupUrl: url,
       // Round-trip support
       isRoundTrip: booking.tripType === 'ROUND_TRIP',
@@ -236,6 +249,7 @@ export async function notifyBoardingPassIssued(
       boatName: mainLeg.schedule.boat.name,
       departureDate: mainLeg.departureDate,
       totalAmount: Number(booking.totalAmount),
+      discount: promoLine(booking),
       lookupUrl: url,
       tickets,
       attachments: attachments.length > 0 ? attachments : undefined,

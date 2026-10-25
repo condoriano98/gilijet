@@ -72,9 +72,11 @@ export async function resolvePlatformPricing(
       }
     : undefined;
 
-  const serviceFee = config?.serviceFeeType
-    ? { type: config.serviceFeeType, value: Number(config.serviceFeeValue) }
-    : null;
+  // NET exists on the shared enum for coupons; as a service fee it means nothing.
+  const serviceFee =
+    config?.serviceFeeType && config.serviceFeeType !== 'NET'
+      ? { type: config.serviceFeeType, value: Number(config.serviceFeeValue) }
+      : null;
 
   return { commissionRate, multipliers, serviceFee };
 }

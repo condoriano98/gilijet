@@ -299,7 +299,8 @@ Duplicating any of these is a bug:
 | WITA formatting | `src/shared/lib/datetime.ts` |
 | Port names | `src/features/ports/port-info.ts` |
 | QR / ticket codes | `src/features/tickets/qr.ts`, `src/features/booking/references.ts` |
-| Coupon validation and redemption | `src/features/pricing/promotions.ts` |
+| Coupon validation, redemption and release (when a booking expires or is cancelled) | `src/features/pricing/promotions.ts` |
+| Coupon form parsing and the route / operator choices | `src/features/pricing/coupon-form.ts`, `src/features/pricing/coupon-options.ts` |
 | What the platform does | `src/features/diagnostics/feature-catalog.ts` |
 
 ## Review MCP
@@ -389,7 +390,7 @@ src/app/
   print/                — printable tickets and manifests
 src/features/           — domain logic, one folder per domain
   booking/              — engine, expiry, helpers, notifications, references (+ components/)
-  pricing/              — pricing, fares, fx, promotions
+  pricing/              — pricing, fares, fx, promotions, coupon-form, coupon-options
   payments/             — doku, paypal, psp, webhook-processor, webhook-events
   refunds/  tickets/  schedules/  operators/  ports/  messaging/  diagnostics/
 src/shared/             — cross-cutting, must not import features/ or app/

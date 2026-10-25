@@ -203,7 +203,9 @@ export default async function HomePage() {
                   <h3 className="text-lg font-display font-bold text-amber-900">
                     {promo.discountType === 'PERCENT'
                       ? `Save ${promo.discountValue}% on your next trip`
-                      : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
+                      : promo.discountType === 'NET'
+                        ? `Pay just IDR ${promo.discountValue.toLocaleString('id-ID')} per adult on your next trip`
+                        : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
                   </h3>
                 </div>
                 <p className="mt-1 text-sm text-amber-800">

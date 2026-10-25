@@ -175,7 +175,9 @@ export async function listCoupons(args: { limit?: number }) {
       discount:
         p.discountType === 'PERCENT'
           ? `${Number(p.discountValue)}%`
-          : `IDR ${money(p.discountValue)}`,
+          : p.discountType === 'NET'
+            ? `Nett IDR ${money(p.discountValue)} per adult`
+            : `IDR ${money(p.discountValue)}`,
       whoAbsorbsIt: p.costBearer,
       active: p.isActive && !p.archivedAt,
       window: { from: witaTime(p.startsAt), to: witaTime(p.expiresAt) },

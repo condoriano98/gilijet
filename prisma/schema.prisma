@@ -553,7 +553,7 @@ model Promotion {
   firstBookingOnly     Boolean         @default(false)
   maxDiscountAmount    Decimal?        @db.Decimal(12, 2)
   stackable            Boolean         @default(false)
-  costBearer           PromoCostBearer @default(SHARED)
+  costBearer           PromoCostBearer @default(PLATFORM)
   appliesToRouteCodes  String[]        @default([])
   appliesToOperatorIds String[]        @default([])
   budgetCap            Decimal?        @db.Decimal(12, 2)
@@ -619,9 +619,12 @@ model PlatformConfig {
   updatedAt         DateTime @updatedAt @default(now())
 }
 
+/// NET is coupon-only: discountValue is the per-adult price the customer pays,
+/// replacing the listed fare. PlatformConfig.serviceFeeType never takes it.
 enum DiscountType {
   PERCENT
   FLAT
+  NET
 }
 
 /// How a payment gateway's live/sandbox host is chosen at runtime. ENV follows

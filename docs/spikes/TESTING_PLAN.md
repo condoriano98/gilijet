@@ -408,7 +408,7 @@ const futureDate = new Date(testDate.getTime() + 10 * 24 * 60 * 60 * 1000);
 
 **Missing Tests:**
 - [ ] Service fee (PERCENT vs FLAT) integration
-- [ ] Coupon discount splitting (PLATFORM vs OPERATOR vs SHARED)
+- [ ] Coupon discount splitting (PLATFORM vs OPERATOR vs SHARED) _(2026-10-25: coupons are now always PLATFORM; the three-way split stays in `computeBookingPriceWithTypes` and its tests. See `FEATURE_COUPON_NETT_AND_RELEASE.md`.)_
 - [ ] Large quantities (10 passengers, 10 legs = 100 fares)
 - [ ] Decimal precision (smallest unit = 1 IDR, no cent rounding)
 - [ ] Zero or negative commission rate (should reject)

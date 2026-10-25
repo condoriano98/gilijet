@@ -7,6 +7,7 @@ import { getOperatorLeg } from '@/features/operators/data';
 import { recordLegCheckin, boardedLegIds, ticketStatusOnLeg } from '@/features/tickets/leg-checkin';
 import { bookingsOnLegWhere, legRoleForBooking, LEG_ROLE_LABEL } from '@/features/booking/helpers';
 import { cancelLeg } from '@/features/schedules/legs';
+import { releasePromoRedemption } from '@/features/pricing/promotions';
 import { notifyLegCancelled } from '@/features/booking/notifications';
 import { audit } from '@/shared/server/audit';
 import {
@@ -75,6 +76,7 @@ async function cancelLegAction(formData: FormData) {
             where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
             data: { status: 'REFUNDED' },
           });
+          await releasePromoRedemption(tx, booking.id, 'cancelled_by_operator');
           const existingRefund = await tx.refund.findUnique({ where: { bookingId: booking.id } });
           if (!existingRefund && refundAmount.gt(0)) {
             await tx.refund.create({

@@ -459,7 +459,7 @@ export default async function BookPage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PromoCodeInput />
+                <PromoCodeInput legId={activeLeg.id} legCount={isRoundTrip ? 2 : 1} />
               </CardContent>
             </Card>
 

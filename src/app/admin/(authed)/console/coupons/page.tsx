@@ -25,6 +25,13 @@ export const metadata = { title: 'Coupons · Owner Console' };
 
 type Promo = Awaited<ReturnType<typeof prisma.promotion.findMany>>[number];
 
+function discountLabel(p: Promo): string {
+  const cap = p.maxDiscountAmount != null ? ` ≤${formatIDR(Number(p.maxDiscountAmount))}` : '';
+  if (p.discountType === 'PERCENT') return `${Number(p.discountValue)}%${cap}`;
+  if (p.discountType === 'NET') return `Nett ${formatIDR(Number(p.discountValue))}/adult${cap}`;
+  return formatIDR(Number(p.discountValue));
+}
+
 function status(p: Promo): { label: string; variant: 'success' | 'destructive' | 'outline' | 'secondary' } {
   const now = Date.now();
   if (p.archivedAt) return { label: 'Archived', variant: 'outline' };
@@ -60,7 +67,7 @@ export default async function CouponsPage({
         <div>
           <h2 className="text-lg font-semibold">Coupons</h2>
           <p className="text-sm text-muted-foreground">
-            Discount codes, targeting, budgets and who absorbs the cost.
+            Discount codes, targeting and budgets. Gilifast absorbs every discount.
           </p>
         </div>
         <Button asChild>
@@ -87,7 +94,6 @@ export default async function CouponsPage({
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Discount</TableHead>
-                  <TableHead>Cost</TableHead>
                   <TableHead>Usage</TableHead>
                   <TableHead>Budget</TableHead>
                   <TableHead>Status</TableHead>
@@ -108,14 +114,7 @@ export default async function CouponsPage({
                         </Link>
                       </TableCell>
                       <TableCell>
-                        {p.discountType === 'PERCENT'
-                          ? `${Number(p.discountValue)}%${p.maxDiscountAmount != null ? ` ≤${formatIDR(Number(p.maxDiscountAmount))}` : ''}`
-                          : formatIDR(Number(p.discountValue))}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal">
-                          {p.costBearer}
-                        </Badge>
+                        {discountLabel(p)}
                       </TableCell>
                       <TableCell>
                         {p.usedCount}

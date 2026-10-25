@@ -6,104 +6,11 @@ import { z } from 'zod';
 import { requireSuperAdmin } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import { audit } from '@/shared/server/audit';
-import { localDateTimeToUtc } from '@/shared/lib/datetime';
-
-/** Parse a datetime-local ("YYYY-MM-DDTHH:mm") as WITA, or null when blank. */
-function parseWita(value: FormDataEntryValue | null): Date | null {
-  const s = String(value ?? '').trim();
-  if (!s) return null;
-  const [ymd, hm] = s.split('T');
-  if (!ymd) return null;
-  return localDateTimeToUtc(ymd, hm || '00:00');
-}
-
-/** Split a comma/newline list into a trimmed, de-duped array. */
-function parseList(value: FormDataEntryValue | null): string[] {
-  return Array.from(
-    new Set(
-      String(value ?? '')
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    ),
-  );
-}
-
-const couponSchema = z
-  .object({
-    code: z
-      .string()
-      .min(3)
-      .max(40)
-      .regex(/^[A-Z0-9_-]+$/, 'Code: uppercase letters, digits, _ or -'),
-    discountType: z.enum(['PERCENT', 'FLAT']),
-    discountValue: z.coerce.number().positive(),
-    minAmount: z.coerce.number().min(0).default(0),
-    maxUses: z.coerce.number().int().positive().optional(),
-    maxDiscountAmount: z.coerce.number().positive().optional(),
-    perCustomerLimit: z.coerce.number().int().positive().optional(),
-    budgetCap: z.coerce.number().positive().optional(),
-    firstBookingOnly: z.boolean().default(false),
-    stackable: z.boolean().default(false),
-    costBearer: z.enum(['PLATFORM', 'OPERATOR', 'SHARED']).default('SHARED'),
-    description: z.string().max(200).optional(),
-  })
-  .refine((d) => d.discountType !== 'PERCENT' || d.discountValue <= 100, {
-    message: 'Percent discount cannot exceed 100',
-    path: ['discountValue'],
-  })
-  .refine(
-    (d) =>
-      d.costBearer === 'SHARED' ||
-      d.budgetCap != null ||
-      d.maxUses != null ||
-      d.maxDiscountAmount != null,
-    {
-      message:
-        'PLATFORM/OPERATOR coupons need a budget cap, max uses, or a max discount to bound exposure',
-      path: ['budgetCap'],
-    },
-  );
-
-function readCouponForm(formData: FormData) {
-  return couponSchema.safeParse({
-    code: String(formData.get('code') ?? '').trim().toUpperCase(),
-    discountType: formData.get('discountType'),
-    discountValue: formData.get('discountValue'),
-    minAmount: formData.get('minAmount') || 0,
-    maxUses: formData.get('maxUses') || undefined,
-    maxDiscountAmount: formData.get('maxDiscountAmount') || undefined,
-    perCustomerLimit: formData.get('perCustomerLimit') || undefined,
-    budgetCap: formData.get('budgetCap') || undefined,
-    firstBookingOnly: formData.get('firstBookingOnly') === 'on',
-    stackable: formData.get('stackable') === 'on',
-    costBearer: formData.get('costBearer') || 'SHARED',
-    description: String(formData.get('description') ?? '').trim() || undefined,
-  });
-}
-
-function couponData(
-  d: z.infer<typeof couponSchema>,
-  formData: FormData,
-) {
-  return {
-    discountType: d.discountType,
-    discountValue: d.discountValue,
-    minAmount: d.minAmount,
-    maxUses: d.maxUses ?? null,
-    maxDiscountAmount: d.maxDiscountAmount ?? null,
-    perCustomerLimit: d.perCustomerLimit ?? null,
-    budgetCap: d.budgetCap ?? null,
-    firstBookingOnly: d.firstBookingOnly,
-    stackable: d.stackable,
-    costBearer: d.costBearer,
-    description: d.description ?? null,
-    startsAt: parseWita(formData.get('startsAt')),
-    expiresAt: parseWita(formData.get('expiresAt')),
-    appliesToRouteCodes: parseList(formData.get('appliesToRouteCodes')),
-    appliesToOperatorIds: parseList(formData.get('appliesToOperatorIds')),
-  };
-}
+import {
+  couponRecord,
+  couponSchema,
+  readCouponForm,
+} from '@/features/pricing/coupon-form';
 
 export async function createCoupon(formData: FormData) {
   const session = await requireSuperAdmin();
@@ -122,7 +29,7 @@ export async function createCoupon(formData: FormData) {
     );
   }
   const created = await prisma.promotion.create({
-    data: { code: parsed.data.code, ...couponData(parsed.data, formData) },
+    data: { code: parsed.data.code, ...couponRecord(parsed.data) },
   });
   await audit({
     entityType: 'PROMOTION',
@@ -147,7 +54,7 @@ export async function updateCoupon(formData: FormData) {
   }
   await prisma.promotion.update({
     where: { id },
-    data: couponData(parsed.data, formData),
+    data: couponRecord(parsed.data),
   });
   await audit({
     entityType: 'PROMOTION',
@@ -227,7 +134,7 @@ export async function generateBulkCodes(formData: FormData) {
   if (!meta.success) {
     redirect(`/admin/console/coupons/new?bulk=1&error=${encodeURIComponent(meta.error.issues[0].message)}`);
   }
-  const shared = couponData(base.data, formData);
+  const shared = couponRecord(base.data);
   const rows = Array.from({ length: meta.data.count }, () => ({
     code: `${meta.data.prefix}-${randomSuffix()}`,
     ...shared,

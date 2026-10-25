@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   computeBookingPrice,
   computeBookingPriceWithTypes,
+  netFareForPassengers,
 } from '@/features/pricing/pricing';
 import { Prisma } from '@prisma/client';
 
@@ -254,5 +255,51 @@ describe('computeBookingPriceWithTypes — payout floor & service fee', () => {
     });
     // 100k + 75k = 175k
     expect(r.fareAmount.toString()).toBe('175000');
+  });
+});
+
+describe('netFareForPassengers', () => {
+  it('charges the nett price for each adult', () => {
+    expect(
+      netFareForPassengers({ netPrice: 150_000, passengerTypes: ['ADULT', 'ADULT'] }),
+    ).toBe(300_000);
+  });
+
+  it('puts children at the child multiplier and infants at the infant multiplier', () => {
+    expect(
+      netFareForPassengers({
+        netPrice: 200_000,
+        passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
+      }),
+    ).toBe(300_000); // 200k + 100k (child 50%) + 0 (infant free)
+  });
+
+  it('uses the platform multipliers over the defaults', () => {
+    expect(
+      netFareForPassengers({
+        netPrice: 100_000,
+        passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
+        multipliers: { CHILD: 0.75, INFANT: 0.1 },
+      }),
+    ).toBe(185_000);
+  });
+
+  it('applies the nett price on each leg of a round trip', () => {
+    expect(
+      netFareForPassengers({
+        netPrice: 120_000,
+        passengerTypes: ['ADULT', 'CHILD'],
+        legCount: 2,
+      }),
+    ).toBe(2 * (120_000 + 60_000));
+  });
+
+  it('rounds to whole rupiah', () => {
+    expect(
+      netFareForPassengers({
+        netPrice: 100_001,
+        passengerTypes: ['CHILD'],
+      }),
+    ).toBe(50_001); // 50,000.5 rounds half up
   });
 });

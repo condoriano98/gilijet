@@ -57,7 +57,7 @@ Route-private components live in `_components/` beside the route that uses them 
 | Domain | Contents |
 |---|---|
 | `booking/` | `engine` (seat hold/confirm race), `expiry`, `helpers`, `display`, `notifications`, `references`, `components/` (booking-progress, payment-countdown) |
-| `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
+| `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` (validate, redeem, release), `coupon-form`, `coupon-options` |
 | `payments/` | `doku`, `paypal`, `psp`, `webhook-processor` (what a callback does), `webhook-events` (WebhookEvent bookkeeping), `payment-mode`, `components/` |
 | `refunds/` | `refunds` (tier math), `refund-gateway` |
 | `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin`, `operator-ticket-email` (forward the operator's ticket PDF to the buyer), `operator-ticket-parse`, `ticket-forward-copy` (the EN/ID text of that email) |

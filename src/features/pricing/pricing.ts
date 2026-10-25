@@ -60,6 +60,26 @@ export const TRAVELER_MULTIPLIERS: Record<PassengerType, number> = {
   INFANT: 0.0,
 };
 
+/**
+ * What a "Nett" coupon charges for a booking's fare: the nett price is the
+ * adult price per leg, and children and infants follow the traveler
+ * multipliers (child half, infant free by default). `legCount` is 2 for a
+ * round trip, where the nett price applies to each leg.
+ */
+export function netFareForPassengers(args: {
+  netPrice: number;
+  passengerTypes: PassengerType[];
+  multipliers?: Partial<Record<PassengerType, number>>;
+  legCount?: number;
+}): number {
+  const mult = (t: PassengerType) => args.multipliers?.[t] ?? TRAVELER_MULTIPLIERS[t];
+  const perLeg = args.passengerTypes.reduce(
+    (sum, t) => sum.add(new Prisma.Decimal(args.netPrice).mul(mult(t))),
+    new Prisma.Decimal(0),
+  );
+  return perLeg.mul(args.legCount ?? 1).toDecimalPlaces(0).toNumber();
+}
+
 export type PriceBreakdownWithTypes = PriceBreakdown & {
   adultCount: number;
   childCount: number;

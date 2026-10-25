@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
+import { netFareForPassengers, type PassengerType } from '@/features/pricing/pricing';
 
 export type PromoValidation =
   | {
@@ -7,7 +8,7 @@ export type PromoValidation =
       promotion: {
         id: string;
         code: string;
-        discountType: 'PERCENT' | 'FLAT';
+        discountType: 'PERCENT' | 'FLAT' | 'NET';
         discountValue: number;
         description: string | null;
         costBearer: 'PLATFORM' | 'OPERATOR' | 'SHARED';
@@ -29,6 +30,11 @@ export type PromoContext = {
   operatorId?: string | null;
   customerEmail?: string | null;
   customerId?: string | null;
+  /** Needed by Nett coupons, which price each traveler type. */
+  passengerTypes?: PassengerType[];
+  multipliers?: Partial<Record<PassengerType, number>>;
+  /** 2 for a round trip: the nett price applies to each leg. */
+  legCount?: number;
 };
 
 /**
@@ -131,13 +137,29 @@ export async function validatePromoCode(
   let discountAmount: number;
   if (promo.discountType === 'PERCENT') {
     discountAmount = Math.round((totalAmount * discountValue) / 100);
-    if (promo.maxDiscountAmount != null) {
-      discountAmount = Math.min(discountAmount, Number(promo.maxDiscountAmount));
+  } else if (promo.discountType === 'NET') {
+    if (!context.passengerTypes?.length) {
+      return { valid: false, error: 'Add the passengers to use this promo code' };
     }
+    // The nett price replaces the listed fare, so the discount is whatever
+    // brings the fare down to it.
+    const netFare = netFareForPassengers({
+      netPrice: discountValue,
+      passengerTypes: context.passengerTypes,
+      multipliers: context.multipliers,
+      legCount: context.legCount,
+    });
+    discountAmount = totalAmount - netFare;
   } else {
     discountAmount = Math.round(discountValue);
   }
-  discountAmount = Math.min(discountAmount, totalAmount); // never negative
+  if (promo.discountType !== 'FLAT' && promo.maxDiscountAmount != null) {
+    discountAmount = Math.min(discountAmount, Number(promo.maxDiscountAmount));
+  }
+  discountAmount = Math.min(discountAmount, totalAmount); // never more than the fare
+  if (promo.discountType === 'NET' && discountAmount <= 0) {
+    return { valid: false, error: 'Promo code gives no discount on this trip' };
+  }
 
   // --- budget ---
   if (promo.budgetCap != null) {
@@ -226,4 +248,48 @@ export async function applyPromoCode(
       amount: new Prisma.Decimal(redemption.amount),
     },
   });
+}
+
+/**
+ * Gives a booking's coupon back when the booking will not be used: held and
+ * never paid (expired, payment failed) or cancelled. Deletes the redemption and
+ * returns its use and its spend to the code, so the usage cap, the budget and
+ * the per-customer / first-booking rules see the booking as if it never
+ * happened. Runs in the caller's transaction; a second call finds nothing.
+ * The booking keeps its `promotionId` and `discountAmount` as history.
+ */
+export async function releasePromoRedemption(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  reason: string,
+): Promise<boolean> {
+  const redemption = await tx.promotionRedemption.findUnique({
+    where: { bookingId },
+  });
+  if (!redemption) return false;
+
+  // deleteMany so a concurrent release (expiry sweep vs. cancel) is a no-op
+  // instead of a failed transaction.
+  const { count } = await tx.promotionRedemption.deleteMany({
+    where: { id: redemption.id },
+  });
+  if (count === 0) return false;
+
+  await tx.promotion.update({
+    where: { id: redemption.promotionId },
+    data: {
+      usedCount: { decrement: 1 },
+      budgetSpent: { decrement: redemption.amount },
+    },
+  });
+  await tx.auditLog.create({
+    data: {
+      entityType: 'PROMOTION',
+      entityId: redemption.promotionId,
+      action: 'redemption_released',
+      userRole: 'SYSTEM',
+      newState: { bookingId, reason, amount: redemption.amount.toString() },
+    },
+  });
+  return true;
 }

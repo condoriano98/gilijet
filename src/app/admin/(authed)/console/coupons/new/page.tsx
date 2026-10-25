@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireSuperAdmin } from '@/shared/server/auth';
+import { getCouponTargetOptions } from '@/features/pricing/coupon-options';
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ export default async function NewCouponPage({
 }) {
   await requireSuperAdmin();
   const { error, bulk } = await searchParams;
+  const { routes, operators } = await getCouponTargetOptions();
 
   return (
     <div className="space-y-6">
@@ -74,7 +76,7 @@ export default async function NewCouponPage({
                   <Input id="count" name="count" type="number" min="1" max="500" defaultValue={50} required />
                 </div>
               </div>
-              <CouponFields hideCode />
+              <CouponFields hideCode routeOptions={routes} operatorOptions={operators} />
               <div className="flex justify-end gap-3">
                 <Button asChild variant="ghost">
                   <Link href="/admin/console/coupons">Cancel</Link>
@@ -84,7 +86,7 @@ export default async function NewCouponPage({
             </form>
           ) : (
             <form action={createCoupon} className="grid gap-5">
-              <CouponFields />
+              <CouponFields routeOptions={routes} operatorOptions={operators} />
               <div className="flex justify-end gap-3">
                 <Button asChild variant="ghost">
                   <Link href="/admin/console/coupons">Cancel</Link>

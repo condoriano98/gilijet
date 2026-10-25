@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { audit } from '@/shared/server/audit';
 import { bookingsOnLegWhere } from '@/features/booking/helpers';
+import { releasePromoRedemption } from '@/features/pricing/promotions';
 import {
   OPERATOR_TIMEZONE,
   isoDayOfWeek,
@@ -210,6 +211,7 @@ export async function cancelLeg(args: {
         where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
         data: { status: 'REFUNDED' },
       });
+      await releasePromoRedemption(tx, booking.id, 'cancelled_by_operator');
       if (!booking.refund) {
         await tx.refund.create({
           data: {

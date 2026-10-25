@@ -376,6 +376,9 @@ describe('cancelLeg', () => {
       refund: {
         create: vi.fn().mockResolvedValue({ id: 'refund-1' }),
       },
+      promotionRedemption: {
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
       auditLog: {
         create: vi.fn().mockResolvedValue({}),
       },
@@ -391,6 +394,47 @@ describe('cancelLeg', () => {
 
     expect(result.cancelledBookings).toBe(2);
     expect(result.pendingRefunds).toBe(2);
+  });
+
+  it('gives the coupon back for a booking it cancels, and only for that one', async () => {
+    const promotionUpdate = vi.fn().mockResolvedValue({});
+    const mockTx = {
+      leg: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'leg-1', operatorId: 'op-1', status: 'OPEN' }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      booking: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'booking-1', status: 'CONFIRMED', totalAmount: new Prisma.Decimal('400000'), tickets: [], payment: null, refund: null },
+          { id: 'booking-2', status: 'CONFIRMED', totalAmount: new Prisma.Decimal('500000'), tickets: [], payment: null, refund: null },
+        ]),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      ticket: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      refund: { create: vi.fn().mockResolvedValue({}) },
+      promotionRedemption: {
+        findUnique: vi.fn(async ({ where }: { where: { bookingId: string } }) =>
+          where.bookingId === 'booking-1'
+            ? { id: 'red-1', promotionId: 'promo-1', amount: new Prisma.Decimal('100000') }
+            : null,
+        ),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      promotion: { update: promotionUpdate },
+      auditLog: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));
+
+    await cancelLeg({ legId: 'leg-1', reason: 'Engine failure', operatorId: 'op-1' });
+
+    expect(promotionUpdate).toHaveBeenCalledTimes(1);
+    expect(promotionUpdate).toHaveBeenCalledWith({
+      where: { id: 'promo-1' },
+      data: {
+        usedCount: { decrement: 1 },
+        budgetSpent: { decrement: new Prisma.Decimal('100000') },
+      },
+    });
   });
 
   it('looks up one-way and round-trip bookings on the leg', async () => {
@@ -565,6 +609,7 @@ describe('cancelLeg with one-way and round-trip bookings', () => {
       },
       ticket: { updateMany: ticketUpdateMany },
       refund: { create: refundCreate },
+      promotionRedemption: { findUnique: vi.fn().mockResolvedValue(null) },
       auditLog: { create: vi.fn().mockResolvedValue({}) },
     };
     vi.mocked(prisma.$transaction).mockImplementationOnce(async (fn) => fn(asTx(mockTx)));

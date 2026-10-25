@@ -587,6 +587,13 @@ describe('createOneWayBooking', () => {
       });
 
       expect(result.bookingId).toBe('booking-promo');
+
+      // A Nett coupon prices the booking from the passengers.
+      const { validatePromoCode } = await import('@/features/pricing/promotions');
+      expect(vi.mocked(validatePromoCode)).toHaveBeenCalledWith(
+        'SAVE50',
+        expect.objectContaining({ passengerTypes: ['ADULT'] }),
+      );
     });
 
     it('accepts empty/whitespace promo code', async () => {

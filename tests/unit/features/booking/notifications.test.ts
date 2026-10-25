@@ -119,6 +119,51 @@ describe('notifyPaymentReceived', () => {
     expect(notifyOperatorPicsOrderPaid).toHaveBeenCalled();
   });
 
+  it('hands the coupon to the payment email, and nothing when none was used', async () => {
+    const booking = (extra: object) =>
+      ({
+        id: 'booking-1',
+        bookingReference: 'GILI-ABC123',
+        tripType: 'ONE_WAY' as const,
+        customerName: 'John Doe',
+        customerEmail: 'john@example.com',
+        customerPhone: '+62812345678',
+        totalAmount: new Prisma.Decimal('450000'),
+        discountAmount: new Prisma.Decimal('0'),
+        promotion: null,
+        leg: {
+          departureDate: new Date('2026-10-25T08:00:00Z'),
+          schedule: { originPort: 'BLI', destinationPort: 'SBY', boat: { name: 'Fast Boat' } },
+        },
+        outboundLeg: null,
+        returnLeg: null,
+        ...extra,
+      }) as any;
+
+    vi.mocked(prisma.booking.findUnique)
+      .mockResolvedValueOnce(
+        booking({ discountAmount: new Prisma.Decimal('50000'), promotion: { code: 'NETT150' } }),
+      )
+      .mockResolvedValueOnce(booking({}));
+
+    await notifyPaymentReceived('booking-1');
+    expect(vi.mocked(sendPaymentReceivedEmail).mock.calls[0][0].discount).toEqual({
+      code: 'NETT150',
+      amount: 50_000,
+    });
+
+    await notifyPaymentReceived('booking-1');
+    expect(vi.mocked(sendPaymentReceivedEmail).mock.calls[1][0].discount).toBeUndefined();
+
+    expect(prisma.booking.findUnique).toHaveBeenCalledWith({
+      where: { id: 'booking-1' },
+      select: expect.objectContaining({
+        discountAmount: true,
+        promotion: { select: { code: true } },
+      }),
+    });
+  });
+
   it('waits for the PIC message to finish before resolving (a frozen function drops floating work)', async () => {
     const mockBooking = {
       id: 'booking-1',

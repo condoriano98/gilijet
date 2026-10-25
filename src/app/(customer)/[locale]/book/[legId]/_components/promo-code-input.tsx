@@ -15,22 +15,46 @@ type ValidationResult =
  * Promo code input with inline validation. Hits /api/promos/validate
  * to show discount preview before form submit. The actual application
  * happens server-side in the booking engine.
+ *
+ * `legId` (the outbound leg for a round trip) and `legCount` let the preview
+ * run the same route / operator / Nett rules as the booking.
  */
-export function PromoCodeInput() {
-  const { total: baseAmount } = useBookingPrice();
+export function PromoCodeInput({
+  legId,
+  legCount = 1,
+}: {
+  legId: string;
+  legCount?: 1 | 2;
+}) {
+  const { total: baseAmount, types } = useBookingPrice();
+  const mixKey = `${types.join(',')}|${baseAmount}`;
   const [code, setCode] = React.useState('');
   const [status, setStatus] = React.useState<
     'idle' | 'checking' | 'valid' | 'invalid'
   >('idle');
   const [result, setResult] = React.useState<ValidationResult | null>(null);
 
+  // A saving worked out for another passenger mix would be wrong: ask again.
+  const lastMix = React.useRef(mixKey);
+  React.useEffect(() => {
+    if (lastMix.current === mixKey) return;
+    lastMix.current = mixKey;
+    setStatus('idle');
+    setResult(null);
+  }, [mixKey]);
+
   async function applyCode() {
     if (!code.trim()) return;
     setStatus('checking');
     try {
-      const res = await fetch(
-        `/api/promos/validate?code=${encodeURIComponent(code.trim())}&amount=${baseAmount}`,
-      );
+      const query = new URLSearchParams({
+        code: code.trim(),
+        amount: String(baseAmount),
+        types: types.join(','),
+        legId,
+        legs: String(legCount),
+      });
+      const res = await fetch(`/api/promos/validate?${query}`);
       const data = (await res.json()) as ValidationResult;
       setResult(data);
       setStatus(data.valid ? 'valid' : 'invalid');

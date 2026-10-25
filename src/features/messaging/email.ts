@@ -13,6 +13,27 @@ import { mailConfigured, sendMail, type MailAttachment, type MailResult } from '
 /** A file to attach. `content` is raw bytes. */
 export type EmailAttachment = MailAttachment;
 
+/** The coupon taken off a booking, for the price rows of the booking emails. */
+export type PromoLine = { code: string | null; amount: number };
+
+/**
+ * "Price before promo" and "Promo CODE" rows, shown above the total so the
+ * customer can see why the total is lower than the listed fare. Nothing when no
+ * coupon was used.
+ */
+function promoRowsHtml(
+  args: { totalAmount: number; discount?: PromoLine },
+  labelColor: string,
+): string {
+  const d = args.discount;
+  if (!d || d.amount <= 0) return '';
+  const label = `Promo${d.code ? ` ${escapeHtml(d.code)}` : ''}`;
+  return (
+    `<tr><td style="padding:6px 0;color:${labelColor};">Price before promo</td><td style="padding:6px 0;text-align:right;">${formatIDR(args.totalAmount + d.amount)}</td></tr>` +
+    `<tr><td style="padding:6px 0;color:${labelColor};">${label}</td><td style="padding:6px 0;text-align:right;color:#047857;">-${formatIDR(d.amount)}</td></tr>`
+  );
+}
+
 type BookingConfirmationArgs = {
   to: string;
   customerName: string;
@@ -31,6 +52,7 @@ type BookingConfirmationArgs = {
   returnDepartureDate?: Date;
   outboundPrice?: number;
   returnPrice?: number;
+  discount?: PromoLine;
 };
 
 export async function sendBookingConfirmation(
@@ -98,7 +120,7 @@ async function renderBookingConfirmationHtml(
   const summary = args.isRoundTrip
     ? `
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;border-top:2px solid #e2e8f0;padding-top:12px;">
-        <tr style="font-weight:600;"><td style="padding:12px 0 6px 0;color:#475569;">Total paid</td><td style="padding:12px 0 6px 0;text-align:right;color:#0f172a;">${formatIDR(args.totalAmount)}</td></tr>
+        ${promoRowsHtml(args, '#475569')}<tr style="font-weight:600;"><td style="padding:12px 0 6px 0;color:#475569;">Total paid</td><td style="padding:12px 0 6px 0;text-align:right;color:#0f172a;">${formatIDR(args.totalAmount)}</td></tr>
       </table>
     `
     : `
@@ -106,7 +128,7 @@ async function renderBookingConfirmationHtml(
         <tr><td style="padding:6px 0;color:#475569;">Route</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
         <tr><td style="padding:6px 0;color:#475569;">Boat</td><td style="padding:6px 0;text-align:right;font-weight:500;">${escapeHtml(args.boatName)}</td></tr>
         <tr><td style="padding:6px 0;color:#475569;">Departure</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatLocalDateTime(args.departureDate)} WITA</td></tr>
-        <tr><td style="padding:6px 0;color:#475569;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.totalAmount)}</td></tr>
+        ${promoRowsHtml(args, '#475569')}<tr><td style="padding:6px 0;color:#475569;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:500;">${formatIDR(args.totalAmount)}</td></tr>
       </table>
     `;
 
@@ -141,6 +163,7 @@ type PaymentReceivedArgs = {
   departureDate: Date;
   totalAmount: number;
   lookupUrl: string;
+  discount?: PromoLine;
   // Round-trip support
   isRoundTrip?: boolean;
   returnRoute?: { originPort: string; destinationPort: string };
@@ -181,14 +204,14 @@ export async function sendPaymentReceivedEmail(
 
   const summary = args.isRoundTrip
     ? `${outboundSection}${returnSection}<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:16px;">
-      <tr><td style="padding:6px 0;color:#64748b;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
+      ${promoRowsHtml(args, '#64748b')}<tr><td style="padding:6px 0;color:#64748b;">Total paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
     </table>`
     : `
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <tr><td style="padding:6px 0;color:#64748b;">Route</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.route.originPort)} → ${escapeHtml(args.route.destinationPort)}</td></tr>
       <tr><td style="padding:6px 0;color:#64748b;">Boat</td><td style="padding:6px 0;text-align:right;">${escapeHtml(args.boatName)}</td></tr>
       <tr><td style="padding:6px 0;color:#64748b;">Departure</td><td style="padding:6px 0;text-align:right;">${formatLocalDateTime(args.departureDate)}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b;">Paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
+      ${promoRowsHtml(args, '#64748b')}<tr><td style="padding:6px 0;color:#64748b;">Paid</td><td style="padding:6px 0;text-align:right;font-weight:600;">${formatIDR(args.totalAmount)}</td></tr>
     </table>
   `;
 

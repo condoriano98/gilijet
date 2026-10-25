@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { validatePromoCode, applyPromoCode } from '@/features/pricing/promotions';
+import {
+  validatePromoCode,
+  applyPromoCode,
+  releasePromoRedemption,
+} from '@/features/pricing/promotions';
 
 /**
  * Unit tests for src/features/pricing/promotions.ts
@@ -781,5 +785,199 @@ describe('applyPromoCode', () => {
         amount: expect.any(Object),
       },
     });
+  });
+});
+
+function nettPromo(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'promo-net',
+    code: 'NETT150',
+    isActive: true,
+    archivedAt: null,
+    startsAt: null,
+    expiresAt: null,
+    maxUses: null,
+    usedCount: 0,
+    minAmount: new Prisma.Decimal('0'),
+    appliesToOperatorIds: [],
+    appliesToRouteCodes: [],
+    perCustomerLimit: null,
+    firstBookingOnly: false,
+    discountType: 'NET' as const,
+    discountValue: new Prisma.Decimal('150000'),
+    maxDiscountAmount: null,
+    budgetCap: null,
+    budgetSpent: new Prisma.Decimal('0'),
+    costBearer: 'PLATFORM' as const,
+    description: null,
+    ...overrides,
+  };
+}
+
+describe('validatePromoCode: Nett coupons', () => {
+  const lookup = (promo: ReturnType<typeof nettPromo>) =>
+    vi.mocked(prisma.promotion.findUnique).mockResolvedValueOnce(promo as any);
+
+  it('brings an adult fare down to the nett price', async () => {
+    lookup(nettPromo());
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 200_000,
+      passengerTypes: ['ADULT'],
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.discountAmount).toBe(50_000);
+      expect(result.promotion.discountType).toBe('NET');
+    }
+  });
+
+  it('prices children at the child multiplier and infants free', async () => {
+    lookup(nettPromo());
+    // Fare: adult 200k + child 100k + infant 0 = 300k. Nett: 150k + 75k + 0 = 225k.
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 300_000,
+      passengerTypes: ['ADULT', 'CHILD', 'INFANT'],
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(75_000);
+  });
+
+  it('uses the platform multipliers passed in', async () => {
+    lookup(nettPromo());
+    // Child multiplier 0.8: fare 200k + 160k = 360k, nett 150k + 120k = 270k.
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 360_000,
+      passengerTypes: ['ADULT', 'CHILD'],
+      multipliers: { CHILD: 0.8 },
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(90_000);
+  });
+
+  it('applies the nett price on both legs of a round trip', async () => {
+    lookup(nettPromo());
+    // Fare 2 x 200k = 400k; nett 2 x 150k = 300k.
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 400_000,
+      passengerTypes: ['ADULT'],
+      legCount: 2,
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(100_000);
+  });
+
+  it('caps the discount with maxDiscountAmount', async () => {
+    lookup(nettPromo({ maxDiscountAmount: new Prisma.Decimal('30000') }));
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 200_000,
+      passengerTypes: ['ADULT'],
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.discountAmount).toBe(30_000);
+  });
+
+  it('refuses when the nett price is not below the fare', async () => {
+    lookup(nettPromo());
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 150_000,
+      passengerTypes: ['ADULT'],
+    });
+
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.error).toBe('Promo code gives no discount on this trip');
+  });
+
+  it('asks for the passengers when it cannot price them', async () => {
+    lookup(nettPromo());
+    const result = await validatePromoCode('NETT150', { totalAmount: 200_000 });
+
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.error).toBe('Add the passengers to use this promo code');
+  });
+
+  it('still runs the budget check on the computed discount', async () => {
+    lookup(
+      nettPromo({
+        budgetCap: new Prisma.Decimal('100000'),
+        budgetSpent: new Prisma.Decimal('60000'),
+      }),
+    );
+    const result = await validatePromoCode('NETT150', {
+      totalAmount: 200_000, // discount 50k > 40k left
+      passengerTypes: ['ADULT'],
+    });
+
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.error).toBe('Promo code budget is exhausted');
+  });
+});
+
+describe('releasePromoRedemption', () => {
+  const redemption = {
+    id: 'red-1',
+    promotionId: 'promo-1',
+    bookingId: 'booking-1',
+    amount: new Prisma.Decimal('45000'),
+  };
+
+  function makeTx(found: typeof redemption | null, deleted = 1) {
+    return {
+      promotionRedemption: {
+        findUnique: vi.fn().mockResolvedValue(found),
+        deleteMany: vi.fn().mockResolvedValue({ count: deleted }),
+      },
+      promotion: { update: vi.fn().mockResolvedValue({}) },
+      auditLog: { create: vi.fn().mockResolvedValue({}) },
+    };
+  }
+
+  it('returns the use and the spend to the code and logs it', async () => {
+    const tx = makeTx(redemption);
+
+    const released = await releasePromoRedemption(tx as any, 'booking-1', 'expired');
+
+    expect(released).toBe(true);
+    expect(tx.promotionRedemption.findUnique).toHaveBeenCalledWith({
+      where: { bookingId: 'booking-1' },
+    });
+    expect(tx.promotionRedemption.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'red-1' },
+    });
+    expect(tx.promotion.update).toHaveBeenCalledWith({
+      where: { id: 'promo-1' },
+      data: {
+        usedCount: { decrement: 1 },
+        budgetSpent: { decrement: redemption.amount },
+      },
+    });
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        entityType: 'PROMOTION',
+        entityId: 'promo-1',
+        action: 'redemption_released',
+        newState: expect.objectContaining({ bookingId: 'booking-1', reason: 'expired' }),
+      }),
+    });
+  });
+
+  it('does nothing for a booking that used no coupon', async () => {
+    const tx = makeTx(null);
+
+    expect(await releasePromoRedemption(tx as any, 'booking-9', 'expired')).toBe(false);
+    expect(tx.promotionRedemption.deleteMany).not.toHaveBeenCalled();
+    expect(tx.promotion.update).not.toHaveBeenCalled();
+  });
+
+  it('gives back only once when two releases race', async () => {
+    const tx = makeTx(redemption, 0); // the other one already deleted the row
+
+    expect(await releasePromoRedemption(tx as any, 'booking-1', 'cancelled_by_customer')).toBe(false);
+    expect(tx.promotion.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 });

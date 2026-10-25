@@ -2,6 +2,7 @@ import type { Promotion } from '@prisma/client';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { MultiSelect, type MultiSelectOption } from '@/shared/ui/multi-select';
 import { formatLocalDate } from '@/shared/lib/datetime';
 
 const selectClass =
@@ -20,46 +21,35 @@ export function CouponFields({
   promo,
   editing,
   hideCode,
+  routeOptions,
+  operatorOptions,
 }: {
   promo?: Promotion;
   editing?: boolean;
   hideCode?: boolean;
+  routeOptions: MultiSelectOption[];
+  operatorOptions: MultiSelectOption[];
 }) {
   return (
     <div className="grid gap-5">
-      <div className={hideCode ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
-        {hideCode ? (
-          // Bulk mode: codes are generated from the prefix. A template value
-          // keeps the shared settings validator happy; it is never persisted.
-          <input type="hidden" name="code" value="BULKTEMPLATE" />
-        ) : (
-          <div className="grid gap-1.5">
-            <Label htmlFor="code">Code</Label>
-            <Input
-              id="code"
-              name="code"
-              defaultValue={promo?.code}
-              readOnly={editing}
-              placeholder="SUMMER25"
-              className="font-mono uppercase"
-              required
-            />
-          </div>
-        )}
-        <div className="grid gap-1.5">
-          <Label htmlFor="costBearer">Who absorbs the discount</Label>
-          <select
-            id="costBearer"
-            name="costBearer"
-            defaultValue={promo?.costBearer ?? 'SHARED'}
-            className={selectClass}
-          >
-            <option value="SHARED">Shared (platform + operator pro-rata)</option>
-            <option value="PLATFORM">Platform (operator paid in full)</option>
-            <option value="OPERATOR">Operator (commission unaffected)</option>
-          </select>
+      {hideCode ? (
+        // Bulk mode: codes are generated from the prefix. A template value
+        // keeps the shared settings validator happy; it is never persisted.
+        <input type="hidden" name="code" value="BULKTEMPLATE" />
+      ) : (
+        <div className="grid gap-1.5 sm:max-w-sm">
+          <Label htmlFor="code">Code</Label>
+          <Input
+            id="code"
+            name="code"
+            defaultValue={promo?.code}
+            readOnly={editing}
+            placeholder="SUMMER25"
+            className="font-mono uppercase"
+            required
+          />
         </div>
-      </div>
+      )}
 
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="grid gap-1.5">
@@ -72,6 +62,7 @@ export function CouponFields({
           >
             <option value="PERCENT">Percent (%)</option>
             <option value="FLAT">Flat (IDR)</option>
+            <option value="NET">Nett (IDR)</option>
           </select>
         </div>
         <div className="grid gap-1.5">
@@ -87,7 +78,7 @@ export function CouponFields({
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="maxDiscountAmount">Max discount (IDR, % cap)</Label>
+          <Label htmlFor="maxDiscountAmount">Max discount (IDR, caps % and Nett)</Label>
           <Input
             id="maxDiscountAmount"
             name="maxDiscountAmount"
@@ -98,6 +89,13 @@ export function CouponFields({
           />
         </div>
       </div>
+
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Percent takes that % off the fare. Flat takes that many IDR off the
+        booking. Nett is the price each adult pays per leg, replacing the listed
+        fare: children and infants follow the child and infant multipliers, and
+        a round trip pays it on each leg.
+      </p>
 
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="grid gap-1.5">
@@ -131,12 +129,26 @@ export function CouponFields({
 
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label htmlFor="appliesToRouteCodes">Routes (ORIGIN-DEST, blank = all)</Label>
-          <Textarea id="appliesToRouteCodes" name="appliesToRouteCodes" rows={2} defaultValue={promo?.appliesToRouteCodes.join(', ')} placeholder="Sanur-Nusa Penida, Padangbai-Gili Trawangan" />
+          <Label htmlFor="appliesToRouteCodes">Routes</Label>
+          <MultiSelect
+            id="appliesToRouteCodes"
+            name="appliesToRouteCodes"
+            options={routeOptions}
+            defaultValues={promo?.appliesToRouteCodes ?? []}
+            allLabel="All routes"
+            noun="routes"
+          />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="appliesToOperatorIds">Operator IDs (blank = all)</Label>
-          <Textarea id="appliesToOperatorIds" name="appliesToOperatorIds" rows={2} defaultValue={promo?.appliesToOperatorIds.join(', ')} placeholder="cuid1, cuid2" />
+          <Label htmlFor="appliesToOperatorIds">Operators</Label>
+          <MultiSelect
+            id="appliesToOperatorIds"
+            name="appliesToOperatorIds"
+            options={operatorOptions}
+            defaultValues={promo?.appliesToOperatorIds ?? []}
+            allLabel="All operators"
+            noun="operators"
+          />
         </div>
       </div>
 
@@ -147,8 +159,8 @@ export function CouponFields({
         </label>
       </div>
       <p className="text-xs text-muted-foreground">
-        Non-shared cost bearers (PLATFORM / OPERATOR) require a budget cap, max
-        uses, or max discount so exposure is bounded.
+        Gilifast pays for every coupon (the operator is paid in full), so set a
+        budget cap, max uses, or max discount to bound the cost.
       </p>
 
       <div className="grid gap-1.5">

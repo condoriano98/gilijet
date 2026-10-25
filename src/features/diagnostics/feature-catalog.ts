@@ -555,10 +555,14 @@ const ADMIN: Feature[] = [
       'src/app/admin/(authed)/console/coupons/[id]/page.tsx',
       'src/app/admin/(authed)/console/actions.ts',
     ],
-    modules: ['src/features/pricing/promotions.ts'],
+    modules: [
+      'src/features/pricing/promotions.ts',
+      'src/features/pricing/coupon-form.ts',
+      'src/features/pricing/coupon-options.ts',
+    ],
     models: ['Promotion', 'PromotionRedemption'],
     notes:
-      'SUPER_ADMIN only. Budget caps, per-customer limits, route/operator targeting, bulk code generation, and a cost-bearer choice (PLATFORM / OPERATOR / SHARED) deciding who absorbs the discount.',
+      'SUPER_ADMIN only. Percent, flat and Nett (per-adult price) coupons, budget caps, per-customer limits, route/operator targeting from the live routes and active operators, and bulk code generation. Gilifast absorbs every discount. A coupon is given back when its booking expires or is cancelled.',
   },
   {
     id: 'admin-console-pricing',

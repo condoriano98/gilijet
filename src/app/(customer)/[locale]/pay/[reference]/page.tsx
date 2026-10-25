@@ -94,6 +94,7 @@ export default async function PayPage({
       outboundLeg: { include: { schedule: { include: { boat: true } } } },
       returnLeg: { include: { schedule: { include: { boat: true } } } },
       payment: true,
+      promotion: { select: { code: true } },
     },
   });
   if (!booking) notFound();
@@ -125,6 +126,7 @@ export default async function PayPage({
   if (isDokuMock()) redirect(`/checkout/${reference}`);
 
   const amountLabel = formatIDR(Number(booking.totalAmount));
+  const discount = Number(booking.discountAmount);
 
   // PayPal is only offered when it can name a price: live keys plus a fresh FX
   // rate. A stale rate means no offer, never a guessed conversion.
@@ -171,6 +173,20 @@ export default async function PayPage({
                 {mainLeg.schedule.boat.name}
               </div>
             </div>
+            {discount > 0 ? (
+              <div className="space-y-1 border-t pt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Price before promo</span>
+                  <span>{formatIDR(Number(booking.totalAmount) + discount)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-700">
+                  <span>
+                    Promo {booking.promotion ? <span className="font-mono">{booking.promotion.code}</span> : null}
+                  </span>
+                  <span>-{formatIDR(discount)}</span>
+                </div>
+              </div>
+            ) : null}
             <div className="flex justify-between border-t pt-3">
               <span className="text-muted-foreground">Amount due</span>
               <span className="font-semibold">{amountLabel}</span>

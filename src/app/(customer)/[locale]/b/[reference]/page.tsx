@@ -201,6 +201,7 @@ export default async function BookingLookupPage({
       tickets: { orderBy: { ticketCode: 'asc' } },
       refund: true,
       payment: true,
+      promotion: { select: { code: true } },
       rescheduleRequest: true,
       review: true,
     },
@@ -327,6 +328,18 @@ export default async function BookingLookupPage({
           <CardContent className="space-y-2 text-sm">
             <KV label="Customer" value={booking.customerName} />
             <KV label="Email" value={booking.customerEmail} />
+            {Number(booking.discountAmount) > 0 ? (
+              <>
+                <KV
+                  label="Price before promo"
+                  value={formatIDR(Number(booking.totalAmount) + Number(booking.discountAmount))}
+                />
+                <KV
+                  label={booking.promotion ? `Promo ${booking.promotion.code}` : 'Promo'}
+                  value={`-${formatIDR(Number(booking.discountAmount))}`}
+                />
+              </>
+            ) : null}
             <KV label="Total" value={formatIDR(Number(booking.totalAmount))} />
             {booking.payment ? (
               <KV

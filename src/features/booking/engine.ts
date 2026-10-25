@@ -12,7 +12,11 @@ import { resolvePlatformPricing } from '@/shared/server/platform-config';
 import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
 import { newBookingReference } from '@/features/booking/references';
 import { alertAdminNewBooking } from '@/features/messaging/admin-alerts';
-import { validatePromoCode, applyPromoCode } from '@/features/pricing/promotions';
+import {
+  validatePromoCode,
+  applyPromoCode,
+  releasePromoRedemption,
+} from '@/features/pricing/promotions';
 import { isDokuMock } from '@/features/payments/doku';
 
 export class BookingError extends Error {
@@ -182,6 +186,8 @@ async function createOneWayBooking(
       operatorId: leg.operatorId,
       customerEmail: args.customer.email,
       customerId: args.customerId ?? null,
+      passengerTypes,
+      multipliers: pricing.multipliers,
     });
     if (!validation.valid) {
       throw new BookingError('PROMO_INVALID', validation.error);
@@ -309,6 +315,9 @@ async function createRoundTripBooking(
       operatorId: outboundLeg.operatorId,
       customerEmail: args.customer.email,
       customerId: args.customerId ?? null,
+      passengerTypes,
+      multipliers: pricing.multipliers,
+      legCount: 2,
     });
     if (!validation.valid) {
       throw new BookingError('PROMO_INVALID', validation.error);
@@ -546,6 +555,10 @@ export async function releaseBookingSeats(
       include: { tickets: true },
     });
     if (!booking) return;
+
+    // Before the seat count: a booking that holds no seats (infants only, notes
+    // unreadable) must still give its coupon back.
+    await releasePromoRedemption(tx, bookingId, reason);
 
     // Count seats from tickets if issued (tickets only exist for non-infant
     // passengers), else from stored passengers list filtering out infants.

@@ -636,6 +636,13 @@ describe('createRoundTripBooking - Phase 3 Round-Trip', () => {
       });
 
       expect(result.bookingId).toBe('booking-promo');
+
+      // A Nett coupon prices the booking from the passengers, per leg.
+      const { validatePromoCode } = await import('@/features/pricing/promotions');
+      expect(vi.mocked(validatePromoCode)).toHaveBeenCalledWith(
+        'SAVE50',
+        expect.objectContaining({ passengerTypes: ['ADULT'], legCount: 2 }),
+      );
     });
   });
 
