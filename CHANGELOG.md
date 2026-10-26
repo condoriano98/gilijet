@@ -12,6 +12,10 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Added
+
+- Marketing measurement groundwork (in progress, not live; every switch defaults to off): a typed event contract with GA4/Google Ads/Meta mappings, consent and attribution helpers, PII guards, and migration `2_marketing_measurement`. The migration adds `MarketingEvent`, `MarketingEventDelivery`, `BookingAttribution`, `AdSpendDaily`, `AdReachDaily` and `AdSyncRun`, all with RLS enabled. New env switches are documented in `.env.example`, which now also lists `CRON_SECRET`. Spike: `docs/spikes/in-progress/FEATURE_MARKETING_MEASUREMENT.md`.
+
 ### Changed
 
 - `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.
