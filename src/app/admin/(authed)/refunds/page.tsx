@@ -4,6 +4,7 @@ import { requireAdmin } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import { audit } from '@/shared/server/audit';
 import { refundViaGateway, isAnyRefundGatewayConfigured } from '@/features/refunds/refund-gateway';
+import { markRefundCompleted } from '@/features/refunds/refund-completion';
 import { getMainLeg } from '@/features/booking/helpers';
 import {
   Card,
@@ -169,6 +170,20 @@ async function approveRefundAction(formData: FormData) {
   });
 
   redirect(`/admin/refunds?ok=approved`);
+}
+
+/**
+ * The admin confirms the money has actually gone back (DOKU refunds are made
+ * by hand on the DOKU dashboard, so nothing tells the system otherwise).
+ */
+async function completeRefundAction(formData: FormData) {
+  'use server';
+  const session = await requireAdmin();
+  const refundId = String(formData.get('refundId') ?? '');
+  if (!refundId) redirect('/admin/refunds');
+  const result = await markRefundCompleted({ refundId, adminId: session.sub });
+  if (!result.ok) redirect(`/admin/refunds?error=${result.reason.toLowerCase()}`);
+  redirect('/admin/refunds?ok=completed');
 }
 
 async function rejectRefundAction(formData: FormData) {
@@ -387,6 +402,13 @@ export default async function AdminRefundsPage({
                             </Button>
                           </form>
                         </div>
+                      ) : r.status === 'APPROVED' || r.status === 'PROCESSING' ? (
+                        <form action={completeRefundAction} className="flex justify-end">
+                          <input type="hidden" name="refundId" value={r.id} />
+                          <Button type="submit" size="sm" variant="outline">
+                            Mark money returned
+                          </Button>
+                        </form>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

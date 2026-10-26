@@ -61,6 +61,13 @@ export type Touch = {
   lp?: string;
   /** referrer host only */
   ref?: string;
+  /**
+   * '1' on a recorded direct first visit (no campaign signal, no external
+   * referrer). It is evidence the visitor came direct; without it a booking
+   * with no cookie is unknown, not direct (cookies get cleared, and Safari
+   * caps script-set cookies at 7 days).
+   */
+  dir?: '1';
 };
 
 export type AttributionCookie = { v: 1; ft?: Touch; lt?: Touch };
@@ -136,15 +143,27 @@ export function touchFromLanding(args: {
 
 /**
  * Fold a new landing into the stored cookie. First touch is written once;
- * last touch is replaced by any later non-direct touch.
+ * last touch is replaced by any later non-direct touch. A direct landing only
+ * ever fills an empty first touch.
  */
 export function mergeTouch(existing: AttributionCookie | null, touch: Touch | null): AttributionCookie | null {
   if (!touch) return existing;
+  if (touch.dir) return existing?.ft ? existing : { v: 1, ft: touch, lt: existing?.lt };
   return { v: 1, ft: existing?.ft ?? touch, lt: touch };
 }
 
+/** A direct first visit, recorded so "direct" is evidenced rather than assumed. */
+export function directLanding(url: string, now = Date.now()): Touch | null {
+  try {
+    return { at: now, lp: sanitizeUrl(new URL(url).toString()) ?? undefined, dir: '1' };
+  } catch {
+    return null;
+  }
+}
+
 export function classifyTouch(t: Touch | undefined | null): Channel {
-  if (!t) return 'direct';
+  if (!t) return 'unknown';
+  if (t.dir) return 'direct';
   const src = t.src ?? '';
   const med = t.med ?? '';
   // Auto-tagging click ids are the strongest signal for Google; gad_source
@@ -163,7 +182,34 @@ export function classifyTouch(t: Touch | undefined | null): Channel {
   if (t.ref && SEARCH_HOSTS.test(t.ref)) return 'organic_search';
   if (t.ref && SOCIAL_HOSTS.test(t.ref)) return 'social';
   if (t.ref) return 'referral';
-  return 'direct';
+  return 'unknown';
+}
+
+/**
+ * Reporting groups. Unattributed is never folded into organic: "unknown"
+ * means no evidence either way, "direct" means a recorded direct visit (or a
+ * last campaign touch older than the lookback).
+ */
+export type ChannelGroup = 'attributed_paid' | 'attributed_non_paid' | 'direct' | 'unknown' | 'consent_unavailable';
+
+export function channelGroup(channel: string | null | undefined): ChannelGroup {
+  switch (channel) {
+    case 'google_ads':
+    case 'meta_ads':
+    case 'other_paid':
+      return 'attributed_paid';
+    case 'organic_search':
+    case 'social':
+    case 'referral':
+    case 'email':
+      return 'attributed_non_paid';
+    case 'direct':
+      return 'direct';
+    case 'consent_unavailable':
+      return 'consent_unavailable';
+    default:
+      return 'unknown';
+  }
 }
 
 export function platformForChannel(channel: Channel): 'google' | 'meta' | null {
@@ -185,9 +231,11 @@ export type ResolvedAttribution = {
  * Decide the booking's channel at creation time from the cookie contents.
  *
  * - No consent at all: consent_unavailable, nothing stored from the cookie.
- * - Last touch older than the lookback: direct (the first touch is still kept
- *   for reference, but does not earn the booking).
- * - No cookie with consent given: direct.
+ * - A last campaign touch inside the lookback: its channel.
+ * - Otherwise, a recorded visit (a direct first visit, or campaign touches
+ *   older than the lookback): direct.
+ * - No cookie at all with consent given: unknown. Nothing proves the visitor
+ *   came direct, and a campaign is never inferred from timing.
  */
 export function resolveAttribution(args: {
   cookie: AttributionCookie | null;
@@ -203,7 +251,8 @@ export function resolveAttribution(args: {
   const cutoff = now - args.lookbackDays * 24 * 60 * 60 * 1000;
   const lt = args.cookie?.lt && args.cookie.lt.at >= cutoff && args.cookie.lt.at <= now + 60_000 ? args.cookie.lt : null;
   const ft = args.cookie?.ft ?? null;
-  const channel = classifyTouch(lt);
+  const hadVisit = Boolean(ft || args.cookie?.lt);
+  const channel: Channel = lt ? classifyTouch(lt) : hadVisit ? 'direct' : 'unknown';
   return { ...base, channel, platform: platformForChannel(channel), lastTouch: lt, firstTouch: ft };
 }
 
@@ -235,6 +284,7 @@ function readTouch(v: unknown): Touch | undefined {
     if (typeof val === 'string' && val) t[k] = truncate(val, k === 'lp' ? 300 : 255);
   }
   if (o.clk === 'g' || o.clk === 'm') t.clk = o.clk;
+  if (o.dir === '1') t.dir = '1';
   if (t.lp) t.lp = sanitizeUrl(t.lp) ?? undefined;
   return t;
 }

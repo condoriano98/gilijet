@@ -1379,6 +1379,10 @@ model BookingAttribution {
   consentMarketing Boolean
   // First-party analytics visitor id (gf_vid cookie), set only with consent.
   visitorId        String?
+  // Set when the visitor (or an admin on their request) withdraws consent
+  // after booking. Deliveries re-check it before every send and replay; the
+  // matching identifiers are wiped at the same moment.
+  consentWithdrawnAt DateTime?
   channel          String
   platform         String?
   utmSource        String?
@@ -1437,6 +1441,12 @@ model AdSpendDaily {
   campaignName          String?
   adGroupId             String       @default("")
   adId                  String       @default("")
+  // One level and one breakdown dimension set per platform/account/date:
+  // ingestion replaces the whole account-day, so these can never mix.
+  level                 AdReportLevel @default(CAMPAIGN)
+  // e.g. "device"; '' = no breakdown. breakdownValue is the segment value.
+  breakdownDims         String       @default("")
+  breakdownValue        String       @default("")
   spend                 Decimal      @db.Decimal(14, 2)
   impressions           Int?
   clicks                Int?
@@ -1449,9 +1459,15 @@ model AdSpendDaily {
   syncedAt              DateTime
   createdAt             DateTime     @default(now())
 
-  @@unique([platform, accountId, date, campaignId, adGroupId, adId])
+  @@unique([platform, accountId, date, level, campaignId, adGroupId, adId, breakdownValue])
   @@index([date])
   @@index([platform, campaignId])
+}
+
+enum AdReportLevel {
+  CAMPAIGN
+  AD_GROUP
+  AD
 }
 
 // Reach and frequency are not additive across days or ads, so they live
@@ -1492,9 +1508,47 @@ model AdSyncRun {
   errorMessage      String?
   unavailableFields Json?
   fileName          String?
+  // SHA-256 of the uploaded file: a re-import of identical content is
+  // recognisable in the history (it replaces the same rows, adding nothing).
+  contentHash       String?
+  rowsReplaced      Int          @default(0)
+  // Per-scope outcome: which account-days were written, kept or rejected and why.
+  report            Json?
   triggeredBy       String?
   startedAt         DateTime     @default(now())
   finishedAt        DateTime?
 
   @@index([platform, startedAt])
+}
+
+enum CampaignRouteMethod {
+  // The campaign advertises this route only: its spend is observed route spend.
+  DIRECT
+  // A shared campaign: spend is split by allocationWeight, and every number
+  // built from it is labelled an allocation estimate.
+  ALLOCATED
+}
+
+// Optional link from an ad campaign to the routes it advertises. Campaigns
+// without a mapping stay "unallocated" in route reports; nothing is guessed.
+model MarketingCampaignRouteMapping {
+  id               String              @id @default(cuid())
+  platform         AdPlatform
+  accountId        String
+  campaignId       String
+  routeCode        String
+  method           CampaignRouteMethod
+  // 1 for DIRECT; ALLOCATED weights for one campaign sum to at most 1, the
+  // remainder staying unallocated.
+  allocationWeight Decimal             @db.Decimal(5, 4)
+  effectiveFrom    DateTime            @db.Date
+  effectiveTo      DateTime?           @db.Date
+  provenance       String
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([platform, accountId, campaignId])
+  @@index([routeCode])
 }

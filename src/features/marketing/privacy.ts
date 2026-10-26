@@ -76,6 +76,29 @@ export function sanitizeUrl(raw: string | null | undefined, base = 'https://gili
   return `${sanitizePath(url.pathname)}${qs ? `?${qs}` : ''}`;
 }
 
+/**
+ * page_location / page_referrer for GA4: capability segments masked, and only
+ * attribution params kept. Unlike sanitizeUrl, click ids stay: GA4 reads
+ * gclid from page_location to attribute the session (consent mode decides
+ * what Google may do with it).
+ */
+export function sanitizePageLocation(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  const allowed = new Set<string>(ATTRIBUTION_PARAMS);
+  const kept = new URLSearchParams();
+  for (const [k, v] of url.searchParams) {
+    if (allowed.has(k) && v) kept.set(k, truncate(v, 255));
+  }
+  const qs = kept.toString();
+  return `${url.origin}${sanitizePath(url.pathname)}${qs ? `?${qs}` : ''}`;
+}
+
 /** Only the host of a referrer is kept: full referrer URLs carry search terms and tokens. */
 export function referrerHost(raw: string | null | undefined): string | null {
   if (!raw) return null;
@@ -117,6 +140,7 @@ export function containsPii(value: unknown, depth = 0): boolean {
       // Key names that announce personal data are refused even when empty,
       // except the GA4 item/route fields that only use "name" for a product.
       if (PII_KEYS.test(k) && !SAFE_NAME_KEYS.has(k)) return true;
+      if (ID_KEYS.has(k)) continue;
       if (containsPii(v, depth + 1)) return true;
     }
   }
@@ -124,6 +148,13 @@ export function containsPii(value: unknown, depth = 0): boolean {
 }
 
 const SAFE_NAME_KEYS = new Set(['event_name', 'item_name', 'campaign_name', 'page_name']);
+
+/**
+ * Values that are generated ids or already-sanitized URLs. A UUID or a gclid
+ * can contain a long digit run that the phone pattern would misread, so their
+ * values are not scanned (their key names still are).
+ */
+const ID_KEYS = new Set(['event_id', 'transaction_id', 'item_id', 'leg_id', 'page_location', 'page_referrer', 'page_path']);
 
 /** Keep only listed keys with primitive values, truncating strings. */
 export function pickPrimitives(

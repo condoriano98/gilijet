@@ -25,6 +25,7 @@ export const EVENT_NAMES = [
   'ticket_issued',
   'booking_cancelled',
   'refund',
+  'unmatched_late_payment',
 ] as const;
 export type EventName = (typeof EVENT_NAMES)[number];
 
@@ -63,6 +64,9 @@ export const EVENT_DICTIONARY: Record<
   ticket_issued: { authority: 'backend', trigger: 'Tickets minted, in the same transaction as seat_confirmed', oncePerBooking: true, ga4: null, meta: null, googleAds: null, server: [] },
   booking_cancelled: { authority: 'backend', trigger: 'Booking moved to CANCELLED_BY_CUSTOMER, CANCELLED_BY_OPERATOR or EXPIRED', oncePerBooking: true, ga4: null, meta: null, googleAds: null, server: [] },
   refund: { authority: 'backend', trigger: 'Refund marked COMPLETED (money returned), full or partial', oncePerBooking: false, ga4: 'refund', meta: null, googleAds: null, server: ['GA4'] },
+  // Money for a booking already expired or cancelled: an operational
+  // exception, never a purchase, never sent to a platform.
+  unmatched_late_payment: { authority: 'backend', trigger: 'Verified gateway payment arrived for an EXPIRED or CANCELLED_* booking', oncePerBooking: true, ga4: null, meta: null, googleAds: null, server: [] },
 };
 
 /** Events the public collect endpoint accepts; everything else is server-only. */

@@ -115,6 +115,11 @@ jobs:
       AUTH_SECRET: ci-test-secret-at-least-32-chars
       QR_HMAC_SECRET: ci-test-qr-hmac-secret-at-least-32
       APP_BASE_URL: http://localhost:3000
+      # Marketing measurement on, delivery off: events are recorded in the test
+      # database and the banner renders, but nothing is sent to any provider.
+      # The GTM id is a dummy; the specs block googletagmanager.com.
+      MARKETING_EVENTS_ENABLED: 'true'
+      NEXT_PUBLIC_GTM_ID: GTM-E2ETEST
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

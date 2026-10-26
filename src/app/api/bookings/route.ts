@@ -6,6 +6,7 @@ import {
   releaseBookingSeats,
   BookingError,
 } from '@/features/booking/engine';
+import { readBookingAttribution } from '@/features/marketing/booking-attribution';
 
 /**
  * Public POST /api/bookings — accepts an Idempotency-Key header to make
@@ -58,6 +59,12 @@ export async function POST(req: NextRequest) {
       customer: parsed.data.customer,
       passengers: parsed.data.passengers,
       notes: parsed.data.notes ?? null,
+      attribution: readBookingAttribution({
+        cookie: (name) => req.cookies.get(name)?.value,
+        allCookieNames: req.cookies.getAll().map((c) => c.name),
+        userAgent: req.headers.get('user-agent'),
+        ip: req.headers.get('x-forwarded-for'),
+      }),
       idempotencyKey: idempotencyKey ?? null,
     });
   } catch (err) {

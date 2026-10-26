@@ -144,6 +144,7 @@ export async function recordBookingEvent(
   eventName: EventName,
   bookingId: string,
   extra: {
+    eventId?: string;
     occurredAt?: Date;
     value?: Prisma.Decimal | number | null;
     refundId?: string | null;
@@ -176,6 +177,7 @@ export async function recordBookingEvent(
   const legs = booking.tripType === 'ROUND_TRIP' ? 2 : 1;
   return recordMarketingEvent(tx, {
     eventName,
+    eventId: extra.eventId,
     bookingId,
     refundId: extra.refundId ?? null,
     occurredAt: extra.occurredAt,

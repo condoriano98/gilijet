@@ -1,6 +1,7 @@
 import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { releaseBookingSeats } from '@/features/booking/engine';
+import { recordBookingEventStandalone } from '@/features/marketing/events';
 
 /**
  * Expire bookings whose `PENDING_PAYMENT` hold has elapsed. Called lazily
@@ -67,6 +68,10 @@ export async function expireStalePendingBookings(): Promise<number> {
         data: { status: 'EXPIRED' },
       });
       await releaseBookingSeats(id, 'expired');
+      await recordBookingEventStandalone('booking_cancelled', id, {
+        value: null,
+        properties: { cancelled_by: 'hold_expired', paid: false },
+      });
       expired++;
     } catch {
       // Another request may have raced us — skip.

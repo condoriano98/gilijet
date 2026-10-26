@@ -1,10 +1,11 @@
-import { Prisma, PaymentMethod } from '@prisma/client';
+import { Prisma, PaymentMethod, type Booking } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { getMainLeg } from '@/features/booking/helpers';
 import { releaseBookingSeats } from '@/features/booking/engine';
 import { ymdInZone } from '@/shared/lib/datetime';
 import { buildQrPayload, signTicketCode } from '@/features/tickets/qr';
 import { newTicketCode } from '@/features/booking/references';
+import { recordBookingEvent } from '@/features/marketing/events';
 
 /**
  * Payment and ticketing are deliberately two separate steps.
@@ -30,6 +31,11 @@ export type IssueResult = {
 export type PaymentRecordedResult = {
   bookingReference: string;
   alreadyRecorded: boolean;
+  /**
+   * Status the booking was found in. EXPIRED or CANCELLED_* with a verified
+   * payment means money arrived for a booking we had already closed.
+   */
+  bookingStatus: Booking['status'];
 };
 
 /**
@@ -57,6 +63,7 @@ export async function recordPaymentAwaitingConfirmation(args: {
       return {
         bookingReference: booking.bookingReference,
         alreadyRecorded: true,
+        bookingStatus: booking.status,
       };
     }
 
@@ -66,12 +73,28 @@ export async function recordPaymentAwaitingConfirmation(args: {
       );
     }
 
+    // The status read above is not a lock: two callbacks delivered at once
+    // would both see PENDING_PAYMENT. The conditional update is the guard —
+    // only one of them moves the row, the other records nothing.
+    const paidAt = args.paidAt ?? new Date();
+    const moved = await tx.booking.updateMany({
+      where: { id: booking.id, status: 'PENDING_PAYMENT' },
+      data: { status: 'AWAITING_CONFIRMATION' },
+    });
+    if (moved.count === 0) {
+      return {
+        bookingReference: booking.bookingReference,
+        alreadyRecorded: true,
+        bookingStatus: booking.status,
+      };
+    }
+
     if (booking.payment) {
       await tx.payment.update({
         where: { bookingId: booking.id },
         data: {
           status: 'SUCCESSFUL',
-          paidAt: args.paidAt ?? new Date(),
+          paidAt,
           gatewayReference:
             args.gatewayReference ?? booking.payment.gatewayReference,
           method: args.method ?? booking.payment.method ?? ('BANK_TRANSFER' as PaymentMethod),
@@ -83,11 +106,6 @@ export async function recordPaymentAwaitingConfirmation(args: {
       });
     }
 
-    await tx.booking.update({
-      where: { id: booking.id },
-      data: { status: 'AWAITING_CONFIRMATION' },
-    });
-
     await tx.auditLog.create({
       data: {
         entityType: 'BOOKING',
@@ -98,9 +116,15 @@ export async function recordPaymentAwaitingConfirmation(args: {
       },
     });
 
+    await recordBookingEvent(tx, 'purchase', booking.id, {
+      occurredAt: paidAt,
+      properties: { payment_method: args.method ?? null },
+    });
+
     return {
       bookingReference: booking.bookingReference,
       alreadyRecorded: false,
+      bookingStatus: booking.status,
     };
   });
 }
@@ -156,15 +180,21 @@ export async function issueTicketsForBooking(args: {
       );
     }
 
-    await tx.booking.update({
-      where: { id: booking.id },
+    const decidedAt = new Date();
+    const moved = await tx.booking.updateMany({
+      where: { id: booking.id, status: 'AWAITING_CONFIRMATION' },
       data: {
         status: 'CONFIRMED',
-        availabilityDecidedAt: new Date(),
+        availabilityDecidedAt: decidedAt,
         availabilityDecidedById: args.adminId,
         availabilityNote: args.note ?? null,
       },
     });
+    if (moved.count === 0) {
+      throw new Error(
+        `Cannot issue tickets for ${booking.bookingReference}: it changed while confirming`,
+      );
+    }
 
     const issued: IssuedTicket[] = [];
     const departureYmd = ymdInZone(departureDate);
@@ -201,6 +231,12 @@ export async function issueTicketsForBooking(args: {
           note: args.note ?? null,
         },
       },
+    });
+
+    await recordBookingEvent(tx, 'seat_confirmed', booking.id, { occurredAt: decidedAt });
+    await recordBookingEvent(tx, 'ticket_issued', booking.id, {
+      occurredAt: decidedAt,
+      properties: { tickets: issued.length },
     });
 
     return {
@@ -255,15 +291,19 @@ export async function rejectBookingAvailability(args: {
       );
     }
 
-    await tx.booking.update({
-      where: { id: booking.id },
+    const decidedAt = new Date();
+    const moved = await tx.booking.updateMany({
+      where: { id: booking.id, status: 'AWAITING_CONFIRMATION' },
       data: {
         status: 'CANCELLED_BY_OPERATOR',
-        availabilityDecidedAt: new Date(),
+        availabilityDecidedAt: decidedAt,
         availabilityDecidedById: args.adminId,
         availabilityNote: args.note ?? null,
       },
     });
+    if (moved.count === 0) {
+      throw new Error(`Cannot reject ${booking.bookingReference}: it changed while confirming`);
+    }
 
     // The customer did nothing wrong, so the cancellation-tier maths in
     // lib/refunds.ts does not apply — this is always the full amount.
@@ -292,6 +332,12 @@ export async function rejectBookingAvailability(args: {
           note: args.note ?? null,
         },
       },
+    });
+
+    await recordBookingEvent(tx, 'booking_cancelled', booking.id, {
+      occurredAt: decidedAt,
+      value: null,
+      properties: { cancelled_by: 'operator_unavailable', paid: true },
     });
 
     return {

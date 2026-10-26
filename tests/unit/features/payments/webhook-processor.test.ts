@@ -56,7 +56,7 @@ beforeEach(() => {
 
 describe('processDokuPaymentSuccess', () => {
   it('records the payment, stores the payload and notifies the customer', async () => {
-    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000' });
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
     const payload = dokuPayload();
 
     const res = await processDokuPaymentSuccess(payload);
@@ -77,7 +77,7 @@ describe('processDokuPaymentSuccess', () => {
   });
 
   it('does not notify again on a redelivery', async () => {
-    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000' });
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
     mocks.record.mockResolvedValue({ bookingReference: 'x', alreadyRecorded: true });
 
     await processDokuPaymentSuccess(dokuPayload());
@@ -95,7 +95,7 @@ describe('processDokuPaymentSuccess', () => {
   });
 
   it('refuses a paid amount that differs from the total, with a 409', async () => {
-    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '500000' });
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '500000', currency: 'IDR' });
 
     const res = await processDokuPaymentSuccess(dokuPayload());
 
@@ -104,7 +104,7 @@ describe('processDokuPaymentSuccess', () => {
   });
 
   it('falls back to bank transfer for an unknown channel instead of refusing', async () => {
-    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000' });
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
 
     await processDokuPaymentSuccess(dokuPayload({ channel: { id: 'SOMETHING_NEW' } }));
 
@@ -171,7 +171,7 @@ describe('processPaypalEvent', () => {
 
 describe('dispatchWebhookEvent', () => {
   it('re-runs a DOKU payment.success event through the DOKU handler', async () => {
-    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000' });
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
 
     const res = await dispatchWebhookEvent({
       provider: 'doku',
@@ -208,5 +208,50 @@ describe('dispatchWebhookEvent', () => {
     });
 
     expect(res).toMatchObject({ ok: false });
+  });
+});
+
+describe('processDokuPaymentSuccess integrity guards (marketing purchase source)', () => {
+  it('refuses a notification naming a non-IDR currency and records nothing', async () => {
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
+    const out = await processDokuPaymentSuccess(
+      dokuPayload({ order: { invoice_number: 'BK-2026-10-AAAAAA', amount: 450000, currency: 'USD' } }),
+    );
+    expect(out).toMatchObject({ ok: false, httpStatus: 409 });
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it('refuses a mismatched amount and records nothing', async () => {
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
+    const out = await processDokuPaymentSuccess(
+      dokuPayload({ order: { invoice_number: 'BK-2026-10-AAAAAA', amount: 1000 } }),
+    );
+    expect(out).toMatchObject({ ok: false, httpStatus: 409 });
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it('flags a verified payment for an expired booking as unmatched instead of a purchase', async () => {
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
+    mocks.record.mockResolvedValue({ bookingReference: 'x', alreadyRecorded: true, bookingStatus: 'EXPIRED' });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const out = await processDokuPaymentSuccess(dokuPayload());
+    expect(out).toEqual({ ok: true, status: 'unmatched_late_payment' });
+    expect(mocks.notify).not.toHaveBeenCalled();
+    err.mockRestore();
+  });
+});
+
+describe('unmatched late payments', () => {
+  it('records an internal unmatched_late_payment event, never a purchase', async () => {
+    const events = await import('@/features/marketing/events');
+    const spy = vi.spyOn(events, 'recordBookingEventStandalone').mockResolvedValue(null);
+    mocks.bookingFind.mockResolvedValue({ id: 'bk-1', totalAmount: '450000', currency: 'IDR' });
+    mocks.record.mockResolvedValue({ bookingReference: 'x', alreadyRecorded: true, bookingStatus: 'CANCELLED_BY_CUSTOMER' });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await processDokuPaymentSuccess(dokuPayload());
+    expect(spy).toHaveBeenCalledWith('unmatched_late_payment', 'bk-1', expect.objectContaining({ value: 450000 }));
+    expect(spy).not.toHaveBeenCalledWith('purchase', expect.anything(), expect.anything());
+    err.mockRestore();
+    spy.mockRestore();
   });
 });

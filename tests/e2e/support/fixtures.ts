@@ -4,6 +4,11 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 export async function removeBookings(prisma: PrismaClient, where: Prisma.BookingWhereInput) {
   const ids = (await prisma.booking.findMany({ where, select: { id: true } })).map((b) => b.id);
   if (ids.length === 0) return;
+  // Measurement rows reference bookings by plain id (no FK), so they would
+  // outlive the booking unless removed here.
+  await prisma.marketingEventDelivery.deleteMany({ where: { event: { bookingId: { in: ids } } } });
+  await prisma.marketingEvent.deleteMany({ where: { bookingId: { in: ids } } });
+  await prisma.bookingAttribution.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.refund.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.payment.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.booking.deleteMany({ where: { id: { in: ids } } });

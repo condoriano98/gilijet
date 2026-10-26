@@ -81,3 +81,11 @@ describe('privacy guards', () => {
     expect(msg).not.toContain('ya29');
   });
 });
+
+describe('containsPii on generated ids', () => {
+  it('does not mistake a UUID or click id with a long digit run for a phone number', () => {
+    expect(containsPii({ event_id: '3f2b1c4d-aaaa-bbbb-cccc-1234567890ab' })).toBe(false);
+    expect(containsPii({ page_location: 'https://gilifast.com/?gclid=Cj0KCQ1234567890abc' })).toBe(false);
+    expect(containsPii({ note: '1234567890' })).toBe(true);
+  });
+});

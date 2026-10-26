@@ -1,6 +1,6 @@
 # Phase-one marketing measurement and performance dashboard (Google Ads + Meta)
 
-**Status (2026-10-26):** in progress on `claude/magical-curie-gi16o3`, which is based on `staging`. Stage 0 (discovery) and stage 1 (contract + schema) are written. Nothing is deployed, and no live tag, API or ad account has been touched.
+**Status (2026-10-26):** in progress on `claude/magical-curie-gi16o3`, which is based on `staging`. Stages 0–4 are written, plus the architecture revision of 2026-10-26: financial contract, attribution integrity, consent withdrawal, reconciliation. Stage 1 is committed (`4373027`); stages 2–4 and the revision are not committed. Stage 5 (the dashboard UI) needs the owner's approval before it starts. The design reference is now `docs/MARKETING_MEASUREMENT.md`. Nothing is deployed, and no live tag, API or ad account has been touched.
 **Goal:** measure Google Ads and Meta Ads against the internal paid-booking ledger, with a SUPER_ADMIN-only dashboard at `/admin/marketing`. The booking/payment tables stay the authority for money. GA4 and the ad platforms are separate measurement sources and are expected to disagree with it.
 
 Decisions the owner made (2026-10-26): GTM is the only browser tag owner; a minimal consent banner is built (default deny); the dashboard is SUPER_ADMIN only; all stages are delivered on this branch, with one commit per stage after the owner's go-ahead.
@@ -39,9 +39,47 @@ Other findings:
 
 - [x] 0. Discovery. Rebased on `staging` (the trees of `staging` and `main` are identical; `main` only adds merge commits), dependencies installed, Next 16 docs read (`next/script`, `after`, `cookies`), provider docs checked (above).
 - [x] 1. Contract and schema: `src/features/marketing/{contract,consent,privacy,attribution,money,config,events}.ts`, migration `2_marketing_measurement` (6 tables with RLS enabled and no policies), env switches.
-- [ ] 2. Verified payment events and outbox delivery.
-- [ ] 3. GTM, consent banner, attribution capture, privacy page.
-- [ ] 4. Ad spend ingestion (APIs + CSV).
+- [x] 2. Verified payment events and outbox delivery:
+  - **Lifecycle events** are recorded inside the transition's own transaction, under a savepoint: `booking_request_created` (engine), `purchase` (`recordPaymentAwaitingConfirmation`), `seat_confirmed` + `ticket_issued` (`issueTicketsForBooking`), and `booking_cancelled` (operator reject, customer cancel, leg cancel, weather cancel, hold expiry, payment-setup failure). `begin_checkout` is recorded after the DOKU/PayPal session is created. `payment_failed` is keyed on the gateway attempt id.
+  - **Refunds:** a new "Mark money returned" action on `/admin/refunds` moves APPROVED/PROCESSING to COMPLETED and records `refund`.
+  - **Race fix:** `recordPaymentAwaitingConfirmation`, `issueTicketsForBooking` and `rejectBookingAvailability` now use a conditional `updateMany`, which closes the concurrent-callback race.
+  - **DOKU checks:** currency is checked. A verified payment on an expired or cancelled booking returns `unmatched_late_payment` and records no purchase.
+  - **Outbox:** `src/features/marketing/delivery/` holds GA4 Measurement Protocol (purchase, refund), Meta CAPI (Purchase) and Google Data Manager (purchase).
+    - Every delivery is gated on consent, configuration, match data and provider age limits. Skips are recorded with a reason.
+    - Off-production runs use the GA4 debug endpoint, the Meta `test_event_code` and Data Manager `validateOnly`.
+    - Retries back off at 2–32 minutes over 6 attempts. Errors are scrubbed of tokens. Admin replay is available.
+    - Match-data retention purge.
+    - New cron `/api/cron/marketing-deliver` (every 5 min on Production), plus an `afterResponse` kick after each purchase.
+- [x] 3. GTM, consent banner, attribution capture, privacy page:
+  - **`MarketingTags`** is in the customer layout only, and renders nothing unless `NEXT_PUBLIC_GTM_ID` is valid or events are enabled. A single inline script sets the Consent Mode defaults (all denied), applies the stored choice, and only then requests `gtm.js`.
+  - **Consent banner** offers Accept all, Essential only or Choose, in en/id/zh/ja. Its "Cookie settings" footer link reopens it.
+  - **Runtime:** one sanitized `page_view` per real navigation, carrying `page_location`/`page_referrer` with booking references masked and click ids kept for GA4. Attribution is captured into the `gf_attr` cookie only with consent. A landing seen before the choice is held in memory and applied if the visitor accepts.
+  - **Events:** `search` (search page), `view_item` (book page) and the browser `purchase` (booking page) are pushed only after the backend has recorded the verified purchase. The browser purchase reuses its event id.
+  - **Collect endpoint:** public `POST /api/marketing/collect`, consent-gated, strict schema, PII check, size and rate limits.
+  - **Booking snapshot:** `BookingAttribution` is written at booking creation from the visitor's cookies, by both the book page action and `/api/bookings`.
+  - **Privacy page:** cookies, sharing and retention sections rewritten (owner/legal review needed; see the open items).
+- [x] Revision (2026-10-26), driven by the owner's architecture brief:
+  - **Financial contract:** Decimal-only, with provenance (actual/estimated/unknown), in `reporting/{measured,financials,metrics}.ts`.
+    - GMV is never revenue.
+    - Commission is expected at payment and earned only on fulfilment or forfeit.
+    - A partial refund is unknown with bounds, never prorated.
+    - An unrecorded DOKU fee is unknown, not 0.
+  - **Contribution metrics:** paid and fulfilled CPA, commission/contribution ROAS, net marketing contribution, payment-to-fulfilment rate, refund rate by count and by value, contribution per fulfilled booking. Zero denominators and partial inputs are explicit.
+  - **Attribution:** `unknown` is now separate from `direct`. "Direct" needs a recorded direct visit; a booking with no evidence was previously classed direct. Channel groups: attributed paid, attributed non-paid, direct, unknown, consent unavailable.
+  - **Consent withdrawal after booking:** new `BookingAttribution.consentWithdrawnAt`. The banner endpoint `/api/marketing/consent` and the admin endpoint wipe matching identifiers and skip queued sends, and the dispatcher re-checks effective consent before every send and replay.
+  - **Delivery reclaim:** a stuck delivery is reclaimed by compare-and-set on `lastAttemptAt`. Previously two workers could both reclaim the same stuck row.
+  - **`unmatched_late_payment`:** recorded as an internal event, for DOKU and PayPal.
+  - **Reconciliation:** read-only, in `reporting/reconciliation.ts`, plus the explicit audited repair, which records only missing marketing events.
+- [x] 4. Ad spend ingestion:
+  - **Google Ads** v26 `searchStream` at campaign level.
+  - **Meta** v26.0 Insights at ad level, with reach stored apart.
+  - **CSV** template and import.
+  - **Ingestion:** replace-by-grain per account-day, with guards against an incomplete or empty response erasing data, and `AdSyncRun` reports.
+  - **Routes:** optional `MarketingCampaignRouteMapping` with direct, allocated (estimate) and unallocated buckets.
+  - **Time models:** period vs cohort.
+  - **Data access:** dashboard contracts and read-only loaders.
+  - **Crons and APIs:** `/api/cron/ads-sync` (daily, off by default) and SUPER_ADMIN APIs under `/api/admin/marketing/*`.
+  - **Migration:** `3_marketing_reconciliation_and_spend_grain`.
 - [ ] 5. Dashboard.
 - [ ] 6. Reconciliation tests and e2e.
 - [ ] 7. Docs and release (1.11.0).
@@ -59,5 +97,17 @@ Rollback before data matters: a new migration that drops the six tables and enum
 | 2026-10-26 | Stage 1 unit tests | `pnpm exec vitest run tests/unit/features/marketing` | 29 passed |
 | 2026-10-26 | Schema valid, client generates | `prisma validate`, `prisma generate` (dummy URL) | ok |
 | 2026-10-26 | Typecheck | `tsc --noEmit` | clean |
+| 2026-10-26 | Stage 2 unit tests | `vitest run`: conditional transition, duplicate/concurrent callback, currency/amount mismatch, late payment, adapter gating and payloads, retry/backoff, outage, claim race, replay, refund completion, consent-gated attribution read, cron auth | full suite 1181 passed |
+| 2026-10-26 | Lint | `pnpm lint` | 0 errors (1 warning that predates this work, `postcss.config.mjs`) |
+| 2026-10-26 | Stage 3 unit tests | `vitest run`: GTM bootstrap order and id validation, cookie regex vs real format, page_location sanitizer, dataLayer PII guard, collect consent/schema/PII/size/rate limits | 66 marketing tests pass |
+| 2026-10-26 | Dev-server QC (no DB) | `pnpm dev` with a dummy DATABASE_URL, `NEXT_PUBLIC_GTM_ID=GTM-QCTEST1`, `MARKETING_EVENTS_ENABLED=true`; a Playwright script on `/privacy`, `/refunds`, `/id/privacy`, `/admin/login`, with Google/Meta hosts blocked | All of the following were checked: the banner shows and only `NEXT_LOCALE` is set before a choice. Denied defaults are pushed before `gtm.js`. `page_view` drops `email=` and keeps `gclid`. Accept writes `gf_consent`, `gf_vid` and `gf_attr` (the pre-consent gclid landing is captured), and consent updates to granted. Client-side navigation adds exactly one `page_view`, with a sanitized referrer. On reload, the default is followed by an update before GTM. Reject stores only `gf_consent`. The Indonesian copy shows. The footer reopens the banner. The admin login page loads no container |
+| 2026-10-26 | E2E `marketing-consent.spec.ts` | Run against the same DB-less dev server (`E2E_BASE_URL`, pre-installed Chromium) | 5/5 passed |
+| 2026-10-26 | Revision + stage 4 unit tests | `vitest run`: financial recognition (fulfilled, pending, unpaid, full refund before/after ticketing, partial refund bounds, refund in progress, forfeit, rejected refund, unknown DOKU fee, agent commission, Decimal vs float); metrics (CPA, ROAS, net contribution, zero denominators, spend unavailable/partial/currency mismatch, refund rates); direct vs unknown; consent withdrawal (visitor, admin, endpoint, dispatcher skip on send and replay); stuck-row reclaim guard; `unmatched_late_payment`; reconciliation (every exception code, idempotent audited repair that writes no ledger table); CSV parse/validation; replace-by-grain ingestion against an in-memory transactional store (identical re-import, correction, failed write, incomplete API, empty API, cleared empty days, late revision, partial success, reach apart); Google/Meta adapters on mocked responses (micros, pagination, errors, no token leak, no developer-token header); spend coverage and currency separation; route allocation (direct/allocated/unallocated/invalid/effective dates); cohort coverage; dashboard contracts; SUPER_ADMIN 401/403; sync switches; cron auth | full suite 1275 passed (88 files) |
+| 2026-10-26 | Lint, typecheck | `pnpm lint`, `pnpm typecheck` | 0 errors (1 warning that predates this work), clean |
+| 2026-10-26 | Dev-server QC (no DB) | `pnpm dev` with a dummy DATABASE_URL; curl every new route | `/api/admin/marketing/{spend-template,spend-import,sync,reconciliation,consent-withdrawal}` answer 401 without a session. `/api/cron/{ads-sync,marketing-deliver}` answer 401 without the secret; with it, ads-sync reports both platforms `DISABLED` and fetches nothing. `/api/marketing/consent` answers 204 while events are off |
+
+Not checked in stage 3 (needs a database or real accounts): the collect endpoint actually writing rows; `BookingAttribution` written at booking creation; the browser purchase on `/b/[reference]` after a real or mock payment; GTM container tags firing (none published yet); GA4 DebugView, Tag Assistant and Meta Test Events.
+
+Not checked in the revision and stage 4 (needs a database or real accounts): migrations 2 and 3 applied to Postgres (CI's `migrations` job will be the first run); reconciliation and the loaders against real rows; real Google Ads or Meta API responses (only mocks shaped from the official docs were used); the SUPER_ADMIN 200 paths that write (CSV import into a real table). The Google Ads v26 and Meta field names were taken from the provider docs checked on 2026-10-26. Two items were not confirmed field by field there: the full v26 field reference pages could not be loaded, and Data Manager's own upload age limit. Both need checking on first live use.
 
 Not done: no database migration has been run anywhere. The owner chose **no database** for this work (2026-10-26). So there is no local Postgres, no `seed:qa` and no Playwright run. The migration is first exercised by CI's `migrations` job when the branch is pushed. E2E specs are written but recorded here as not run.
