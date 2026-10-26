@@ -1,7 +1,35 @@
 # Feature: Nett coupons, coupon release, targeting dropdowns
 
-**Status (2026-10-25):** v1.11.0 and v1.12.0 are committed on branch `nth-coupon`, pushed to `origin/nth-coupon`, and v1.12.0 is tagged. **Not merged into `staging` or `main`, and neither migration (`2_…`, `3_…`) is applied to any database.** QC is partial: see "QC" for what ran and what could not.
+**Status (2026-10-25):** v1.11.0 and v1.12.0 are committed on branch `nth-coupon`, pushed to `origin/nth-coupon`, and v1.12.0 is tagged. **Not merged into `staging` or `main`, and neither migration (`2_…`, `3_…`) is applied to any database.** QC is partial: see "QC" for what ran and what could not. _(2026-10-26: the pushed state was re-checked against GitHub, `origin/nth-coupon` = `d448a48`, and nothing has changed since.)_
 **Version:** 1.11.0 (MINOR: new coupon type, new admin controls, new schema value), then 1.12.0 (MINOR: coupon rules changed, see below).
+
+## Resume here (branch `nth-coupon`)
+
+**This page is the branch's documentation.** Pick the work up from here.
+
+| What | Where |
+|---|---|
+| Decisions, behaviour, open items, QC | this page: v1.11.0 first, then "Update: v1.12.0" (which wins where they disagree) |
+| Release notes | `CHANGELOG.md` sections 1.11.0 and 1.12.0 |
+| Passenger categories, infants free on a lap | `README.md` "Passenger categories and fares" |
+| Where the coupon code lives | `CLAUDE.md` (coupons line under "Single sources of truth"), `STRUCTURE.md` |
+| The code | `src/features/pricing/promotions.ts`, `pricing.ts`, `coupon-form.ts`; `src/shared/lib/phone.ts`; `src/features/booking/engine.ts`; `src/app/api/promos/validate/route.ts`; `.../book/[legId]/_components/promo-code-input.tsx`; `src/app/admin/(authed)/console/coupons/` |
+| Tests | `tests/unit/features/pricing/{promotions,pricing,coupon-form}.test.ts`, `tests/unit/shared/lib/phone.test.ts`, `tests/unit/features/schedules/home-data.test.ts`, `tests/e2e/coupon.spec.ts` |
+
+**Git state (2026-10-26).** `origin/nth-coupon` = `d448a48`, two commits on top of `8255290` (`git log --oneline 8255290..nth-coupon`): `98742d0` v1.11.0 (not tagged; v1.12.0 includes it) and `d448a48` v1.12.0 (annotated tag `v1.12.0`). Not merged into `staging` or `main`. Migrations `2_coupon_net_and_platform_cost` and `3_coupon_redemption_phone` are applied to no database.
+
+**What is left, in this order.** Nothing below has been done.
+
+1. **Apply the migrations locally.** Start a local Docker Postgres (never Supabase), then `pnpm db:migrate`. Read the SQL it reports, check `2_` (`ADD VALUE` on `DiscountType`, existing coupons moved to `PLATFORM`) and `3_` (new column, index, backfill `UPDATE … FROM "Booking"`) apply cleanly and that Prisma reports no drift.
+2. **Run the e2e spec.** `pnpm seed:qa`, then `pnpm test:e2e tests/e2e/coupon.spec.ts` (mock payment keys). Fix selectors and the 2-second pop-up timing if they are off.
+3. **Walk it in `pnpm dev`.** The "Not valid coupon" pop-up (X, auto-close after 2 s, re-check when the email or phone field loses focus), the route / operator checkbox dropdowns, a Nett booking with an adult and a child, the homepage banner with and without an eligible coupon, and cancel giving the coupon back.
+4. **Exercise the phone query.** Create a first-booking-only coupon, book once, then try the same phone typed as `0812…`, `+62812…` and `62812…`. This is the only run of the raw SQL in `hasBookedBefore`.
+5. **Write the results into "QC" on this page** and tick off what the "Could not run" lists now cover. Never claim a check that did not run.
+6. **Before merging, look at the coupon list** for coupons with an empty "Usage" limit (they were bounded by a budget cap, which nothing reads now) and give them a quota. Decide whether to add the "show on homepage" flag on a coupon (see "Behaviour to know" under v1.12.0); it needs a schema change, so it is a migration and needs the owner's go-ahead.
+7. **Ship it the normal way:** PR `nth-coupon` → `staging`, apply the migrations to the staging database only with the owner's go-ahead (name the project ref, rule 4), then `staging` → `main` per `docs/RELEASING.md` (the production build runs `prisma migrate deploy`, and production is not baselined yet; a push or merge into `main` needs the two warnings of rule 9).
+8. **After it is live:** mark this page "deployed vX.Y.Z" and move it to `docs/spikes/done/`.
+
+**Tooling notes for the machine this was built on:** no `pnpm` on the Bash path (use `npx tsc --noEmit`, `npx eslint src tests`, `npx vitest run`); no Docker, local Postgres or `.env`; `tests/unit/scripts/db-migrate-guard.test.ts` fails there before any of this work (CRLF in its target script).
 
 > **Where this page is out of date (2026-10-25, v1.12.0):** the Nett maths (children at the multipliers, `netFareForPassengers`), the "Per-customer limit and Budget cap stay" decision, the "every coupon needs a budget cap, max uses or max discount" rule and the open item about the homepage banner are superseded by "Update: v1.12.0" at the end of the page. The text above it is kept as the record of v1.11.0.
 

@@ -12,7 +12,7 @@ CHANGELOG.md    Release notes per version (see docs/RELEASING.md)
 prisma/         schema.prisma, migrations/ (SQL history; RLS goes in the migration too), seed.ts, seed-small-boats.ts
 scripts/        One-off scripts (seed-qa, Wahana import/generate, doku/paypal selftests, purge-dummy-data)
 tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright), support/
-docs/           Design docs; RELEASING.md = versioning & releases; docs/spikes/ = in progress, docs/spikes/done/ = finished
+docs/           Design docs; RELEASING.md = versioning & releases; docs/spikes/ = in progress, docs/spikes/done/ = finished (branch `nth-coupon`: `docs/spikes/FEATURE_COUPON_NETT_AND_RELEASE.md`, section "Resume here")
 public/         Static assets
 vercel.json     Vercel cron schedule (must stay at repo root)
 .github/        CI (pnpm install --frozen-lockfile, lint, typecheck, unit)

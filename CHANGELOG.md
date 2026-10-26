@@ -12,6 +12,10 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Documentation
+
+- The coupon spike (`docs/spikes/FEATURE_COUPON_NETT_AND_RELEASE.md`) has a "Resume here" section: where the branch `nth-coupon` is documented, its git state, and the steps still open (apply the two migrations locally, run the e2e spec, walk the pop-up in the browser, ship via `staging`).
+
 ## [1.12.0] - 2026-10-25
 
 ### Changed
