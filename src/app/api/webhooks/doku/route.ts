@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/shared/server/db';
-import { processDokuPaymentSuccess } from '@/features/payments/webhook-processor';
+import {
+  processDokuPaymentSuccess,
+  recordPaymentFailedEvent,
+} from '@/features/payments/webhook-processor';
 import {
   beginWebhookEvent,
   failWebhookEvent,
@@ -169,6 +172,12 @@ async function recordFailedAttempt(
         data: {
           failedReason: notification.failureReason ?? notification.status,
         },
+      });
+      await recordPaymentFailedEvent({
+        bookingId: booking.id,
+        gateway: 'doku',
+        attemptRef: externalRef,
+        status: notification.status,
       });
     }
   } catch (err) {

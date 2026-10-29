@@ -31,6 +31,9 @@ import { CopyButton } from '@/features/booking/components/payment-countdown';
 import { ShareButtons } from '@/app/(customer)/[locale]/b/[reference]/_components/share-buttons';
 import { getPortInfo } from '@/features/ports/port-info';
 import { env } from '@/shared/server/env';
+import { recordBookingEvent } from '@/features/marketing/events';
+import { loadBrowserPurchase } from '@/features/marketing/browser-purchase';
+import { TrackEvent } from '@/features/marketing/components/track-event';
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -90,6 +93,10 @@ async function cancelAction(formData: FormData) {
     await tx.booking.update({
       where: { id: booking.id },
       data: { status: 'CANCELLED_BY_CUSTOMER' },
+    });
+    await recordBookingEvent(tx, 'booking_cancelled', booking.id, {
+      value: null,
+      properties: { cancelled_by: 'customer', paid: booking.payment?.status === 'SUCCESSFUL', refund_tier: tier },
     });
     await tx.ticket.updateMany({
       where: { bookingId: booking.id, status: { in: ['ISSUED'] } },
@@ -206,6 +213,7 @@ export default async function BookingLookupPage({
     },
   });
   if (!booking) notFound();
+  const browserPurchase = await loadBrowserPurchase(booking.id);
 
   // Look up return-leg suggestions for future confirmed bookings.
   const mainLeg = getMainLeg(booking)!;
@@ -274,6 +282,19 @@ export default async function BookingLookupPage({
 
   return (
     <div className="container py-8">
+      {browserPurchase ? (
+        <TrackEvent
+          eventId={browserPurchase.eventId}
+          name="purchase"
+          requires="marketing"
+          params={{
+            transaction_id: browserPurchase.transactionId,
+            value: browserPurchase.value,
+            currency: browserPurchase.currency,
+            items: [{ item_id: browserPurchase.route ?? 'journey', item_name: browserPurchase.route ?? 'journey', quantity: browserPurchase.passengers }],
+          }}
+        />
+      ) : null}
       <div className="mx-auto max-w-2xl space-y-6">
         {booking.status === 'CONFIRMED' && <BookingProgress currentStep={4} />}
         <div>

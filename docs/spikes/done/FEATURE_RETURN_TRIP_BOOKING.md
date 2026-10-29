@@ -3,6 +3,7 @@
 **Status:** ✅ Implemented and on `staging` (v1.1.0); bug round-trip GIL-28 fixed and verified there (2026-10-09). Phase 8 (production) not done (2026-10-14).  
 **Created:** 2026-09-28  
 **Updated:** 2026-10-14 (acceptance criteria checked against code and the staging verification in `BUGS_ROUND_TRIP.md`)  
+**Update 2026-10-29 (v1.10.2):** the pricing described below (each leg at its one-way fare) is outdated. A round-trip leg is now charged half of the price sheet's `return` fare; see `docs/spikes/in-progress/BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`.  
 **Note:** paths like `lib/…` below are the old layout; now `src/features/…` (see `STRUCTURE.md`).  
 **Owner:** Product Team
 

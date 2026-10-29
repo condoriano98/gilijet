@@ -299,6 +299,11 @@ export type DokuNotification = {
   /** True only for a settled payment; anything else must not issue tickets. */
   success: boolean;
   amount: number | null;
+  /**
+   * DOKU's notification samples carry no currency (checked 2026-10-26); the
+   * checkout is always created in IDR. Read in case a future payload adds it.
+   */
+  currency: string | null;
   channelCode: string | null;
   identifier: string | null;
   /**
@@ -348,6 +353,7 @@ export function readNotification(
     status,
     success: status === 'SUCCESS',
     amount: amount !== null && Number.isFinite(amount) ? amount : null,
+    currency: typeof order.currency === 'string' && order.currency ? order.currency.toUpperCase() : null,
     channelCode: channel.id ? String(channel.id) : null,
     identifier: service.id ? String(service.id) : null,
     failureReason: readFailureReason(payload, transaction, status),

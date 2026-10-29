@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { TrackEvent } from '@/features/marketing/components/track-event';
 import Link from 'next/link';
 import { z } from 'zod';
 import type { Prisma, SeasonType } from '@prisma/client';
@@ -160,7 +162,7 @@ export default async function SearchPage({
       orderBy: { departureDate: 'asc' },
       take: 50,
     });
-    legs = withSeasonPrice(rawLegs, seasons);
+    legs = withSeasonPrice(rawLegs, seasons, isRoundTrip ? 'OUTBOUND' : 'ONE_WAY');
 
     // Return legs: destination → origin (if round trip)
     if (isRoundTrip && origin) {
@@ -186,7 +188,7 @@ export default async function SearchPage({
         orderBy: { departureDate: 'asc' },
         take: 50,
       });
-      returnLegs = withSeasonPrice(rawReturnLegs, seasons);
+      returnLegs = withSeasonPrice(rawReturnLegs, seasons, 'RETURN');
     }
   } catch (err) {
     console.error('[search] legs query failed:', err);
@@ -286,10 +288,34 @@ export default async function SearchPage({
   // }
 
   const fxRates = await getLatestRates();
+  const routeCode = origin ? `${origin}-${destination}`.toUpperCase() : null;
+  const trackableRoute = routeCode && /^[A-Z0-9]{2,8}-[A-Z0-9]{2,8}$/.test(routeCode) ? routeCode : undefined;
 
   return (
     <div className="container py-8">
       <BookingProgress currentStep={1} />
+      {!legsError ? (
+        <TrackEvent
+          eventId={randomUUID()}
+          name="search"
+          requires="analytics"
+          params={{
+            search_term: trackableRoute ?? destination,
+            route: trackableRoute ?? null,
+            departure_date: date,
+            passengers: passengers ?? 1,
+            trip_type: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+            results: legs.length,
+          }}
+          collect={{
+            route: trackableRoute ?? null,
+            departure_date: date,
+            passenger_count: passengers ?? 1,
+            trip_type: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+            page_path: '/search',
+          }}
+        />
+      ) : null}
 
       {/* Listing hero (Figma "Find the Best Deals") — blue band with the
           search card floating over its lower edge. */}

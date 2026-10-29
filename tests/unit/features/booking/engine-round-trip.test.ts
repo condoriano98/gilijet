@@ -84,6 +84,9 @@ vi.mock('@/shared/server/platform-config', () => ({
 vi.mock('@/features/pricing/fares', () => ({
   parseFareMatrix: vi.fn(() => null),
   categoryFaresFor: vi.fn(() => ({ child: new Prisma.Decimal(0), infant: new Prisma.Decimal(0) })),
+  roundTripLegFaresFor: vi.fn((_m: unknown, _s: unknown, role: string) =>
+    role === 'OUTBOUND' ? { adult: 441, child: 221, infant: 0 } : { adult: 440, child: 220, infant: 0 },
+  ),
 }));
 
 vi.mock('@/features/booking/references', () => ({
@@ -113,6 +116,8 @@ vi.mock('@/features/payments/doku', () => ({
 }));
 
 import { reserveSeatsAndCreateBooking, BookingError } from '@/features/booking/engine';
+import { computeBookingPriceWithTypes } from '@/features/pricing/pricing';
+import { parseFareMatrix, roundTripLegFaresFor, categoryFaresFor } from '@/features/pricing/fares';
 
 describe('createRoundTripBooking - Phase 3 Round-Trip', () => {
   const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000); // 10 days from now
@@ -663,6 +668,61 @@ describe('createRoundTripBooking - Phase 3 Round-Trip', () => {
       });
 
       expect(result.bookingId).toBe('booking-oneway');
+    });
+  });
+
+  describe('Fares come from the price sheet return row', () => {
+    const withMatrix = (leg: typeof mockOutboundLeg) => ({ ...leg, schedule: { ...leg.schedule, fareMatrix: {} } });
+    const customer = { name: 'Test', email: 'test@example.com', phone: '+62000' };
+
+    it('charges the outbound leg and the return leg from the return fare', async () => {
+      vi.mocked(parseFareMatrix).mockReturnValue({} as never);
+      try {
+        findUniqueMock
+          .mockResolvedValueOnce(withMatrix(mockOutboundLeg))
+          .mockResolvedValueOnce(withMatrix(mockReturnLeg))
+          .mockResolvedValue(withMatrix(mockOutboundLeg));
+        createMock.mockResolvedValue({ id: 'b', bookingReference: 'GILI-RT', tripType: 'ROUND_TRIP' });
+
+        await reserveSeatsAndCreateBooking({
+          outboundLegId: 'leg-outbound-1',
+          returnLegId: 'leg-return-1',
+          customer,
+          passengers: [{ name: 'Test', type: 'ADULT' }],
+        });
+
+        const roles = vi.mocked(roundTripLegFaresFor).mock.calls.map((c) => c[2]);
+        expect(roles).toEqual(['OUTBOUND', 'RETURN']);
+        expect(categoryFaresFor).not.toHaveBeenCalled();
+        const charged = vi
+          .mocked(computeBookingPriceWithTypes)
+          .mock.calls.filter(([a]) => a.serviceFee !== undefined)
+          .map(([a]) => a.unitPrice);
+        expect(charged.map(Number)).toEqual([441, 440]);
+      } finally {
+        vi.mocked(parseFareMatrix).mockReset();
+        vi.mocked(parseFareMatrix).mockReturnValue(null as never);
+      }
+    });
+
+    it('a one-way booking still reads the one-way row', async () => {
+      vi.mocked(parseFareMatrix).mockReturnValue({} as never);
+      try {
+        findUniqueMock.mockResolvedValue(withMatrix(mockOutboundLeg));
+        createMock.mockResolvedValue({ id: 'b', bookingReference: 'GILI-OW', tripType: 'ONE_WAY' });
+
+        await reserveSeatsAndCreateBooking({
+          legId: 'leg-outbound-1',
+          customer,
+          passengers: [{ name: 'Test', type: 'ADULT' }],
+        });
+
+        expect(roundTripLegFaresFor).not.toHaveBeenCalled();
+        expect(categoryFaresFor).toHaveBeenCalled();
+      } finally {
+        vi.mocked(parseFareMatrix).mockReset();
+        vi.mocked(parseFareMatrix).mockReturnValue(null as never);
+      }
     });
   });
 });

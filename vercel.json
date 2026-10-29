@@ -16,6 +16,14 @@
     {
       "path": "/api/cron/poll-operator-inbox",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/marketing-deliver",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/ads-sync",
+      "schedule": "30 1 * * *"
     }
   ]
 }

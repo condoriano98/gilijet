@@ -16,7 +16,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 
-export const metadata = { title: 'Forgot password · Gilifast' };
+export const metadata = { title: 'Forgot password' };
 
 async function requestResetAction(formData: FormData) {
   'use server';

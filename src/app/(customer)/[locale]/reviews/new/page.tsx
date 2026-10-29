@@ -17,7 +17,7 @@ import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import { StarRating } from '@/app/(customer)/[locale]/reviews/new/_components/star-rating';
 
-export const metadata = { title: 'Rate your trip · Gilifast' };
+export const metadata = { title: 'Rate your trip' };
 
 const reviewSchema = z.object({
   bookingId: z.string().min(1),

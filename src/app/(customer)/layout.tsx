@@ -4,6 +4,8 @@ import { AuthNav } from '@/app/(customer)/_components/auth-nav';
 import { MobileNav } from '@/app/(customer)/_components/mobile-nav';
 import { Logo } from '@/app/(customer)/_components/logo';
 import { PaymentPartners } from '@/app/(customer)/_components/payment-partners';
+import { MarketingTags } from '@/features/marketing/components/marketing-tags';
+import { CookieSettingsLink } from '@/features/marketing/components/consent-banner';
 
 // Sync layout. The auth-aware buttons live in <AuthNav>, a client
 // component that fetches /api/auth/me on mount. This keeps the
@@ -57,6 +59,7 @@ export default function CustomerLayout({
       <main className="flex-1">{children}</main>
 
       <SiteFooter />
+      <MarketingTags />
     </div>
   );
 }
@@ -94,6 +97,7 @@ function SiteFooter() {
             <li><Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link></li>
             <li><Link href="/refunds" className="hover:text-white hover:underline">Refund Policy</Link></li>
             <li><Link href="/legal/wahana-virendra" className="hover:text-white hover:underline">Wahana Virendra Terms</Link></li>
+            <li><CookieSettingsLink className="hover:text-white hover:underline" /></li>
           </ul>
         </div>
         <div>

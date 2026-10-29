@@ -14,6 +14,8 @@ import { newBookingReference } from '@/features/booking/references';
 import { alertAdminNewBooking } from '@/features/messaging/admin-alerts';
 import { validatePromoCode, applyPromoCode } from '@/features/pricing/promotions';
 import { isDokuMock } from '@/features/payments/doku';
+import { recordBookingEvent } from '@/features/marketing/events';
+import { saveBookingAttribution, type BookingAttributionInput } from '@/features/marketing/booking-attribution';
 
 export class BookingError extends Error {
   constructor(
@@ -58,6 +60,9 @@ export type CreateBookingArgs = {
   salesChannel?: 'GILIFAST' | 'WALK_IN' | 'TRAVEL_AGENT' | 'PHONE' | 'EXTERNAL_AGGREGATOR';
   salesStaffId?: string | null;
   salesAgentId?: string | null;
+  // Online customer bookings only: acquisition snapshot from the request.
+  // Staff channels (walk-in, POS, agents) leave it out.
+  attribution?: BookingAttributionInput | null;
 };
 
 /**
@@ -272,8 +277,8 @@ async function createRoundTripBooking(
   const pricing = await resolvePlatformPricing(outboundLeg.operatorId, tx);
 
   const seasons = await loadActiveSeasons(tx);
-  const outbound = legPricingInputs(outboundLeg, seasons);
-  const inbound = legPricingInputs(returnLeg, seasons);
+  const outbound = legPricingInputs(outboundLeg, seasons, 'OUTBOUND');
+  const inbound = legPricingInputs(returnLeg, seasons, 'RETURN');
   if (outbound.closed || inbound.closed) {
     throw new BookingError('LEG_CLOSED', 'Departure is not available on this date');
   }
@@ -499,6 +504,14 @@ async function createBookingRow(
         promotionId,
       },
     },
+  });
+
+  if (args.attribution) {
+    await saveBookingAttribution(tx, booking.id, args.attribution);
+  }
+  await recordBookingEvent(tx, 'booking_request_created', booking.id, {
+    occurredAt: booking.createdAt,
+    properties: { sales_channel: args.salesChannel ?? 'GILIFAST' },
   });
 
   return {

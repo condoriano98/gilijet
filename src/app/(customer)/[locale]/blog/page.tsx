@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { POSTS } from '@/content/blog';
 
 export const metadata: Metadata = {
-  title: 'Blog — Boat travel guides for Indonesia',
+  title: 'Blog',
   description:
     'Practical guides for boat travel across Indonesia: choosing operators, reading sea conditions, avoiding seasickness, and timing your crossing.',
   alternates: { canonical: '/blog' },

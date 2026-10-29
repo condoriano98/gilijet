@@ -11,6 +11,8 @@ import { afterResponse } from '@/shared/server/after-response';
 import { normalizePaymentMethod, paypalFeeAsIdr } from '@/features/payments/psp';
 import { readNotification } from '@/features/payments/doku';
 import { readCaptureFromWebhook } from '@/features/payments/paypal';
+import { recordBookingEventStandalone } from '@/features/marketing/events';
+import { kickDeliveries } from '@/features/marketing/delivery/dispatcher';
 import {
   BOOKING_NOT_FOUND,
   type ProcessResult,
@@ -39,9 +41,23 @@ export async function processDokuPaymentSuccess(
 
   const booking = await prisma.booking.findUnique({
     where: { bookingReference: reference },
-    select: { id: true, totalAmount: true },
+    select: { id: true, totalAmount: true, currency: true },
   });
   if (!booking) return { ok: true, status: BOOKING_NOT_FOUND };
+
+  // Currency integrity. The checkout is only ever opened in IDR, so a
+  // non-IDR booking or a notification naming another currency cannot be
+  // settled on the amount alone.
+  if (booking.currency !== 'IDR' || (notification.currency && notification.currency !== 'IDR')) {
+    console.error(
+      `[doku-webhook] currency mismatch for ${reference}: notification=${notification.currency ?? 'none'} booking=${booking.currency}`,
+    );
+    return {
+      ok: false,
+      error: `Currency mismatch: ${notification.currency ?? 'IDR'} vs booking ${booking.currency}`,
+      httpStatus: 409,
+    };
+  }
 
   // Amount integrity: never confirm a booking on a mismatched paid amount.
   // The signature already covers the body, but this catches a stale or
@@ -96,9 +112,57 @@ export async function processDokuPaymentSuccess(
         console.error('[doku-webhook] notify failed:', err),
       ),
     );
+    afterResponse(kickDeliveries());
+  }
+
+  if (result.alreadyRecorded && isClosedStatus(result.bookingStatus)) {
+    // Money arrived for a booking that had already expired or been cancelled.
+    // No purchase is recorded; the dashboard's Exceptions view lists these as
+    // unmatched payments for an admin to refund or reinstate.
+    console.error(`[doku-webhook] payment for closed booking ${reference} (status=${result.bookingStatus})`);
+    await recordUnmatchedLatePayment(booking.id, 'doku', result.bookingStatus, notification.amount);
+    return { ok: true, status: UNMATCHED_LATE_PAYMENT };
   }
 
   return { ok: true, status: 'awaiting_confirmation' };
+}
+
+/** WebhookEvent outcome for a verified payment on an expired/cancelled booking. */
+export const UNMATCHED_LATE_PAYMENT = 'unmatched_late_payment';
+
+function isClosedStatus(status: string): boolean {
+  return status === 'EXPIRED' || status === 'CANCELLED_BY_CUSTOMER' || status === 'CANCELLED_BY_OPERATOR';
+}
+
+async function recordUnmatchedLatePayment(
+  bookingId: string,
+  gateway: 'doku' | 'paypal',
+  bookingStatus: string,
+  amount: number | string | null,
+): Promise<void> {
+  await recordBookingEventStandalone('unmatched_late_payment', bookingId, {
+    value: amount === null ? null : Number(amount),
+    properties: { gateway, booking_status: bookingStatus },
+  });
+}
+
+/**
+ * Record a verified failed payment attempt in the measurement ledger. Keyed
+ * on the gateway's attempt id so a redelivered decline is not counted twice;
+ * internal only (DOKU's own guidance is that a Checkout FAILED is not
+ * terminal — the customer can switch method).
+ */
+export async function recordPaymentFailedEvent(args: {
+  bookingId: string;
+  gateway: 'doku' | 'paypal';
+  attemptRef: string;
+  status: string;
+}): Promise<void> {
+  await recordBookingEventStandalone('payment_failed', args.bookingId, {
+    eventId: `payment_failed_${args.gateway}_${args.attemptRef}`.slice(0, 190),
+    value: null,
+    properties: { gateway: args.gateway, gateway_status: args.status.slice(0, 40) },
+  });
 }
 
 // ─── PayPal ─────────────────────────────────────────────────────────────────
@@ -156,6 +220,11 @@ export async function processPaypalEvent(
             console.error('[paypal-webhook] notify failed:', err),
           ),
         );
+        afterResponse(kickDeliveries());
+      }
+      if (result.alreadyRecorded && isClosedStatus(result.bookingStatus)) {
+        console.error(`[paypal-webhook] payment for closed booking ${bookingReference} (status=${result.bookingStatus})`);
+        await recordUnmatchedLatePayment(booking.id, 'paypal', result.bookingStatus, capture.amount ?? null);
       }
 
       await prisma.payment.update({
@@ -188,6 +257,12 @@ export async function processPaypalEvent(
           },
         });
       }
+      await recordPaymentFailedEvent({
+        bookingId: booking.id,
+        gateway: 'paypal',
+        attemptRef: `${capture.captureId ?? bookingReference}_${eventType}`,
+        status: eventType,
+      });
       return { ok: true, status: 'failed' };
     }
 

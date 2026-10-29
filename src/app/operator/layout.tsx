@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { clearOperatorSession, getOperatorSession } from '@/shared/server/auth';
 import { TopBar } from '@/app/operator/_components/top-bar';
 import { Sidebar } from '@/app/operator/_components/sidebar';
+
+export const metadata: Metadata = {
+  title: { absolute: 'Operator · Gilifast', template: '%s · Operator' },
+};
 
 async function signOutAction() {
   'use server';

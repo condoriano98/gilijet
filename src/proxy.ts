@@ -9,5 +9,5 @@ export const config = {
   // legal, print) as well as api/_next/_vercel/static files, otherwise
   // next-intl rewrites e.g. /operator/login -> /en/operator/login, which has
   // no matching route and 404s.
-  matcher: ['/((?!api|_next|_vercel|admin|operator|legal|print|.*\\..*).*)'],
+  matcher: ['/((?!api|_next|_vercel|admin|operator|legal|print|icon|apple-icon|.*\\..*).*)'],
 };

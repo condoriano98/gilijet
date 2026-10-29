@@ -17,6 +17,12 @@ vi.mock('@/shared/server/db', () => ({
         booking: {
           findUnique: mocks.bookingFindUnique,
           update: mocks.bookingUpdate,
+          // The issuer's conditional transition; mapped onto the update spy
+          // so these assertions keep reading the data written.
+          updateMany: async (args: { where: { id: string }; data: unknown }) => {
+            await mocks.bookingUpdate({ where: { id: args.where.id }, data: args.data });
+            return { count: 1 };
+          },
         },
         payment: { update: mocks.paymentUpdate },
         ticket: { create: mocks.ticketCreate },

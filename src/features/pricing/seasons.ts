@@ -1,7 +1,13 @@
 import { Prisma, type SeasonType } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { ymdInZone } from '@/shared/lib/datetime';
-import { categoryFaresFor, parseFareMatrix, type CategoryFares } from './fares';
+import {
+  categoryFaresFor,
+  parseFareMatrix,
+  roundTripLegFaresFor,
+  type CategoryFares,
+  type FareLegRole,
+} from './fares';
 
 export interface SeasonRange {
   type: SeasonType;
@@ -70,9 +76,10 @@ export function legPricingInputs(
     schedule: { fareMatrix: unknown };
   },
   ranges: SeasonRange[],
+  role: FareLegRole = 'ONE_WAY',
 ): LegPricingInputs {
   const calendarSeason = seasonForDeparture(leg.departureDate, ranges);
-  const fares = resolveLegFares(leg, calendarSeason);
+  const fares = resolveLegFares(leg, calendarSeason, role);
   return {
     // A hand-set price did not come from the season, so neither the badge nor
     // the booking snapshot should claim it did. OFF still closes the day.
@@ -85,15 +92,18 @@ export function legPricingInputs(
 
 /**
  * Category fares for a leg, or null when the leg should be priced from
- * `basePrice` (manual override, or the schedule has no fare matrix).
+ * `basePrice` (manual override, or the schedule has no fare matrix). A leg of a
+ * round trip reads the matrix's `return` fare; a hand-set price never gets it.
  */
 export function resolveLegFares(
   leg: { priceOverridden: boolean; schedule: { fareMatrix: unknown } },
   season: SeasonType | null,
+  role: FareLegRole = 'ONE_WAY',
 ): CategoryFares | null {
   if (leg.priceOverridden) return null;
   const matrix = parseFareMatrix(leg.schedule.fareMatrix);
-  return matrix ? categoryFaresFor(matrix, season) : null;
+  if (!matrix) return null;
+  return role === 'ONE_WAY' ? categoryFaresFor(matrix, season) : roundTripLegFaresFor(matrix, season, role);
 }
 
 type SeasonPricedLeg = {
@@ -111,10 +121,11 @@ type SeasonPricedLeg = {
 export function withSeasonPrice<L extends SeasonPricedLeg>(
   legs: L[],
   ranges: SeasonRange[],
+  role: FareLegRole = 'ONE_WAY',
 ): (L & { season: SeasonType | null })[] {
   const out: (L & { season: SeasonType | null })[] = [];
   for (const leg of legs) {
-    const { season, closed, unitPrice } = legPricingInputs(leg, ranges);
+    const { season, closed, unitPrice } = legPricingInputs(leg, ranges, role);
     if (closed) continue;
     out.push({ ...leg, basePrice: new Prisma.Decimal(unitPrice), season });
   }
@@ -125,9 +136,10 @@ export function withSeasonPrice<L extends SeasonPricedLeg>(
 export function adultFareFromSnapshot(
   leg: { id?: string } & Omit<SeasonPricedLeg, 'departureDate'>,
   snapshot: unknown,
+  role: FareLegRole = 'ONE_WAY',
 ): number {
   const entry = Array.isArray(snapshot)
     ? (snapshot as { legId?: string; season?: SeasonType | null }[]).find((e) => e.legId === leg.id)
     : undefined;
-  return Number(resolveLegFares(leg, entry?.season ?? null)?.adult ?? leg.basePrice);
+  return Number(resolveLegFares(leg, entry?.season ?? null, role)?.adult ?? leg.basePrice);
 }

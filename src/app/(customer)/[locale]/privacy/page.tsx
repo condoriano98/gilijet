@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export const metadata = { title: 'Privacy Policy · Gilifast' };
+export const metadata = { title: 'Privacy Policy' };
 
 export default function PrivacyPage() {
   return (
@@ -10,7 +10,7 @@ export default function PrivacyPage() {
           ← Home
         </Link>
         <h1 className="mt-4 text-3xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="text-sm text-slate-500">Last updated: 19 May 2026</p>
+        <p className="text-sm text-slate-500">Last updated: 26 October 2026</p>
 
         <p>
           CV Hi Bali Nusa Tenggara (&quot;Gilifast&quot;, &quot;we&quot;) is committed to protecting
@@ -23,6 +23,7 @@ export default function PrivacyPage() {
           <li><strong>Booking data:</strong> Names, email, phone, nationality, ID/passport numbers of the booker and passengers.</li>
           <li><strong>Payment data:</strong> Method (QRIS, e-wallet, etc.), amount, timestamp. Card numbers and PINs are handled by DOKU; we never see them.</li>
           <li><strong>Technical data:</strong> Anonymized IP, browser type, and pages visited to improve performance.</li>
+          <li><strong>Measurement data (only with your consent):</strong> how you reached us (for example the ad campaign or website that sent you), the pages and journeys you viewed, and, for advertising measurement, the click identifiers Google and Meta add to ad links plus your IP address and browser user agent. This is linked to your booking so we can tell which ads lead to paid trips.</li>
         </ul>
 
         <h2 className="mt-6 text-xl font-semibold">2. How We Use Your Data</h2>
@@ -39,6 +40,7 @@ export default function PrivacyPage() {
           <li><strong>Boat operators:</strong> Only the data necessary for transport (passenger names, departure, contact phone in case of disruption).</li>
           <li><strong>DOKU (payment gateway):</strong> Payment details so the transaction can be processed.</li>
           <li><strong>Email provider (Google Workspace / Gmail):</strong> Recipient email and ticket details to deliver e-tickets.</li>
+          <li><strong>Google (Analytics, Ads) and Meta (Facebook/Instagram ads), only with your consent:</strong> that a booking was paid, its value, route and party size, with the ad click identifier, analytics cookie id and, for Meta, your IP address and user agent. We never send your name, email, phone number or passport details to them.</li>
           <li><strong>Law enforcement:</strong> When required by valid legal request under Indonesian law.</li>
         </ul>
         <p>
@@ -50,6 +52,8 @@ export default function PrivacyPage() {
           <li>Booking records are retained for 10 years to comply with Indonesian tax law.</li>
           <li>Marketing email opt-ins can be withdrawn at any time.</li>
           <li>Anonymized analytics: 24 months.</li>
+          <li>Ad click identifiers, IP address and user agent linked to a booking for measurement: deleted after 90 days.</li>
+          <li>Your cookie choice: 6 months, after which we ask again.</li>
         </ul>
 
         <h2 className="mt-6 text-xl font-semibold">5. Your Rights (UU PDP)</h2>
@@ -74,8 +78,20 @@ export default function PrivacyPage() {
 
         <h2 className="mt-6 text-xl font-semibold">7. Cookies</h2>
         <p>
-          We use only essential cookies (session, authentication). We do not
-          use third-party advertising trackers.
+          Essential cookies (session, sign-in, language, your cookie choice)
+          are always on because bookings cannot work without them.
+        </p>
+        <p>
+          With your permission we also use:
+        </p>
+        <ul>
+          <li><strong>Analytics</strong>: Google Analytics and our own visit counts, to understand which pages and routes people look at.</li>
+          <li><strong>Marketing</strong>: Google Ads and Meta (Facebook/Instagram) measurement, to learn which of our ads lead to paid bookings.</li>
+        </ul>
+        <p>
+          Both are off until you choose. You can change your choice at any
+          time through &quot;Cookie settings&quot; at the bottom of every page.
+          Saying no never affects your ability to book or pay.
         </p>
 
         <h2 className="mt-6 text-xl font-semibold">8. Children</h2>

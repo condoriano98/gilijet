@@ -7,8 +7,8 @@
  * at import, the whole matrix is kept on `Schedule.fareMatrix` so the numbers
  * survive and checkout can start honouring them without a re-import.
  *
- * Nothing here is charged yet. `lib/pricing.ts` remains the only thing that
- * computes money; this is storage and validation.
+ * `pricing.ts` remains the only thing that computes money; this is storage,
+ * validation and the per-leg fare lookup that feeds it.
  */
 
 import type { SeasonType } from '@prisma/client';
@@ -67,13 +67,33 @@ export function baseFareOf(matrix: FareMatrix): number {
   return matrix.oneWay.low.adult;
 }
 
+/** Which part of a booking a leg is. Matches `LegRole` in `booking/helpers.ts`. */
+export type FareLegRole = 'ONE_WAY' | 'OUTBOUND' | 'RETURN';
+
 /**
- * Per-category fares for checkout. Booking is one-way only, so this reads the
- * `oneWay` row. Without a resolved season (no calendar row, or OFF) it falls
- * back to the low cell — the one `baseFareOf` mirrors into `Schedule.basePrice`.
+ * Per-category fares for a one-way leg. Without a resolved season (no calendar
+ * row, or OFF) it falls back to the low cell — the one `baseFareOf` mirrors
+ * into `Schedule.basePrice`.
  */
 export function categoryFaresFor(matrix: FareMatrix, season?: SeasonType | null): CategoryFares {
   if (season === 'HIGH') return matrix.oneWay.high;
   if (season === 'PEAK') return matrix.oneWay.peak;
   return matrix.oneWay.low;
+}
+
+/**
+ * Per-category fares for one leg of a round trip: half of the operator's
+ * `return` fare for the leg's own season, so a pair in the same season adds up
+ * to exactly the price sheet's return fare. An odd rupiah goes to the outbound
+ * leg to keep that sum whole. A pair in different seasons gets the average of
+ * the two seasons' return fares.
+ */
+export function roundTripLegFaresFor(
+  matrix: FareMatrix,
+  season: SeasonType | null | undefined,
+  role: 'OUTBOUND' | 'RETURN',
+): CategoryFares {
+  const row = season === 'HIGH' ? matrix.return.high : season === 'PEAK' ? matrix.return.peak : matrix.return.low;
+  const half = (v: number) => (role === 'OUTBOUND' ? Math.ceil(v / 2) : Math.floor(v / 2));
+  return { adult: half(row.adult), child: half(row.child), infant: half(row.infant) };
 }

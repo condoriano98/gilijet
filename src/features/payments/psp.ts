@@ -36,6 +36,8 @@ import { applyGatewayModeOverrides } from '@/features/payments/payment-mode';
 import { recordPaymentAwaitingConfirmation } from '@/features/tickets/ticket-issuer';
 import { notifyPaymentReceived } from '@/features/booking/notifications';
 import { afterResponse } from '@/shared/server/after-response';
+import { recordBookingEventStandalone } from '@/features/marketing/events';
+import { kickDeliveries } from '@/features/marketing/delivery/dispatcher';
 
 /** True when a real (non-mock) gateway is configured. */
 export function isAnyPSPConfigured(): boolean {
@@ -85,6 +87,9 @@ export async function startDokuCheckout(
   await prisma.booking.update({
     where: { id: booking.id },
     data: { paymentGatewayRef: result.invoiceNumber },
+  });
+  await recordBookingEventStandalone('begin_checkout', booking.id, {
+    properties: { gateway: 'doku' },
   });
 
   return result;
@@ -154,6 +159,9 @@ export async function startPaypalOrder(
   await prisma.booking.update({
     where: { id: booking.id },
     data: { paymentGatewayRef: order.id },
+  });
+  await recordBookingEventStandalone('begin_checkout', booking.id, {
+    properties: { gateway: 'paypal' },
   });
 
   return { orderId: order.id, quote, approveUrl: order.approveUrl };
@@ -285,6 +293,7 @@ export async function capturePaypalOrder(
         console.error('[psp] notify failed:', err),
       ),
     );
+    afterResponse(kickDeliveries());
   }
 
   return {

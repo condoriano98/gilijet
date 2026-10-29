@@ -184,9 +184,9 @@ export async function notifyBoardingPassIssued(
   let returnPrice: number | undefined;
   if (booking.tripType === 'ROUND_TRIP') {
     const passengerCount = booking.tickets.length;
-    outboundPrice = adultFareFromSnapshot(mainLeg, booking.seasonSnapshot) * passengerCount;
+    outboundPrice = adultFareFromSnapshot(mainLeg, booking.seasonSnapshot, 'OUTBOUND') * passengerCount;
     if (returnLeg) {
-      returnPrice = adultFareFromSnapshot(returnLeg, booking.seasonSnapshot) * passengerCount;
+      returnPrice = adultFareFromSnapshot(returnLeg, booking.seasonSnapshot, 'RETURN') * passengerCount;
     }
   }
 

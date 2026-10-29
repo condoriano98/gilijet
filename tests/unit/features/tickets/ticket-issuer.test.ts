@@ -20,9 +20,24 @@ const mocks = vi.hoisted(() => ({
   ymdInZone: vi.fn().mockReturnValue('2026-10-15'),
 }));
 
+// The issuer moves status with a conditional updateMany (the race guard,
+// tested in conditional-transitions.test.ts). These tests predate it and
+// assert on booking.update, so updateMany is mapped onto that spy here.
+function withUpdateMany(tx: { booking?: Record<string, unknown> }) {
+  const booking = tx.booking as { update?: (a: unknown) => Promise<unknown>; updateMany?: unknown } | undefined;
+  if (booking && !booking.updateMany) {
+    booking.updateMany = async (args: { where: { id: string }; data: unknown }) => {
+      await booking.update?.({ where: { id: args.where.id }, data: args.data });
+      return { count: 1 };
+    };
+  }
+  return tx;
+}
+
 vi.mock('@/shared/server/db', () => ({
   prisma: {
-    $transaction: mocks.prismaTransaction,
+    $transaction: (cb: (tx: unknown) => Promise<unknown>) =>
+      mocks.prismaTransaction((tx: { booking?: Record<string, unknown> }) => cb(withUpdateMany(tx))),
   },
 }));
 
@@ -100,6 +115,7 @@ describe('recordPaymentAwaitingConfirmation', () => {
     expect(result).toEqual({
       bookingReference: 'BK-2026-10-ABC123',
       alreadyRecorded: false,
+      bookingStatus: 'PENDING_PAYMENT',
     });
 
     expect(tx.booking.update).toHaveBeenCalledWith({
@@ -137,6 +153,7 @@ describe('recordPaymentAwaitingConfirmation', () => {
     expect(result).toEqual({
       bookingReference: 'BK-2026-10-XYZ789',
       alreadyRecorded: true,
+      bookingStatus: 'AWAITING_CONFIRMATION',
     });
 
     expect(tx.booking.update).not.toHaveBeenCalled();

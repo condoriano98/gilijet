@@ -12,11 +12,48 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ## [Unreleased]
 
+### Added
+
+- Marketing measurement groundwork (in progress, not live; every switch defaults to off): a typed event contract with GA4/Google Ads/Meta mappings, consent and attribution helpers, PII guards, and migration `2_marketing_measurement`. The migration adds `MarketingEvent`, `MarketingEventDelivery`, `BookingAttribution`, `AdSpendDaily`, `AdReachDaily` and `AdSyncRun`, all with RLS enabled. New env switches are documented in `.env.example`, which now also lists `CRON_SECRET`. Spike: `docs/spikes/in-progress/FEATURE_MARKETING_MEASUREMENT.md`.
+- Marketing events and outbox (off until `MARKETING_EVENTS_ENABLED` / `MARKETING_DELIVERY_ENABLED` are `true`):
+  - The booking lifecycle records `booking_request_created`, `begin_checkout`, `payment_failed`, `purchase`, `seat_confirmed`, `ticket_issued`, `booking_cancelled` and `refund` in the same transaction as each change.
+  - A new cron, `/api/cron/marketing-deliver`, sends purchases to GA4 (Measurement Protocol), Meta (Conversions API) and Google Ads (Data Manager API). Each send is gated on consent and match data, and failed sends are retried with backoff.
+  - `/admin/refunds` has a "Mark money returned" action that completes approved refunds.
+- Consent banner and tag manager (customer pages only; nothing loads unless `NEXT_PUBLIC_GTM_ID` is set or `MARKETING_EVENTS_ENABLED=true`):
+  - Google Consent Mode v2 defaults to denied, and the container loads only after those defaults are set.
+  - Page views are sanitized: booking references are masked, and personal data is never pushed.
+  - `search`, `view_item` and the browser purchase are pushed. The browser purchase fires only after the backend has recorded the verified payment.
+  - Ad-click attribution is captured with consent and frozen on the booking.
+  - A new `/api/marketing/collect` endpoint takes funnel counts.
+  - The privacy policy's cookie, sharing and retention sections are rewritten.
+- Marketing measurement revision and ad spend ingestion (stage 4; everything off by default):
+  - **Financial contract.** Commission is expected at payment and earned only on fulfilment. Partial refunds and unrecorded fees are reported as unknown, never as zero or prorated. Paid and fulfilled CPA, commission and contribution ROAS, and net marketing contribution are computed in Decimal. Unattributed bookings are reported as unknown, never as direct or organic.
+  - **Consent and reconciliation.** Consent can be withdrawn after booking (banner and admin), and pending sends stop. A read-only ledger-to-marketing reconciliation can be followed by an explicit, audited repair that only records missing marketing events.
+  - **Spend ingestion.** Daily spend comes from Google Ads (v26) and Meta (v26.0) or a validated CSV. Ingestion replaces whole account-days, so re-imports never add spend and failed or empty syncs never erase it.
+  - **Routes and access.** Optional campaign-to-route mappings keep direct spend apart from allocated spend, which is labelled an estimate.
+  - **New endpoints and data:** SUPER_ADMIN APIs under `/api/admin/marketing/`, a daily `/api/cron/ads-sync`, and migration `3_marketing_reconciliation_and_spend_grain`. The design reference is `docs/MARKETING_MEASUREMENT.md`.
+- CI's e2e job now runs with marketing events on and delivery off. The Playwright config pre-sets an "essential only" cookie choice so the banner cannot cover other specs.
+
 ### Changed
 
+- Marketing delivery workers can no longer both reclaim the same stuck send.
+- Payment, confirmation and operator-rejection transitions now use a conditional update, so two DOKU callbacks arriving at once can no longer both record a payment. A DOKU notification naming a currency other than IDR is now refused. A verified payment for a booking that had already expired or been cancelled is logged as an unmatched payment rather than passing silently.
 - `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
 - Docs only: `docs/spikes/` is now sorted by status into `todo/`, `in-progress/` and `done/`; paths that pointed at the old flat layout were updated.
+
+## [1.10.3] - 2026-10-30
+
+### Fixed
+
+- The browser tab now has the Gilifast speedboat as its icon (it showed the default globe), and a home-screen icon for iOS. The locale proxy no longer rewrites `/icon` and `/apple-icon` into 404s.
+- Tab titles fit and are no longer doubled. The default is "Gilifast · Fast Boat Tickets" (the long form stays on share cards). Twelve customer pages that spelled out "· Gilifast" themselves, and so read "About · Gilifast · Gilifast", now give the bare title. Operator and admin pages have their own default ("Operator · Gilifast", "Admin · Gilifast") instead of the customer title, and the blog index and "Change my plans" titles are shortened.
+
+## [1.10.2] - 2026-10-29
+
+### Fixed
+
+- A round trip is no longer charged as two one-way tickets. Each leg of a round trip is now priced at half of the operator price sheet's return fare for that leg's season (`fareMatrix.return`), so a pair in the same season adds up to exactly the return fare; across seasons it is the average of the two. One-way bookings, hand-set leg prices and schedules without a fare matrix are unchanged, and existing bookings are not recalculated. The search results, booking form, booking engine and round-trip email all read the same resolver. Spike: `docs/spikes/in-progress/BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`.
 
 ## [1.10.1] - 2026-10-24
 
@@ -221,7 +258,9 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.3...HEAD
+[1.10.3]: https://github.com/condoriano98/gilijet/compare/v1.10.2...v1.10.3
+[1.10.2]: https://github.com/condoriano98/gilijet/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/condoriano98/gilijet/compare/v1.8.0...v1.9.0

@@ -49,6 +49,7 @@ src/
 | `admin/(authed)/…` | Platform admin | `requireAdmin()` / `requireSuperAdmin()`. bookings, confirmations, webhooks, refunds, reschedules, operators, operations, promos, diagnostics, console |
 | `api/…` | Machines | `webhooks/{doku,paypal,whatsapp}`, `cron/*` (`CRON_SECRET`; incl. `poll-operator-inbox`), `auth/*`, `bookings/[reference]`, `promos/validate`, `operator/*`, `admin/bookings`, `mcp` |
 | `print/…`, `legal/…` | Printables / static legal | |
+| `icon.tsx`, `apple-icon.tsx`, `_components/brand-icon.tsx` | Everyone | Generated tab and home-screen icon (the logo's speedboat). The `proxy.ts` matcher must leave `icon` and `apple-icon` alone. Tab titles: the root layout adds ` · Gilifast`, so pages give a bare title; `operator/` and `admin/` layouts set their own |
 
 Route-private components live in `_components/` beside the route that uses them (customer: `book/[legId]`, `search`, `pay/[reference]`, `checkout/[reference]`, `b/[reference]`, `account`, `reviews/new`, `[locale]` home; layout-level in `(customer)/_components`; operator: `operator/_components` (sidebar, top-bar) and `scanner/_components`).
 
@@ -59,11 +60,12 @@ Route-private components live in `_components/` beside the route that uses them 
 | `booking/` | `engine` (seat hold/confirm race), `expiry`, `helpers`, `display`, `notifications`, `references`, `components/` (booking-progress, payment-countdown) |
 | `pricing/` | `pricing` (`computeBookingPrice`), `fares`, `seasons` (season calendar -> fare), `erp-pricing`, `fx`, `promotions` |
 | `payments/` | `doku`, `paypal`, `psp`, `webhook-processor` (what a callback does), `webhook-events` (WebhookEvent bookkeeping), `payment-mode`, `components/` |
-| `refunds/` | `refunds` (tier math), `refund-gateway` |
+| `refunds/` | `refunds` (tier math), `refund-gateway`, `refund-completion` (mark money returned + `refund` event) |
 | `tickets/` | `ticket-issuer` (payment → ticket gate), `qr`, `qr-render`, `boarding-pass`, `leg-checkin`, `operator-ticket-email` (forward the operator's ticket PDF to the buyer), `operator-ticket-parse`, `ticket-forward-copy` (the EN/ID text of that email) |
 | `schedules/` | `legs`, `connection-search`, `sales-channel`, `wahana-schedule` (generated), `home-data`, `components/` (search-form, days-picker) |
 | `operators/` | `data` (active-entity helpers), `erp-queries`, `documents`, `purge`, `components/templates/` (list/detail/form page templates) |
 | `ports/` | `port-info`, `geo`, `sea-conditions`, `weather-policy`, `destination-photos` |
+| `marketing/` | Measurement (see `docs/MARKETING_MEASUREMENT.md`): `contract` (event dictionary), `consent`, `consent-withdrawal`, `privacy` (PII/URL guards), `attribution`, `booking-attribution`, `events` (transactional ledger), `collect`, `browser-purchase`, `config`, `money`, `google-auth`, `admin-api` (SUPER_ADMIN route guard), `delivery/` (GA4 MP, Meta CAPI, Google Data Manager, outbox dispatcher), `ads/` (Google Ads + Meta reporting, CSV, replace-by-grain ingest, sync), `reporting/` (financial contract, metrics, reconciliation, spend, route allocation, time models, dashboard contracts, read-only queries), `components/` (GTM bootstrap, consent banner, runtime, `TrackEvent`) |
 | `messaging/` | `email`, `whatsapp`, `whatsapp-webhook` (Meta webhook verify, signature, status parse), `admin-alerts`, `pic-notifications`, `mailer` (SMTP), `inbox` (IMAP read-only + MIME parse + sender check) |
 | `diagnostics/` | `feature-catalog` (checked by a drift test) |
 

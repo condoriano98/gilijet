@@ -61,6 +61,41 @@ const envSchema = z.object({
 
   CRON_SECRET: z.string().optional(),
 
+  // Marketing measurement, see docs/MARKETING_MEASUREMENT.md. Every switch is
+  // off unless exactly "true", and turning one off never touches bookings or
+  // payments: events stop being recorded, deliveries stop, syncs stop.
+  MARKETING_EVENTS_ENABLED: z.string().optional().transform((v) => v === 'true').default('false'),
+  MARKETING_DELIVERY_ENABLED: z.string().optional().transform((v) => v === 'true').default('false'),
+  ADS_SYNC_ENABLED: z.string().optional().transform((v) => v === 'true').default('false'),
+  // Public ids (also shipped to the browser via GTM). Blank = not configured.
+  NEXT_PUBLIC_GTM_ID: z.string().optional(),
+  GA4_MEASUREMENT_ID: z.string().optional(),
+  META_PIXEL_ID: z.string().optional(),
+  // Server-only secrets.
+  GA4_API_SECRET: z.string().optional(),
+  META_CAPI_ACCESS_TOKEN: z.string().optional(),
+  // Only sent outside production, so staging traffic shows in Test Events.
+  META_TEST_EVENT_CODE: z.string().optional(),
+  META_GRAPH_API_VERSION: z.string().optional(),
+  META_ADS_ACCESS_TOKEN: z.string().optional(),
+  META_AD_ACCOUNT_ID: z.string().optional(),
+  // One OAuth client + refresh token covers both Google APIs used: Google Ads
+  // API reporting (scope adwords) and Data Manager conversion uploads (scope
+  // datamanager). Developer tokens were retired on 2026-09-09.
+  GOOGLE_ADS_CLIENT_ID: z.string().optional(),
+  GOOGLE_ADS_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_ADS_REFRESH_TOKEN: z.string().optional(),
+  GOOGLE_ADS_CUSTOMER_ID: z.string().optional().transform((v) => v?.replace(/-/g, '')),
+  GOOGLE_ADS_LOGIN_CUSTOMER_ID: z.string().optional().transform((v) => v?.replace(/-/g, '')),
+  GOOGLE_ADS_PURCHASE_CONVERSION_ACTION_ID: z.string().optional(),
+  GOOGLE_ADS_API_VERSION: z.string().optional(),
+  ATTRIBUTION_LOOKBACK_DAYS: z.coerce.number().int().min(1).max(90).optional().default(30),
+  ADS_BACKFILL_DAYS: z.coerce.number().int().min(1).max(60).optional().default(7),
+  // Matching data (click ids, IP, user agent) on BookingAttribution is wiped
+  // after this many days by the delivery cron.
+  MARKETING_MATCH_RETENTION_DAYS: z.coerce.number().int().min(7).max(400).optional().default(90),
+  REPORT_TIMEZONE: z.string().optional().default('Asia/Jakarta'),
+
   // Outbound mail over SMTP (Gmail app password), see features/messaging/mailer.ts.
   // Any of host / user / password / from missing = mock mode (console only).
   SMTP_HOST: z.string().optional(),
@@ -167,6 +202,10 @@ function numOr(v: unknown, fallback: number): number {
 }
 _env.PLATFORM_COMMISSION_RATE = numOr(_env.PLATFORM_COMMISSION_RATE, 0.08);
 _env.BOOKING_HOLD_MINUTES = numOr(_env.BOOKING_HOLD_MINUTES, 30);
+_env.ATTRIBUTION_LOOKBACK_DAYS = numOr(_env.ATTRIBUTION_LOOKBACK_DAYS, 30);
+_env.ADS_BACKFILL_DAYS = numOr(_env.ADS_BACKFILL_DAYS, 7);
+_env.MARKETING_MATCH_RETENTION_DAYS = numOr(_env.MARKETING_MATCH_RETENTION_DAYS, 90);
+_env.REPORT_TIMEZONE = _env.REPORT_TIMEZONE || 'Asia/Jakarta';
 if (typeof _env.APP_BASE_URL !== 'string' || !_env.APP_BASE_URL) {
   _env.APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000';
 }

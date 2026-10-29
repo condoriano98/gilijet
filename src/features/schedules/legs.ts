@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { audit } from '@/shared/server/audit';
 import { bookingsOnLegWhere } from '@/features/booking/helpers';
+import { recordBookingEvent } from '@/features/marketing/events';
 import {
   OPERATOR_TIMEZONE,
   isoDayOfWeek,
@@ -205,6 +206,10 @@ export async function cancelLeg(args: {
       await tx.booking.update({
         where: { id: booking.id },
         data: { status: 'CANCELLED_BY_OPERATOR' },
+      });
+      await recordBookingEvent(tx, 'booking_cancelled', booking.id, {
+        value: null,
+        properties: { cancelled_by: 'operator_leg', paid: booking.payment?.status === 'SUCCESSFUL' },
       });
       await tx.ticket.updateMany({
         where: { bookingId: booking.id, status: { in: ['ISSUED'] } },

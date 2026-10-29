@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { TrackEvent } from '@/features/marketing/components/track-event';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -32,6 +34,9 @@ import { BookingPriceSummary } from '@/app/(customer)/[locale]/book/[legId]/_com
 import { getCustomerSession } from '@/shared/server/auth';
 import type { PassengerType } from '@/features/pricing/pricing';
 import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
+import { recordBookingEventStandalone } from '@/features/marketing/events';
+import { readBookingAttribution } from '@/features/marketing/booking-attribution';
+import { cookies, headers } from 'next/headers';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
 
 const NAMES_MIN = 2;
@@ -54,6 +59,17 @@ const bookingFormSchema = z.object({
   notes: z.string().max(500).optional().or(z.literal('')),
   agreedToTerms: z.string().optional(),
 });
+
+/** Acquisition snapshot for the booking, read from the visitor's cookies. */
+async function readRequestAttribution() {
+  const [jar, hdrs] = await Promise.all([cookies(), headers()]);
+  return readBookingAttribution({
+    cookie: (name) => jar.get(name)?.value,
+    allCookieNames: jar.getAll().map((c) => c.name),
+    userAgent: hdrs.get('user-agent'),
+    ip: hdrs.get('x-forwarded-for'),
+  });
+}
 
 async function submitBookingAction(formData: FormData) {
   'use server';
@@ -124,6 +140,7 @@ async function submitBookingAction(formData: FormData) {
       notes: fields.data.notes || null,
       customerId: session?.sub ?? null,
       promoCode,
+      attribution: await readRequestAttribution(),
     };
     created = await reserveSeatsAndCreateBooking(bookingArgs);
   } catch (err) {
@@ -147,6 +164,10 @@ async function submitBookingAction(formData: FormData) {
         data: { status: 'EXPIRED' },
       })
       .catch(() => {});
+    await recordBookingEventStandalone('booking_cancelled', created.bookingId, {
+      value: null,
+      properties: { cancelled_by: 'payment_setup_failed', paid: false },
+    });
     const message = err instanceof Error ? err.message : 'Payment setup failed';
     redirect(getErrorRedirectUrl(message));
   }
@@ -201,8 +222,10 @@ export default async function BookPage({
   if (isRoundTrip && (!outboundLeg || !returnLeg)) notFound();
 
   const seasons = await loadActiveSeasons();
-  const activeLegPricing = legPricingInputs(isRoundTrip ? outboundLeg! : leg!, seasons);
-  const returnLegPricing = isRoundTrip ? legPricingInputs(returnLeg!, seasons) : null;
+  const activeLegPricing = isRoundTrip
+    ? legPricingInputs(outboundLeg!, seasons, 'OUTBOUND')
+    : legPricingInputs(leg!, seasons);
+  const returnLegPricing = isRoundTrip ? legPricingInputs(returnLeg!, seasons, 'RETURN') : null;
 
   // If logged in, pull the customer record for prefill.
   const customer = session
@@ -292,11 +315,38 @@ export default async function BookPage({
   const searchOrigin = displayLeg.schedule.originPort;
   const searchDestination = displayLeg.schedule.destinationPort;
   const roundTripReturnPrice = returnUnitPrice;
+  const routeCandidate = `${searchOrigin}-${searchDestination}`.toUpperCase();
+  const viewRoute = /^[A-Z0-9]{2,8}-[A-Z0-9]{2,8}$/.test(routeCandidate) ? routeCandidate : null;
 
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-3xl">
         <BookingProgress currentStep={2} />
+        <TrackEvent
+          eventId={randomUUID()}
+          name="view_item"
+          requires="analytics"
+          params={{
+            currency: 'IDR',
+            value: displayAdultPrice,
+            items: [
+              {
+                item_id: `${searchOrigin}-${searchDestination}`.toUpperCase(),
+                item_name: `${searchOrigin}-${searchDestination}`.toUpperCase(),
+                item_category: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+                price: displayAdultPrice,
+              },
+            ],
+          }}
+          collect={{
+            route: viewRoute,
+            leg_id: displayLeg.id,
+            departure_date: formatLocalDate(displayLeg.departureDate, 'yyyy-MM-dd'),
+            passenger_count: initialPassengers,
+            trip_type: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+            page_path: '/book',
+          }}
+        />
         <Link
           href={`/search?origin=${encodeURIComponent(searchOrigin)}&destination=${encodeURIComponent(searchDestination)}${isRoundTrip ? `&returnDate=${returnLeg!.departureDate.toISOString().split('T')[0]}` : ''}`}
           className="text-sm text-muted-foreground hover:underline"

@@ -147,3 +147,91 @@ describe('adultFareFromSnapshot', () => {
     expect(adultFareFromSnapshot(base, null)).toBe(100);
   });
 });
+
+describe('round-trip fares (price sheet return fare)', () => {
+  // Return fare is cheaper than 2 x one-way, like the Wahana sheet (900 -> 880).
+  const SHEET: FareMatrix = {
+    oneWay: { low: fares(450), high: fares(500), peak: fares(700) },
+    return: { low: fares(880), high: fares(970), peak: fares(1360) },
+  };
+  const leg = (departureDate: string, extra: Record<string, unknown> = {}) => ({
+    id: 'l',
+    basePrice: new Prisma.Decimal(450),
+    departureDate: new Date(departureDate),
+    priceOverridden: false,
+    schedule: { fareMatrix: SHEET },
+    ...extra,
+  });
+  const LOW_DAY = '2027-02-10T01:00:00Z';
+  const HIGH_DAY = '2027-01-10T01:00:00Z';
+  const PEAK_DAY = '2026-12-25T01:00:00Z';
+
+  it('one-way is unchanged and ignores the return row', () => {
+    expect(Number(legPricingInputs(leg(LOW_DAY), CALENDAR).unitPrice)).toBe(450);
+    expect(Number(legPricingInputs(leg(LOW_DAY), CALENDAR, 'ONE_WAY').unitPrice)).toBe(450);
+  });
+
+  it('a same-season pair adds up to exactly the return fare', () => {
+    for (const day of [LOW_DAY, HIGH_DAY, PEAK_DAY]) {
+      const out = legPricingInputs(leg(day), CALENDAR, 'OUTBOUND');
+      const back = legPricingInputs(leg(day), CALENDAR, 'RETURN');
+      const season = resolveSeason(day.slice(0, 10), CALENDAR) as 'LOW' | 'HIGH' | 'PEAK';
+      const sheet = { LOW: 880, HIGH: 970, PEAK: 1360 }[season];
+      expect(Number(out.unitPrice) + Number(back.unitPrice)).toBe(sheet);
+    }
+  });
+
+  it('prices child and infant from the return row too', () => {
+    const out = legPricingInputs(leg(LOW_DAY), CALENDAR, 'OUTBOUND');
+    expect(out.categoryUnitPrices).toEqual({ CHILD: 220, INFANT: 0 });
+  });
+
+  it('mixed seasons: each leg is half of its own season return fare', () => {
+    const out = legPricingInputs(leg(HIGH_DAY), CALENDAR, 'OUTBOUND');
+    const back = legPricingInputs(leg(PEAK_DAY), CALENDAR, 'RETURN');
+    expect(Number(out.unitPrice)).toBe(485);
+    expect(Number(back.unitPrice)).toBe(680);
+  });
+
+  it('an odd rupiah goes to the outbound leg so the pair stays whole', () => {
+    const odd: FareMatrix = { ...SHEET, return: { ...SHEET.return, low: fares(881) } };
+    const l = leg(LOW_DAY, { schedule: { fareMatrix: odd } });
+    const out = Number(legPricingInputs(l, CALENDAR, 'OUTBOUND').unitPrice);
+    const back = Number(legPricingInputs(l, CALENDAR, 'RETURN').unitPrice);
+    expect([out, back]).toEqual([441, 440]);
+    expect(out + back).toBe(881);
+  });
+
+  it('a hand-set price gets no return discount', () => {
+    const l = leg(LOW_DAY, { priceOverridden: true, basePrice: new Prisma.Decimal(500) });
+    expect(Number(legPricingInputs(l, CALENDAR, 'OUTBOUND').unitPrice)).toBe(500);
+    expect(resolveLegFares(l, 'LOW', 'RETURN')).toBeNull();
+  });
+
+  it('a schedule without a fare matrix stays at basePrice', () => {
+    const l = leg(LOW_DAY, { schedule: { fareMatrix: null } });
+    expect(Number(legPricingInputs(l, CALENDAR, 'OUTBOUND').unitPrice)).toBe(450);
+  });
+
+  it('OFF days stay closed for a round-trip leg', () => {
+    expect(legPricingInputs(leg('2027-03-27T01:00:00Z'), CALENDAR, 'RETURN').closed).toBe(true);
+  });
+
+  it('no calendar row falls back to the low return cell', () => {
+    expect(Number(legPricingInputs(leg('2027-05-10T01:00:00Z'), CALENDAR, 'OUTBOUND').unitPrice)).toBe(440);
+  });
+
+  it('withSeasonPrice shows the round-trip leg price for a round-trip search', () => {
+    const [one] = withSeasonPrice([leg(LOW_DAY)], CALENDAR);
+    const [out] = withSeasonPrice([leg(LOW_DAY)], CALENDAR, 'OUTBOUND');
+    expect(Number(one.basePrice)).toBe(450);
+    expect(Number(out.basePrice)).toBe(440);
+  });
+
+  it('the booking email prices each leg of a round trip from the return fare', () => {
+    const snap = [{ legId: 'l', season: 'HIGH' }];
+    expect(adultFareFromSnapshot(leg(HIGH_DAY), snap)).toBe(500);
+    expect(adultFareFromSnapshot(leg(HIGH_DAY), snap, 'OUTBOUND')).toBe(485);
+    expect(adultFareFromSnapshot(leg(HIGH_DAY), snap, 'RETURN')).toBe(485);
+  });
+});

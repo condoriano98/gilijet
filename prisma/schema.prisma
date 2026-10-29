@@ -1284,3 +1284,271 @@ model LoginAttempt {
 
   @@index([kind, emailKey, createdAt])
 }
+
+// ============== MARKETING MEASUREMENT ==============
+// See docs/MARKETING_MEASUREMENT.md. The booking/payment tables stay the
+// authority for money; these rows record what was measured and what was sent
+// to the ad platforms. Booking/refund ids are plain columns, not foreign keys:
+// the ledger is append-only and must not block the operator hard-delete walk.
+
+enum MarketingEventSource {
+  SERVER
+  BROWSER
+}
+
+model MarketingEvent {
+  id             String               @id @default(cuid())
+  // Shared with GA4 transaction_id / Meta event_id copies, so a retry or a
+  // browser copy of the same event deduplicates on the platform side.
+  eventId        String               @unique
+  eventName      String
+  schemaVersion  Int
+  source         MarketingEventSource
+  occurredAt     DateTime
+  receivedAt     DateTime             @default(now())
+  environment    String
+  bookingId      String?
+  refundId       String?
+  // `<event>:<bookingId>` for once-per-booking events, `refund:<id>` for
+  // refunds, null for repeatable ones. The unique index is what stops a
+  // redelivered webhook producing a second purchase.
+  dedupeKey      String?              @unique
+  operatorId     String?
+  routeCode      String?
+  legId          String?
+  departureDate  DateTime?
+  passengerCount Int?
+  currency       String?              @db.VarChar(3)
+  value          Decimal?             @db.Decimal(12, 2)
+  visitorId      String?
+  consent        Json
+  properties     Json?
+
+  deliveries MarketingEventDelivery[]
+
+  @@index([eventName, occurredAt])
+  @@index([bookingId])
+  @@index([occurredAt])
+}
+
+enum MarketingDestination {
+  GA4
+  GOOGLE_ADS
+  META_CAPI
+}
+
+enum MarketingDeliveryStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
+model MarketingEventDelivery {
+  id               String                  @id @default(cuid())
+  marketingEventId String
+  destination      MarketingDestination
+  status           MarketingDeliveryStatus @default(PENDING)
+  attempts         Int                     @default(0)
+  nextAttemptAt    DateTime                @default(now())
+  lastAttemptAt    DateTime?
+  deliveredAt      DateTime?
+  // NO_CONSENT | NOT_CONFIGURED | NO_MATCH_DATA | DISABLED | TOO_OLD
+  skipReason       String?
+  // Scrubbed of tokens before it is stored.
+  lastError        String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  event MarketingEvent @relation(fields: [marketingEventId], references: [id], onDelete: Restrict)
+
+  @@unique([marketingEventId, destination])
+  @@index([status, nextAttemptAt])
+}
+
+// Acquisition snapshot frozen at booking creation. Click ids and GA/Meta
+// browser ids are matching data for server-side delivery only: never shown
+// in the dashboard or exports.
+model BookingAttribution {
+  id               String   @id @default(cuid())
+  bookingId        String   @unique
+  modelVersion     String
+  lookbackDays     Int
+  consentAnalytics Boolean
+  consentMarketing Boolean
+  // First-party analytics visitor id (gf_vid cookie), set only with consent.
+  visitorId        String?
+  // Set when the visitor (or an admin on their request) withdraws consent
+  // after booking. Deliveries re-check it before every send and replay; the
+  // matching identifiers are wiped at the same moment.
+  consentWithdrawnAt DateTime?
+  channel          String
+  platform         String?
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  utmContent       String?
+  utmTerm          String?
+  campaignId       String?
+  adGroupId        String?
+  adId             String?
+  lastTouchAt      DateTime?
+  firstTouchAt     DateTime?
+  firstTouch       Json?
+  lastTouch        Json?
+  landingPath      String?
+  referrerHost     String?
+  deviceClass      String?
+  gclid            String?
+  gbraid           String?
+  wbraid           String?
+  fbc              String?
+  fbp              String?
+  gaClientId       String?
+  gaSessionId      String?
+  clientIpAddress  String?
+  clientUserAgent  String?
+  createdAt        DateTime @default(now())
+
+  @@index([channel, createdAt])
+  @@index([campaignId])
+}
+
+enum AdPlatform {
+  GOOGLE_ADS
+  META_ADS
+}
+
+enum AdDataSource {
+  API
+  CSV
+}
+
+// Daily additive metrics (spend, impressions, clicks) at one grain per
+// platform/account/date: a sync or import replaces the whole range it covers,
+// so a re-run or a late platform revision never adds spend twice and a
+// campaign-total row never sits beside its own ad rows. adGroupId/adId are ''
+// when the source only reports campaign totals.
+model AdSpendDaily {
+  id                    String       @id @default(cuid())
+  platform              AdPlatform
+  accountId             String
+  date                  DateTime     @db.Date
+  accountTimezone       String
+  currency              String       @db.VarChar(3)
+  campaignId            String
+  campaignName          String?
+  adGroupId             String       @default("")
+  adId                  String       @default("")
+  // One level and one breakdown dimension set per platform/account/date:
+  // ingestion replaces the whole account-day, so these can never mix.
+  level                 AdReportLevel @default(CAMPAIGN)
+  // e.g. "device"; '' = no breakdown. breakdownValue is the segment value.
+  breakdownDims         String       @default("")
+  breakdownValue        String       @default("")
+  spend                 Decimal      @db.Decimal(14, 2)
+  impressions           Int?
+  clicks                Int?
+  platformPurchases     Decimal?     @db.Decimal(12, 2)
+  platformPurchaseValue Decimal?     @db.Decimal(14, 2)
+  attributionSetting    String?
+  reportDateBasis       String?
+  source                AdDataSource
+  syncRunId             String?
+  syncedAt              DateTime
+  createdAt             DateTime     @default(now())
+
+  @@unique([platform, accountId, date, level, campaignId, adGroupId, adId, breakdownValue])
+  @@index([date])
+  @@index([platform, campaignId])
+}
+
+enum AdReportLevel {
+  CAMPAIGN
+  AD_GROUP
+  AD
+}
+
+// Reach and frequency are not additive across days or ads, so they live
+// apart from spend and are never summed into it.
+model AdReachDaily {
+  id         String       @id @default(cuid())
+  platform   AdPlatform
+  accountId  String
+  date       DateTime     @db.Date
+  campaignId String
+  reach      Int?
+  frequency  Decimal?     @db.Decimal(8, 4)
+  source     AdDataSource
+  syncRunId  String?
+  syncedAt   DateTime
+
+  @@unique([platform, accountId, date, campaignId])
+}
+
+enum AdSyncStatus {
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
+// One API sync or CSV import: freshness, coverage and errors for the dashboard.
+model AdSyncRun {
+  id                String       @id @default(cuid())
+  platform          AdPlatform
+  source            AdDataSource
+  accountId         String?
+  dateFrom          DateTime     @db.Date
+  dateTo            DateTime     @db.Date
+  status            AdSyncStatus @default(RUNNING)
+  rowsWritten       Int          @default(0)
+  rowsRejected      Int          @default(0)
+  errorMessage      String?
+  unavailableFields Json?
+  fileName          String?
+  // SHA-256 of the uploaded file: a re-import of identical content is
+  // recognisable in the history (it replaces the same rows, adding nothing).
+  contentHash       String?
+  rowsReplaced      Int          @default(0)
+  // Per-scope outcome: which account-days were written, kept or rejected and why.
+  report            Json?
+  triggeredBy       String?
+  startedAt         DateTime     @default(now())
+  finishedAt        DateTime?
+
+  @@index([platform, startedAt])
+}
+
+enum CampaignRouteMethod {
+  // The campaign advertises this route only: its spend is observed route spend.
+  DIRECT
+  // A shared campaign: spend is split by allocationWeight, and every number
+  // built from it is labelled an allocation estimate.
+  ALLOCATED
+}
+
+// Optional link from an ad campaign to the routes it advertises. Campaigns
+// without a mapping stay "unallocated" in route reports; nothing is guessed.
+model MarketingCampaignRouteMapping {
+  id               String              @id @default(cuid())
+  platform         AdPlatform
+  accountId        String
+  campaignId       String
+  routeCode        String
+  method           CampaignRouteMethod
+  // 1 for DIRECT; ALLOCATED weights for one campaign sum to at most 1, the
+  // remainder staying unallocated.
+  allocationWeight Decimal             @db.Decimal(5, 4)
+  effectiveFrom    DateTime            @db.Date
+  effectiveTo      DateTime?           @db.Date
+  provenance       String
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([platform, accountId, campaignId])
+  @@index([routeCode])
+}

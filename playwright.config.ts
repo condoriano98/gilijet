@@ -13,6 +13,24 @@ export default defineConfig({
     : [['list']],
   use: {
     baseURL,
+    // CI runs with the marketing tags on (see .github/workflows/ci.yml). An
+    // "essential only" choice keeps the consent banner from covering other
+    // specs' buttons; marketing-consent.spec.ts starts from a clean context.
+    storageState: {
+      cookies: [
+        {
+          name: 'gf_consent',
+          value: 'v1.a0.m0.1761436800000',
+          domain: new URL(baseURL).hostname,
+          path: '/',
+          expires: -1,
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax',
+        },
+      ],
+      origins: [],
+    },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
