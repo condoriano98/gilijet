@@ -16,10 +16,10 @@ This plan turns those findings into concrete, scoped work. It is a hand-off doc 
 
 ## Scope guardrails (READ FIRST)
 
-Three previous planning docs (`docs/db-expansion-plan.md`, `docs/home-page-revamp*.md`) all got scope-crept when handed off. Same rules apply here:
+Three previous planning docs (`docs/spikes/done/DB_EXPANSION_PLAN.md`, `docs/spikes/*/FEATURE_HOME_PAGE_REVAMP*.md`) all got scope-crept when handed off. Same rules apply here:
 
 - **Do not** invent new phases, sub-phases, or extension proposals.
-- **Do not** edit `CLAUDE.md`, `docs/db-expansion-plan.md`, `docs/home-page-revamp*.md`, or any agent-roster file. They are out of scope.
+- **Do not** edit `CLAUDE.md`, `docs/spikes/done/DB_EXPANSION_PLAN.md`, `docs/spikes/*/FEATURE_HOME_PAGE_REVAMP*.md`, or any agent-roster file. They are out of scope.
 - **Do not** add new top-level dependencies. Everything below works with the libraries already in `package.json`.
 - **Do not** build B2B API surface, agent auth, commission logic, return-trip bookings, or hotel-transfer upsells. Those are Phase 3 of the DB expansion plan and have their own pre-flight checklist there.
 - **Do not** scrape or hot-link Giligetaway's API at runtime. The data we pull from them is a one-time seed; we do not depend on their service.
@@ -110,9 +110,9 @@ Do not start G2 in the same PR.
 
 ---
 
-## Phase G2 — Port model groundwork (deferred to db-expansion-plan Phase 2)
+## Phase G2 — Port model groundwork (deferred to DB_EXPANSION_PLAN Phase 2)
 
-The Port model is already designed in `docs/db-expansion-plan.md` Phase 2. The Giligetaway data confirms the port set we need:
+The Port model is already designed in `docs/spikes/done/DB_EXPANSION_PLAN.md` Phase 2. The Giligetaway data confirms the port set we need:
 
 **Authoritative port list** (10 entries — these are the canonical seed for the eventual `Port` table):
 
@@ -129,11 +129,11 @@ The Port model is already designed in `docs/db-expansion-plan.md` Phase 2. The G
 | Nusa Penida | NPD | Penida | -8.7275 | 115.5444 |
 | Labuan Bajo | LBJ | Flores | -8.4905 | 119.8758 |
 
-When the Port-model PR is opened (per `docs/db-expansion-plan.md`), seed these 10 rows verbatim. The `shortCode` column is new compared to that plan — add it as `@unique String @db.VarChar(3)` on `Port`. Justification: Giligetaway's API uses numeric IDs in URLs, which couples external callers to internal primary keys; a stable 3-letter code is friendlier and survives DB resets.
+When the Port-model PR is opened (per `docs/spikes/done/DB_EXPANSION_PLAN.md`), seed these 10 rows verbatim. The `shortCode` column is new compared to that plan — add it as `@unique String @db.VarChar(3)` on `Port`. Justification: Giligetaway's API uses numeric IDs in URLs, which couples external callers to internal primary keys; a stable 3-letter code is friendlier and survives DB resets.
 
 **Do not** open the Port-model PR as part of this synthesis. Just record the seed list and the `shortCode` addition so the Phase 2 PR has them ready.
 
-Action for this synthesis: add a `## Port seed` section to `docs/db-expansion-plan.md` containing the table above, **only if the seed section does not already exist**. If it does, leave it alone. No other edits to that file.
+Action for this synthesis: add a `## Port seed` section to `docs/spikes/done/DB_EXPANSION_PLAN.md` containing the table above, **only if the seed section does not already exist**. If it does, leave it alone. No other edits to that file.
 
 ---
 
@@ -150,7 +150,7 @@ Design (do not implement now):
 - `lib/legs.ts` `generateLegsForSchedule` filters dates by `(1 << dayOfWeek) & daysOfWeek`.
 - No UI change yet. Add it to operator-facing forms in a follow-up.
 
-Record this in `docs/db-expansion-plan.md` Phase 2 — **append one bullet** under the existing Phase 2 list:
+Record this in `docs/spikes/done/DB_EXPANSION_PLAN.md` Phase 2 — **append one bullet** under the existing Phase 2 list:
 
 > - `Schedule.daysOfWeek Int @default(127)` — recurrence bitmask. Filter in `generateLegsForSchedule`. Needed for bulk import.
 
@@ -160,7 +160,7 @@ If a `Schedule.daysOfWeek` mention already exists in that file, do not add a dup
 
 ## Phase G4 — Forward-looking notes (do NOT build)
 
-These belong in Phase 3 of `docs/db-expansion-plan.md`. Recorded here only so the next planner knows what Giligetaway's data implies:
+These belong in Phase 3 of `docs/spikes/done/DB_EXPANSION_PLAN.md`. Recorded here only so the next planner knows what Giligetaway's data implies:
 
 1. **Seasonal pricing.** Their corridor goes Rp825,000 → Rp850,000 for peak Jul–Aug. We can support this two ways:
    - **MVP-friendly:** operator creates per-date schedules with different prices. Already works. Tedious but correct.
@@ -188,7 +188,7 @@ After G1 ships, the next session can confirm:
 4. Customer search Padang Bai → Gili Trawangan still returns the existing Eka Jaya / Wijaya / etc. results unchanged.
 5. `pnpm lint && pnpm typecheck` clean.
 6. `pnpm test:e2e` (when the suite exists) still green.
-7. `docs/db-expansion-plan.md` mentions the Port seed list and the `daysOfWeek` bullet, if and only if those weren't already there.
+7. `docs/spikes/done/DB_EXPANSION_PLAN.md` mentions the Port seed list and the `daysOfWeek` bullet, if and only if those weren't already there.
 
 If any of 1–6 fail, the seed data is wrong — fix the data, not the schema. Schema changes are out of scope for this phase.
 
@@ -218,8 +218,8 @@ If something looks like it would be "nice while I'm here," it is out of scope.
 | Phase | What | Status |
 |---|---|---|
 | G1 | Add Samudra Jet operator + 12 schedules to `lib/seed-data.ts` at Giligetaway publish-rate pricing. One commit. | **Do now** |
-| G2 | Port seed list + `shortCode` column noted in `docs/db-expansion-plan.md`. No code. | Doc-only |
-| G3 | `Schedule.daysOfWeek` bitmask noted in `docs/db-expansion-plan.md` Phase 2. No code. | Doc-only |
+| G2 | Port seed list + `shortCode` column noted in `docs/spikes/done/DB_EXPANSION_PLAN.md`. No code. | Doc-only |
+| G3 | `Schedule.daysOfWeek` bitmask noted in `docs/spikes/done/DB_EXPANSION_PLAN.md` Phase 2. No code. | Doc-only |
 | G4 | Seasonal pricing, commission, return trips, transfers — implications recorded here, not built. | Awareness only |
 
 End of plan.

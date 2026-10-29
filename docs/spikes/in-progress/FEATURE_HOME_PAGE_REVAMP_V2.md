@@ -3,7 +3,7 @@
 # Home Page Revamp V2 — Plan & Requirements
 
 **Audience:** an LLM implementing this without prior context from the planning conversation.
-**Read first:** `CLAUDE.md`, `docs/home-page-revamp.md` (V1, already implemented up to Phase A), `app/(customer)/page.tsx`, `components/customer/search-form.tsx`, `lib/destination-photos.ts`, `lib/home-data.ts`, `tailwind.config.ts`, `app/layout.tsx`, `next.config.mjs`.
+**Read first:** `CLAUDE.md`, `docs/spikes/done/FEATURE_HOME_PAGE_REVAMP.md` (V1, already implemented up to Phase A), `app/(customer)/page.tsx`, `components/customer/search-form.tsx`, `lib/destination-photos.ts`, `lib/home-data.ts`, `tailwind.config.ts`, `app/layout.tsx`, `next.config.mjs`.
 **Branch:** `claude/boat-ticketing-mvp-YAGl9`.
 **Scope of this document:** V2 Phase 1 (broken UX fixes) and V2 Phase 2 (real visual identity) are to be implemented now, as **one PR**. V2 Phases 3 / 4 / 5 / 6 are scoped but **not built** during this task.
 
