@@ -49,6 +49,7 @@ src/
 | `admin/(authed)/…` | Platform admin | `requireAdmin()` / `requireSuperAdmin()`. bookings, confirmations, webhooks, refunds, reschedules, operators, operations, promos, diagnostics, console |
 | `api/…` | Machines | `webhooks/{doku,paypal,whatsapp}`, `cron/*` (`CRON_SECRET`; incl. `poll-operator-inbox`), `auth/*`, `bookings/[reference]`, `promos/validate`, `operator/*`, `admin/bookings`, `mcp` |
 | `print/…`, `legal/…` | Printables / static legal | |
+| `icon.tsx`, `apple-icon.tsx`, `_components/brand-icon.tsx` | Everyone | Generated tab and home-screen icon (the logo's speedboat). The `proxy.ts` matcher must leave `icon` and `apple-icon` alone. Tab titles: the root layout adds ` · Gilifast`, so pages give a bare title; `operator/` and `admin/` layouts set their own |
 
 Route-private components live in `_components/` beside the route that uses them (customer: `book/[legId]`, `search`, `pay/[reference]`, `checkout/[reference]`, `b/[reference]`, `account`, `reviews/new`, `[locale]` home; layout-level in `(customer)/_components`; operator: `operator/_components` (sidebar, top-bar) and `scanner/_components`).
 

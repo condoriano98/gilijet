@@ -17,7 +17,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { GoogleSignInButton } from '@/app/(customer)/[locale]/account/_components/google-signin-button';
 
-export const metadata = { title: 'Sign in · Gilifast' };
+export const metadata = { title: 'Sign in' };
 
 const loginSchema = z.object({
   email: z.string().email(),

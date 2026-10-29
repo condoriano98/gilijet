@@ -18,7 +18,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 
-export const metadata = { title: 'Request date change · Gilifast' };
+export const metadata = { title: 'Request date change' };
 
 const submitSchema = z.object({
   reference: z.string().min(1),

@@ -12,13 +12,16 @@ const displayFont = Inter({
 
 const SITE_URL = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const SITE_TITLE = 'Gilifast — Boat tickets across Indonesia';
+// What the browser tab shows: short enough not to be cut off. The long form
+// above stays for Open Graph and Twitter cards.
+const TAB_TITLE = 'Gilifast · Fast Boat Tickets';
 const SITE_DESCRIPTION =
   'Book fast boats and ferries across Indonesian islands. Verified operators, transparent prices, fair refunds. Pay with QRIS, e-wallets, bank transfer, or card.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: SITE_TITLE,
+    default: TAB_TITLE,
     template: '%s · Gilifast',
   },
   description: SITE_DESCRIPTION,

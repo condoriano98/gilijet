@@ -25,7 +25,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 
-export const metadata = { title: 'My account · Gilifast' };
+export const metadata = { title: 'My account' };
 
 async function logoutAction() {
   'use server';

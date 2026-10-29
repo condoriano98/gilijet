@@ -16,7 +16,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { GoogleSignInButton } from '@/app/(customer)/[locale]/account/_components/google-signin-button';
 
-export const metadata = { title: 'Create account · Gilifast' };
+export const metadata = { title: 'Create account' };
 
 const registerSchema = z.object({
   fullName: z.string().min(2).max(120),

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 
-export const metadata = { title: 'Contact · Gilifast' };
+export const metadata = { title: 'Contact' };
 
 export default function ContactPage() {
   return (

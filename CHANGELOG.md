@@ -42,6 +42,13 @@ bump. A version is live in production once its tag is merged into `main`.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
 - Docs only: `docs/spikes/` is now sorted by status into `todo/`, `in-progress/` and `done/`; paths that pointed at the old flat layout were updated.
 
+## [1.10.3] - 2026-10-30
+
+### Fixed
+
+- The browser tab now has the Gilifast speedboat as its icon (it showed the default globe), and a home-screen icon for iOS. The locale proxy no longer rewrites `/icon` and `/apple-icon` into 404s.
+- Tab titles fit and are no longer doubled. The default is "Gilifast · Fast Boat Tickets" (the long form stays on share cards). Twelve customer pages that spelled out "· Gilifast" themselves, and so read "About · Gilifast · Gilifast", now give the bare title. Operator and admin pages have their own default ("Operator · Gilifast", "Admin · Gilifast") instead of the customer title, and the blog index and "Change my plans" titles are shortened.
+
 ## [1.10.2] - 2026-10-29
 
 ### Fixed
@@ -251,7 +258,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.2...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.3...HEAD
+[1.10.3]: https://github.com/condoriano98/gilijet/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/condoriano98/gilijet/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0

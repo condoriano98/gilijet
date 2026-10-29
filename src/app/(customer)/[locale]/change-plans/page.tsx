@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Change my plans — refund, reschedule or dispute · Gilifast',
+  title: 'Change my plans',
   description:
     'A guide to help you decide the best option when your plans change: cash refund, reschedule credit, or payment dispute.',
 };

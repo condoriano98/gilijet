@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Refund & Reschedule Policy · Gilifast',
+  title: 'Refund & Reschedule Policy',
   description:
     'Gilifast refund and reschedule policy — cancellation schedule, processing times, reschedule credits, no-shows, and disputes.',
 };
