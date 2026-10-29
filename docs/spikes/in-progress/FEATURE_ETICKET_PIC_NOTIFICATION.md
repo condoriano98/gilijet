@@ -114,7 +114,7 @@ E-tickets are generated automatically (PDF / web page) with name, route, schedul
 - **The forward does not change the booking.** It stays `AWAITING_CONFIRMATION` and the admin still confirms at `/admin/confirmations`. The payment → ticket gate in `CLAUDE.md` is unchanged.
 - **PIC message content:** booking code, pax count, and per passenger the name, category (Adult / Child / Infant) and nationality; boat company; trip type (one way / round trip); route; departure date and time (plus the return leg for a round trip). **No gender**, so the booking form does not change.
 - **Nationality** is `Booking.customerNationality` for every passenger, because the form collects one nationality per booking (see open question 4).
-- **Recipients** come from `OperatorPicContact` (`docs/pic-contacts.md`), which is the seeded `trigger_tiket.csv`:
+- **Recipients** come from `OperatorPicContact` (`docs/PIC_CONTACTS.md`), which is the seeded `trigger_tiket.csv`:
   - "status = Notifikasi" maps to `nohpNotifikasi`;
   - "status = Konfirmasi" maps to `emailKonfirmasiTrigger`;
   - GILIFAST is the row with `operatorId = null`.
@@ -330,7 +330,7 @@ Read, not re-run. Gaps in `src/features/tickets/operator-ticket-email.ts` and `s
 - [x] Part A E2E `tests/e2e/eticket-pic.spec.ts` (own fixtures, cleaned up)
 - [x] `code-reviewer`, `security-auditor`, `db-query-auditor` on Part B; findings below
 - [x] Part B E2E `tests/e2e/eticket-operator-email.spec.ts`; [x] QC recorded below (live Resend not verified)
-- [x] Docs (`docs/pic-contacts.md`, README, `STRUCTURE.md`, `.env.example`, `feature-catalog.ts`, `.claude/agents/security-auditor.md`), `CHANGELOG.md` 1.4.0, `package.json`
+- [x] Docs (`docs/PIC_CONTACTS.md`, README, `STRUCTURE.md`, `.env.example`, `feature-catalog.ts`, `.claude/agents/security-auditor.md`), `CHANGELOG.md` 1.4.0, `package.json`
 - [x] Part B committed (`9333eb0`, v1.4.0; Resend inbound transport, now superseded)
 - [ ] Tag `v1.4.0`: wait until the transport is settled; user's go-ahead (rule 5)
 - [ ] IMAP: real app password from the user; read-only login probe passes (2026-10-19: failed with the pasted placeholder)

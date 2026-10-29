@@ -23,7 +23,7 @@ import {
  * logged to WebhookEvent (provider `whatsapp`) so /admin/webhooks shows whether
  * a PIC message was delivered or why it failed. Replies are only counted: they
  * do not drive anything yet (the "first PIC to answer wins" idea in
- * docs/pic-contacts.md is not built).
+ * docs/PIC_CONTACTS.md is not built).
  *
  * Callback path: /api/webhooks/whatsapp
  */
