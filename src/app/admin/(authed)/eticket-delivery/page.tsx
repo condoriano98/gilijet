@@ -9,6 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { env } from '@/shared/server/env';
 import { checkMailboxNowAction, forwardOperatorEmailAction } from './actions';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 export const metadata = { title: 'E-ticket delivery · Admin' };
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export default async function ETicketDeliveryPage({
 }) {
   await requireAdmin();
   const { ok, error, checked, dry, new: newCount, fwd, rev, fail } = await searchParams;
-  const since = new Date(Date.now() - WAIT_DAYS * 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - WAIT_DAYS * MS_PER_DAY);
 
   const [notified, forwarded, review] = await Promise.all([
     prisma.auditLog.findMany({

@@ -1,4 +1,3 @@
-import { PaymentMethod } from '@prisma/client';
 import { requireOperator } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
 import { formatLocalDateTime, formatLocalTime } from '@/shared/lib/datetime';
@@ -9,15 +8,7 @@ import { DataTable } from '@/shared/ui/data-table';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { Wallet, Banknote, Calculator, Clock } from 'lucide-react';
 import { OpenShiftForm, CloseShiftForm } from './kas-forms';
-
-const CASH_DRAWER_METHODS: PaymentMethod[] = [
-  PaymentMethod.BANK_TRANSFER,
-  PaymentMethod.VA_BCA,
-  PaymentMethod.VA_BNI,
-  PaymentMethod.VA_BRI,
-  PaymentMethod.VA_MANDIRI,
-  PaymentMethod.VA_PERMATA,
-];
+import { CASH_DRAWER_METHODS } from '@/features/payments/constants';
 
 export default async function KasPage() {
   const session = await requireOperator();

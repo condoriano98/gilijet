@@ -1,6 +1,7 @@
 import { prisma } from '@/shared/server/db';
 import { setDokuModeOverride } from '@/features/payments/doku';
 import { setPaypalModeOverride } from '@/features/payments/paypal';
+import { PLATFORM_CONFIG_ID } from '@/shared/constants/platform';
 
 /**
  * Runtime payment-gateway mode overrides.
@@ -17,8 +18,6 @@ import { setPaypalModeOverride } from '@/features/payments/paypal';
  * that matters — checkout start, the pay page, diagnostics, webhook handling.
  * Applying is idempotent and cheap: a single PK read on the config row.
  */
-
-export const PLATFORM_CONFIG_ID = 'default';
 
 /** How one gateway's host is chosen. ENV = follow the env flag. */
 export type GatewayModeOverride = 'ENV' | 'SANDBOX' | 'LIVE';

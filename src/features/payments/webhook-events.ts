@@ -1,4 +1,5 @@
 import { prisma } from '@/shared/server/db';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
 /**
  * Bookkeeping for the `WebhookEvent` table, shared by the DOKU and PayPal
@@ -50,10 +51,10 @@ const REJECTED_BODY_LIMIT = 4096;
 // The endpoints are public and unauthenticated, so the rejected-callback log
 // must not become a way to fill the table.
 const REJECTED_RATE_LIMIT = 50;
-const REJECTED_RATE_WINDOW_MS = 10 * 60 * 1000;
+const REJECTED_RATE_WINDOW_MS = 10 * MS_PER_MINUTE;
 
 /** A PROCESSING event untouched this long belongs to a run that died. */
-export const STUCK_PROCESSING_MS = 5 * 60 * 1000;
+export const STUCK_PROCESSING_MS = 5 * MS_PER_MINUTE;
 
 export type BegunEvent =
   | { idempotent: true }

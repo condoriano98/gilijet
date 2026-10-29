@@ -4,6 +4,7 @@ import { env } from '@/shared/server/env';
 import { sendDepartureReminder } from '@/features/messaging/email';
 import { buildQrPayload } from '@/features/tickets/qr';
 import { getMainLeg } from '@/features/booking/helpers';
+import { MS_PER_HOUR } from '@/shared/constants/time';
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -12,8 +13,8 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const windowStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-  const windowEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+  const windowStart = new Date(now.getTime() + 23 * MS_PER_HOUR);
+  const windowEnd = new Date(now.getTime() + 25 * MS_PER_HOUR);
 
   const allBookings = await prisma.booking.findMany({
     where: {

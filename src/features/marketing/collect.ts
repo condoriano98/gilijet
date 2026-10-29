@@ -3,7 +3,7 @@ import { parseConsent, snapshotConsent, CONSENT_COOKIE } from '@/features/market
 import { containsPii, sanitizePath } from '@/features/marketing/privacy';
 import { eventsEnabled } from '@/features/marketing/config';
 import { recordMarketingEvent } from '@/features/marketing/events';
-import { VISITOR_COOKIE } from '@/features/marketing/booking-attribution';
+import { VISITOR_COOKIE } from '@/features/marketing/constants';
 import { prisma } from '@/shared/server/db';
 
 export const MAX_COLLECT_BODY_BYTES = 2048;

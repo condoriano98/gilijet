@@ -1,7 +1,8 @@
 import { LoginKind } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
-const WINDOW_MS = 15 * 60 * 1000;
+const WINDOW_MS = 15 * MS_PER_MINUTE;
 const MAX_FAILURES = 5;
 
 function emailKey(email: string): string {

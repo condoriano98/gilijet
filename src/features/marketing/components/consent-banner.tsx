@@ -5,11 +5,11 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import {
   CONSENT_COOKIE,
-  CONSENT_MAX_AGE_SECONDS,
   parseConsent,
   serializeConsent,
   toGoogleConsentMode,
 } from '@/features/marketing/consent';
+import { CONSENT_MAX_AGE_SECONDS } from '@/features/marketing/constants';
 import {
   CONSENT_CHANGED_EVENT,
   OPEN_CONSENT_EVENT,

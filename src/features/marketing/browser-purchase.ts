@@ -2,6 +2,7 @@ import { prisma } from '@/shared/server/db';
 import { eventsEnabled } from '@/features/marketing/config';
 import { bookingEventId } from '@/features/marketing/contract';
 import { toPlatformValue } from '@/features/marketing/money';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 export type BrowserPurchase = {
   eventId: string;
@@ -31,7 +32,7 @@ export async function loadBrowserPurchase(bookingId: string): Promise<BrowserPur
       eventId: event.eventId,
       transactionId: bookingId,
       value: toPlatformValue(event.value) ?? 0,
-      currency: event.currency ?? 'IDR',
+      currency: event.currency ?? DEFAULT_CURRENCY,
       route: event.routeCode,
       passengers: event.passengerCount ?? 1,
     };

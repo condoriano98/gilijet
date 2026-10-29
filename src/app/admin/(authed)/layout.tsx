@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAdminSession, clearAdminSession } from '@/shared/server/auth';
 import { Button } from '@/shared/ui/button';
+import { ADMIN_LOGIN_PATH } from '@/shared/constants/routes';
 
 async function signOutAction() {
   'use server';
   await clearAdminSession();
-  redirect('/admin/login');
+  redirect(ADMIN_LOGIN_PATH);
 }
 
 export default async function AdminLayout({
@@ -15,7 +16,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getAdminSession();
-  if (!session) redirect('/admin/login');
+  if (!session) redirect(ADMIN_LOGIN_PATH);
 
   const nav = [
     { href: '/admin', label: 'Overview' },

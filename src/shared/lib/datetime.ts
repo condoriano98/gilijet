@@ -1,11 +1,5 @@
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
-
-/**
- * The MVP assumes operators run in WITA (Asia/Makassar, UTC+8) — Bali,
- * Lombok, Sulawesi. Sufficient for our pilot routes. Make this per-operator
- * when expanding to WIB (Java) or WIT (Maluku/Papua).
- */
-export const OPERATOR_TIMEZONE = 'Asia/Makassar';
+import { OPERATOR_TIMEZONE } from '@/shared/constants/locale';
 
 /** Build a UTC Date from a local YYYY-MM-DD + HH:MM in the operator's zone. */
 export function localDateTimeToUtc(dateYmd: string, timeHm: string): Date {

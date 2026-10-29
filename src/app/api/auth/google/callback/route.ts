@@ -8,8 +8,7 @@ import {
   safeNext,
   verifyState,
 } from '@/shared/server/google-oauth';
-
-const STATE_COOKIE = 'gilifast_google_state';
+import { GOOGLE_STATE_COOKIE } from '@/shared/constants/auth';
 
 function loginError(req: Request, code: string) {
   return NextResponse.redirect(
@@ -31,8 +30,8 @@ export async function GET(req: Request) {
   }
 
   const jar = await cookies();
-  const storedNonce = jar.get(STATE_COOKIE)?.value;
-  jar.delete(STATE_COOKIE);
+  const storedNonce = jar.get(GOOGLE_STATE_COOKIE)?.value;
+  jar.delete(GOOGLE_STATE_COOKIE);
 
   const parsedState = await verifyState(state);
   if (!parsedState || !storedNonce || parsedState.nonce !== storedNonce) {

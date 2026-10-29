@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { siteUrl } from '@/shared/server/site-url';
 
 // Inter is the Figma brand face for Gilifast (display + UI).
 const displayFont = Inter({
@@ -10,7 +11,7 @@ const displayFont = Inter({
   display: 'swap',
 });
 
-const SITE_URL = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const SITE_URL = siteUrl();
 const SITE_TITLE = 'Gilifast — Boat tickets across Indonesia';
 // What the browser tab shows: short enough not to be cut off. The long form
 // above stays for Open Graph and Twitter cards.

@@ -3,7 +3,7 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { PaymentMethod } from '@prisma/client';
 import { requireOperator } from '@/shared/server/auth';
 import { prisma } from '@/shared/server/db';
-import { OPERATOR_TIMEZONE, formatLocalDate } from '@/shared/lib/datetime';
+import { formatLocalDate } from '@/shared/lib/datetime';
 import { formatIDR } from '@/shared/lib/utils';
 import { ListPageTemplate } from '@/features/operators/components/templates/list-page-template';
 import {
@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/ui/table';
+import { OPERATOR_TIMEZONE } from '@/shared/constants/locale';
 
 const CASH_METHODS: PaymentMethod[] = [
   PaymentMethod.BANK_TRANSFER,

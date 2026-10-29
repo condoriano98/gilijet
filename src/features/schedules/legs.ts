@@ -4,11 +4,11 @@ import { audit } from '@/shared/server/audit';
 import { bookingsOnLegWhere } from '@/features/booking/helpers';
 import { recordBookingEvent } from '@/features/marketing/events';
 import {
-  OPERATOR_TIMEZONE,
   isoDayOfWeek,
   localDateTimeToUtc,
   ymdInZone,
 } from '@/shared/lib/datetime';
+import { OPERATOR_TIMEZONE } from '@/shared/constants/locale';
 
 const DEFAULT_DAYS_AHEAD = 14;
 

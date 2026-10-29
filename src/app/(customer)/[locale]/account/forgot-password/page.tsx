@@ -15,6 +15,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { MS_PER_HOUR } from '@/shared/constants/time';
 
 export const metadata = { title: 'Forgot password' };
 
@@ -29,7 +30,7 @@ async function requestResetAction(formData: FormData) {
   if (customer) {
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiresAt = new Date(Date.now() + MS_PER_HOUR); // 1 hour
 
     await prisma.passwordResetToken.create({
       data: { email, tokenHash, expiresAt },

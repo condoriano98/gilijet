@@ -1,4 +1,5 @@
 import { ATTRIBUTION_PARAMS, referrerHost, sanitizeUrl, truncate } from '@/features/marketing/privacy';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 /**
  * Phase-one internal attribution.
@@ -14,7 +15,6 @@ import { ATTRIBUTION_PARAMS, referrerHost, sanitizeUrl, truncate } from '@/featu
  */
 export const ATTRIBUTION_COOKIE = 'gf_attr';
 export const ATTRIBUTION_MODEL_VERSION = 'last-non-direct.v1';
-export const ATTRIBUTION_COOKIE_MAX_AGE_SECONDS = 90 * 24 * 60 * 60;
 
 export const CHANNELS = [
   'google_ads',
@@ -248,7 +248,7 @@ export function resolveAttribution(args: {
     return { ...base, channel: 'consent_unavailable', platform: null, lastTouch: null, firstTouch: null };
   }
   const now = args.now ?? Date.now();
-  const cutoff = now - args.lookbackDays * 24 * 60 * 60 * 1000;
+  const cutoff = now - args.lookbackDays * MS_PER_DAY;
   const lt = args.cookie?.lt && args.cookie.lt.at >= cutoff && args.cookie.lt.at <= now + 60_000 ? args.cookie.lt : null;
   const ft = args.cookie?.ft ?? null;
   const hadVisit = Boolean(ft || args.cookie?.lt);

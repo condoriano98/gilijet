@@ -1,13 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { env } from '@/shared/server/env';
+import { DEFAULT_COMMISSION_RATE } from '@/shared/constants/platform';
 
 /**
  * Pricing & commission calculations.
  * All values are in IDR. We use Prisma.Decimal end-to-end to avoid
  * floating-point drift on currency.
  */
-
-const DEFAULT_COMMISSION_RATE = 0.08;
 
 /** Resolve the commission rate, never returning undefined (Decimal would throw). */
 function resolveCommissionRate(

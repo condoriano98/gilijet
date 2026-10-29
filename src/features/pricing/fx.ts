@@ -1,4 +1,5 @@
 import { prisma } from '@/shared/server/db';
+import { MS_PER_HOUR } from '@/shared/constants/time';
 
 export type FxSnapshot = {
   currency: string;
@@ -88,7 +89,7 @@ export function formatWithDisplay(
  * — precisely when a customer whose card DOKU declined needs it. Three days
  * tolerates two consecutive failures and still refuses a genuinely stale rate.
  */
-export const MAX_RATE_AGE_MS = 72 * 60 * 60 * 1000;
+export const MAX_RATE_AGE_MS = 72 * MS_PER_HOUR;
 
 /** Give up on the provider quickly — checkout must not wait on a third party. */
 const PROVIDER_TIMEOUT_MS = 3_000;

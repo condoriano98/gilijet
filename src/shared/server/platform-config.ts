@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
+import { DEFAULT_COMMISSION_RATE, PLATFORM_CONFIG_ID } from '@/shared/constants/platform';
 
 /**
  * Platform-economics config — the values the owner console tunes.
@@ -13,8 +14,6 @@ import { env } from '@/shared/server/env';
  * console can price each operator individually without a schema change.
  */
 
-const DEFAULT_COMMISSION_RATE = 0.08;
-const PLATFORM_CONFIG_ID = 'default';
 
 /** Read the singleton config, creating it with defaults on first access. */
 export async function getPlatformConfig() {

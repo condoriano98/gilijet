@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { clearOperatorSession, getOperatorSession } from '@/shared/server/auth';
 import { TopBar } from '@/app/operator/_components/top-bar';
 import { Sidebar } from '@/app/operator/_components/sidebar';
+import { OPERATOR_LOGIN_PATH } from '@/shared/constants/routes';
 
 export const metadata: Metadata = {
   title: { absolute: 'Operator · Gilifast', template: '%s · Operator' },
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 async function signOutAction() {
   'use server';
   await clearOperatorSession();
-  redirect('/operator/login');
+  redirect(OPERATOR_LOGIN_PATH);
 }
 
 export default async function OperatorLayout({

@@ -33,6 +33,8 @@ import { getCustomerSession } from '@/shared/server/auth';
 import { getLatestRates, formatWithDisplay } from '@/features/pricing/fx';
 import { getAvailablePorts } from '@/features/schedules/home-data';
 import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
+import { MS_PER_DAY } from '@/shared/constants/time';
+import { DEFAULT_LOOKAHEAD_DAYS } from '@/features/schedules/constants';
 
 const querySchema = z.object({
   origin: z.string().min(2).optional(),
@@ -126,7 +128,7 @@ export default async function SearchPage({
   const startUtc = dateProvided ? localDateTimeToUtc(date, '00:00') : new Date();
   const endUtc = dateProvided
     ? localDateTimeToUtc(date, '23:59')
-    : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    : new Date(Date.now() + DEFAULT_LOOKAHEAD_DAYS * MS_PER_DAY);
 
   type LegWithSchedule = Prisma.LegGetPayload<{
     include: { schedule: { include: { boat: { include: { operator: true } } } } };

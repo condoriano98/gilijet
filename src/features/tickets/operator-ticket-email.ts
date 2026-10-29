@@ -18,6 +18,7 @@ import {
   senderAddress,
 } from '@/features/tickets/operator-ticket-parse';
 import { renderTicketForward } from '@/features/tickets/ticket-forward-copy';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
 /**
  * Forward the operator's e-ticket email to the customer who bought the booking.
@@ -44,7 +45,7 @@ const PAID = ['AWAITING_CONFIRMATION', 'CONFIRMED'] as const;
 // A claim without `sent: true` this old belongs to a run that died between the
 // claim and the send: it is dropped and the mail is sent again (a duplicate is
 // better than a ticket that never arrives).
-const CLAIM_STALE_MS = 10 * 60 * 1000;
+const CLAIM_STALE_MS = 10 * MS_PER_MINUTE;
 
 const legSelect = {
   select: {

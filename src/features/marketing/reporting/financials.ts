@@ -1,5 +1,6 @@
 import { Prisma, type BookingStatus, type PaymentProvider, type PaymentStatus, type RefundStatus } from '@prisma/client';
 import { actual, aggregate, subtract, unknown, ZERO, type Aggregate, type Measured } from '@/features/marketing/reporting/measured';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 /**
  * GiliFast's booking economics, as far as the ledger proves them.
@@ -285,7 +286,7 @@ export function summarizeFinancials(rows: BookingFinancials[]): FinancialSummary
   }
   const sum = (pick: (r: BookingFinancials) => Prisma.Decimal) => paid.reduce((acc, r) => acc.add(pick(r)), ZERO);
   return {
-    currency: currencies[0] ?? 'IDR',
+    currency: currencies[0] ?? DEFAULT_CURRENCY,
     paidBookings: paid.length,
     fulfilledBookings: paid.filter((r) => r.fulfilled).length,
     pendingFulfillment: paid.filter((r) => r.recognition === 'pending_fulfillment').length,

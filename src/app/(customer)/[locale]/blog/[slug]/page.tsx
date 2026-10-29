@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { findPost, POSTS } from '@/content/blog';
+import { siteUrl } from '@/shared/server/site-url';
 
 type Params = { slug: string; locale: string };
 
@@ -50,7 +51,7 @@ export default async function BlogPost({
   const post = findPost(slug);
   if (!post) notFound();
 
-  const base = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = siteUrl();
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',

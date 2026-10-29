@@ -7,6 +7,7 @@ import {
   revenueByChannel,
   refundRatioByMonth,
 } from '@/features/operators/erp-queries';
+import { MONTH_NAMES_SHORT_ID } from '@/shared/constants/calendar';
 
 const VALID_KINDS = new Set([
   'revenue-by-channel',
@@ -15,14 +16,9 @@ const VALID_KINDS = new Set([
   'cancellation-weather',
 ]);
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-];
-
 function ymLabel(ym: string): string {
   const [y, m] = ym.split('-');
-  return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+  return `${MONTH_NAMES_SHORT_ID[Number(m) - 1]} ${y}`;
 }
 
 function csvEscape(v: string | number): string {

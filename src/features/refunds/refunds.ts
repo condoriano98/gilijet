@@ -1,4 +1,6 @@
 import { Prisma } from '@prisma/client';
+import { MS_PER_HOUR } from '@/shared/constants/time';
+import { FULL_REFUND_WINDOW_HOURS, REFUND_CUTOFF_HOURS } from '@/features/refunds/constants';
 
 /**
  * Refund policy (see gilifast.com Terms & Conditions §5.1).
@@ -26,9 +28,9 @@ export function refundTierForCustomer(
   departure: Date,
 ): CustomerRefundTier {
   const ms = departure.getTime() - now.getTime();
-  const hours = ms / (1000 * 60 * 60);
-  if (hours > 168) return 'FULL'; // more than 7 days
-  if (hours >= 48) return 'PARTIAL'; // 48 hours to 7 days
+  const hours = ms / MS_PER_HOUR;
+  if (hours > FULL_REFUND_WINDOW_HOURS) return 'FULL'; // more than 7 days
+  if (hours >= REFUND_CUTOFF_HOURS) return 'PARTIAL'; // 48 hours to 7 days
   return 'NONE'; // less than 48 hours
 }
 
@@ -63,7 +65,7 @@ export function refundAmountForCustomer(args: {
  * cancel button precisely.
  */
 export function computeRefundDeadline(departure: Date): Date {
-  return new Date(departure.getTime() - 48 * 60 * 60 * 1000);
+  return new Date(departure.getTime() - REFUND_CUTOFF_HOURS * MS_PER_HOUR);
 }
 
 /** Operator-triggered cancellation is always a full refund. */

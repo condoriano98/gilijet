@@ -5,7 +5,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import {
   ATTRIBUTION_COOKIE,
-  ATTRIBUTION_COOKIE_MAX_AGE_SECONDS,
   decodeAttributionCookie,
   directLanding,
   encodeAttributionCookie,
@@ -21,9 +20,7 @@ import {
   readCookie,
   writeCookie,
 } from '@/features/marketing/data-layer';
-
-const VISITOR_COOKIE = 'gf_vid';
-const VISITOR_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+import { ATTRIBUTION_COOKIE_MAX_AGE_SECONDS, VISITOR_COOKIE, VISITOR_MAX_AGE_SECONDS } from '@/features/marketing/constants';
 
 /**
  * A landing seen before the visitor answered the banner. Kept in memory only

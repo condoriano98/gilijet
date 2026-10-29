@@ -9,6 +9,7 @@ import {
   failWebhookEvent,
   settleWebhookEvent,
 } from '@/features/payments/webhook-events';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
 /**
  * Cron job: retries PENDING, FAILED and abandoned PROCESSING webhook events.
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+  const twoMinutesAgo = new Date(Date.now() - 2 * MS_PER_MINUTE);
   const stuckBefore = new Date(Date.now() - STUCK_PROCESSING_MS);
 
   // Pick events that need retry: PENDING or FAILED more than 2 min ago with

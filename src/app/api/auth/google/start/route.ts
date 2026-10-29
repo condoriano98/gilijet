@@ -6,8 +6,7 @@ import {
   safeNext,
   signState,
 } from '@/shared/server/google-oauth';
-
-const STATE_COOKIE = 'gilifast_google_state';
+import { GOOGLE_STATE_COOKIE, GOOGLE_STATE_MAX_AGE_SECONDS } from '@/shared/constants/auth';
 
 export async function GET(req: Request) {
   if (!isGoogleOAuthEnabled()) {
@@ -23,12 +22,12 @@ export async function GET(req: Request) {
   const state = await signState({ nonce, next });
 
   const jar = await cookies();
-  jar.set(STATE_COOKIE, nonce, {
+  jar.set(GOOGLE_STATE_COOKIE, nonce, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 10,
+    maxAge: GOOGLE_STATE_MAX_AGE_SECONDS,
   });
 
   return NextResponse.redirect(buildAuthorizeUrl({ state }));

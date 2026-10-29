@@ -1,4 +1,5 @@
 import { env } from '@/shared/server/env';
+import { DEFAULT_REPORT_TIMEZONE } from '@/shared/constants/locale';
 
 /**
  * Which environment an event was recorded in. Vercel's custom `staging`
@@ -26,7 +27,7 @@ export function adsSyncEnabled(): boolean {
 }
 
 export function reportTimezone(): string {
-  return env.REPORT_TIMEZONE || 'Asia/Jakarta';
+  return env.REPORT_TIMEZONE || DEFAULT_REPORT_TIMEZONE;
 }
 
 export function ga4Configured(): boolean {

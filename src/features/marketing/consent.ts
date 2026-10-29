@@ -12,7 +12,6 @@
  */
 export const CONSENT_COOKIE = 'gf_consent';
 export const CONSENT_VERSION = 1;
-export const CONSENT_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
 
 export type ConsentState = {
   analytics: boolean;

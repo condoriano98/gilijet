@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/datetime';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 const STATUSES: LegStatus[] = ['OPEN', 'FULL', 'SAILED', 'CANCELLED'];
 
@@ -29,7 +30,7 @@ function rangeFromKey(
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setUTCHours(0, 0, 0, 0);
-  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+  const endOfDay = new Date(startOfDay.getTime() + MS_PER_DAY);
   switch (key) {
     case 'today':
       return { fromUtc: startOfDay, toUtc: endOfDay, label: 'Today' };

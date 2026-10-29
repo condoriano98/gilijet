@@ -1,5 +1,7 @@
 import { prisma } from '@/shared/server/db';
 import { loadActiveSeasons, withSeasonPrice } from '@/features/pricing/seasons';
+import { MS_PER_DAY, MS_PER_HOUR } from '@/shared/constants/time';
+import { DEFAULT_LOOKAHEAD_DAYS } from '@/features/schedules/constants';
 
 // =================== Available ports ===================
 
@@ -50,7 +52,7 @@ export async function getDepartingSoon(
   const hoursAhead = args.hoursAhead ?? 12;
   const limit = args.limit ?? 8;
   const now = new Date();
-  const end = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
+  const end = new Date(now.getTime() + hoursAhead * MS_PER_HOUR);
 
   const rawLegs = await prisma.leg.findMany({
     where: {
@@ -109,7 +111,7 @@ export const POPULAR_ROUTES_FALLBACK: PopularRoute[] = [
 
 export async function getPopularRoutes(limit = 6): Promise<PopularRoute[]> {
   const now = new Date();
-  const end = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const end = new Date(now.getTime() + DEFAULT_LOOKAHEAD_DAYS * MS_PER_DAY);
 
   const rawLegs = await prisma.leg.findMany({
     where: {
@@ -202,7 +204,7 @@ function firstNameOf(full: string): string {
 }
 
 export async function getRecentReviews(limit = 8): Promise<HomeReview[]> {
-  const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - 180 * MS_PER_DAY);
 
   const rows = await prisma.review.findMany({
     where: {
@@ -277,7 +279,7 @@ export const TRUST_THRESHOLDS = {
 };
 
 export async function getTrustNumbers(): Promise<TrustNumbers> {
-  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const since30 = new Date(Date.now() - 30 * MS_PER_DAY);
 
   const [bookings30, reviewAgg, activeOps] = await Promise.all([
     prisma.booking.count({

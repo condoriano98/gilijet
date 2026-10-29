@@ -18,6 +18,7 @@ import {
   failWebhookEvent,
   settleWebhookEvent,
 } from '@/features/payments/webhook-events';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 /**
  * Poll the operator e-ticket mailbox over IMAP and hand every new mail from an
@@ -94,7 +95,7 @@ export async function pollOperatorInbox(
 
   const senderSet = new Set(senders);
   const deadline = Date.now() + (opts.budgetMs ?? DEFAULT_BUDGET_MS);
-  const lookbackStart = new Date((opts.now ?? new Date()).getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const lookbackStart = new Date((opts.now ?? new Date()).getTime() - LOOKBACK_DAYS * MS_PER_DAY);
   const configuredStart = env.INBOX_POLL_SINCE ? new Date(`${env.INBOX_POLL_SINCE}T00:00:00+08:00`) : null;
   const since = configuredStart && configuredStart > lookbackStart ? configuredStart : lookbackStart;
 

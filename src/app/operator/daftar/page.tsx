@@ -18,6 +18,7 @@ import { Step4VesselLicense } from './step-4-vessel-license';
 import { Step5Insurance } from './step-5-insurance';
 import { Step6CaptainLicense } from './step-6-captain-license';
 import { Step7BankAccount } from './step-7-bank-account';
+import { OPERATOR_LOGIN_PATH } from '@/shared/constants/routes';
 
 const STEPS = [
   { number: 1, title: 'Basic Information', description: 'Company details' },
@@ -60,7 +61,7 @@ export default async function SignupPage({
     : null;
 
   if (!operator && session) {
-    redirect('/operator/login');
+    redirect(OPERATOR_LOGIN_PATH);
   }
 
   function renderStep() {

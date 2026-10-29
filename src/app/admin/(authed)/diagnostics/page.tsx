@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 export const metadata = { title: 'Diagnostics · Admin' };
 export const dynamic = 'force-dynamic';
@@ -63,7 +64,7 @@ export default async function DiagnosticsPage() {
     { label: 'Site', detail: env.APP_BASE_URL },
   ];
 
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dayAgo = new Date(Date.now() - MS_PER_DAY);
   const failedWebhooks = await prisma.webhookEvent.count({
     where: {
       status: 'FAILED',

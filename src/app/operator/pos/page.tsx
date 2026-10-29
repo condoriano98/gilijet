@@ -4,13 +4,14 @@ import { formatLocalTime } from '@/shared/lib/datetime';
 import { loadActiveSeasons, legPricingInputs } from '@/features/pricing/seasons';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
 import { PosClient } from './pos-client';
+import { MS_PER_HOUR } from '@/shared/constants/time';
 
 export default async function PosPage() {
   const session = await requireOperator();
   const operatorId = session.sub;
 
   const now = new Date();
-  const eightHoursLater = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const eightHoursLater = new Date(now.getTime() + 8 * MS_PER_HOUR);
 
   const [legs, pricing] = await Promise.all([
     prisma.leg.findMany({

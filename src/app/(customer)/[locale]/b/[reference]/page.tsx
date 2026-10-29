@@ -34,6 +34,8 @@ import { env } from '@/shared/server/env';
 import { recordBookingEvent } from '@/features/marketing/events';
 import { loadBrowserPurchase } from '@/features/marketing/browser-purchase';
 import { TrackEvent } from '@/features/marketing/components/track-event';
+import { MS_PER_HOUR } from '@/shared/constants/time';
+import { REFUND_CUTOFF_HOURS } from '@/features/refunds/constants';
 
 const cancelInput = z.object({
   reference: z.string(),
@@ -566,7 +568,7 @@ export default async function BookingLookupPage({
 
         {booking.status === 'CONFIRMED' &&
         departureFuture &&
-        mainLeg.departureDate.getTime() > Date.now() + 48 * 60 * 60 * 1000 ? (
+        mainLeg.departureDate.getTime() > Date.now() + REFUND_CUTOFF_HOURS * MS_PER_HOUR ? (
           <Card>
             <CardHeader>
               <CardTitle>Change of plans?</CardTitle>

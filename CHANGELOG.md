@@ -41,6 +41,7 @@ bump. A version is live in production once its tag is merged into `main`.
 - `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
 - Docs only: `docs/spikes/` is now sorted by status into `todo/`, `in-progress/` and `done/`; paths that pointed at the old flat layout were updated.
+- Refactor, no behaviour change: values used in more than one place or that are policy now live in `src/shared/constants/` (time units, timezone, currency, cookie names and session length, login paths, commission default, base URL default) and in `src/features/<domain>/constants.ts` (refund cutoff, review window, search lookahead, cash-drawer methods, marketing cookie lifetimes). The 48-hour cutoff was written twice (`refunds.ts` and the booking page) and is now one constant; the base URL fallback was repeated in four files and is now `siteUrl()`. A unit test pins every moved value and fails on new inline time or currency literals. Spike: `docs/spikes/in-progress/FEATURE_CONSTANTS_FOLDER.md`.
 
 ## [1.10.3] - 2026-10-30
 

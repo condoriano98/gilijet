@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { DEFAULT_REPORT_TIMEZONE } from '@/shared/constants/locale';
+import { DEFAULT_COMMISSION_RATE } from '@/shared/constants/platform';
+import { DEFAULT_APP_BASE_URL } from '@/shared/constants/site';
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
@@ -7,7 +10,7 @@ const envSchema = z.object({
   // it's optional from the Next.js process's perspective.
   DIRECT_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(16),
-  APP_BASE_URL: z.string().url().default('http://localhost:3000'),
+  APP_BASE_URL: z.string().url().default(DEFAULT_APP_BASE_URL),
 
   // DOKU Checkout — the payment gateway. Settles IDR, so no FX is involved.
   // Absent keys put the app in mock mode and it takes no real money.
@@ -94,7 +97,7 @@ const envSchema = z.object({
   // Matching data (click ids, IP, user agent) on BookingAttribution is wiped
   // after this many days by the delivery cron.
   MARKETING_MATCH_RETENTION_DAYS: z.coerce.number().int().min(7).max(400).optional().default(90),
-  REPORT_TIMEZONE: z.string().optional().default('Asia/Jakarta'),
+  REPORT_TIMEZONE: z.string().optional().default(DEFAULT_REPORT_TIMEZONE),
 
   // Outbound mail over SMTP (Gmail app password), see features/messaging/mailer.ts.
   // Any of host / user / password / from missing = mock mode (console only).
@@ -139,7 +142,7 @@ const envSchema = z.object({
 
   PLATFORM_COMMISSION_RATE: z
     .string()
-    .default('0.08')
+    .default(String(DEFAULT_COMMISSION_RATE))
     .transform((v) => Number(v)),
   BOOKING_HOLD_MINUTES: z
     .string()
@@ -200,14 +203,14 @@ function numOr(v: unknown, fallback: number): number {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
-_env.PLATFORM_COMMISSION_RATE = numOr(_env.PLATFORM_COMMISSION_RATE, 0.08);
+_env.PLATFORM_COMMISSION_RATE = numOr(_env.PLATFORM_COMMISSION_RATE, DEFAULT_COMMISSION_RATE);
 _env.BOOKING_HOLD_MINUTES = numOr(_env.BOOKING_HOLD_MINUTES, 30);
 _env.ATTRIBUTION_LOOKBACK_DAYS = numOr(_env.ATTRIBUTION_LOOKBACK_DAYS, 30);
 _env.ADS_BACKFILL_DAYS = numOr(_env.ADS_BACKFILL_DAYS, 7);
 _env.MARKETING_MATCH_RETENTION_DAYS = numOr(_env.MARKETING_MATCH_RETENTION_DAYS, 90);
-_env.REPORT_TIMEZONE = _env.REPORT_TIMEZONE || 'Asia/Jakarta';
+_env.REPORT_TIMEZONE = _env.REPORT_TIMEZONE || DEFAULT_REPORT_TIMEZONE;
 if (typeof _env.APP_BASE_URL !== 'string' || !_env.APP_BASE_URL) {
-  _env.APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:3000';
+  _env.APP_BASE_URL = process.env.APP_BASE_URL || DEFAULT_APP_BASE_URL;
 }
 
 export const env = _env;

@@ -2,6 +2,8 @@ import { env } from '@/shared/server/env';
 import { toPlatformValue } from '@/features/marketing/money';
 import { postJson, PermanentDeliveryError } from '@/features/marketing/delivery/http';
 import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/features/marketing/delivery/types';
+import { MS_PER_HOUR } from '@/shared/constants/time';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 /**
  * GA4 Measurement Protocol: server copies of `purchase` and `refund`.
@@ -13,7 +15,7 @@ import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/feat
  * transaction_id is the internal booking id: stable per booking, and unlike
  * the booking reference it opens nothing if it leaks.
  */
-const MAX_AGE_MS = 72 * 60 * 60 * 1000;
+const MAX_AGE_MS = 72 * MS_PER_HOUR;
 
 export function decideGa4(ctx: DeliveryContext): DeliveryDecision {
   if (ctx.event.eventName !== 'purchase' && ctx.event.eventName !== 'refund') {
@@ -34,7 +36,7 @@ export function buildGa4Payload(ctx: DeliveryContext) {
   const params: Record<string, unknown> = {
     transaction_id: ctx.event.bookingId,
     value,
-    currency: ctx.event.currency ?? 'IDR',
+    currency: ctx.event.currency ?? DEFAULT_CURRENCY,
     engagement_time_msec: 1,
   };
   if (ctx.attribution?.gaSessionId) params.session_id = ctx.attribution.gaSessionId;

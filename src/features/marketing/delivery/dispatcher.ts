@@ -10,6 +10,7 @@ import { decideGoogleAds, sendGoogleAds } from '@/features/marketing/delivery/go
 import type { DeliveryContext, DeliveryDecision } from '@/features/marketing/delivery/types';
 import { readConsentSnapshot } from '@/features/marketing/consent';
 import { effectiveConsent } from '@/features/marketing/consent-withdrawal';
+import { MS_PER_DAY, MS_PER_MINUTE } from '@/shared/constants/time';
 
 /**
  * Outbox worker: sends PENDING MarketingEventDelivery rows to their provider.
@@ -21,7 +22,7 @@ import { effectiveConsent } from '@/features/marketing/consent-withdrawal';
  * event id makes a resend after a lost response harmless on the platform side.
  */
 export const MAX_ATTEMPTS = 6;
-const STUCK_PROCESSING_MS = 10 * 60 * 1000;
+const STUCK_PROCESSING_MS = 10 * MS_PER_MINUTE;
 
 const ADAPTERS: Record<
   MarketingDestination,
@@ -34,7 +35,7 @@ const ADAPTERS: Record<
 
 /** 2, 4, 8, 16, 32 minutes, then give up. */
 export function nextAttemptDelayMs(attempts: number): number {
-  return 2 ** Math.max(attempts, 1) * 60 * 1000;
+  return 2 ** Math.max(attempts, 1) * MS_PER_MINUTE;
 }
 
 export type DeliveryRunSummary = { claimed: number; delivered: number; skipped: number; failed: number; retrying: number };
@@ -156,7 +157,7 @@ export async function replayDelivery(id: string): Promise<boolean> {
  * and campaign ids stay: they are what the dashboard reports on.
  */
 export async function purgeExpiredMatchData(now = new Date()): Promise<number> {
-  const cutoff = new Date(now.getTime() - env.MARKETING_MATCH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - env.MARKETING_MATCH_RETENTION_DAYS * MS_PER_DAY);
   const res = await prisma.bookingAttribution.updateMany({
     where: {
       createdAt: { lt: cutoff },

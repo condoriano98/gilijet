@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { siteUrl } from '@/shared/server/site-url';
 
 /**
  * Only the canonical production host is crawlable.
@@ -24,7 +25,7 @@ function isProductionHost(base: string): boolean {
 }
 
 export default function robots(): MetadataRoute.Robots {
-  const base = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = siteUrl();
 
   if (!isProductionHost(base)) {
     return { rules: [{ userAgent: '*', disallow: '/' }] };

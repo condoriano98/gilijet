@@ -3,6 +3,8 @@ import { toPlatformValue } from '@/features/marketing/money';
 import { googleAccessToken } from '@/features/marketing/google-auth';
 import { postJson, PermanentDeliveryError } from '@/features/marketing/delivery/http';
 import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/features/marketing/delivery/types';
+import { MS_PER_DAY } from '@/shared/constants/time';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 /**
  * Google Ads purchase conversion, uploaded server-side through the Data
@@ -17,7 +19,7 @@ import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/feat
  * Outside production every request is sent with validateOnly, so staging can
  * exercise the integration without creating conversions.
  */
-const CLICK_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
+const CLICK_WINDOW_MS = 90 * MS_PER_DAY;
 
 export function decideGoogleAds(ctx: DeliveryContext): DeliveryDecision {
   if (ctx.event.eventName !== 'purchase') return { action: 'skip', reason: 'UNSUPPORTED_EVENT' };
@@ -60,7 +62,7 @@ export function buildDataManagerPayload(ctx: DeliveryContext) {
         eventTimestamp: ctx.event.occurredAt.toISOString(),
         transactionId: ctx.event.bookingId,
         conversionValue: toPlatformValue(ctx.event.value) ?? 0,
-        currency: ctx.event.currency ?? 'IDR',
+        currency: ctx.event.currency ?? DEFAULT_CURRENCY,
         eventSource: 'WEB',
         adIdentifiers,
       },

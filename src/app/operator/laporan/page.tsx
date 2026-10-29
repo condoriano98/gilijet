@@ -16,6 +16,7 @@ import {
   revenueByChannel,
   refundRatioByMonth,
 } from '@/features/operators/erp-queries';
+import { MONTH_NAMES_SHORT_ID } from '@/shared/constants/calendar';
 
 const TABS = [
   { key: 'revenue-by-channel', label: 'Pendapatan per Saluran' },
@@ -26,18 +27,13 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key'];
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-];
-
 function ymLabel(ym: string): string {
   const [y, m] = ym.split('-');
-  return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+  return `${MONTH_NAMES_SHORT_ID[Number(m) - 1]} ${y}`;
 }
 
 function monthLabel(d: Date): string {
-  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+  return `${MONTH_NAMES_SHORT_ID[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export default async function LaporanPage({

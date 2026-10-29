@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { env } from '@/shared/server/env';
 import type { GatewayModeOverride } from '@/features/payments/payment-mode';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 /**
  * DOKU Checkout — the payment gateway for gilifast.
@@ -159,7 +160,7 @@ export async function createCheckout(
     order: {
       amount: Math.round(params.amount),
       invoice_number: params.orderId,
-      currency: 'IDR',
+      currency: DEFAULT_CURRENCY,
       callback_url: params.callbackUrl,
     },
     payment: {

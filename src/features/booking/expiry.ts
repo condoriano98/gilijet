@@ -2,6 +2,7 @@ import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { releaseBookingSeats } from '@/features/booking/engine';
 import { recordBookingEventStandalone } from '@/features/marketing/events';
+import { MS_PER_DAY, MS_PER_MINUTE } from '@/shared/constants/time';
 
 /**
  * Expire bookings whose `PENDING_PAYMENT` hold has elapsed. Called lazily
@@ -20,7 +21,7 @@ const SWEEP_MIN_INTERVAL_MS = 30_000;
  * booking is allowed to expire normally. Bounded so an unreachable PayPal
  * cannot hold seats indefinitely.
  */
-const PAYPAL_VERIFY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const PAYPAL_VERIFY_WINDOW_MS = MS_PER_DAY;
 
 export async function expireStalePendingBookings(): Promise<number> {
   const now = Date.now();
@@ -28,7 +29,7 @@ export async function expireStalePendingBookings(): Promise<number> {
   lastSweepAt = now;
 
   const cutoff = new Date(
-    now - env.BOOKING_HOLD_MINUTES * 60 * 1000,
+    now - env.BOOKING_HOLD_MINUTES * MS_PER_MINUTE,
   );
 
   const stale = await prisma.booking.findMany({

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { env } from '@/shared/server/env';
+import { ADMIN_COOKIE, CUSTOMER_COOKIE, OPERATOR_COOKIE, SESSION_TTL_SECONDS } from '@/shared/constants/auth';
+import { ADMIN_LOGIN_PATH, CUSTOMER_LOGIN_PATH, OPERATOR_LOGIN_PATH } from '@/shared/constants/routes';
 
 /**
  * MVP auth: short-lived JWT in an HttpOnly cookie, separate cookies for
@@ -10,10 +12,6 @@ import { env } from '@/shared/server/env';
  * other. Customers are anonymous (no login).
  */
 
-const OPERATOR_COOKIE = 'gilifast_op';
-const ADMIN_COOKIE = 'gilifast_admin';
-const CUSTOMER_COOKIE = 'gilifast_cust';
-const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24h (see §9.1)
 
 type Session<Role extends string> = {
   sub: string;
@@ -94,7 +92,7 @@ export async function getOperatorSession(): Promise<OperatorSession | null> {
 
 export async function requireOperator(): Promise<OperatorSession> {
   const s = await getOperatorSession();
-  if (!s) redirect('/operator/login');
+  if (!s) redirect(OPERATOR_LOGIN_PATH);
   return s;
 }
 
@@ -120,7 +118,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
 export async function requireAdmin(): Promise<AdminSession> {
   const s = await getAdminSession();
-  if (!s) redirect('/admin/login');
+  if (!s) redirect(ADMIN_LOGIN_PATH);
   return s;
 }
 
@@ -152,7 +150,7 @@ export async function getCustomerSession(): Promise<CustomerSession | null> {
 
 export async function requireCustomer(): Promise<CustomerSession> {
   const s = await getCustomerSession();
-  if (!s) redirect('/account/login');
+  if (!s) redirect(CUSTOMER_LOGIN_PATH);
   return s;
 }
 

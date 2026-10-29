@@ -24,6 +24,8 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { REVIEW_OPENS_AFTER_DEPARTURE_MS } from '@/features/booking/constants';
+import { CUSTOMER_LOGIN_PATH } from '@/shared/constants/routes';
 
 export const metadata = { title: 'My account' };
 
@@ -79,7 +81,7 @@ async function changePasswordAction(formData: FormData) {
   const customer = await prisma.customer.findUnique({
     where: { id: session.sub },
   });
-  if (!customer) redirect('/account/login');
+  if (!customer) redirect(CUSTOMER_LOGIN_PATH);
   // Google-only accounts have no passwordHash yet. Send them to
   // forgot-password to mint one via the verified email flow.
   if (!customer.passwordHash) redirect('/account?error=no_password_set');
@@ -121,7 +123,7 @@ export default async function AccountPage({
   });
   if (!customer) {
     await clearCustomerSession();
-    redirect('/account/login');
+    redirect(CUSTOMER_LOGIN_PATH);
   }
 
   // Pull bookings linked by customerId OR matching the customer's email
@@ -144,7 +146,6 @@ export default async function AccountPage({
   });
 
   const now = Date.now();
-  const REVIEW_WINDOW_MS = 2 * 60 * 60 * 1000;
   const upcoming = bookings.filter((b) => {
     const mainLeg = getMainLeg(b);
     return b.status === 'CONFIRMED' && mainLeg && mainLeg.departureDate.getTime() > now;
@@ -235,7 +236,7 @@ export default async function AccountPage({
                   b.status === 'CONFIRMED' &&
                   !b.review &&
                   mainLeg &&
-                  mainLeg.departureDate.getTime() < now - REVIEW_WINDOW_MS,
+                  mainLeg.departureDate.getTime() < now - REVIEW_OPENS_AFTER_DEPARTURE_MS,
                 );
                 return (
                   <BookingCard

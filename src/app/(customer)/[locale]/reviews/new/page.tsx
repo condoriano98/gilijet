@@ -16,6 +16,7 @@ import { Button } from '@/shared/ui/button';
 import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import { StarRating } from '@/app/(customer)/[locale]/reviews/new/_components/star-rating';
+import { REVIEW_OPENS_AFTER_DEPARTURE_MS } from '@/features/booking/constants';
 
 export const metadata = { title: 'Rate your trip' };
 
@@ -58,7 +59,7 @@ async function submitReviewAction(formData: FormData) {
     redirect('/account?error=not_confirmed');
   }
   const mainLeg = getMainLeg(booking)!;
-  if (mainLeg.departureDate.getTime() > Date.now() - 2 * 60 * 60 * 1000) {
+  if (mainLeg.departureDate.getTime() > Date.now() - REVIEW_OPENS_AFTER_DEPARTURE_MS) {
     redirect('/account?error=trip_not_finished');
   }
   if (booking.review) {

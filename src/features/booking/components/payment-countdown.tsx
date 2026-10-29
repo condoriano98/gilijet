@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
 export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: string; holdMinutes: number }) {
-  const expiresAt = new Date(createdAtIso).getTime() + holdMinutes * 60 * 1000;
+  const expiresAt = new Date(createdAtIso).getTime() + holdMinutes * MS_PER_MINUTE;
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: 
   const secs = Math.floor((remainingMs % 60000) / 1000);
 
   const expired = remainingMs <= 0;
-  const warning = remainingMs < 5 * 60 * 1000 && !expired;
+  const warning = remainingMs < 5 * MS_PER_MINUTE && !expired;
 
   return (
     <div

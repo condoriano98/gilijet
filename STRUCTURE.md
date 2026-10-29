@@ -73,6 +73,7 @@ Route-private components live in `_components/` beside the route that uses them 
 
 - `server/` — `db` (the only Prisma client), `auth`, `env`, `audit`, `login-throttle`, `platform-config`, `google-oauth`, `build-info` (running version + commit)
 - `lib/` — `datetime` (WITA), `utils`, `serialize-decimals`, `countries`
+- `constants/` — values used in more than one place or that are policy: `time` (unit conversions), `locale` (timezone, currency), `auth` (cookie names, session length), `platform`, `routes` (login paths), `calendar`, `site`. Domain policy lives in `features/<domain>/constants.ts` (refunds, booking, schedules, payments, marketing)
 - `ui/` — shadcn-style primitives
 
 ## Where does new code go?

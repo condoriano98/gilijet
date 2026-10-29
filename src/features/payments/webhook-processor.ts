@@ -17,6 +17,7 @@ import {
   BOOKING_NOT_FOUND,
   type ProcessResult,
 } from '@/features/payments/webhook-events';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 export type { ProcessResult };
 
@@ -48,13 +49,13 @@ export async function processDokuPaymentSuccess(
   // Currency integrity. The checkout is only ever opened in IDR, so a
   // non-IDR booking or a notification naming another currency cannot be
   // settled on the amount alone.
-  if (booking.currency !== 'IDR' || (notification.currency && notification.currency !== 'IDR')) {
+  if (booking.currency !== DEFAULT_CURRENCY || (notification.currency && notification.currency !== DEFAULT_CURRENCY)) {
     console.error(
       `[doku-webhook] currency mismatch for ${reference}: notification=${notification.currency ?? 'none'} booking=${booking.currency}`,
     );
     return {
       ok: false,
-      error: `Currency mismatch: ${notification.currency ?? 'IDR'} vs booking ${booking.currency}`,
+      error: `Currency mismatch: ${notification.currency ?? DEFAULT_CURRENCY} vs booking ${booking.currency}`,
       httpStatus: 409,
     };
   }

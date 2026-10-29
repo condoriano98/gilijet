@@ -2,6 +2,8 @@ import { env } from '@/shared/server/env';
 import { toPlatformValue } from '@/features/marketing/money';
 import { postJson, PermanentDeliveryError } from '@/features/marketing/delivery/http';
 import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/features/marketing/delivery/types';
+import { MS_PER_DAY } from '@/shared/constants/time';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 /**
  * Meta Conversions API: server `Purchase`. Its event_id is the same stored id
@@ -11,7 +13,7 @@ import { consentSkip, type DeliveryContext, type DeliveryDecision } from '@/feat
  * Only cookie/browser identifiers are sent (fbc, fbp, IP, user agent). Hashed
  * email/phone matching is not implemented in phase one.
  */
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = 7 * MS_PER_DAY;
 
 export function metaGraphVersion(): string {
   return env.META_GRAPH_API_VERSION || 'v26.0';
@@ -46,7 +48,7 @@ export function buildMetaPayload(ctx: DeliveryContext) {
         user_data: userData,
         custom_data: {
           value: toPlatformValue(ctx.event.value) ?? 0,
-          currency: ctx.event.currency ?? 'IDR',
+          currency: ctx.event.currency ?? DEFAULT_CURRENCY,
           order_id: ctx.event.bookingId,
           content_type: 'product',
           contents: [{ id: ctx.event.routeCode ?? 'journey', quantity: Math.max(ctx.event.passengerCount ?? 1, 1) }],

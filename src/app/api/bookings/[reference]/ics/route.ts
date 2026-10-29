@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/shared/server/db';
 import { getMainLeg } from '@/features/booking/helpers';
+import { MS_PER_MINUTE } from '@/shared/constants/time';
 
 function icsEscape(s: string): string {
   return s
@@ -37,7 +38,7 @@ export async function GET(
   const mainLeg = getMainLeg(booking)!;
   const { schedule, departureDate } = mainLeg;
   const arrival = new Date(
-    departureDate.getTime() + schedule.durationMinutes * 60 * 1000,
+    departureDate.getTime() + schedule.durationMinutes * MS_PER_MINUTE,
   );
 
   const summary = `Boat: ${schedule.originPort} → ${schedule.destinationPort}`;

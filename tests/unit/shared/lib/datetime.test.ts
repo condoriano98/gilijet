@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  OPERATOR_TIMEZONE,
   localDateTimeToUtc,
   formatLocalDate,
   formatLocalTime,
@@ -8,6 +7,7 @@ import {
   isoDayOfWeek,
   ymdInZone,
 } from '@/shared/lib/datetime';
+import { OPERATOR_TIMEZONE } from '@/shared/constants/locale';
 
 /**
  * Unit tests for src/shared/lib/datetime.ts

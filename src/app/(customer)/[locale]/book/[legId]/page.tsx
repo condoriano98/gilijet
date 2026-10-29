@@ -38,6 +38,7 @@ import { recordBookingEventStandalone } from '@/features/marketing/events';
 import { readBookingAttribution } from '@/features/marketing/booking-attribution';
 import { cookies, headers } from 'next/headers';
 import { resolvePlatformPricing } from '@/shared/server/platform-config';
+import { DEFAULT_CURRENCY } from '@/shared/constants/locale';
 
 const NAMES_MIN = 2;
 const PHONE_MIN = 6;
@@ -327,7 +328,7 @@ export default async function BookPage({
           name="view_item"
           requires="analytics"
           params={{
-            currency: 'IDR',
+            currency: DEFAULT_CURRENCY,
             value: displayAdultPrice,
             items: [
               {

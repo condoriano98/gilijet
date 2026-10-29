@@ -12,6 +12,7 @@ import {
   Ticket,
   Ship,
 } from 'lucide-react';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 function formatRupiah(n: number): string {
   return 'Rp ' + n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
@@ -33,7 +34,7 @@ export default async function OperatorDashboard() {
   const todayYmd = ymdInZone(new Date());
   const todayStart = new Date(`${todayYmd}T00:00:00+08:00`);
   const todayEnd = new Date(`${todayYmd}T23:59:59+08:00`);
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(Date.now() - 7 * MS_PER_DAY);
   const monthStart = new Date(todayYmd.slice(0, 7) + '-01T00:00:00+08:00');
 
   const [todayLegs, todayRevenue, weekRevenue, monthRevenue, monthBookings, scheduleCount, boatCount] =

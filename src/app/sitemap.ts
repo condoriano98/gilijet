@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { POSTS } from '@/content/blog';
+import { siteUrl } from '@/shared/server/site-url';
 
 const STATIC_PATHS = [
   { path: '', changeFrequency: 'daily' as const, priority: 1.0 },
@@ -13,7 +14,7 @@ const STATIC_PATHS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = siteUrl();
   const now = new Date();
   const staticEntries = STATIC_PATHS.map(({ path, changeFrequency, priority }) => ({
     url: `${base}${path}`,

@@ -14,7 +14,7 @@ import { eventsEnabled } from '@/features/marketing/config';
 import { truncate } from '@/features/marketing/privacy';
 import { env } from '@/shared/server/env';
 
-export const VISITOR_COOKIE = 'gf_vid';
+import { VISITOR_COOKIE } from '@/features/marketing/constants';
 
 /** What the booking request carried, read from cookies and headers by the route. */
 export type BookingAttributionInput = {

@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
-import { formatLocalDateTime, OPERATOR_TIMEZONE } from '@/shared/lib/datetime';
+import { formatLocalDateTime } from '@/shared/lib/datetime';
+import { DEFAULT_CURRENCY, OPERATOR_TIMEZONE } from '@/shared/constants/locale';
 
 /**
  * Output shaping for MCP tool results.
@@ -37,7 +38,7 @@ export function witaDate(d: Date | null | undefined): string | null {
   return formatLocalDateTime(d).split(' ').slice(0, 3).join(' ');
 }
 
-export const TIMEZONE_NOTE = `All times are ${OPERATOR_TIMEZONE} (WITA, UTC+8). All amounts are IDR.`;
+export const TIMEZONE_NOTE = `All times are ${OPERATOR_TIMEZONE} (WITA, UTC+8). All amounts are ${DEFAULT_CURRENCY}.`;
 
 /**
  * Whether to mask personal data in tool output.

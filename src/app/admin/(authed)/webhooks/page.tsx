@@ -23,6 +23,7 @@ import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { retryWebhookEventAction } from './actions';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 export const metadata = { title: 'Webhooks · Admin' };
 export const dynamic = 'force-dynamic';
@@ -117,7 +118,7 @@ export default async function AdminWebhooksPage({
   else where.eventType = { not: REJECTED_EVENT_TYPE };
   if (q?.trim()) where.externalRef = { contains: q.trim(), mode: 'insensitive' };
 
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dayAgo = new Date(Date.now() - MS_PER_DAY);
   const [events, failedLastDay] = await Promise.all([
     prisma.webhookEvent.findMany({
       where,

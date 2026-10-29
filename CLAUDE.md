@@ -17,11 +17,12 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 
 - Route-only component → `_components/` next to the route. Used by several routes of one domain → `src/features/<domain>/components/`. Primitive → `src/shared/ui/`.
 - Domain logic → `src/features/<domain>/`. Infra (db, auth, env, audit) → `src/shared/server/`. Pure helpers (datetime, utils) → `src/shared/lib/`.
+- Constants → a value used in two or more files, or a business/policy number, goes in `src/shared/constants/` (generic) or `src/features/<domain>/constants.ts` (domain). Never write inline time arithmetic (`60 * 60 * 1000`), the timezone, the currency or a cookie name as a literal: use `MS_PER_*`, `OPERATOR_TIMEZONE`, `DEFAULT_CURRENCY`, the cookie constants. A value private to one module stays in that module. A unit test guards the literals.
 - Full map: `STRUCTURE.md`.
 
 ## Single sources of truth
 
-- **Refund tiers** → `src/features/refunds/refunds.ts` (`computeRefundDeadline`, refund-fraction table). Do not duplicate the tier math anywhere else.
+- **Refund tiers** → `src/features/refunds/refunds.ts` (`computeRefundDeadline`, refund-fraction table). Do not duplicate the tier math anywhere else. The cutoff hours live in `src/features/refunds/constants.ts` (`REFUND_CUTOFF_HOURS`); the customer "change of plans" cutoff reads the same constant.
 - **Pricing** → `src/features/pricing/pricing.ts` (`computeBookingPrice`). All booking totals go through this.
 - **Seasonal fares** → `src/features/pricing/seasons.ts`. The adult/child/infant fare for a leg is `legPricingInputs` (booking engine, book page, POS) or `withSeasonPrice` (lists). Pass the leg role (`OUTBOUND` / `RETURN`) for a round trip: its legs are charged half of the matrix's `return` fare, not the one-way fare. Never read `leg.basePrice` for a customer-facing price; OFF days are closed there.
 - **Gateway callbacks** → `src/features/payments/webhook-processor.ts` (`processDokuPaymentSuccess`, `processPaypalEvent`, `dispatchWebhookEvent`); `src/features/payments/webhook-events.ts` keeps the `WebhookEvent` rows. The webhook routes, `retry-webhooks` cron and `/admin/webhooks` Retry all run it; do not re-implement payment handling in a route.

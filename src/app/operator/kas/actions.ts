@@ -2,22 +2,10 @@
 
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
-import { PaymentMethod } from '@prisma/client';
 import { prisma } from '@/shared/server/db';
 import { requireOperator } from '@/shared/server/auth';
 import { audit } from '@/shared/server/audit';
-
-// Bank-transfer family treated as cash-equivalent for the drawer: physical
-// settlement confirmed at the counter. Adjust here if a real CASH method is
-// added to the PaymentMethod enum later.
-const CASH_DRAWER_METHODS: PaymentMethod[] = [
-  PaymentMethod.BANK_TRANSFER,
-  PaymentMethod.VA_BCA,
-  PaymentMethod.VA_BNI,
-  PaymentMethod.VA_BRI,
-  PaymentMethod.VA_MANDIRI,
-  PaymentMethod.VA_PERMATA,
-];
+import { CASH_DRAWER_METHODS } from '@/features/payments/constants';
 
 async function cashCollectedSince(operatorId: string, since: Date): Promise<number> {
   const agg = await prisma.booking.aggregate({

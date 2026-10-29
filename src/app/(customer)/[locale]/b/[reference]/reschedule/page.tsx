@@ -17,6 +17,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { MS_PER_DAY } from '@/shared/constants/time';
 
 export const metadata = { title: 'Request date change' };
 
@@ -191,7 +192,7 @@ export default async function ReschedulePage({
   // Default to a week from now, or the user-picked date
   const today = new Date();
   const defaultDate =
-    date ?? new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    date ?? new Date(today.getTime() + 7 * MS_PER_DAY).toISOString().slice(0, 10);
   const startUtc = localDateTimeToUtc(defaultDate, '00:00');
   const endUtc = localDateTimeToUtc(defaultDate, '23:59');
 
