@@ -1,5 +1,6 @@
 # Blog: Wahana Virendra check-in guide
 
+**Update 2026-10-30:** tag `v1.10.0` is in `main` (checked with git), so the article ships with the production site. Not checked: that `/blog/wahana-virendra-checkin-guide` loads on gilifast.com and that the link in the e-ticket email resolves there.
 **Status (2026-10-24):** implemented in v1.10.0 (tag `v1.10.0`), pushed to `staging`.
 **Source:** the user's standalone page `wahana-virendra-checkin-guide.html` (outside the repo).
 

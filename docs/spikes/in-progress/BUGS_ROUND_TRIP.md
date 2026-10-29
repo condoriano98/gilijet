@@ -4,6 +4,8 @@
 **Source:** QC GIL-28 (2026-10-08, code review) + findings during investigation
 **Scope:** Return / Round Trip feature bugs on staging. One place for all bug tickets + follow-ups.
 
+**Update 2026-10-30:** v1.1.0 and these fixes are in `main` (`main` is at 1.10.3 after PR #7), so "Not yet in production" below is outdated. The owner reports a production verification test with the business team on 2026-10-29 in which round trip passed; the checks done in it were not recorded here. The staging-only notes below (QR secret, DB refs) are history.  
+**Moved to `in-progress/` on 2026-10-30:** the five bugs are fixed and in `main`, but the checks listed under "Not covered" and the follow-ups at the end were never closed, and the production PVT of 2026-10-29 was not recorded here. Move it back to `done/` once those are settled (`FEATURE_RETURN_TRIP_BOOKING.md`, Phase 8, says the same).  
 **Status as of 2026-10-14:** all five bugs are fixed, committed, and on `origin/staging` (release **v1.1.0** in `CHANGELOG.md`; Vercel staging `gilijet.vercel.app`). Not yet in production: `main` has not received a merge from `staging`. The `lib/…`, `app/…`, `components/…` paths in this document are the old structure; they are now `src/features/…`, `src/app/…`, `src/shared/…` (see `STRUCTURE.md`).
 
 Status: ✅ Fixed, on staging · 🔴 Open · ⚠️ Follow-up (not yet a ticket)

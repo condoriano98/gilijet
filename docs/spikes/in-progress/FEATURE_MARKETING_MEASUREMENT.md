@@ -90,6 +90,19 @@ Other findings:
 
 Rollback before data matters: a new migration that drops the six tables and enums. Once data exists, switch off with the env flags instead; the tables can stay.
 
+## Production notes (2026-10-27)
+
+**Update 2026-10-30:** the PR `staging` → `main` these notes prepare for has been merged (PR #7, `70aabaa`, 2026-10-30 00:14 +0700), so the two migrations and the two crons are in the production build. The notes below are the pre-merge plan, not rewritten. Not checked here: the production build log (`[db-migrate] OK`), that the switches are still off, and the `mobile-layout.spec.ts:64` question.
+
+Merged into `staging` and pushed on 2026-10-27 (`0a1a8e1`). **Production is not touched and nothing here is released.** Before the PR `staging` → `main`:
+
+- **The migrations run on the production build.** The production build runs `prisma migrate deploy` (`scripts/db-migrate-if-configured.mjs`), so merging into `main` applies `2_marketing_measurement` and `3_marketing_reconciliation_and_spend_grain` to the production database. They are additive (new tables and enums only), but they are forward-only. The one-time production baseline in `docs/RELEASING.md` ("Production database") has to be done first, with the owner's go-ahead.
+- The staging build applies the same two migrations to the staging database on the first deploy of `0a1a8e1`. Check that deploy succeeded before anything is planned for production.
+- Production env vars to set before enabling anything: `CRON_SECRET`, `MARKETING_EVENTS_ENABLED`, `NEXT_PUBLIC_GTM_ID`, and the delivery and ad-sync credentials listed in `.env.example`. Leave the switches off at merge time; the tables can exist with the feature dormant.
+- `vercel.json` adds the crons `/api/cron/marketing-deliver` (every 5 minutes) and `/api/cron/ads-sync` (daily). They run on Production only, so they start on the merge. Both do nothing while their switches are off.
+- The privacy page rewrite needs the owner's or legal's review before it goes live.
+- CI E2E on this branch was red on 2026-10-26 for `mobile-layout.spec.ts:64` only (the port dropdown had no options; cause not established, unconfirmed whether it also fails on `main`). Resolve or explain it before the PR.
+
 ## QC log
 
 | Date | Check | How | Result |

@@ -4,6 +4,7 @@
 **Created:** 2026-09-28  
 **Updated:** 2026-10-14 (acceptance criteria checked against code and the staging verification in `BUGS_ROUND_TRIP.md`)  
 **Update 2026-10-29 (v1.10.2):** the pricing described below (each leg at its one-way fare) is outdated. A round-trip leg is now charged half of the price sheet's `return` fare; see `docs/spikes/in-progress/BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`.  
+**Update 2026-10-30:** round trip, seasonal pricing and the migrations behind them are in `main` and live on production. The owner reports (2026-10-30) a production verification test (PVT) on 2026-10-29 with the business team, and round trip passed. That test ran on what production served before PR #7 merged (`main` at 1.10.1, merge #6 of 2026-10-25); the 1.10.2 price change reached `main` with PR #7 on 2026-10-30 00:14 +0700, so the PVT does not cover it (see `BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`). Phase 8 boxes below are left as written because the PVT notes were not recorded here; the date, the tester and which checks were done are not known to this doc. Git tags `v1.1.0`, `v1.1.1` and `v1.2.0` do not exist (CHANGELOG sections only).  
 **Note:** paths like `lib/…` below are the old layout; now `src/features/…` (see `STRUCTURE.md`).  
 **Owner:** Product Team
 

@@ -1,5 +1,6 @@
 # Seasonal Pricing — Analysis & Plan
 
+**Update 2026-10-30:** seasonal pricing and migration `1_round_trip_and_seasonal_pricing` are in `main` (`main` is at 1.10.3 after PR #7). The note further down that the production baseline "has not been done" is outdated (see the status note in `docs/RELEASING.md`). Not confirmed: that the `Season` calendar (`pnpm seed:seasons`) exists on production; production was not read.  
 **Status:** Implemented (commit `8106454`, release **v1.1.0**), is on `origin/staging`, and the schema + RLS + seed have been applied to the staging DB (2026-10-13). Code QC is done and a manual check was performed (2026-10-14, local dev server + staging DB). Not in production yet. Confirmation on the deployed Vercel staging (`gilijet.vercel.app`) is still pending until the latest commit is pushed and deployed.
 **Created:** 2026-09-28 · **Revised:** 2026-10-13
 **Scope:** Wahana only (no other boats yet)

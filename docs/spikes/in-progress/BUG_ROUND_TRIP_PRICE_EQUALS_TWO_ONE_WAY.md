@@ -1,6 +1,7 @@
 # Prod issue: round-trip price is just 2 x the one-way price
 
 **Created:** 2026-10-29
+**Update 2026-10-30:** committed as `55c89b9`, pushed to `staging`, and merged into `main` with PR #7 (`70aabaa`, 2026-10-30 00:14 +0700). The business team's production PVT of 2026-10-29 ran **before** this merge, so it did not exercise the new pricing. Still to do: a round-trip price check on production (one-way vs return, a same-season pair), then move this spike to `done/`.
 **Status (2026-10-29):** code, unit tests and e2e done on `staging`, **not committed, not deployed**. E2E ran against the staging database (project ref `asymnwikxyhipoezoggp`, the ref in `.env.staging`), with the live payment/messaging keys blanked. No production data was read or written. Open questions were taken at the recommended defaults (see below). A read-only production check was run on 2026-10-29 at the owner's request (see QC log).
 **Reported:** in production, a round trip costs the same as two one-way tickets. The operator price sheet has a separate, cheaper return fare.
 

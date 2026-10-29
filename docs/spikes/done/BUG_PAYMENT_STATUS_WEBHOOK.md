@@ -1,6 +1,7 @@
 # Bug: booking status is not updated after a successful payment
 
 **Status (2026-10-16):** done and on `staging` as commit `7eb88f6`, tag `v1.3.0`. Not yet on `main`/production. The `WebhookEvent` index/unique migration was not taken (no user decision yet, rule 4). Follow-up for the customer badge: `BUG_DOKU_PAYMENT_CONFIRMATION.md` (v1.3.1).
+**Update 2026-10-30:** commit `7eb88f6` and tag `v1.3.0` are in `main` (checked with git; `main` is at 1.10.3 after PR #7), so "not yet on `main`" above is outdated. The `WebhookEvent` indexes `(status, createdAt)` and `(provider, externalRef)` now exist in the baseline migration `0_init`; the unique constraint discussed under Open questions was still not added (checked in `prisma/schema.prisma`). What this production runs was not checked.
 **Created:** 2026-10-16
 **Target version:** 1.3.0 (MINOR: new webhook log page + fixes)
 **Ticket:** "[Bug] Booking status is not updated after a successful payment at the payment gateway". Example case `BK-2026-09-P6EXQV` (reported from gilibali.com, i.e. production; we do not touch it, `CLAUDE.md` rule 1).
@@ -70,7 +71,7 @@ After a payment is confirmed by DOKU/PayPal, the booking status in admin Booking
 - [x] `security-auditor` and `db-query-auditor` (2026-10-16). Fixed: 256 KB body limit (413) on both routes, try/catch around PayPal verification (503). The rest is under Open questions
 - [x] QC via `pnpm dev` (automated through Playwright, not manual; see QC)
 - [x] Version 1.3.0, CHANGELOG, touched docs (README, STRUCTURE, RELEASING, CLAUDE.md, security-auditor.md, note in TESTING_PLAN)
-- [ ] Commit/tag/push (only with the user's go-ahead; the user asked for no git commands until told)
+- [x] Commit/tag/push: done later (commit `7eb88f6`, tag `v1.3.0`, merged into `main`)
 
 ## Open questions
 

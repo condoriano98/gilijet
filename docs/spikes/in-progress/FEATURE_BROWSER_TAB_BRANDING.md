@@ -1,6 +1,7 @@
 # Browser tab branding: favicon and a tab-friendly title
 
 **Created:** 2026-10-29
+**Update 2026-10-30:** committed as `bf65a3b` and merged into `main` with PR #7 (`70aabaa`). Still unverified: the icon in a real browser tab at 16 px, Safari/iOS, and a hard refresh on production. Move to `done/` after that.
 **Status (2026-10-30):** implemented on `staging`'s working tree as v1.10.3, **not committed, not deployed**. Next 16 reference: `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/app-icons.md`.
 **Reported:** the browser tab shows the default globe icon and the title is cut off: "Gilifast — Boat tickets across…".
 

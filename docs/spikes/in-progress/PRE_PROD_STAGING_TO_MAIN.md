@@ -1,5 +1,6 @@
 # Release prep: everything on `staging` that is not in production yet
 
+**Update 2026-10-30:** the merge this file prepared has happened: PR #6 (2026-10-25) and PR #7 (`70aabaa`, 2026-10-30 00:14 +0700), so `main` is at 1.10.3. The table below is the plan as of 2026-10-24, not rewritten. Whether each prerequisite (WhatsApp env vars and template, IMAP/SMTP, `seed:seasons`, `62` phone fix, cron logs) was done was not checked here, and production was not read. Confirm them, tick what is true, then move this file to `done/`.
 **Status (2026-10-24):** planning. A `staging` → `main` merge is expected this week. This file lists what that merge ships and what must be ready before it. Nothing here has been done on production; production is untouched (rule 1).
 **Source:** `git log origin/main..staging` (about 50 commits; `origin/main` is `88d0781` "hide incomplete return trip UI from main branch", it has no version tag), `CHANGELOG.md` (1.0.0 to 1.8.0), `docs/RELEASING.md`, the spike docs.
 

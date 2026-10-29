@@ -65,6 +65,8 @@ Which versions are live: `git tag --merged origin/main 'v*'`.
 
 ### Production database (one-time baseline, not done yet)
 
+> **Status 2026-10-30:** no longer pending. Production runs round trip (the owner's PVT with the business team on 2026-10-29), which needs migration `1_round_trip_and_seasonal_pricing`, and `main` has merged twice since (PRs #6 and #7) with a build that runs `prisma migrate deploy`; neither could work without the baseline. When and by whom it was done was not recorded; this is inferred, production was not read. The steps below stay as the record and for any new environment.
+>
 Migrations were introduced on 2026-10-14 and recorded as applied on the staging
 database only. The production database has **not** been touched: it has the
 schema of `main` and no `_prisma_migrations` table. `prisma/migrations/0_init`
