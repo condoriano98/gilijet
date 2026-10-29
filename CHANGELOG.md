@@ -42,6 +42,12 @@ bump. A version is live in production once its tag is merged into `main`.
 - Docs only: the release-prep checklist (`PRE_PROD_STAGING_TO_MAIN.md`) now lists v1.9.0 to v1.10.1, the live Part B test and the temporary staging setup; the two spike docs for the e-ticket email and the check-in guide are marked tagged.
 - Docs only: `docs/spikes/` is now sorted by status into `todo/`, `in-progress/` and `done/`; paths that pointed at the old flat layout were updated.
 
+## [1.10.2] - 2026-10-29
+
+### Fixed
+
+- A round trip is no longer charged as two one-way tickets. Each leg of a round trip is now priced at half of the operator price sheet's return fare for that leg's season (`fareMatrix.return`), so a pair in the same season adds up to exactly the return fare; across seasons it is the average of the two. One-way bookings, hand-set leg prices and schedules without a fare matrix are unchanged, and existing bookings are not recalculated. The search results, booking form, booking engine and round-trip email all read the same resolver. Spike: `docs/spikes/in-progress/BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`.
+
 ## [1.10.1] - 2026-10-24
 
 ### Changed
@@ -245,7 +251,8 @@ schedules, departures, POS, cash and reporting; admins onboard operators,
 confirm bookings with operators, handle refunds and tune platform economics.
 Earlier history is in git; this tag was applied retroactively.
 
-[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/condoriano98/gilijet/compare/v1.10.2...HEAD
+[1.10.2]: https://github.com/condoriano98/gilijet/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/condoriano98/gilijet/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/condoriano98/gilijet/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/condoriano98/gilijet/compare/v1.8.0...v1.9.0

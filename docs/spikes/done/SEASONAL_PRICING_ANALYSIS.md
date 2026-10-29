@@ -35,6 +35,7 @@ Ticket prices are currently static. Prices must follow the season on the departu
 5. **Manual override wins over season.** `adjustDeparturePrice` (super admin) marks `Leg.priceOverridden = true`; the resolver skips the season for that leg.
 6. **Existing bookings are not recalculated.** The price is already snapshotted as `totalAmount` when the booking is created; `Booking.seasonSnapshot` (Json) records the season used for audit.
 7. **Round trip** keeps using the `oneWay` cell per leg (current behaviour); the `return` cell is out of scope.
+   - _Superseded 2026-10-29 (v1.10.2): a round-trip leg is now charged half of the `return` cell for its own season. See `docs/spikes/in-progress/BUG_ROUND_TRIP_PRICE_EQUALS_TWO_ONE_WAY.md`. Bookings made before that keep the price they were sold at._
 
 ## Current state of the code
 

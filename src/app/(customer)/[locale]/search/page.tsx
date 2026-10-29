@@ -162,7 +162,7 @@ export default async function SearchPage({
       orderBy: { departureDate: 'asc' },
       take: 50,
     });
-    legs = withSeasonPrice(rawLegs, seasons);
+    legs = withSeasonPrice(rawLegs, seasons, isRoundTrip ? 'OUTBOUND' : 'ONE_WAY');
 
     // Return legs: destination → origin (if round trip)
     if (isRoundTrip && origin) {
@@ -188,7 +188,7 @@ export default async function SearchPage({
         orderBy: { departureDate: 'asc' },
         take: 50,
       });
-      returnLegs = withSeasonPrice(rawReturnLegs, seasons);
+      returnLegs = withSeasonPrice(rawReturnLegs, seasons, 'RETURN');
     }
   } catch (err) {
     console.error('[search] legs query failed:', err);

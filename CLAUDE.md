@@ -23,7 +23,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 
 - **Refund tiers** → `src/features/refunds/refunds.ts` (`computeRefundDeadline`, refund-fraction table). Do not duplicate the tier math anywhere else.
 - **Pricing** → `src/features/pricing/pricing.ts` (`computeBookingPrice`). All booking totals go through this.
-- **Seasonal fares** → `src/features/pricing/seasons.ts`. The adult/child/infant fare for a leg is `legPricingInputs` (booking engine, book page, POS) or `withSeasonPrice` (lists). Never read `leg.basePrice` for a customer-facing price; OFF days are closed there.
+- **Seasonal fares** → `src/features/pricing/seasons.ts`. The adult/child/infant fare for a leg is `legPricingInputs` (booking engine, book page, POS) or `withSeasonPrice` (lists). Pass the leg role (`OUTBOUND` / `RETURN`) for a round trip: its legs are charged half of the matrix's `return` fare, not the one-way fare. Never read `leg.basePrice` for a customer-facing price; OFF days are closed there.
 - **Gateway callbacks** → `src/features/payments/webhook-processor.ts` (`processDokuPaymentSuccess`, `processPaypalEvent`, `dispatchWebhookEvent`); `src/features/payments/webhook-events.ts` keeps the `WebhookEvent` rows. The webhook routes, `retry-webhooks` cron and `/admin/webhooks` Retry all run it; do not re-implement payment handling in a route.
 - **Seat reservation / booking lifecycle** → `src/features/booking/engine.ts`. The hold-vs-confirm race is here; new code that touches seats must reuse the engine, not re-implement it.
 - **Legs (per-port-stop rows)** → generated from a Schedule via `src/features/schedules/legs.ts` `generateLegsForSchedule`. Operator manifests query Legs, not Schedules.

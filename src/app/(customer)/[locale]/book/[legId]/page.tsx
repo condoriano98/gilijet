@@ -222,8 +222,10 @@ export default async function BookPage({
   if (isRoundTrip && (!outboundLeg || !returnLeg)) notFound();
 
   const seasons = await loadActiveSeasons();
-  const activeLegPricing = legPricingInputs(isRoundTrip ? outboundLeg! : leg!, seasons);
-  const returnLegPricing = isRoundTrip ? legPricingInputs(returnLeg!, seasons) : null;
+  const activeLegPricing = isRoundTrip
+    ? legPricingInputs(outboundLeg!, seasons, 'OUTBOUND')
+    : legPricingInputs(leg!, seasons);
+  const returnLegPricing = isRoundTrip ? legPricingInputs(returnLeg!, seasons, 'RETURN') : null;
 
   // If logged in, pull the customer record for prefill.
   const customer = session

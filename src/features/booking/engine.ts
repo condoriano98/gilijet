@@ -277,8 +277,8 @@ async function createRoundTripBooking(
   const pricing = await resolvePlatformPricing(outboundLeg.operatorId, tx);
 
   const seasons = await loadActiveSeasons(tx);
-  const outbound = legPricingInputs(outboundLeg, seasons);
-  const inbound = legPricingInputs(returnLeg, seasons);
+  const outbound = legPricingInputs(outboundLeg, seasons, 'OUTBOUND');
+  const inbound = legPricingInputs(returnLeg, seasons, 'RETURN');
   if (outbound.closed || inbound.closed) {
     throw new BookingError('LEG_CLOSED', 'Departure is not available on this date');
   }
