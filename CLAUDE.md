@@ -55,7 +55,7 @@ Layers point one way: `src/app` → `src/features` → `src/shared`. ESLint enfo
 ## Build & test
 
 - `pnpm lint` + `pnpm typecheck` must pass before any commit.
-- `pnpm test:e2e` runs the Playwright golden-path suite (customer booking, operator manifest, admin refund).
+- `pnpm test:e2e` runs the Playwright suite (customer booking, auth and account, content pages, operator manifest, admin refund). The case list is `docs/QA_MATRIX.md`; run it locally with outbound keys blanked (`docs/qa-runs/README.md`), never against Supabase, staging or production without the owner's go. Start a test title with its matrix ID. Use the `test-generator` and `test-triager` agents to write specs and explain failures.
 - `pnpm seed:qa` loads deterministic QA data with fixed IDs (see `scripts/seed-qa.ts`).
 
 ## Workflow rules

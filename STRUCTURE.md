@@ -11,12 +11,12 @@ src/            All application code (alias: @/* -> ./src/*)
 CHANGELOG.md    Release notes per version (see docs/RELEASING.md)
 prisma/         schema.prisma, migrations/ (SQL history; RLS goes in the migration too), seed.ts, seed-small-boats.ts
 scripts/        One-off scripts (seed-qa, Wahana import/generate, doku/paypal selftests, purge-dummy-data)
-tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright), support/
-docs/           Design docs; RELEASING.md = versioning & releases; docs/spikes/todo/ = planned, docs/spikes/in-progress/ = being built or not yet released, docs/spikes/done/ = finished
+tests/          unit/ (Vitest, mirrors src/), e2e/ (Playwright, with support/ helpers)
+docs/           Design docs; QA_MATRIX.md = the end-to-end case list; qa-runs/ = one report per test run; RELEASING.md = versioning & releases; docs/spikes/todo/ = planned, docs/spikes/in-progress/ = being built or not yet released, docs/spikes/done/ = finished
 public/         Static assets
 vercel.json     Vercel cron schedule (must stay at repo root)
 .github/        CI (pnpm install --frozen-lockfile, lint, typecheck, unit)
-.claude/        Subagents (agents/) and session-start hook
+.claude/        Subagents (agents/: build, review, test-generator and test-triager for the e2e suite) and session-start hook
 (root configs)  next, tailwind, postcss, eslint, vitest, playwright, tsconfig
 ```
 
@@ -88,7 +88,7 @@ Route-private components live in `_components/` beside the route that uses them 
 
 - `tests/unit/` mirrors `src/`: `features/<domain>/`, `shared/{lib,server}/`, `app/` (route handlers, tenant guards, page-source checks) and `mcp/`. A test for `src/features/booking/engine.ts` lives at `tests/unit/features/booking/engine.test.ts`. Use the `@/` alias for imports; a few tests read source files by `process.cwd()` + `src/…` path — moving a source file means updating those.
 - `tests/support/test-utils.ts` — shared mock factories (currently imported by no test).
-- `tests/e2e/*.spec.ts` — Playwright golden paths. Run `pnpm seed:qa` first.
+- `tests/e2e/*.spec.ts` — Playwright specs; each test title starts with its case ID from `docs/QA_MATRIX.md` (`AUTH-`, `BOOK-`, `CONT-`, `OPS-`). `tests/e2e/support/` holds fixtures and helpers. A spec builds and deletes its own data. How to run the suite locally, and why `seed:qa` alone is not enough, is in `docs/qa-runs/README.md`.
 
 ## Known leftovers
 

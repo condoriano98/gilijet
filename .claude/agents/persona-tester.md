@@ -1,6 +1,6 @@
 ---
 name: persona-tester
-description: Drives the live app via pnpm dev as one of the QA personas (anonymous customer, logged-in customer, operator, admin) and walks the primary flow. Use for ad-hoc UX checks where E2E coverage is too narrow.
+description: Drives the live app via pnpm dev as one of the QA personas (anonymous customer, logged-in customer, operator, admin) and walks the primary flow. Use for ad-hoc UX checks where E2E coverage is too narrow. Repeatable checks belong in tests/e2e (see test-generator); this agent is for what stays manual.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 ---
