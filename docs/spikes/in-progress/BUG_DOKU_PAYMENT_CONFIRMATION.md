@@ -1,5 +1,6 @@
 # Bug: DOKU payment confirmation, status stays "awaiting confirmation"
 
+**Update 2026-10-30:** the v1.3.1 commit (`abdff9f`) is in `main` (checked with git; `main` is at 1.10.3 after PR #7), so "not yet ... commit and release to `main`" below is outdated. Tag `v1.3.1` was never created. Production verification of the paid-booking label and of the retry path was not done here (production not read).
 **Status (2026-10-16):** Plan A implemented (v1.3.1): code, unit tests (963 pass), e2e `admin-webhooks.spec.ts` (4 pass, staging), lint, typecheck. **Not yet:** production verification (off-limits without permission), commit + tag `v1.3.1` (awaiting go-ahead, rule 5), release to `main`. The open questions below are not yet answered; Plan A was run on the instruction "continue the implementation".
 
 **Related:** `docs/spikes/done/BUG_PAYMENT_STATUS_WEBHOOK.md` (v1.3.0, already on `staging`, not yet on `main`).
@@ -16,7 +17,7 @@ Only point 2 needs fixing (and point 1 insofar as point 2 depends on it).
 
 ## Initial findings (from the code, not yet verified in production)
 
-1. **Real payments can only happen in production.** Staging runs DOKU in mock mode (`README.md` "DOKU has no sandbox account"; `docs/spikes/in-progress/DOKU_ONE_RUPIAH_STAGING.md` "Blocker"). So the reporter's "real" test was almost certainly on gilibali.com, which runs `main`.
+1. **Real payments can only happen in production.** Staging runs DOKU in mock mode (`README.md` "DOKU has no sandbox account"; `docs/spikes/done/DOKU_ONE_RUPIAH_STAGING.md` "Blocker"). So the reporter's "real" test was almost certainly on gilibali.com, which runs `main`.
 2. **In live mode, the only path for DOKU from `PENDING_PAYMENT` to `AWAITING_CONFIRMATION` is a validated webhook.** `recordPaymentAwaitingConfirmation` is called from: the DOKU/PayPal webhook (`webhook-processor.ts`), the PayPal capture at the return URL (`psp.ts`), the PayPal rescue at expiry (`expiry.ts`), and the dummy checkout (mock only, `checkout/[reference]/page.tsx`). There is no status polling to DOKU. This means: **if a DOKU booking has status `AWAITING_CONFIRMATION`, its webhook has already arrived and been processed.** If the webhook fails, the booking stays `PENDING_PAYMENT` and then becomes `EXPIRED`.
 3. **"Awaiting confirmation" is the status intended after payment, not a sign of failure.** The payment → ticket gate rule (`CLAUDE.md`, `src/features/tickets/ticket-issuer.ts`): money arriving only moves the booking to `AWAITING_CONFIRMATION`; tickets are issued after an admin phones the operator at `/admin/confirmations`. There is no `PAID` status in the `BookingStatus` enum. This flow was confirmed to remain in use (session 2026-10-16, previous ticket).
 4. **What the reporter sees is most likely the raw enum label.**

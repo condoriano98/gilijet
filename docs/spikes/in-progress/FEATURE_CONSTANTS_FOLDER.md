@@ -1,6 +1,6 @@
 # Feature: a constants folder for values that are repeated or are policy
 
-**Status (2026-10-30):** implemented in the working tree, not committed. Unit, lint, typecheck and the e2e specs listed in QC pass; not yet checked on the staging deployment.
+**Update 2026-10-30:** committed as `61240c0` and pushed to `staging`. It is **not in `main` yet** (it needs the next PR `staging` → `main`). **Status (2026-10-30):** implemented in the working tree, not committed. Unit, lint, typecheck and the e2e specs listed in QC pass; not yet checked on the staging deployment.
 **Created:** 2026-10-30
 **Target version:** `[Unreleased]` (refactor, no user-visible change, no schema change, no behaviour change).
 

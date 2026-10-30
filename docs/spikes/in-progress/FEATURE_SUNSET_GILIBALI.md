@@ -1,5 +1,6 @@
 # Sunset gilibali.com: one production domain (gilifast.com)
 
+**Update 2026-10-30:** the deployment this doc waited for has happened: `staging` was merged into `main` (PR #7, 2026-10-30 00:14 +0700). The checks it lists (`robots.txt`, canonical, `og:url`, `sitemap.xml` on `www.gilifast.com`) have not been done yet. Then move this doc to `done/`.
 **Status (2026-10-25):** in progress. Done: Vercel `APP_BASE_URL` changed (Production `https://www.gilifast.com`, `staging` its own entry `https://gilijet.vercel.app`; the Production value is `sensitive` and could not be read back). DOKU Notify URL, Meta WhatsApp (callback and templates) checked by the owner and fine. Google OAuth left as is on purpose (a gilibali.com entry there is harmless now). **Not done: no deployment since the env change.** Live `www.gilifast.com` still answers `Disallow: /` and canonical `https://www.gilibali.com` (checked 2026-10-25). The new value takes effect with the next deployment, which will be the `staging` → `main` release; after it, check `robots.txt`, canonical, `og:url` and `sitemap.xml`, then move this doc to `done/`. PayPal not confirmed.
 **Goal:** production answers on **one** domain, `www.gilifast.com`. `gilibali.com` stops being a second site and only redirects.
 

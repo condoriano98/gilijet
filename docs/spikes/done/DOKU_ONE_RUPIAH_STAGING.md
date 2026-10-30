@@ -1,5 +1,6 @@
 # Rp 1 departure on staging (live DOKU test)
 
+**Update 2026-10-30:** moved to `done/`. The owner reports the Rp 1 DOKU test on staging is finished. The details were not recorded here (the redeploy and `APP_BASE_URL` check, the e2e against the deployed site, and the result of the Rp 1 payment), so the two unticked boxes below and the "Blocker" section describe the state of 2026-10-14. The environment variables on the Vercel `staging` environment were not re-read for this note.
 **Status (2026-10-14):** staging is seeded (59 departures at Rp 1). **The live DOKU test is blocked**: the DOKU keys are not assigned to the Vercel `staging` environment, so the deployed site most likely shows the mock checkout. See "Blocker".
 
 ## Goal

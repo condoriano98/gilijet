@@ -1,5 +1,6 @@
 # Feature: e-ticket issuance — PIC WhatsApp on payment, operator ticket email forwarded to the customer
 
+**Update 2026-10-30:** Part A (`c5c3071`), Part B (`9333eb0`) and tags `v1.5.0` to `v1.8.0` are in `main` (checked with git). `vercel.json` on `main` schedules `/api/cron/poll-operator-inbox`. Not checked here: that the production environment has the Meta, IMAP and SMTP variables and `INBOX_POLL_*` (the poll does nothing without them, and forwards only with `INBOX_POLL_LIVE=true`), the approved WhatsApp template, and the `62` phone fix on production. Production was not read.
 **Status (2026-10-20):** Part A (PIC WhatsApp on payment) is committed (`c5c3071`). Part B was committed as `9333eb0` on Resend inbound and then moved to **IMAP polling + Gmail SMTP** (release 1.5.0, committed and pushed to `staging`, tag `v1.5.0`; 1.6.0 adds the Check mailbox now button and `INBOX_POLL_SINCE`; see "Checkpoint"). Unit, lint, typecheck, e2e on staging and a read-only dry run against the real mailbox are done. Not yet verified: a real SMTP send and a live (non-dry) poll; that is the manual test on staging. `main`/production are untouched.
 **Created:** 2026-10-17
 **Target version:** 1.4.0 (MINOR: new notification + inbound email feature). No schema change.

@@ -1,5 +1,6 @@
 # Phase-one marketing measurement and performance dashboard (Google Ads + Meta)
 
+**Update 2026-10-30:** stages 2 to 4 and the revision are committed (`0a1a8e1`, 2026-10-27) and, with stage 1 (`4373027`), are in `main` since PR #7. They are live in the build but every switch is off. Stage 5 (the dashboard) is still not started.
 **Status (2026-10-26):** in progress on `claude/magical-curie-gi16o3`, which is based on `staging`. Stages 0–4 are written, plus the architecture revision of 2026-10-26: financial contract, attribution integrity, consent withdrawal, reconciliation. Stage 1 is committed (`4373027`); stages 2–4 and the revision are not committed. Stage 5 (the dashboard UI) needs the owner's approval before it starts. The design reference is now `docs/MARKETING_MEASUREMENT.md`. Nothing is deployed, and no live tag, API or ad account has been touched.
 **Goal:** measure Google Ads and Meta Ads against the internal paid-booking ledger, with a SUPER_ADMIN-only dashboard at `/admin/marketing`. The booking/payment tables stay the authority for money. GA4 and the ad platforms are separate measurement sources and are expected to disagree with it.
 

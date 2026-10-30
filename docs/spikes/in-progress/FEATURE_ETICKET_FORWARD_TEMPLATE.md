@@ -1,5 +1,6 @@
 # E-ticket forward: Gilifast-written email (EN / ID)
 
+**Update 2026-10-30:** tags `v1.9.0` and `v1.10.0` are in `main` (checked with git), so the Gilifast-written e-ticket email and the guide link ship with the production build. The live run of the new format (see QC) is still not recorded here.
 **Status (2026-10-24):** implemented in v1.9.0 (tag `v1.9.0`) and pushed to `staging`; the guide link came with v1.10.0. Live run of the new format still to do (see QC).
 **Part of:** e-ticket Part B (`FEATURE_ETICKET_PIC_NOTIFICATION.md`).
 

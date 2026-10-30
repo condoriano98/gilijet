@@ -174,7 +174,7 @@ Two Vercel projects on the same repo, each with its own Supabase database:
 | Vercel project | `gilifast` | `gilifast-staging` |
 | Production Branch | `main` | `staging` |
 | Domain | gilifast.com | staging.gilifast.com |
-| DOKU | live keys, `DOKU_IS_PRODUCTION=true` | unset → mock checkout (2026-10-14: the DOKU keys in Vercel are scoped Production+Preview, not the `staging` environment; the staging database has `dokuMode = LIVE` but that only matters once keys exist, see `docs/spikes/in-progress/DOKU_ONE_RUPIAH_STAGING.md`) |
+| DOKU | live keys, `DOKU_IS_PRODUCTION=true` | unset → mock checkout (2026-10-14: the DOKU keys in Vercel are scoped Production+Preview, not the `staging` environment; update 2026-10-30: the owner reports the Rp 1 live test on staging is finished, so this may be outdated; the staging database has `dokuMode = LIVE` but that only matters once keys exist, see `docs/spikes/done/DOKU_ONE_RUPIAH_STAGING.md`) |
 | PayPal | live keys, `PAYPAL_IS_PRODUCTION=true` | sandbox keys, `=false` |
 
 Flow is feature branch → `staging` → `main`. Each project carries an Ignored

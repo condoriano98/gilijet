@@ -1,3 +1,5 @@
+> **Update 2026-10-30:** moved to `in-progress/` because phases 3 to 6 are not built. A new home redesign (white and blue, mockup draft) is being explored with the client; see `docs/spikes/todo/FEATURE_UI_UX_AGENT.md`, section "Design exploration". Which phases of this plan it replaces is not decided yet.
+
 > **Status note (2026-10-14):** historical plan, not rewritten. File paths below (`app/…`, `lib/…`, `components/…`) predate the `src/` restructure; see `STRUCTURE.md` for current locations. Verified present in code: `getPopularRoutes`, `getDepartingSoon`, `getRecentReviews` (`src/features/schedules/home-data.ts`), `photoForPort` (`src/features/ports/destination-photos.ts`), `days-picker.tsx` (`src/features/schedules/components/`), `wave-divider.tsx` (`src/shared/ui/`). Other items were not checked one by one.
 
 # Home Page Revamp V2 — Plan & Requirements

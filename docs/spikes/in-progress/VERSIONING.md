@@ -1,5 +1,6 @@
 # Versioning — app now, database planned
 
+**Update 2026-10-30:** the Build card exists on `/admin/diagnostics` (`getBuildInfo`) and the `admin-diagnostics` e2e passes against the staging database. Tags `v1.0.0`, `v1.1.0`, `v1.1.1`, `v1.2.0`, `v1.3.1`, `v1.4.0`, `v1.10.2` and `v1.10.3` still do not exist; only `v1.3.0` and `v1.5.0` to `v1.10.1` do.
 **Status:** Phase 1 implemented, committed (`f918963`) and pushed; phase 2 (migrations) committed (`21d65e5`) and pushed, and the staging build log shows the migration step running correctly. Tags `v1.0.0` / `v1.1.0` / `v1.1.1` not created yet; the Build card and the final READY state on staging not checked yet.
 **Created:** 2026-10-14
 **Scope:** Phase 1 (app versioning) is done. Phase 2 (database migrations) is implemented for the repo and the staging database (2026-10-14); production is deliberately untouched and only documented.

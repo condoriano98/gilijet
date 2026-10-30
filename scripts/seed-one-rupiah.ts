@@ -1,7 +1,7 @@
 /**
  * Padang Bai → Senggigi and the way back, each priced Rp 1, for testing live DOKU
  * payments on staging without spending real money. See
- * docs/spikes/in-progress/DOKU_ONE_RUPIAH_STAGING.md.
+ * docs/spikes/done/DOKU_ONE_RUPIAH_STAGING.md.
  *
  * The schedule sits on the QA boat (never on a real operator's boat), has no
  * fare matrix so the season never changes its price, and gets departures for
