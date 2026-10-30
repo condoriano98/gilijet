@@ -5,9 +5,9 @@ import { setCustomerSession } from '@/shared/server/auth';
 import {
   exchangeCodeForProfile,
   isGoogleOAuthEnabled,
-  safeNext,
   verifyState,
 } from '@/shared/server/google-oauth';
+import { safeNext } from '@/shared/lib/safe-next';
 import { GOOGLE_STATE_COOKIE } from '@/shared/constants/auth';
 
 function loginError(req: Request, code: string) {

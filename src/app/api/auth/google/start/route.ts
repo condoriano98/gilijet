@@ -3,9 +3,9 @@ import { cookies } from 'next/headers';
 import {
   buildAuthorizeUrl,
   isGoogleOAuthEnabled,
-  safeNext,
   signState,
 } from '@/shared/server/google-oauth';
+import { safeNext } from '@/shared/lib/safe-next';
 import { GOOGLE_STATE_COOKIE, GOOGLE_STATE_MAX_AGE_SECONDS } from '@/shared/constants/auth';
 
 export async function GET(req: Request) {

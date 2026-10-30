@@ -34,6 +34,12 @@ bump. A version is live in production once its tag is merged into `main`.
   - **New endpoints and data:** SUPER_ADMIN APIs under `/api/admin/marketing/`, a daily `/api/cron/ads-sync`, and migration `3_marketing_reconciliation_and_spend_grain`. The design reference is `docs/MARKETING_MEASUREMENT.md`.
 - CI's e2e job now runs with marketing events on and delivery off. The Playwright config pre-sets an "essential only" cookie choice so the banner cannot cover other specs.
 
+### Fixed
+
+- Sign-in and registration no longer follow a `next` link to another website: only a path on this site is accepted (the Google sign-in routes use the same check, which now also refuses `/\host` and control characters).
+- Booking and registration with the terms box unticked now say to accept the terms. Before, the server refused but showed `Expected string, received null` (booking) or "fill in all required fields" (registration).
+- Cancelling a booking that was never paid no longer queues a refund for money that was never taken. A paid booking still gets its refund.
+
 ### Changed
 
 - Marketing delivery workers can no longer both reclaim the same stuck send.

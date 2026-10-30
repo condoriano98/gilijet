@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { env } from '@/shared/server/env';
+import { safeNext } from '@/shared/lib/safe-next';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -22,18 +23,6 @@ function stateSecret(): Uint8Array {
 }
 
 type StatePayload = { nonce: string; next: string };
-
-/**
- * Coerces a caller-supplied `next` parameter into a same-origin relative path.
- * Rejects absolute URLs, protocol-relative `//evil.com`, and any value that
- * doesn't start with a single `/`. Used both at OAuth start (to populate the
- * state JWT) and at callback time (defence-in-depth against a forged state).
- */
-export function safeNext(raw: string | null | undefined): string {
-  if (!raw) return '/';
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
-  return raw;
-}
 
 export async function signState(payload: StatePayload): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)

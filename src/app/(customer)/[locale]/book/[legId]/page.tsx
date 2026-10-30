@@ -58,7 +58,7 @@ const bookingFormSchema = z.object({
     .min(1, 'Nationality is required')
     .max(80),
   notes: z.string().max(500).optional().or(z.literal('')),
-  agreedToTerms: z.string().optional(),
+  agreedToTerms: z.string().nullish(),
 });
 
 /** Acquisition snapshot for the booking, read from the visitor's cookies. */

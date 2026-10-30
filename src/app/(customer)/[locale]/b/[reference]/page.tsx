@@ -85,11 +85,14 @@ async function cancelAction(formData: FormData) {
     redirect(`/b/${ref}?error=departure_past`);
   }
 
-  const { tier, amount } = refundAmountForCustomer({
+  const { tier, amount: tierAmount } = refundAmountForCustomer({
     now: new Date(),
     departure: mainLeg.departureDate,
     paidAmount: booking.totalAmount,
   });
+  // A booking still waiting for payment has taken no money, so nothing is owed
+  // back whatever the tier says.
+  const amount = booking.status === 'PENDING_PAYMENT' ? tierAmount.mul(0) : tierAmount;
 
   await prisma.$transaction(async (tx) => {
     await tx.booking.update({

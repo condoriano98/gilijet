@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/ui/card';
+import { safeNext } from '@/shared/lib/safe-next';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -63,8 +64,7 @@ async function loginAction(formData: FormData) {
     fullName: customer.fullName,
   });
 
-  const next = (formData.get('next') as string) || '/account';
-  redirect(next);
+  redirect(safeNext(formData.get('next') as string | null, '/account'));
 }
 
 export default async function CustomerLoginPage({

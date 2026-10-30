@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/ui/card';
+import { safeNext } from '@/shared/lib/safe-next';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -23,7 +24,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   phoneNumber: z.string().min(6).max(40).optional().or(z.literal('')),
   password: z.string().min(8).max(100),
-  agreedToTerms: z.string().optional(),
+  agreedToTerms: z.string().nullish(),
 });
 
 async function registerAction(formData: FormData) {
@@ -65,8 +66,7 @@ async function registerAction(formData: FormData) {
     fullName: customer.fullName,
   });
 
-  const next = (formData.get('next') as string) || '/account';
-  redirect(next);
+  redirect(safeNext(formData.get('next') as string | null, '/account'));
 }
 
 export default async function CustomerRegisterPage({
