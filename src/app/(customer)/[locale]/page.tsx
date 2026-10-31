@@ -211,8 +211,8 @@ export default async function HomePage() {
                 href={`/search?destination=${encodeURIComponent(dest.destinationPort)}`}
                 aria-label={`Browse boats to ${dest.name}`}
                 className={`group relative block min-h-[220px] overflow-hidden rounded-[28px] bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                  big ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:min-h-0' : ''
-                } ${wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                  big ? 'min-h-[290px] sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:min-h-0' : ''
+                } ${wide ? 'min-h-[290px] sm:col-span-2 lg:col-span-2 lg:min-h-0' : ''}`}
               >
                 {photo && (
                   <Image

@@ -1,9 +1,31 @@
-import Link from 'next/link';
+import {
+  LegalPage,
+  LegalSection,
+  type LegalTocItem,
+} from '@/app/(customer)/_components/legal-layout';
 
 export const metadata = {
   title: 'Terms & Conditions',
   description: 'Gilifast booking terms, cancellation policy, and refund schedule.',
 };
+
+const TOC: LegalTocItem[] = [
+  { id: 's1', label: '1. Definitions' },
+  { id: 's2', label: '2. About gilifast.com' },
+  { id: 's3', label: '3. Booking & Payment' },
+  { id: 's4', label: '4. Check-in & Boarding' },
+  { id: 's5', label: '5. Cancellation & Refund Policy' },
+  { id: 's6', label: '6. Luggage & Personal Belongings' },
+  { id: 's7', label: '7. Passenger Responsibilities & Conduct' },
+  { id: 's8', label: '8. Safety Standards' },
+  { id: 's9', label: '9. Intellectual Property & Website Use' },
+  { id: 's10', label: '10. Privacy & Data' },
+  { id: 's11', label: '11. Limitation of Liability' },
+  { id: 's12', label: '12. Chargebacks & Payment Disputes' },
+  { id: 's13', label: '13. Modifications to Terms' },
+  { id: 's14', label: '14. Governing Law & Dispute Resolution' },
+  { id: 's15', label: '15. Contact Information' },
+];
 
 function Section({
   n,
@@ -15,41 +37,32 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8">
-      <h2 className="text-xl font-semibold tracking-tight">
-        {n}. {title}
-      </h2>
-      <div className="mt-2 space-y-3 text-sm leading-relaxed text-slate-700">
-        {children}
-      </div>
-    </section>
+    <LegalSection id={`s${n}`} n={n} title={title}>
+      {children}
+    </LegalSection>
   );
 }
 
 export default function TermsPage() {
   return (
-    <div className="container py-10">
-      <div className="mx-auto max-w-3xl">
-        <Link href="/" className="text-sm text-sky-700 hover:underline">
-          ← Home
-        </Link>
-
-        <div className="mt-4 border-b pb-6">
-          <h1 className="text-3xl font-bold tracking-tight">GILIFAST.COM</h1>
-          <p className="mt-1 text-sm text-slate-600">Fast Boat Ticketing Platform</p>
-          <p className="mt-1 text-xs text-slate-500">
+    <LegalPage
+      toc={TOC}
+      title="GILIFAST.COM"
+      meta={
+        <>
+          <p>Fast Boat Ticketing Platform</p>
+          <p>
             Bali • Gili Trawangan • Gili Air • Gili Meno • Lombok (Bangsal) ·
             Nusa Penida • Nusa Lembongan
           </p>
-          <p className="mt-3 font-semibold text-slate-800">
+          <p className="pt-1 text-base font-semibold text-brand-ink">
             Terms &amp; Conditions | Refund &amp; Cancellation Policy
           </p>
-          <p className="text-xs text-slate-500">
-            Effective Date: June 2026 · Version 1.0
-          </p>
-        </div>
-
-        <p className="mt-6 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p>Effective Date: June 2026 · Version 1.0</p>
+        </>
+      }
+    >
+        <p className="rounded-2xl bg-amber-100 px-5 py-4 text-[15px] leading-relaxed text-amber-950">
           <strong>IMPORTANT:</strong> By purchasing a ticket or using the
           gilifast.com platform, you confirm that you have read, understood, and
           agreed to all Terms &amp; Conditions set out in this document. If you
@@ -222,39 +235,39 @@ export default function TermsPage() {
           </p>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+            <table className="w-full border-collapse text-sm sm:text-[15px]">
               <thead>
-                <tr className="bg-sky-50 text-left">
-                  <th className="border px-3 py-2 font-semibold">Cancellation Timeline</th>
-                  <th className="border px-3 py-2 font-semibold">Refund Amount</th>
-                  <th className="border px-3 py-2 font-semibold">Notes</th>
+                <tr className="bg-brand-surface text-left">
+                  <th className="border border-brand-line px-3 py-2 font-semibold">Cancellation Timeline</th>
+                  <th className="border border-brand-line px-3 py-2 font-semibold">Refund Amount</th>
+                  <th className="border border-brand-line px-3 py-2 font-semibold">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border px-3 py-2">More than 7 days (168 hrs) before departure</td>
-                  <td className="border px-3 py-2">100% refund</td>
-                  <td className="border px-3 py-2">Processing fee may apply</td>
+                  <td className="border border-brand-line px-3 py-2">More than 7 days (168 hrs) before departure</td>
+                  <td className="border border-brand-line px-3 py-2">100% refund</td>
+                  <td className="border border-brand-line px-3 py-2">Processing fee may apply</td>
                 </tr>
-                <tr className="bg-slate-50">
-                  <td className="border px-3 py-2">48 hours – 7 days before departure</td>
-                  <td className="border px-3 py-2">50% refund</td>
-                  <td className="border px-3 py-2">Non-refundable portion is forfeited</td>
-                </tr>
-                <tr>
-                  <td className="border px-3 py-2">Less than 48 hours before departure</td>
-                  <td className="border px-3 py-2">No refund</td>
-                  <td className="border px-3 py-2">Ticket is non-refundable</td>
-                </tr>
-                <tr className="bg-slate-50">
-                  <td className="border px-3 py-2">No-show (failure to board)</td>
-                  <td className="border px-3 py-2">No refund</td>
-                  <td className="border px-3 py-2">No exceptions unless medical proof provided</td>
+                <tr className="bg-brand-surface/60">
+                  <td className="border border-brand-line px-3 py-2">48 hours – 7 days before departure</td>
+                  <td className="border border-brand-line px-3 py-2">50% refund</td>
+                  <td className="border border-brand-line px-3 py-2">Non-refundable portion is forfeited</td>
                 </tr>
                 <tr>
-                  <td className="border px-3 py-2">Cancellation by Operator / Weather</td>
-                  <td className="border px-3 py-2">100% refund or reschedule</td>
-                  <td className="border px-3 py-2">Free rescheduling to next available departure</td>
+                  <td className="border border-brand-line px-3 py-2">Less than 48 hours before departure</td>
+                  <td className="border border-brand-line px-3 py-2">No refund</td>
+                  <td className="border border-brand-line px-3 py-2">Ticket is non-refundable</td>
+                </tr>
+                <tr className="bg-brand-surface/60">
+                  <td className="border border-brand-line px-3 py-2">No-show (failure to board)</td>
+                  <td className="border border-brand-line px-3 py-2">No refund</td>
+                  <td className="border border-brand-line px-3 py-2">No exceptions unless medical proof provided</td>
+                </tr>
+                <tr>
+                  <td className="border border-brand-line px-3 py-2">Cancellation by Operator / Weather</td>
+                  <td className="border border-brand-line px-3 py-2">100% refund or reschedule</td>
+                  <td className="border border-brand-line px-3 py-2">Free rescheduling to next available departure</td>
                 </tr>
               </tbody>
             </table>
@@ -560,15 +573,14 @@ export default function TermsPage() {
           </dl>
         </Section>
 
-        <p className="mt-8 border-t pt-6 text-sm text-slate-600">
+        <p className="mt-10 border-t border-brand-line pt-6 text-sm text-brand-muted">
           By completing a purchase on gilifast.com, you confirm that you have
           read and agreed to these Terms &amp; Conditions.
           <br />
-          <span className="text-slate-400">
+          <span className="text-brand-muted/70">
             gilifast.com — Your Gateway to the Gili Islands
           </span>
         </p>
-      </div>
-    </div>
+    </LegalPage>
   );
 }

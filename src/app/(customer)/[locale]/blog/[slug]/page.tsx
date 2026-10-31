@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { findPost, POSTS } from '@/content/blog';
@@ -71,32 +72,32 @@ export default async function BlogPost({
   const otherPosts = POSTS.filter((p) => p.meta.slug !== post.meta.slug).slice(0, 2);
 
   return (
-    <div className="container py-10">
-      <div className="mx-auto max-w-3xl">
-        <Link
-          href="/blog"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Back to blog
-        </Link>
+    <div className="mx-auto max-w-[1080px] px-5 py-4 sm:px-6">
+      <Link
+        href="/blog"
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
+      >
+        ← Back to blog
+      </Link>
 
-        <header className="mt-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <article>
+        <header className="max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-brand-muted">
             <time dateTime={post.meta.publishedAt}>{formatDate(post.meta.publishedAt)}</time>
             <span>·</span>
             <span>{post.meta.readingMinutes} min read</span>
             <span>·</span>
             <span>{post.meta.author}</span>
           </div>
-          <h1 className="mt-3 text-3xl font-display font-extrabold leading-tight text-slate-900 sm:text-4xl">
+          <h1 className="mt-3.5 font-display text-3xl font-extrabold leading-[1.1] tracking-tight text-brand-ink sm:text-[46px]">
             {post.meta.title}
           </h1>
-          <p className="mt-3 text-lg text-slate-600">{post.meta.description}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <p className="mt-4 text-lg leading-relaxed text-brand-muted sm:text-xl">{post.meta.description}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
             {post.meta.tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                className="rounded-full bg-brand-periwinkle px-3 py-1.5 text-[13px] font-semibold text-brand-dark"
               >
                 {t}
               </span>
@@ -104,23 +105,33 @@ export default async function BlogPost({
           </div>
         </header>
 
-        <div className="mt-8">
+        <div className="relative mt-8 h-[200px] overflow-hidden rounded-3xl sm:mt-9 sm:h-[360px] sm:rounded-[28px]">
+          <Image
+            src="/brand/hero-home.png"
+            alt=""
+            fill
+            sizes="(min-width: 1080px) 1032px, 100vw"
+            className="object-cover object-[25%_65%] sm:object-[center_65%]"
+          />
+        </div>
+
+        <div className="mt-10 max-w-[760px] sm:mt-11">
           <Body />
         </div>
 
         {otherPosts.length > 0 ? (
-          <aside className="mt-12 border-t border-slate-200 pt-8">
-            <h2 className="text-base font-semibold text-slate-900">Keep reading</h2>
-            <ul className="mt-3 space-y-3 text-sm">
+          <aside className="mt-14 max-w-[760px] border-t border-brand-line pt-7">
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink">Keep reading</h2>
+            <ul className="mt-3.5 space-y-1.5 text-sm">
               {otherPosts.map(({ meta }) => (
-                <li key={meta.slug}>
+                <li key={meta.slug} className="flex min-h-11 flex-wrap items-center">
                   <Link
                     href={`/blog/${meta.slug}`}
-                    className="font-medium text-gilifast-ocean hover:underline"
+                    className="font-semibold text-brand hover:underline"
                   >
                     {meta.title}
                   </Link>
-                  <span className="ml-2 text-xs text-slate-500">
+                  <span className="ml-2 text-xs text-brand-muted">
                     · {meta.readingMinutes} min
                   </span>
                 </li>
@@ -128,12 +139,12 @@ export default async function BlogPost({
             </ul>
           </aside>
         ) : null}
+      </article>
 
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </div>
   );
 }

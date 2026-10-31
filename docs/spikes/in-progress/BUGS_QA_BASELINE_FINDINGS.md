@@ -97,3 +97,9 @@ _(empty until implemented)_
 - **B19: fixed** by the compact banner.
 - **B12: still open.** The booking page is wider than 375 px until it settles (`BOOK-G17b` stays `test.fail`). The cause was not found by reading the classes.
 - B15, B16, B17 and B18 are logic and unchanged. **B17 touches money** and should be looked at before the stage is signed off.
+
+### Update 2026-10-31 (redesign stage 5)
+
+- **B4 for `best-price-guarantee`: fixed** (one `h1` and its own title; `CONT-002b` and `CONT-003b` are normal tests). Still waiting for stage 4: `account/login` and its `review/new` redirect (`CONT-029b`, `fixme`).
+- **CONT-028** (in-page anchors on terms and privacy) is possible now: every section heading has an `id`.
+- B10 (refund cutoffs typed into `/refunds` and `/change-plans`) is not fixed: the redesign kept the numbers as written.

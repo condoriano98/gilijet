@@ -59,7 +59,7 @@ export function ReviewsCarousel({ reviews }: { reviews: HomeReview[] }) {
         <ReviewCard review={current} />
       </div>
       {reviews.length > 1 && (
-        <div className="mt-4 flex justify-center gap-2">
+        <div className="mt-2 flex justify-center">
           {reviews.map((r, i) => (
             <button
               key={r.id}
@@ -68,11 +68,15 @@ export function ReviewsCarousel({ reviews }: { reviews: HomeReview[] }) {
                 setIndex(i);
                 setPaused(true);
               }}
-              className={`h-2 rounded-full transition-all ${
-                i === index ? 'w-6 bg-gilifast-deep' : 'w-2 bg-slate-300 hover:bg-slate-400'
-              }`}
+              className="group flex h-11 w-7 items-center justify-center"
               aria-label={`Show review ${i + 1} of ${reviews.length}`}
-            />
+            >
+              <span
+                className={`block h-2 rounded-full transition-all ${
+                  i === index ? 'w-6 bg-brand' : 'w-2 bg-brand/25 group-hover:bg-brand/50'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

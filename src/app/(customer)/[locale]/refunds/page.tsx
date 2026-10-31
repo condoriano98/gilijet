@@ -1,4 +1,11 @@
 import Link from 'next/link';
+import {
+  LegalPage,
+  PROSE_ARTICLE,
+  PROSE_H2,
+  PROSE_H3,
+  type LegalTocItem,
+} from '@/app/(customer)/_components/legal-layout';
 
 export const metadata = {
   title: 'Refund & Reschedule Policy',
@@ -6,28 +13,33 @@ export const metadata = {
     'Gilifast refund and reschedule policy — cancellation schedule, processing times, reschedule credits, no-shows, and disputes.',
 };
 
+const TOC: LegalTocItem[] = [
+  { id: 's1', label: '1. About this policy' },
+  { id: 's2', label: '2. Cancellations & refunds' },
+  { id: 's3', label: '3. When the operator cancels' },
+  { id: 's4', label: '4. Rescheduling your trip' },
+  { id: 's5', label: '5. No-shows' },
+  { id: 's6', label: '6. Refund method' },
+  { id: 's7', label: '7. Payment disputes' },
+  { id: 's8', label: '8. Contact us' },
+];
+
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 text-left font-semibold">{children}</th>;
+  return <th className="px-4 py-3 text-left font-bold text-brand-dark">{children}</th>;
 }
 function Td({ children }: { children: React.ReactNode }) {
-  return <td className="px-4 py-3 align-top">{children}</td>;
+  return <td className="px-4 py-3 align-top text-brand-text">{children}</td>;
 }
 
 export default function RefundsPage() {
   return (
-    <div className="container py-10">
-      <div className="mx-auto max-w-3xl prose prose-slate prose-sm">
-        <Link href="/" className="text-sm text-sky-700 no-underline hover:underline">
-          ← Home
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">
-          Refund &amp; Reschedule Policy
-        </h1>
-        <p className="text-sm text-slate-500">
-          Version 1.1 · Effective 1 June 2026
-        </p>
-
-        <p className="rounded-md bg-sky-50 px-4 py-3 not-prose text-sm text-sky-900">
+    <LegalPage
+      toc={TOC}
+      title={<>Refund &amp; Reschedule Policy</>}
+      meta={<p>Version 1.1 · Effective 1 June 2026</p>}
+    >
+      <div className={PROSE_ARTICLE}>
+        <p className="not-prose rounded-2xl bg-brand-periwinkle px-5 py-4 text-[15px] leading-relaxed text-brand-dark">
           By completing a booking on gilifast.com or balinusafast.com, you
           confirm that you have read and agree to this policy. It forms part of
           our{' '}
@@ -38,7 +50,7 @@ export default function RefundsPage() {
           are happy to help.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">1. About this policy</h2>
+        <h2 id="s1" className={PROSE_H2}>1. About this policy</h2>
         <p>
           This page sets out what happens when you need to cancel or change your
           fast boat ticket booked through gilifast.com or balinusafast.com.
@@ -52,21 +64,21 @@ export default function RefundsPage() {
           operator&apos;s own terms, which we can provide on request.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">2. Cancellations &amp; refunds</h2>
+        <h2 id="s2" className={PROSE_H2}>2. Cancellations &amp; refunds</h2>
         <p>
           The refund you receive depends on how far in advance of your departure
           you let us know:
         </p>
-        <div className="my-6 overflow-hidden rounded-lg border not-prose">
+        <div className="not-prose my-6 overflow-x-auto rounded-2xl border border-brand-line">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-brand-surface">
               <tr>
                 <Th>When you cancel</Th>
                 <Th>What you receive</Th>
                 <Th>Notes</Th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-brand-line">
               <tr>
                 <Td>More than 7 days (&gt;168 hours) before departure</Td>
                 <Td>
@@ -111,7 +123,7 @@ export default function RefundsPage() {
           </table>
         </div>
 
-        <h3 className="mt-6 text-lg font-semibold">How the refund amount is calculated</h3>
+        <h3 className={PROSE_H3}>How the refund amount is calculated</h3>
         <ul>
           <li>
             Refund percentages apply to the base ticket price paid at checkout,
@@ -127,7 +139,7 @@ export default function RefundsPage() {
           </li>
         </ul>
 
-        <h3 className="mt-6 text-lg font-semibold">How to request a refund</h3>
+        <h3 className={PROSE_H3}>How to request a refund</h3>
         <p>
           All refund requests must be submitted by email. We do not accept
           requests via WhatsApp, social media, or verbally. Email{' '}
@@ -139,16 +151,16 @@ export default function RefundsPage() {
           of the amount.
         </p>
 
-        <h3 className="mt-6 text-lg font-semibold">How long until the money arrives</h3>
-        <div className="my-6 overflow-hidden rounded-lg border not-prose">
+        <h3 className={PROSE_H3}>How long until the money arrives</h3>
+        <div className="not-prose my-6 overflow-x-auto rounded-2xl border border-brand-line">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-brand-surface">
               <tr>
                 <Th>Payment method</Th>
                 <Th>Estimated time after admin confirms</Th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-brand-line">
               <tr><Td>E-wallet (GoPay, OVO, DANA, ShopeePay)</Td><Td>1–3 business days</Td></tr>
               <tr><Td>QRIS</Td><Td>1–3 business days</Td></tr>
               <tr><Td>Bank transfer / Virtual Account (Indonesian bank)</Td><Td>3–5 business days</Td></tr>
@@ -157,7 +169,7 @@ export default function RefundsPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-brand-muted">
           International card refunds pass through several layers — our payment
           gateway, the acquiring bank, the card network, and finally your own
           bank abroad. Once we initiate the refund, the remaining timeline is
@@ -165,7 +177,7 @@ export default function RefundsPage() {
           <strong>TRACKING REFUND [your RRN number]</strong>.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">3. When the operator cancels</h2>
+        <h2 id="s3" className={PROSE_H2}>3. When the operator cancels</h2>
         <p>
           Sometimes departures are cancelled by the boat operator — bad weather
           or rough seas are the most common reason, and passenger safety always
@@ -185,7 +197,7 @@ export default function RefundsPage() {
           March).
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">4. Rescheduling your trip</h2>
+        <h2 id="s4" className={PROSE_H2}>4. Rescheduling your trip</h2>
         <ul>
           <li>
             Your request must reach us at least <strong>48 hours</strong> before
@@ -205,7 +217,7 @@ export default function RefundsPage() {
           Code equal to the full amount paid, and instructions for using it at
           checkout.
         </p>
-        <h3 className="mt-6 text-lg font-semibold">Reschedule Credit — what to know</h3>
+        <h3 className={PROSE_H3}>Reschedule Credit — what to know</h3>
         <ul>
           <li>Valid for 90 days from the date your original booking is cancelled.</li>
           <li>Single-use, tied to your booking email — cannot be shared or transferred.</li>
@@ -217,14 +229,14 @@ export default function RefundsPage() {
           <li>If the new ticket costs more, pay the difference at checkout.</li>
           <li>If the new ticket costs less, there is no cashback — the credit is used in full.</li>
         </ul>
-        <p className="rounded-md bg-slate-50 px-4 py-3 not-prose text-sm text-slate-700">
+        <p className="not-prose rounded-2xl bg-brand-surface px-5 py-4 text-[15px] leading-relaxed text-brand-text">
           If your departure is between 48 hours and 7 days away, a cash refund
           returns only 50%. A reschedule credit keeps 100% of your ticket value
           for a future trip — for most passengers in that window, rescheduling
           is the better option.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">5. No-shows</h2>
+        <h2 id="s5" className={PROSE_H2}>5. No-shows</h2>
         <p>
           If you do not arrive at the departure port by the check-in deadline
           (30 minutes before departure) and the boat sails without you, your
@@ -238,7 +250,7 @@ export default function RefundsPage() {
           registered healthcare provider. We review these cases individually.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">6. Refund method</h2>
+        <h2 id="s6" className={PROSE_H2}>6. Refund method</h2>
         <p>
           Refunds are always returned to the original payment method used at
           purchase. We cannot redirect a refund to a different account. The only
@@ -247,7 +259,7 @@ export default function RefundsPage() {
           writing.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">7. Payment disputes</h2>
+        <h2 id="s7" className={PROSE_H2}>7. Payment disputes</h2>
         <p>
           If you believe a refund was processed incorrectly, or have a concern
           about a charge, please contact us first at{' '}
@@ -264,7 +276,7 @@ export default function RefundsPage() {
           records and passenger manifests.
         </p>
 
-        <h2 className="mt-8 text-xl font-semibold">8. Contact us</h2>
+        <h2 id="s8" className={PROSE_H2}>8. Contact us</h2>
         <p>
           Our team handles all refund, reschedule, and dispute enquiries{' '}
           <strong>Monday to Sunday, 07:00 – 20:00 WITA (GMT+8)</strong>, replying
@@ -278,7 +290,7 @@ export default function RefundsPage() {
           <li>Office — Gili Trawangan: Jl. Pantai Gili Indah, Gili Trawangan, Pemenang, Lombok, NTB 83351</li>
         </ul>
 
-        <p className="mt-8 border-t pt-4 text-xs text-slate-500">
+        <p className="mt-10 border-t border-brand-line pt-4 text-xs text-brand-muted">
           Not sure which option is best? See our{' '}
           <Link href="/change-plans" className="underline">
             &quot;change my plans&quot; guide
@@ -287,6 +299,6 @@ export default function RefundsPage() {
           per-method processing times, and the dispute section.
         </p>
       </div>
-    </div>
+    </LegalPage>
   );
 }

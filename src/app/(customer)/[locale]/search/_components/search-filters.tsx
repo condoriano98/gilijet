@@ -170,6 +170,7 @@ export function SearchFilters({
               type="button"
               variant="outline"
               size="sm"
+              className="h-11 rounded-[14px] px-4"
               onClick={applyPriceFilter}
             >
               Apply

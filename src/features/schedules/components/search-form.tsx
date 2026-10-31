@@ -85,7 +85,7 @@ export function SearchForm(props: SearchFormProps) {
             key={tt}
             type="button"
             onClick={() => setTripType(tt)}
-            className={`rounded-full px-5 py-2 transition-colors ${
+            className={`min-h-11 rounded-full px-5 py-2 transition-colors ${
               tripType === tt
                 ? 'bg-white font-semibold text-brand shadow-sm'
                 : 'text-brand-muted hover:text-brand-ink'

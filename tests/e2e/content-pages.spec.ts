@@ -23,11 +23,9 @@ const ROUTES = [
   '/legal/wahana-virendra',
 ];
 
-// The best-price page has no h1 (its title is a card heading) and exports no
-// metadata, so it keeps the default tab title. See CONT-002b and CONT-003b.
-const ROUTES_WITH_H1 = ROUTES.filter(
-  (r) => r !== '/best-price-guarantee' && !r.startsWith('/legal/'),
-);
+// Bugs B4 and CONT-003b for the best-price page (no h1, no metadata) were fixed
+// by redesign stage 5, so it is in the list like the others.
+const ROUTES_WITH_H1 = ROUTES.filter((r) => !r.startsWith('/legal/'));
 
 const TITLES: Record<string, string> = {
   '/contact': 'Contact · Gilifast',
@@ -67,14 +65,10 @@ test.describe('content pages', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   });
 
-  test.fixme(
-    'CONT-002b best-price-guarantee has one h1',
-    // App finding: the page title is a CardTitle (h3) and the page has no h1.
-    async ({ page }) => {
-      await page.goto('/best-price-guarantee');
-      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-    },
-  );
+  test('CONT-002b best-price-guarantee has one h1', async ({ page }) => {
+    await page.goto('/best-price-guarantee');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  });
 
   for (const [route, title] of Object.entries(TITLES)) {
     test(`CONT-003 ${route} title`, async ({ page }) => {
@@ -90,14 +84,10 @@ test.describe('content pages', () => {
     expect(title.split('Gilifast').length - 1).toBe(1);
   });
 
-  test.fixme(
-    'CONT-003b best-price-guarantee has its own title',
-    // App finding: no `metadata` export, so the default tab title shows.
-    async ({ page }) => {
-      await page.goto('/best-price-guarantee');
-      await expect(page).toHaveTitle('Best Price Guarantee · Gilifast');
-    },
-  );
+  test('CONT-003b best-price-guarantee has its own title', async ({ page }) => {
+    await page.goto('/best-price-guarantee');
+    await expect(page).toHaveTitle('Best Price Guarantee · Gilifast');
+  });
 
   for (const route of NO_SCROLL_AT_375) {
     test(`CONT-005 ${route} does not scroll sideways at 375`, async ({ page }) => {

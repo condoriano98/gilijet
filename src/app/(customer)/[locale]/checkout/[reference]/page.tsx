@@ -123,7 +123,7 @@ export default async function CheckoutPage({
                 <span className="font-mono font-semibold text-brand-ink">{booking.bookingReference}</span>
               </p>
             </div>
-            <div className="text-right">
+            <div className="shrink-0 whitespace-nowrap text-right">
               <div className="text-2xl font-extrabold tracking-tight text-brand sm:text-[28px]">
                 {formatIDR(Number(booking.totalAmount))}
               </div>

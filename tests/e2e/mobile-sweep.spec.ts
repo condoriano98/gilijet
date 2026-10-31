@@ -40,6 +40,14 @@ const ROUTES = [
 const REDESIGNED_ROUTES: string[] = [
   '/',
   '/b',
+  '/about',
+  '/contact',
+  '/blog',
+  '/best-price-guarantee',
+  '/terms',
+  '/privacy',
+  '/refunds',
+  '/change-plans',
   '/search?destination=E2E+Nowhere&date=2090-01-01&passengers=1',
 ];
 
@@ -78,5 +86,33 @@ test('MOB-003 the consent banner does not cover the page header on a phone', asy
     expect(box!.height, 'the banner takes more than half of a phone screen').toBeLessThan(667 / 2);
   } finally {
     await context.close();
+  }
+});
+
+// Buttons that are not submit buttons (MOB-004 only looks at those) but are tapped on a phone:
+// the trip type tabs and the review dots on home, and the filter's Apply on search. Found by looking
+// at the redesigned pages (they were 36, 36 and 8 px high).
+test('MOB-005 home: the trip type tabs and the review dots are at least 44 px high on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'One way', exact: true })).toBeVisible({ timeout: 15_000 });
+  const targets = [
+    page.getByRole('button', { name: 'One way', exact: true }),
+    page.getByRole('button', { name: 'Return', exact: true }),
+    ...(await page.getByRole('button', { name: /^Show review \d+ of/ }).all()),
+  ];
+  for (const target of targets) {
+    const box = await target.boundingBox();
+    expect.soft(box?.height ?? 0, `a button is ${box?.height}px high`).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('MOB-005b search: Apply and the trip type tabs are at least 44 px high on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/search?destination=Nusa+Penida&passengers=1');
+  await expect(page.getByRole('button', { name: 'One way', exact: true })).toBeVisible({ timeout: 15_000 });
+  for (const name of ['One way', 'Return']) {
+    const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+    expect.soft(box?.height ?? 0, `"${name}" is ${box?.height}px high`).toBeGreaterThanOrEqual(44);
   }
 });
