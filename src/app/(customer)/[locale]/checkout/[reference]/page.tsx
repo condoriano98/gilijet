@@ -97,40 +97,40 @@ export default async function CheckoutPage({
   );
 
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-lg">
+    <div className="mx-auto max-w-[1180px] px-5 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-xl">
         <BookingProgress currentStep={3} />
 
         {failed === '1' && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800">
             Payment was cancelled. Please try again.
           </div>
         )}
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-start justify-between">
+        <div className="rounded-3xl border border-brand-line bg-white p-5 shadow-ambient sm:p-7">
+          <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-lg font-semibold text-slate-900">
+              <h1 className="font-display text-xl font-extrabold tracking-tight text-brand-ink sm:text-2xl">
                 {mainLeg.schedule.originPort} →{' '}
                 {mainLeg.schedule.destinationPort}
               </h1>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-brand-muted">
                 {formatLocalDateTime(mainLeg.departureDate)} WITA ·{' '}
                 {mainLeg.schedule.boat.name}
               </p>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-1 text-sm text-brand-muted">
                 Ref{' '}
-                <span className="font-mono">{booking.bookingReference}</span>
+                <span className="font-mono font-semibold text-brand-ink">{booking.bookingReference}</span>
               </p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-2xl font-extrabold tracking-tight text-brand sm:text-[28px]">
                 {formatIDR(Number(booking.totalAmount))}
               </div>
             </div>
           </div>
 
-          <div className="border-t pt-5">
+          <div className="border-t border-brand-line pt-5">
             <DummyCheckoutForm
               reference={booking.bookingReference}
               amount={Number(booking.totalAmount)}
@@ -141,14 +141,14 @@ export default async function CheckoutPage({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-3 flex items-center justify-between gap-3">
           <Link
             href={`/b/${booking.bookingReference}`}
-            className="text-xs text-slate-400 hover:text-slate-600 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
           >
             View booking status
           </Link>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-900">
             Test Mode
           </span>
         </div>

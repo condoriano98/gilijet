@@ -22,14 +22,14 @@ export function PassengerFields() {
     useBookingPrice();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {types.map((type, i) => (
         <div
           key={i}
-          className="grid gap-2 rounded-md border bg-card p-3 sm:grid-cols-[1fr_160px_180px]"
+          className="grid gap-3 rounded-[18px] border border-brand-line bg-white p-4 sm:grid-cols-[1fr_160px_180px]"
         >
-          <div className="space-y-1">
-            <Label htmlFor={`passengerName-${i}`}>
+          <div className="space-y-1.5">
+            <Label htmlFor={`passengerName-${i}`} className="text-[13px] font-semibold text-brand-text">
               Passenger {i + 1} name
             </Label>
             <Input
@@ -37,43 +37,46 @@ export function PassengerFields() {
               name="passengerName"
               required
               autoComplete="off"
+              className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor={`passengerType-${i}`}>Type</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor={`passengerType-${i}`} className="text-[13px] font-semibold text-brand-text">Type</Label>
             <select
               id={`passengerType-${i}`}
               name="passengerType"
               value={type}
               onChange={(e) => setType(i, e.target.value as PassengerType)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex h-12 w-full rounded-[14px] border border-brand-line bg-white px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <option value="ADULT">ADULT</option>
               <option value="CHILD">CHILD</option>
               <option value="INFANT">INFANT</option>
             </select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-brand-muted">
               {formatIDR(unitPriceFor(type))}
             </p>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor={`passengerId-${i}`}>
+          <div className="space-y-1.5">
+            <Label htmlFor={`passengerId-${i}`} className="text-[13px] font-semibold text-brand-text">
               ID / passport (optional)
             </Label>
             <Input
               id={`passengerId-${i}`}
               name="passengerIdNumber"
               autoComplete="off"
+              className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
             />
           </div>
         </div>
       ))}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
+          className="h-11 rounded-[14px] border-brand px-4 font-semibold text-brand hover:bg-brand-periwinkle"
           disabled={types.length >= max}
           onClick={addPassenger}
         >
@@ -84,6 +87,7 @@ export function PassengerFields() {
             type="button"
             variant="ghost"
             size="sm"
+            className="h-11 rounded-[14px] px-4 text-brand-muted"
             onClick={removePassenger}
           >
             Remove last
@@ -91,7 +95,7 @@ export function PassengerFields() {
         ) : null}
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[13px] leading-relaxed text-brand-muted">
         Child: ages 3–12. Infant: under 3, shares a seat with an accompanying
         adult.
       </p>

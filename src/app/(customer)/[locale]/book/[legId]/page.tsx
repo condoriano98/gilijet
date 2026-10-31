@@ -12,14 +12,7 @@ import {
 } from '@/features/booking/engine';
 import { expireStalePendingBookings } from '@/features/booking/expiry';
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/datetime';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
+import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -238,8 +231,8 @@ export default async function BookPage({
     if (outboundLeg!.status !== 'OPEN' || activeLegPricing.closed || outboundLeg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          <Card className="rounded-3xl border-brand-line shadow-none">
+            <CardContent className="py-8 text-center text-sm text-brand-muted">
               The outbound departure is no longer accepting bookings.
               <div className="mt-3">
                 <Button asChild>
@@ -254,8 +247,8 @@ export default async function BookPage({
     if (returnLeg!.status !== 'OPEN' || returnLegPricing!.closed || returnLeg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          <Card className="rounded-3xl border-brand-line shadow-none">
+            <CardContent className="py-8 text-center text-sm text-brand-muted">
               The return departure is no longer accepting bookings.
               <div className="mt-3">
                 <Button asChild>
@@ -271,8 +264,8 @@ export default async function BookPage({
     if (leg!.status !== 'OPEN' || activeLegPricing.closed || leg!.departureDate.getTime() <= Date.now()) {
       return (
         <div className="container py-12">
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          <Card className="rounded-3xl border-brand-line shadow-none">
+            <CardContent className="py-8 text-center text-sm text-brand-muted">
               This departure is no longer accepting bookings.
               <div className="mt-3">
                 <Button asChild>
@@ -320,88 +313,93 @@ export default async function BookPage({
   const viewRoute = /^[A-Z0-9]{2,8}-[A-Z0-9]{2,8}$/.test(routeCandidate) ? routeCandidate : null;
 
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-3xl">
-        <BookingProgress currentStep={2} />
-        <TrackEvent
-          eventId={randomUUID()}
-          name="view_item"
-          requires="analytics"
-          params={{
-            currency: DEFAULT_CURRENCY,
-            value: displayAdultPrice,
-            items: [
-              {
-                item_id: `${searchOrigin}-${searchDestination}`.toUpperCase(),
-                item_name: `${searchOrigin}-${searchDestination}`.toUpperCase(),
-                item_category: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-                price: displayAdultPrice,
-              },
-            ],
-          }}
-          collect={{
-            route: viewRoute,
-            leg_id: displayLeg.id,
-            departure_date: formatLocalDate(displayLeg.departureDate, 'yyyy-MM-dd'),
-            passenger_count: initialPassengers,
-            trip_type: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-            page_path: '/book',
-          }}
-        />
-        <Link
-          href={`/search?origin=${encodeURIComponent(searchOrigin)}&destination=${encodeURIComponent(searchDestination)}${isRoundTrip ? `&returnDate=${returnLeg!.departureDate.toISOString().split('T')[0]}` : ''}`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Back to search
-        </Link>
+    <div className="mx-auto max-w-[1180px] px-5 py-6 sm:px-6 sm:py-8">
+      <BookingProgress currentStep={2} />
+      <TrackEvent
+        eventId={randomUUID()}
+        name="view_item"
+        requires="analytics"
+        params={{
+          currency: DEFAULT_CURRENCY,
+          value: displayAdultPrice,
+          items: [
+            {
+              item_id: `${searchOrigin}-${searchDestination}`.toUpperCase(),
+              item_name: `${searchOrigin}-${searchDestination}`.toUpperCase(),
+              item_category: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+              price: displayAdultPrice,
+            },
+          ],
+        }}
+        collect={{
+          route: viewRoute,
+          leg_id: displayLeg.id,
+          departure_date: formatLocalDate(displayLeg.departureDate, 'yyyy-MM-dd'),
+          passenger_count: initialPassengers,
+          trip_type: isRoundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+          page_path: '/book',
+        }}
+      />
+      <Link
+        href={`/search?origin=${encodeURIComponent(searchOrigin)}&destination=${encodeURIComponent(searchDestination)}${isRoundTrip ? `&returnDate=${returnLeg!.departureDate.toISOString().split('T')[0]}` : ''}`}
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
+      >
+        ← Back to search
+      </Link>
+      <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+        Passenger details
+      </h1>
+      <p className="mt-1.5 text-[15px] text-brand-muted">
+        Tickets and updates go to the contact details you enter below.
+      </p>
 
-        <BookingPriceProvider
-          adultPrice={displayAdultPrice}
-          childPrice={displayChildPrice}
-          infantPrice={displayInfantPrice}
-          legFares={isRoundTrip ? { outbound: outboundFare, return: returnFare } : undefined}
-          initialCount={initialPassengers}
-          max={10}
-        >
-          {/* Outbound leg card */}
-          <Card className="mt-3">
-            <CardHeader>
-              <CardTitle className="text-2xl">
+      <BookingPriceProvider
+        adultPrice={displayAdultPrice}
+        childPrice={displayChildPrice}
+        infantPrice={displayInfantPrice}
+        legFares={isRoundTrip ? { outbound: outboundFare, return: returnFare } : undefined}
+        initialCount={initialPassengers}
+        max={10}
+      >
+        {/* The trip and its price come first on a phone and sit on the right from lg. */}
+        <div className="mt-7 flex flex-col gap-6 lg:flex-row-reverse lg:items-start lg:gap-8">
+          <aside className="space-y-4 lg:sticky lg:top-24 lg:w-[360px] lg:shrink-0">
+            {/* Outbound leg card */}
+            <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-[26px]">
+              <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink sm:text-2xl">
                 {displayLeg.schedule.originPort} → {displayLeg.schedule.destinationPort}
-              </CardTitle>
-              <CardDescription>
+              </h2>
+              <p className="mt-1 text-sm text-brand-muted">
                 {formatLocalDate(displayLeg.departureDate, 'EEEE, dd MMM yyyy')} ·{' '}
                 <span className="font-mono">
                   {formatLocalTime(displayLeg.departureDate)}
                 </span>{' '}
                 WITA · {displayLeg.schedule.boat.name}
-              </CardDescription>
-            </CardHeader>
-            <BookingPriceSummary />
-          </Card>
+              </p>
+              <BookingPriceSummary />
+            </section>
 
-          {/* Return leg card (if round-trip) */}
-          {isRoundTrip && (
-            <Card className="mt-3">
-              <CardHeader>
-                <CardTitle className="text-2xl">
+            {/* Return leg card (if round-trip) */}
+            {isRoundTrip && (
+              <section className="rounded-3xl border border-brand-line bg-brand-surface p-5 sm:px-6">
+                <h2 className="font-display text-lg font-extrabold tracking-tight text-brand-ink">
                   {returnLeg!.schedule.originPort} → {returnLeg!.schedule.destinationPort}
-                </CardTitle>
-                <CardDescription>
+                </h2>
+                <p className="mt-1 text-sm text-brand-muted">
                   {formatLocalDate(returnLeg!.departureDate, 'EEEE, dd MMM yyyy')} ·{' '}
                   <span className="font-mono">
                     {formatLocalTime(returnLeg!.departureDate)}
                   </span>{' '}
                   WITA · {returnLeg!.schedule.boat.name}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Return journey (same passengers apply to both legs)
-              </CardContent>
-            </Card>
-          )}
+                </p>
+                <p className="mt-2 text-sm text-brand-muted">
+                  Return journey (same passengers apply to both legs)
+                </p>
+              </section>
+            )}
+          </aside>
 
-          <form action={submitBookingAction} className="mt-6 space-y-6">
+          <form action={submitBookingAction} className="min-w-0 flex-1 space-y-5">
             {isRoundTrip ? (
               <>
                 <input type="hidden" name="outboundLegId" value={outboundLegIdParam!} />
@@ -412,30 +410,30 @@ export default async function BookPage({
             )}
 
             {error ? (
-              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                 {error}
               </p>
             ) : null}
 
             {customer ? (
-              <p className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900">
+              <p className="rounded-2xl border border-brand-line bg-brand-surface px-4 py-3 text-sm text-brand-text">
                 Booking as <strong>{customer.fullName}</strong> ({customer.email}).
                 This trip will appear in your{' '}
-                <Link href="/account" className="underline">account</Link>.
+                <Link href="/account" className="font-bold text-brand underline">account</Link>.
               </p>
             ) : (
-              <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              <p className="rounded-2xl border border-brand-line bg-brand-surface px-4 py-3 text-sm text-brand-text">
                 Booking as a guest.{' '}
                 <Link
                   href={`/account/login?next=${encodeURIComponent(isRoundTrip ? `/book/0?outboundLegId=${outboundLegIdParam}&returnLegId=${returnLegIdParam}&passengers=${initialPassengers}` : `/book/${leg!.id}?passengers=${initialPassengers}`)}`}
-                  className="font-medium text-sky-700 hover:underline"
+                  className="font-bold text-brand underline"
                 >
                   Sign in
                 </Link>{' '}
                 or{' '}
                 <Link
                   href={`/account/register?next=${encodeURIComponent(isRoundTrip ? `/book/0?outboundLegId=${outboundLegIdParam}&returnLegId=${returnLegIdParam}&passengers=${initialPassengers}` : `/book/${leg!.id}?passengers=${initialPassengers}`)}`}
-                  className="font-medium text-sky-700 hover:underline"
+                  className="font-bold text-brand underline"
                 >
                   create an account
                 </Link>{' '}
@@ -443,29 +441,25 @@ export default async function BookPage({
               </p>
             )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Passengers</CardTitle>
-                <CardDescription>
-                  Up to 10 per booking. Names should match a government ID
-                  where possible.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-[26px]">
+              <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink">Passengers</h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                Up to 10 per booking. Names should match a government ID
+                where possible.
+              </p>
+              <div className="mt-5">
                 <PassengerFields />
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact details</CardTitle>
-                <CardDescription>
-                  We send your tickets and any updates here.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customerName">Your name</Label>
+            <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-[26px]">
+              <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink">Contact details</h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                We send your tickets and any updates here.
+              </p>
+              <div className="mt-5 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="customerName" className="text-[13px] font-semibold text-brand-text">Your name</Label>
                   <Input
                     id="customerName"
                     name="customerName"
@@ -473,10 +467,11 @@ export default async function BookPage({
                     minLength={NAMES_MIN}
                     autoComplete="name"
                     defaultValue={customer?.fullName ?? ''}
+                    className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Email</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="customerEmail" className="text-[13px] font-semibold text-brand-text">Email</Label>
                   <Input
                     id="customerEmail"
                     name="customerEmail"
@@ -484,69 +479,67 @@ export default async function BookPage({
                     required
                     autoComplete="email"
                     defaultValue={customer?.email ?? ''}
+                    className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
                   />
                 </div>
                 <ContactFields
                   defaultPhone={customer?.phoneNumber ?? ''}
                   defaultNationality={customer?.nationality ?? ''}
                 />
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="notes" className="text-[13px] font-semibold text-brand-text">Notes (optional)</Label>
                   <Textarea
                     id="notes"
                     name="notes"
                     rows={2}
                     placeholder="Anything the operator should know"
+                    className="rounded-[14px] border-brand-line px-3.5 py-3 text-base"
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Promo code</CardTitle>
-                <CardDescription>
-                  Have a discount code? Apply it here.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-[26px]">
+              <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink">Promo code</h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                Have a discount code? Apply it here.
+              </p>
+              <div className="mt-5">
                 <PromoCodeInput />
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <label className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    name="agreedToTerms"
-                    value="1"
-                    required
-                    className="mt-0.5 h-4 w-4 flex-shrink-0"
-                  />
-                  <span>
-                    I have read and agree to the{' '}
-                    <Link
-                      href="/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-sky-700 underline"
-                    >
-                      Terms &amp; Conditions and Refund Policy
-                    </Link>
-                    . I confirm my booking details are correct and accept the
-                    cancellation schedule (100% refund &gt;7 days · 50%
-                    refund 48h–7 days · no refund &lt;48h before departure).
-                  </span>
-                </label>
-              </CardContent>
-              <CardFooter>
+            <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-[26px]">
+              <label className="flex min-h-11 items-start gap-3 rounded-2xl bg-brand-surface p-4 text-[13px] leading-relaxed text-brand-text">
+                <input
+                  type="checkbox"
+                  name="agreedToTerms"
+                  value="1"
+                  required
+                  className="mt-0.5 h-5 w-5 flex-shrink-0 accent-brand"
+                />
+                <span>
+                  I have read and agree to the{' '}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-brand underline"
+                  >
+                    Terms &amp; Conditions and Refund Policy
+                  </Link>
+                  . I confirm my booking details are correct and accept the
+                  cancellation schedule (100% refund &gt;7 days · 50%
+                  refund 48h–7 days · no refund &lt;48h before departure).
+                </span>
+              </label>
+              <div className="mt-4">
                 <SubmitBookingButton />
-              </CardFooter>
-            </Card>
+              </div>
+            </section>
           </form>
-        </BookingPriceProvider>
-      </div>
+        </div>
+      </BookingPriceProvider>
     </div>
   );
 }

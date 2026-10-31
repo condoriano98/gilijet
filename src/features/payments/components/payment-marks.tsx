@@ -42,9 +42,9 @@ export function DokuMethodMarks() {
       {DOKU_METHODS.map(({ icon: Icon, label }) => (
         <li
           key={label}
-          className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600"
+          className="flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-2 py-1 text-[11px] font-medium text-brand-muted"
         >
-          <Icon className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+          <Icon className="h-3.5 w-3.5 text-brand-muted" aria-hidden="true" />
           {label}
         </li>
       ))}

@@ -23,11 +23,10 @@ const ROUTES = [
   '/legal/wahana-virendra',
 ];
 
-// The best-price page and the booking lookup have no h1 (their titles are card
-// headings), and best-price exports no metadata, so it keeps the default tab
-// title. See CONT-002b, CONT-002c and CONT-003b.
+// The best-price page has no h1 (its title is a card heading) and exports no
+// metadata, so it keeps the default tab title. See CONT-002b and CONT-003b.
 const ROUTES_WITH_H1 = ROUTES.filter(
-  (r) => r !== '/best-price-guarantee' && r !== '/b' && !r.startsWith('/legal/'),
+  (r) => r !== '/best-price-guarantee' && !r.startsWith('/legal/'),
 );
 
 const TITLES: Record<string, string> = {
@@ -62,14 +61,11 @@ test.describe('content pages', () => {
     });
   }
 
-  test.fixme(
-    'CONT-002c /b (find your booking) has one h1',
-    // App finding, found by the first baseline run: the title is a CardTitle.
-    async ({ page }) => {
-      await page.goto('/b');
-      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-    },
-  );
+  // Bug B4 for /b, fixed in redesign stage 3 (the title is now an h1).
+  test('CONT-002c /b (find your booking) has one h1', async ({ page }) => {
+    await page.goto('/b');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  });
 
   test.fixme(
     'CONT-002b best-price-guarantee has one h1',

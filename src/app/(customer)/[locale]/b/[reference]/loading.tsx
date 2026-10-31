@@ -2,14 +2,14 @@ import { Card, CardContent, CardHeader } from '@/shared/ui/card';
 
 export default function ConfirmationLoading() {
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-[1180px] px-5 py-6 sm:px-6 sm:py-8">
+      <div className="space-y-6">
         <div className="space-y-2">
           <div className="h-9 w-72 animate-pulse rounded bg-slate-200" />
           <div className="h-5 w-56 animate-pulse rounded bg-slate-100" />
         </div>
 
-        <Card>
+        <Card className="rounded-3xl border-brand-line shadow-none">
           <CardHeader>
             <div className="h-6 w-40 animate-pulse rounded bg-slate-200" />
           </CardHeader>
@@ -23,13 +23,13 @@ export default function ConfirmationLoading() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-3xl border-brand-line shadow-none">
           <CardHeader>
             <div className="h-6 w-32 animate-pulse rounded bg-slate-200" />
           </CardHeader>
           <CardContent className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 rounded-md border bg-white p-3">
+              <div key={i} className="flex items-center gap-4 rounded-2xl border border-brand-line bg-white p-3">
                 <div className="h-32 w-32 shrink-0 animate-pulse rounded-md bg-slate-200 sm:h-40 sm:w-40" />
                 <div className="flex-1 space-y-2">
                   <div className="h-5 w-32 animate-pulse rounded bg-slate-200" />

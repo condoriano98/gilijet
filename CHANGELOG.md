@@ -14,6 +14,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Added
 
+- Stage 3 baseline e2e specs (booking, checkout, detail, search extras and first-visit layout; about 48 tests, run on desktop and phone). They found five bugs, B15 to B19, pinned as known failures: sea-condition badge key order, connection duration text, Pay button ignoring a valid promo (B17, money shown), round-trip detail page showing one leg, and the consent banner over the checkout terms box on a phone.
 - The e2e runner refuses to touch any database but the local Docker Postgres: `playwright.config.ts` stops when `DATABASE_URL`, `DIRECT_URL` or `E2E_BASE_URL` is not local, never reuses a server already on port 3000, forces throw-away secrets and blanks every outbound credential. Every spec now starts as a first-time visitor (no saved consent choice, banner open); `tests/e2e/support/consent.ts` saves a choice for the one spec that needs it.
 - End-to-end tests for the search form's From and To dropdowns on home, `/search` and `/id`, at laptop and phone size, including a first visit with the consent banner open. Test `CONT-035` guards that the banner does not cover the To field on a first visit (bug B14, fixed).
 - Redesign stage 0 (staging only, not released): `docs/DESIGN_SYSTEM.md`, the `ui-designer` agent, the `brand-surface`, `brand-line`, `brand-text` and `brand-muted` colour tokens, and test `CONT-009b` for the new footer.
@@ -46,6 +47,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Changed
 
+- Booking flow redesign (stage 3, staging only, not released): the book form, checkout, pay, find my booking, booking detail and reschedule pages in the new look, with 44 px controls and a real `h1` on `/b` and `pay`. Fields, amounts, actions and redirects are unchanged. Known open items: the Pay button shows the pre-discount total after a promo code (B17), and the round-trip booking page shows one leg (B18).
 - The cookie banner is compact: a 320 px card in the bottom-right corner on a laptop and a short bar on a phone (one line of text, the full text under "Choose"), so it no longer covers the To field of the search form on a first visit (bug B14). Buttons, texts and the consent logic are unchanged. The home hero is 16 px shorter on a phone.
 - Search results redesign (stage 2, staging only, not released): filters in a left column, result and connection cards, a styled round-trip selector, and one `h1` per page. The step indicator is blue on every booking page. Queries, prices and links are unchanged.
 - Home page redesign (stage 1, staging only, not released): inset hero, floating search card, bento destinations, route rows, blue "Why book" band, numbered steps and a blue operator banner, with the search form restyled (the same form on `/search` looks the same; its results are restyled in stage 2). Data, links, search parameters and the heading text are unchanged; the wave dividers are gone and the home route is now checked for 44 px buttons.

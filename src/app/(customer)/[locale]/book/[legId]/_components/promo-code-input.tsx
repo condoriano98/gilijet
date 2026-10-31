@@ -47,8 +47,8 @@ export function PromoCodeInput() {
   }
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="promoCode">Promo code (optional)</Label>
+    <div className="space-y-1.5">
+      <Label htmlFor="promoCode" className="text-[13px] font-semibold text-brand-text">Promo code (optional)</Label>
       <div className="flex gap-2">
         <Input
           id="promoCode"
@@ -63,15 +63,17 @@ export function PromoCodeInput() {
             }
           }}
           autoComplete="off"
+          className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
         />
         {status === 'valid' ? (
-          <Button type="button" variant="outline" onClick={clearCode}>
+          <Button type="button" variant="outline" className="h-12 rounded-[14px] border-brand px-5 font-semibold text-brand hover:bg-brand-periwinkle" onClick={clearCode}>
             Clear
           </Button>
         ) : (
           <Button
             type="button"
             variant="outline"
+            className="h-12 rounded-[14px] border-brand px-5 font-semibold text-brand hover:bg-brand-periwinkle"
             onClick={applyCode}
             disabled={status === 'checking' || !code.trim()}
           >
@@ -80,13 +82,13 @@ export function PromoCodeInput() {
         )}
       </div>
       {result && result.valid ? (
-        <p className="text-xs text-emerald-700">
+        <p className="text-sm text-emerald-700">
           ✓ {result.description ?? 'Promo applied'} — saves{' '}
           <strong>{formatIDR(result.discountAmount)}</strong>
         </p>
       ) : null}
       {result && !result.valid ? (
-        <p className="text-xs text-red-700">{result.error}</p>
+        <p className="text-sm text-rose-700">{result.error}</p>
       ) : null}
     </div>
   );

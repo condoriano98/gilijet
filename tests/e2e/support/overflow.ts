@@ -41,7 +41,9 @@ async function labelOf(button: Locator, i: number) {
 /**
  * Every visible submit button is the element that receives a tap at its centre:
  * a sticky bar, banner or overlapping card on top of it fails here. Scrolls each
- * button into view first, as a visitor would. All failures are reported.
+ * button to the middle of the screen first: a visitor can scroll that far, and the
+ * consent banner (fixed, bottom) would otherwise cover a button sitting at the lower
+ * edge, which says nothing about the page. All failures are reported.
  */
 export async function expectSubmitButtonsReachable(page: Page) {
   // A disabled button is skipped: it has `pointer-events: none`, so the point test would name the form behind it.
@@ -49,7 +51,7 @@ export async function expectSubmitButtonsReachable(page: Page) {
   const count = await buttons.count();
   for (let i = 0; i < count; i++) {
     const button = buttons.nth(i);
-    await button.scrollIntoViewIfNeeded();
+    await button.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     const covering = await button.evaluate((el) => {
       const r = el.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);

@@ -32,19 +32,19 @@ export function PaypalButton({
   const [loading, setLoading] = useState(false);
 
   return (
-    <form action={startAction} onSubmit={() => setLoading(true)} className="space-y-2">
+    <form action={startAction} onSubmit={() => setLoading(true)} className="space-y-3 rounded-[20px] border border-brand-line bg-white p-4 sm:p-5">
       <input type="hidden" name="reference" value={bookingReference} />
       <Button
         type="submit"
         disabled={loading}
         variant="outline"
-        className="w-full border-[#003087]/25 bg-white hover:bg-[#003087]/5"
+        className="min-h-12 w-full rounded-2xl border-[1.5px] border-brand bg-white font-bold text-brand hover:bg-brand-periwinkle"
         size="lg"
       >
         <PaypalMark className="h-5 w-5 shrink-0" />
         {loading ? 'Opening PayPal…' : `Pay ${presentmentLabel} by card`}
       </Button>
-      <p className="text-center text-xs text-slate-500">
+      <p className="text-center text-[13px] text-brand-muted">
         Card declined above? This uses a different card network, and needs no
         PayPal account. Charged in {presentmentLabel}, converted from {idrLabel}{' '}
         at today&apos;s rate — your bank may add its own conversion fee.

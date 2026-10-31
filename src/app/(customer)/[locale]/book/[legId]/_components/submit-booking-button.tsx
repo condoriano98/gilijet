@@ -10,7 +10,7 @@ export function SubmitBookingButton() {
   const { total: amount } = useBookingPrice();
 
   return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+    <Button type="submit" size="lg" className="h-14 w-full rounded-[14px] bg-brand text-base font-bold text-white hover:bg-brand-dark" disabled={pending}>
       {pending ? (
         <span className="flex items-center gap-2">
           <svg

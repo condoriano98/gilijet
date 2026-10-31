@@ -41,11 +41,11 @@ export function ContactFields({
 
   return (
     <>
-      <div className="space-y-2">
-        <Label>Phone (WhatsApp preferred)</Label>
+      <div className="space-y-1.5">
+        <Label className="text-[13px] font-semibold text-brand-text">Phone (WhatsApp preferred)</Label>
         <div className="flex gap-2">
           <Select value={phoneCountryCode} onValueChange={setPhoneCountryCode}>
-            <SelectTrigger className="w-24 shrink-0 sm:w-32">
+            <SelectTrigger className="h-12 w-24 shrink-0 rounded-[14px] border-brand-line text-base sm:w-32">
               <SelectValue>
                 <span className="truncate">
                   {phoneFlag} {phoneDialCode}
@@ -67,7 +67,7 @@ export function ContactFields({
             placeholder="812 3456 7890"
             value={number}
             onChange={(e) => setNumber(e.target.value)}
-            className="flex-1"
+            className="h-12 rounded-[14px] border-brand-line px-3.5 text-base min-w-0 flex-1"
           />
         </div>
         <input
@@ -77,12 +77,12 @@ export function ContactFields({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>
+      <div className="space-y-1.5">
+        <Label className="text-[13px] font-semibold text-brand-text">
           Nationality <span className="text-destructive">*</span>
         </Label>
         <Select value={nationalityCode} onValueChange={setNationalityCode}>
-          <SelectTrigger>
+          <SelectTrigger className="h-12 rounded-[14px] border-brand-line text-base">
             <SelectValue placeholder="Select nationality" />
           </SelectTrigger>
           <SelectContent>

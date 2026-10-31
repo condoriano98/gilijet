@@ -39,6 +39,7 @@ const ROUTES = [
 // here in the stage that redesigns it, and the check starts guarding it.
 const REDESIGNED_ROUTES: string[] = [
   '/',
+  '/b',
   '/search?destination=E2E+Nowhere&date=2090-01-01&passengers=1',
 ];
 

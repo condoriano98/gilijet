@@ -7,13 +7,6 @@ import { audit } from '@/shared/server/audit';
 import { formatLocalDate, formatLocalTime, localDateTimeToUtc } from '@/shared/lib/datetime';
 import { formatIDR } from '@/shared/lib/utils';
 import { getMainLeg } from '@/features/booking/helpers';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -215,85 +208,85 @@ export default async function ReschedulePage({
   const candidateLegs = withSeasonPrice(rawCandidateLegs, await loadActiveSeasons()).slice(0, 20);
 
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-[860px] px-5 py-6 sm:px-6 sm:py-8">
+      <div className="space-y-5">
         <Link
           href={`/b/${reference}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
         >
           ← Back to booking
         </Link>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Request a date change</CardTitle>
-            <CardDescription>
-              Currently on{' '}
-              <strong>
-                {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
-                {formatLocalTime(mainLeg.departureDate)}
-              </strong>
-              . Pick a new departure on the same route — operators usually
-              approve within a few hours.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <form className="flex flex-wrap items-end gap-2" action="">
-              <input type="hidden" name="reference" value={reference} />
-              <div className="space-y-1">
-                <Label htmlFor="date">Choose a new date</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  defaultValue={defaultDate}
-                  min={new Date().toISOString().slice(0, 10)}
-                />
-              </div>
-              <Button type="submit" variant="outline" size="sm">
-                Show departures
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-7">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-ink sm:text-[30px]">
+            Request a date change
+          </h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-brand-muted">
+            Currently on{' '}
+            <strong className="text-brand-ink">
+              {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')} ·{' '}
+              {formatLocalTime(mainLeg.departureDate)}
+            </strong>
+            . Pick a new departure on the same route — operators usually
+            approve within a few hours.
+          </p>
+          <form className="mt-5 flex flex-wrap items-end gap-3" action="">
+            <input type="hidden" name="reference" value={reference} />
+            <div className="space-y-1.5">
+              <Label htmlFor="date" className="text-[13px] font-semibold text-brand-ink">
+                Choose a new date
+              </Label>
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                defaultValue={defaultDate}
+                min={new Date().toISOString().slice(0, 10)}
+                className="h-12 rounded-[14px] border-brand-line px-3.5 text-base"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-12 rounded-[14px] border-[1.5px] border-brand px-6 text-[15px] font-bold text-brand hover:bg-brand-periwinkle"
+            >
+              Show departures
+            </Button>
+          </form>
+        </section>
 
         {error ? (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-2xl bg-red-50 px-[18px] py-3.5 text-sm text-red-700">
             {error}
           </p>
         ) : null}
-
         {booking.rescheduleRequest?.status === 'PENDING' ? (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="rounded-2xl bg-amber-100 px-[18px] py-3.5 text-sm text-amber-900">
             You already have a pending reschedule request. Submitting a new one
             will replace it.
           </p>
         ) : null}
 
         {candidateLegs.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No departures on this date. Try another date.
-            </CardContent>
-          </Card>
+          <p className="rounded-2xl border-[1.5px] border-dashed border-brand-line p-5 text-center text-sm text-brand-muted sm:p-6">
+            No departures on this date. Try another date.
+          </p>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {mainLeg.schedule.originPort} →{' '}
-                {mainLeg.schedule.destinationPort}
-              </CardTitle>
-              <CardDescription>
-                {formatLocalDate(startUtc, 'EEEE, dd MMM yyyy')} · {seatCount}{' '}
-                passenger{seatCount === 1 ? '' : 's'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <section className="rounded-3xl border border-brand-line bg-white p-5 sm:p-7">
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-ink">
+              {mainLeg.schedule.originPort} →{' '}
+              {mainLeg.schedule.destinationPort}
+            </h2>
+            <p className="mt-1 text-sm text-brand-muted">
+              {formatLocalDate(startUtc, 'EEEE, dd MMM yyyy')} · {seatCount}{' '}
+              passenger{seatCount === 1 ? '' : 's'}
+            </p>
+            <div className="mt-4 space-y-3">
               {candidateLegs.map((leg) => (
                 <form
                   key={leg.id}
                   action={submitRescheduleAction}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-white p-3"
+                  className="flex flex-col gap-4 rounded-[18px] border border-brand-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-[18px]"
                 >
                   <input type="hidden" name="reference" value={reference} />
                   <input
@@ -302,34 +295,38 @@ export default async function ReschedulePage({
                     value={leg.id}
                   />
                   <div>
-                    <div className="text-base font-semibold">
-                      {formatLocalTime(leg.departureDate)} WITA
+                    <div className="text-xl font-extrabold text-brand-ink">
+                      {formatLocalTime(leg.departureDate)}{' '}
+                      <span className="text-[13px] font-semibold text-brand-muted">WITA</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[13px] text-brand-muted">
                       {leg.schedule.boat.name} ·{' '}
                       {leg.schedule.durationMinutes} min ·{' '}
                       {formatIDR(Number(leg.basePrice))}/pax
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
                     <Input
                       type="email"
                       name="confirmEmail"
                       placeholder="Confirm email"
                       required
-                      className="w-52"
+                      className="h-12 w-full rounded-[14px] border-brand-line px-3.5 text-[15px] sm:w-56"
                     />
-                    <Button type="submit" size="sm">
+                    <Button
+                      type="submit"
+                      className="h-12 rounded-[14px] bg-brand px-[22px] text-[15px] font-bold text-white hover:bg-brand-dark"
+                    >
                       Request this
                     </Button>
                   </div>
                 </form>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         )}
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[13px] text-brand-muted">
           Need to add a note for the operator? Send your reasons by WhatsApp
           after submitting — references your booking by code.
         </p>

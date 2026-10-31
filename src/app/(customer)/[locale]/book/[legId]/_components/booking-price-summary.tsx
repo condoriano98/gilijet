@@ -1,6 +1,5 @@
 'use client';
 
-import { CardContent } from '@/shared/ui/card';
 import { formatIDR } from '@/shared/lib/utils';
 import { useBookingPrice } from '@/app/(customer)/[locale]/book/[legId]/_components/booking-price-provider';
 import type { PassengerType } from '@/features/pricing/pricing';
@@ -14,31 +13,31 @@ export function BookingPriceSummary() {
   for (const t of types) counts[t]++;
 
   return (
-    <CardContent className="space-y-1 text-sm">
+    <div className="mt-4 space-y-2.5 border-t border-brand-line pt-4 text-sm">
       {ORDER.filter((t) => counts[t] > 0).map((t) => (
         <div key={t} className="flex justify-between">
-          <span className="text-muted-foreground">
+          <span className="text-brand-muted">
             {counts[t]} × {t} ({formatIDR(unitPriceFor(t))})
           </span>
-          <span>{formatIDR(unitPriceFor(t) * counts[t])}</span>
+          <span className="font-semibold tabular-nums">{formatIDR(unitPriceFor(t) * counts[t])}</span>
         </div>
       ))}
       {legTotals ? (
-        <div className="space-y-1 border-t pt-1">
+        <div className="space-y-2.5 border-t border-brand-line pt-3">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Outbound</span>
-            <span>{formatIDR(legTotals.outbound)}</span>
+            <span className="text-brand-muted">Outbound</span>
+            <span className="tabular-nums">{formatIDR(legTotals.outbound)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Return</span>
-            <span>{formatIDR(legTotals.return)}</span>
+            <span className="text-brand-muted">Return</span>
+            <span className="tabular-nums">{formatIDR(legTotals.return)}</span>
           </div>
         </div>
       ) : null}
-      <div className="flex justify-between border-t pt-1 font-semibold">
+      <div className="flex items-baseline justify-between border-t border-brand-line pt-4 font-bold">
         <span>Total</span>
-        <span>{formatIDR(total)}</span>
+        <span className="text-2xl font-extrabold tracking-tight text-brand tabular-nums">{formatIDR(total)}</span>
       </div>
-    </CardContent>
+    </div>
   );
 }

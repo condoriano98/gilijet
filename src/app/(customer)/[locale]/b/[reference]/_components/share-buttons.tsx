@@ -29,7 +29,7 @@ export function ShareButtons({
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+        className="inline-flex min-h-11 items-center rounded-[14px] border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
       >
         Share on WhatsApp
       </a>

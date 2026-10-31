@@ -23,12 +23,12 @@ export function PaymentCountdown({ createdAtIso, holdMinutes }: { createdAtIso: 
   return (
     <div
       className={[
-        'flex items-center gap-2 rounded-md p-3 text-sm',
+        'flex items-center gap-2 rounded-2xl p-3 text-sm',
         expired
           ? 'bg-red-50 text-red-700'
           : warning
             ? 'bg-amber-50 text-amber-900'
-            : 'bg-sky-50 text-sky-900',
+            : 'bg-brand-periwinkle text-brand-dark',
       ].join(' ')}
     >
       <Clock className="h-4 w-4" />
@@ -63,7 +63,7 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
     <button
       type="button"
       onClick={handleCopy}
-      className="ml-2 inline-flex items-center rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
+      className="ml-2 inline-flex items-center rounded-full border border-brand-line px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand-surface"
     >
       {copied ? 'Copied!' : label}
     </button>
