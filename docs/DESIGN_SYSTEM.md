@@ -51,7 +51,7 @@ Customer chrome (stage 0), in `src/app/(customer)/_components/`:
 - `SiteFooter` (`site-footer.tsx`): `brand-surface` footer, four columns (brand and payment partners, Company, Legal, Support), cookie settings link, copyright and DOKU line.
 - `MobileNav`, `AuthNav`, `Logo`, `PaymentPartners`: unchanged behaviour.
 
-The shared hero and the legal-page layout are not built yet. They are added in the first stage that needs them (hero: home, stage 1; legal layout: terms, stage 5), so there is no unused component in the meantime.
+The home hero (stage 1) is written in `[locale]/page.tsx` and is not a shared component yet: no second page uses it. Extract it when one does. The legal-page layout is built in stage 5 (terms). Home patterns now in use: inset hero `rounded-[32px]` with a blue scrim, floating card `rounded-[28px] shadow-ambient`, section title `text-[34px] font-extrabold`, route rows with a periwinkle arrow, bento tiles `rounded-[28px]`, blue band `bg-brand-dark rounded-[32px]`.
 
 ## 6. Do not touch (kept contract)
 

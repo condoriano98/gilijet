@@ -5,9 +5,6 @@ import { SearchForm } from '@/features/schedules/components/search-form';
 import { DepartingToday } from '@/app/(customer)/[locale]/_components/departing-today';
 import { ReviewsCarousel } from '@/app/(customer)/[locale]/_components/reviews-carousel';
 import { NearestPortCard } from '@/app/(customer)/[locale]/_components/nearest-port-card';
-import { WaveDivider } from '@/shared/ui/wave-divider';
-import { Card, CardContent } from '@/shared/ui/card';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import {
   getDepartingSoon,
@@ -20,7 +17,7 @@ import {
 } from '@/features/schedules/home-data';
 import { photoForPort } from '@/features/ports/destination-photos';
 import { POSTS } from '@/content/blog';
-import { Ship } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 
 const ARTICLE_IMAGES = [
   '/brand/articles/article-ubud.png',
@@ -102,8 +99,8 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ─── HERO ─── (Figma illustration + display slogan) */}
-      <section className="relative overflow-hidden pb-36 pt-16 sm:pb-44 sm:pt-20">
+      {/* ─── HERO ─── */}
+      <section className="relative mx-5 mt-4 overflow-hidden rounded-[32px] pb-44 pt-16 sm:mx-6 sm:pb-52 sm:pt-24">
         <Image
           src="/brand/hero-home.png"
           alt="Island-hopping by fast boat across Indonesia"
@@ -115,325 +112,255 @@ export default async function HomePage() {
           // whole pura and the bow instead.
           className="object-cover object-[25%_center] sm:object-center"
         />
-        {/* Scrim shaped to the copy, not to the sky.
-            This was `from-black/20 via-transparent`, and Tailwind puts `via` at
-            50% — so the subtitle, which starts below the midpoint, had no scrim
-            at all and measured 1.17:1 against white glyphs. Holding ~55% down to
-            66% covers both the slogan and the paragraph, then releasing by 82%
-            leaves the hull and water — already high-contrast, and the best part
-            of the illustration — at full brightness. */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(3,12,28,0.62)_0%,rgba(3,12,28,0.60)_66%,rgba(3,12,28,0)_82%)]" />
+        {/* Scrim shaped to the copy: the heading and the paragraph sit in the
+            top 55%, so that stretch stays dark enough for white text, then it
+            releases so the hull and water show at full brightness. */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,34,142,0.74)_0%,rgba(0,34,142,0.62)_55%,rgba(0,34,142,0)_90%)]" />
 
-        <div className="container relative">
-          <div className="mx-auto max-w-6xl text-center">
-            <h1 className="mx-auto max-w-4xl text-4xl font-display font-extrabold leading-[0.98] text-white drop-shadow-lg sm:text-6xl lg:text-7xl">
+        <div className="container relative px-5 sm:px-8 lg:px-16">
+          <div className="max-w-3xl text-white">
+            <h1 className="font-display text-4xl font-extrabold leading-[1.04] tracking-tight drop-shadow-lg sm:text-6xl lg:text-[68px]">
               Let Journey Begin with Gilifast!
             </h1>
-            {/* Solid white, not white/90: the value proposition was rendering
-                at lower contrast than the heading above it. */}
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-white drop-shadow-md sm:text-xl">
+            <p className="mt-5 max-w-xl text-lg text-white drop-shadow-md sm:text-[19px]">
               {t('home.heroSubtitle')}
             </p>
           </div>
         </div>
       </section>
 
-      {/* Wave divider behind search card */}
-      <div className="relative z-0">
-        <WaveDivider fillClass="fill-gilifast-foam" />
-
-        {/* Search card — overlaps the hero/content boundary. Circular photo
-            blob on the left (Figma motif) + the live search form. */}
-        <div className="relative z-10 -mt-12 mx-auto max-w-6xl px-4">
-          <div className="flex overflow-hidden rounded-[10px] bg-white shadow-ambient">
-            <div className="relative hidden w-72 shrink-0 lg:block">
-              <Image
-                src="/brand/search-card-photo.png"
-                alt=""
-                fill
-                sizes="288px"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-brand/45" />
-              <div className="absolute inset-0 flex flex-col justify-center p-6 text-white">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Ship size={18} /> Boat Trip
-                </div>
-                <div className="mt-2 text-2xl font-extrabold leading-tight drop-shadow">
-                  Find the Best Deals on Boat for your Trip
-                </div>
-              </div>
-            </div>
-            <div className="flex-1">
-              <SearchForm origins={allPorts} destinations={allPorts} portsByRegion={portsByRegion} />
-            </div>
-          </div>
-          <p className="mt-3 text-center text-xs text-slate-500">
-            {t('home.searchAcross')}
-          </p>
+      {/* Search card — floats over the bottom of the hero. */}
+      <section className="relative z-10 mx-auto -mt-32 max-w-[1180px] px-5 sm:-mt-36 sm:px-6">
+        <div className="rounded-[28px] bg-white shadow-ambient">
+          <SearchForm origins={allPorts} destinations={allPorts} portsByRegion={portsByRegion} />
         </div>
-      </div>
+        <p className="mt-4 text-center text-[13px] text-brand-muted">
+          {t('home.searchAcross')}
+        </p>
+      </section>
 
       {/* ─── NEAREST PORT ─── */}
-      <section className="container mt-8">
-        <div className="mx-auto max-w-5xl">
-          <NearestPortCard />
-        </div>
+      <section className="mx-auto mt-8 max-w-[1180px] px-5 sm:px-6">
+        <NearestPortCard />
       </section>
 
       {/* ─── DEPARTING SOON ─── */}
       {hasDepartures && (
-        <section className="bg-gilifast-foam">
-          <div className="container pt-8 pb-10">
-            <DepartingToday departures={departures} />
-          </div>
+        <section className="mx-auto mt-14 max-w-[1180px] px-5 sm:mt-[72px] sm:px-6">
+          <DepartingToday departures={departures} />
         </section>
       )}
 
       {/* ─── PROMO BANNER ─── */}
       {promo && (
-        <section className="container mt-8 mb-12">
-          <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-gilifast-coral px-2 py-0.5 text-xs font-bold text-white">
-                    PROMO
-                  </span>
-                  <h3 className="text-lg font-display font-bold text-amber-900">
-                    {promo.discountType === 'PERCENT'
-                      ? `Save ${promo.discountValue}% on your next trip`
-                      : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
-                  </h3>
-                </div>
-                <p className="mt-1 text-sm text-amber-800">
-                  {promo.description && <span>{promo.description} · </span>}
-                  Use code{' '}
-                  <span className="font-mono font-semibold">{promo.code}</span> at
-                  checkout
-                  {promo.expiresAt && (
-                    <>
-                      {' '}· Valid until{' '}
-                      {new Date(promo.expiresAt).toLocaleDateString('en-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </>
-                  )}
-                </p>
+        <section className="mx-auto mt-12 max-w-[1180px] px-5 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-brand-line bg-brand-periwinkle p-6 sm:p-8">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
+                  PROMO
+                </span>
+                <h3 className="font-display text-lg font-bold text-brand-dark">
+                  {promo.discountType === 'PERCENT'
+                    ? `Save ${promo.discountValue}% on your next trip`
+                    : `Save IDR ${promo.discountValue.toLocaleString('id-ID')} on your next trip`}
+                </h3>
               </div>
-              <Button asChild className="w-full bg-gilifast-coral hover:bg-gilifast-coralDeep sm:w-auto">
-                <Link href="/search">Book now</Link>
-              </Button>
+              <p className="mt-2 text-sm text-brand-text">
+                {promo.description && <span>{promo.description} · </span>}
+                Use code{' '}
+                <span className="font-mono font-semibold">{promo.code}</span> at
+                checkout
+                {promo.expiresAt && (
+                  <>
+                    {' '}· Valid until{' '}
+                    {new Date(promo.expiresAt).toLocaleDateString('en-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </>
+                )}
+              </p>
             </div>
+            <Button asChild className="w-full rounded-pill bg-brand px-6 font-semibold text-white hover:bg-brand-dark sm:w-auto">
+              <Link href="/search">Book now</Link>
+            </Button>
           </div>
         </section>
       )}
+
+      {/* ─── FEATURED DESTINATIONS ─── bento grid from lg, stacked below */}
+      <section className="mx-auto mt-14 max-w-[1180px] px-5 sm:mt-[88px] sm:px-6">
+        <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+          {t('home.exploreTitle')}
+        </h2>
+        <p className="mt-1.5 text-base text-brand-muted">
+          {t('home.exploreSubtitle')}
+        </p>
+
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:grid-rows-[250px_250px]">
+          {FEATURED_DESTINATIONS.map((dest, i) => {
+            const photo = photoForPort(dest.slug);
+            const big = i === 0;
+            const wide = i === 3;
+            return (
+              <Link
+                key={dest.slug}
+                href={`/search?destination=${encodeURIComponent(dest.destinationPort)}`}
+                aria-label={`Browse boats to ${dest.name}`}
+                className={`group relative block min-h-[220px] overflow-hidden rounded-[28px] bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                  big ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:min-h-0' : ''
+                } ${wide ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+              >
+                {photo && (
+                  <Image
+                    src={photo.url}
+                    alt={photo.alt}
+                    fill
+                    sizes={big ? '(min-width: 1024px) 50vw, 100vw' : '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw'}
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/90 via-brand-dark/20 to-transparent" />
+                <div className="absolute inset-x-6 bottom-5 text-white">
+                  <div className={`font-display font-extrabold tracking-tight ${big ? 'text-3xl' : 'text-[22px]'}`}>
+                    {dest.name}
+                  </div>
+                  {(big || wide) && (
+                    <div className="mt-1 text-[15px]">{dest.description}</div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2 text-[13px] font-semibold">
+                    <span className="rounded-full bg-white/25 px-3 py-1.5">{dest.routes} routes</span>
+                    <span className="rounded-full bg-white px-3 py-1.5 text-brand-dark">
+                      from IDR {dest.from.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ─── POPULAR ROUTES ─── */}
-      <section className="container mb-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                {t('home.popularRoutes')}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                {t('home.popularSubtitle')}
-              </p>
-            </div>
+      <section className="mx-auto mt-14 max-w-[1180px] px-5 sm:mt-[88px] sm:px-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+              {t('home.popularRoutes')}
+            </h2>
+            <p className="mt-1.5 text-base text-brand-muted">
+              {t('home.popularSubtitle')}
+            </p>
+          </div>
+          <Link
+            href="/search"
+            className="hidden text-[15px] font-semibold text-brand hover:underline sm:inline"
+          >
+            See all →
+          </Link>
+        </div>
+
+        <div className="mt-6 border-t border-brand-line">
+          {popularRoutes.map((route) => (
             <Link
-              href="/search"
-              className="hidden text-sm font-medium text-gilifast-deep hover:underline sm:inline"
+              key={`${route.origin}-${route.destination}`}
+              href={`/search?origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent(route.destination)}`}
+              className="group flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-brand-line px-2 py-5 transition-colors hover:bg-brand-surface sm:py-[22px]"
             >
-              See all →
-            </Link>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {popularRoutes.map((route) => {
-              const photo = photoForPort(route.destination);
-              return (
-                <Link
-                  key={`${route.origin}-${route.destination}`}
-                  href={`/search?origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent(route.destination)}`}
-                  className="group block"
-                >
-                  <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5">
-                    <div className="flex items-center gap-4 p-4">
-                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-gilifast-foam">
-                        {photo && (
-                          <Image
-                            src={photo.url}
-                            alt={photo.alt}
-                            fill
-                            sizes="56px"
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1 text-sm font-medium text-slate-900">
-                          <span className="truncate">{route.origin}</span>
-                          <span className="text-slate-400">→</span>
-                          <span className="truncate">{route.destination}</span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                          <span>{formatDuration(route.durationMinutes)}</span>
-                          <span>·</span>
-                          <span>
-                            {route.operatorCount}{' '}
-                            operator{route.operatorCount === 1 ? '' : 's'}
-                          </span>
-                        </div>
-                        <div className="mt-1">
-                          <span className="text-xs text-slate-500">from </span>
-                          <span className="text-lg font-bold text-gilifast-deep">
-                            IDR {route.cheapestPriceIDR.toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── ARTICLE AND BLOG ─── (Figma) */}
-      {POSTS.length > 0 && (
-        <section className="container mb-16">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-6 flex items-baseline justify-between">
-              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                Article and Blog
-              </h2>
-              <Link
-                href="/blog"
-                className="text-sm font-medium text-slate-500 hover:text-brand hover:underline"
+              <div className="flex min-w-0 flex-1 basis-64 items-center gap-2 text-lg font-bold tracking-tight text-brand-ink sm:text-xl">
+                <span className="truncate">{route.origin}</span>
+                <span className="text-brand-muted">→</span>
+                <span className="truncate">{route.destination}</span>
+              </div>
+              <div className="text-[15px] text-brand-muted sm:w-44">
+                {formatDuration(route.durationMinutes)} · {route.operatorCount}{' '}
+                operator{route.operatorCount === 1 ? '' : 's'}
+              </div>
+              <div className="text-sm text-brand-muted sm:w-44">
+                from{' '}
+                <strong className="text-xl font-extrabold text-brand">
+                  IDR {route.cheapestPriceIDR.toLocaleString('id-ID')}
+                </strong>
+              </div>
+              <span
+                aria-hidden
+                className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-periwinkle text-brand transition-colors group-hover:bg-brand group-hover:text-white"
               >
-                More Article →
-              </Link>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {POSTS.slice(0, 3).map((post, i) => (
-                <Link
-                  key={post.meta.slug}
-                  href={`/blog/${post.meta.slug}`}
-                  className="group block"
+                <ArrowRight size={18} />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── WHY BOOK WITH US ─── */}
+      <section className="mx-5 mt-16 rounded-[32px] bg-brand-dark px-6 py-12 text-white sm:mx-6 sm:mt-24 sm:px-12 sm:py-16 lg:px-16">
+        <div className="mx-auto max-w-[1180px]">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-[34px]">
+            {t('home.whyTitle')}
+          </h2>
+          <p className="mt-1.5 text-base text-brand-periwinkle">
+            {t('home.whySubtitle')}
+          </p>
+          <div className="mt-9 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+            {[
+              { title: t('trust.bestPrice'), desc: t('trust.bestPriceDesc') },
+              { title: t('trust.support'), desc: t('trust.supportDesc') },
+              { title: t('trust.eTicket'), desc: t('trust.eTicketDesc') },
+              { title: t('trust.secure'), desc: t('trust.secureDesc') },
+            ].map((badge) => (
+              <div key={badge.title} className="rounded-3xl bg-white/10 p-6">
+                <div
+                  aria-hidden
+                  className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-brand-cyan text-white"
                 >
-                  <Card className="overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                    <div className="relative h-48 w-full overflow-hidden">
-                      <Image
-                        src={ARTICLE_IMAGES[i % ARTICLE_IMAGES.length]}
-                        alt=""
-                        fill
-                        sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <CardContent className="pt-4">
-                      <div className="min-h-[3.25rem] font-semibold leading-snug text-slate-900 line-clamp-2">
-                        {post.meta.title}
-                      </div>
-                      <div className="mt-3 text-sm font-medium text-slate-500">
-                        {new Date(post.meta.publishedAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Wave divider before destinations */}
-      <WaveDivider fillClass="fill-slate-50" />
-
-      {/* ─── FEATURED DESTINATIONS ─── */}
-      <section className="bg-slate-50 py-16">
-        <div className="container">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-                {t('home.exploreTitle')}
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                {t('home.exploreSubtitle')}
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {FEATURED_DESTINATIONS.map((dest) => {
-                const photo = photoForPort(dest.slug);
-                return (
-                  <Link
-                    key={dest.slug}
-                    href={`/search?destination=${encodeURIComponent(dest.destinationPort)}`}
-                    aria-label={`Browse boats to ${dest.name}`}
-                    className="group block focus:outline-none focus:ring-2 focus:ring-gilifast-ocean rounded-lg"
-                  >
-                    <Card className="overflow-hidden transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
-                      <div className="relative h-36 bg-gradient-to-br from-gilifast-ocean to-gilifast-deep">
-                        {photo && (
-                          <Image
-                            src={photo.url}
-                            alt={photo.alt}
-                            fill
-                            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                            className="object-cover"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-2 left-3 text-white">
-                          <div className="text-lg font-display font-bold drop-shadow">
-                            {dest.name}
-                          </div>
-                        </div>
-                      </div>
-                      <CardContent className="pt-4">
-                        <p className="text-sm text-slate-600 line-clamp-2">
-                          {dest.description}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between text-xs">
-                          <Badge variant="outline">{dest.routes} routes</Badge>
-                          <div>
-                            <span className="text-slate-500">from </span>
-                            <span className="font-semibold text-gilifast-deep">
-                              IDR {dest.from.toLocaleString('id-ID')}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
+                  <Check size={22} strokeWidth={2.4} />
+                </div>
+                <div className="mt-[18px] text-lg font-bold">{badge.title}</div>
+                <div className="mt-1.5 text-sm leading-relaxed text-brand-periwinkle">{badge.desc}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Wave divider before reviews */}
-      <WaveDivider fillClass="fill-white" />
+      {/* ─── HOW IT WORKS ─── */}
+      <section className="mx-auto mt-16 max-w-[1180px] px-5 sm:mt-24 sm:px-6">
+        <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+          {t('home.howTitle')}
+        </h2>
+        <p className="mt-1.5 text-base text-brand-muted">
+          {t('home.howSubtitle')}
+        </p>
+        <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-7">
+          {[
+            { step: '01', title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
+            { step: '02', title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
+            { step: '03', title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
+            { step: '04', title: t('howItWorks.step4Title'), desc: t('howItWorks.step4Desc') },
+          ].map((s) => (
+            <div key={s.step} className="border-t-[3px] border-brand pt-[18px]">
+              <div className="text-[44px] font-extrabold leading-none tracking-tighter text-brand">
+                {s.step}
+              </div>
+              <div className="mt-2 text-xl font-bold text-brand-ink">{s.title}</div>
+              <div className="mt-1.5 text-[15px] leading-relaxed text-brand-muted">{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* ─── REVIEWS CAROUSEL ─── */}
       {hasReviews && (
-        <section className="container py-16">
-          <div className="mx-auto max-w-5xl">
+        <section className="mx-auto mt-16 max-w-[1180px] px-5 sm:mt-24 sm:px-6">
+          <div className="rounded-[32px] bg-brand-periwinkle px-5 py-10 sm:p-11">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
+              <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-dark sm:text-[34px]">
                 {t('home.reviewsTitle')}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-1.5 text-base text-brand-dark">
                 {t('home.reviewsSubtitle')}
               </p>
             </div>
@@ -442,105 +369,82 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ─── WHY BOOK WITH US ─── */}
-      <section className="container py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-              {t('home.whyTitle')}
+      {/* ─── ARTICLE AND BLOG ─── */}
+      {POSTS.length > 0 && (
+        <section className="mx-auto mt-16 max-w-[1180px] px-5 sm:mt-24 sm:px-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+              Article and Blog
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {t('home.whySubtitle')}
-            </p>
+            <Link
+              href="/blog"
+              className="text-[15px] font-semibold text-brand hover:underline"
+            >
+              More Article →
+            </Link>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { title: t('trust.bestPrice'), desc: t('trust.bestPriceDesc') },
-              { title: t('trust.support'), desc: t('trust.supportDesc') },
-              { title: t('trust.eTicket'), desc: t('trust.eTicketDesc') },
-              { title: t('trust.secure'), desc: t('trust.secureDesc') },
-            ].map((badge) => (
-              <Card key={badge.title} className="text-center">
-                <CardContent className="pt-6">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gilifast-foam text-2xl text-gilifast-deep">
-                    ✓
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            {POSTS.slice(0, 3).map((post, i) => (
+              <Link
+                key={post.meta.slug}
+                href={`/blog/${post.meta.slug}`}
+                className="group block overflow-hidden rounded-3xl border border-brand-line bg-white transition-shadow hover:shadow-ambient"
+              >
+                <div className="relative h-48 w-full overflow-hidden">
+                  <Image
+                    src={ARTICLE_IMAGES[i % ARTICLE_IMAGES.length]}
+                    alt=""
+                    fill
+                    sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="min-h-[3.25rem] font-semibold leading-snug text-brand-ink line-clamp-2">
+                    {post.meta.title}
                   </div>
-                  <div className="font-semibold text-slate-900">{badge.title}</div>
-                  <div className="mt-1 text-xs text-slate-600">{badge.desc}</div>
-                </CardContent>
-              </Card>
+                  <div className="mt-3 text-sm font-medium text-brand-muted">
+                    {new Date(post.meta.publishedAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ─── HOW IT WORKS ─── */}
-      <section className="bg-gilifast-foam py-16">
-        <div className="container">
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-8 text-center">
-            <h2 className="text-2xl font-display font-bold text-slate-900 sm:text-3xl">
-              {t('home.howTitle')}
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {t('home.howSubtitle')}
-            </p>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { step: '1', title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
-                { step: '2', title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
-                { step: '3', title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
-                { step: '4', title: t('howItWorks.step4Title'), desc: t('howItWorks.step4Desc') },
-              ].map((s) => (
-                <div key={s.step} className="relative text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gilifast-deep text-lg font-bold text-white">
-                    {s.step}
-                  </div>
-                  <div className="mt-3 font-semibold text-slate-900">{s.title}</div>
-                  <div className="mt-1 text-xs text-slate-600">{s.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Wave divider before operator CTA */}
-      <WaveDivider fillClass="fill-white" />
+        </section>
+      )}
 
       {/* ─── OPERATOR CTA ─── */}
-      <section className="container py-16">
-        <div className="mx-auto max-w-5xl rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white sm:p-12">
-          <div className="grid items-center gap-6 sm:grid-cols-2">
-            <div>
-              <h3 className="text-2xl font-display font-bold sm:text-3xl">
-                {t('operator.ctaTitle')}
-              </h3>
-              <p className="mt-2 text-sm text-slate-300">
-                {t('operator.ctaDesc')}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-              <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-slate-100">
-                <Link href="/operator/login">{t('operator.portal')}</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link href="/contact">{t('operator.getInTouch')}</Link>
-              </Button>
-            </div>
+      <section className="mx-auto mt-14 max-w-[1180px] px-5 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-6 rounded-[32px] bg-brand p-8 text-white sm:px-11 sm:py-10">
+          <div className="max-w-xl">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+              {t('operator.ctaTitle')}
+            </h2>
+            <p className="mt-2 text-base leading-relaxed text-brand-periwinkle">
+              {t('operator.ctaDesc')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild size="lg" className="rounded-pill bg-white font-bold text-brand-dark hover:bg-brand-periwinkle">
+              <Link href="/operator/login">{t('operator.portal')}</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-pill border-white bg-transparent font-semibold text-white hover:bg-white/10 hover:text-white">
+              <Link href="/contact">{t('operator.getInTouch')}</Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* ─── TRUST FOOTER STRIP ─── */}
-      <section className="border-t bg-white py-8">
-        <div className="container">
-          <div className="mx-auto max-w-5xl text-center text-xs text-slate-600">
+      <section className="mt-14 border-t border-brand-line bg-white py-8 sm:mt-[72px]">
+        <div className="container px-5">
+          <div className="mx-auto max-w-5xl text-center text-xs text-brand-muted">
             {showAnyTrustNumber && (
-              <div className="mb-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-semibold text-slate-900">
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-semibold text-brand-ink">
                 {showBookings && (
                   <span>
                     {trust.bookingsLast30Days.toLocaleString('id-ID')} trips booked
@@ -558,7 +462,7 @@ export default async function HomePage() {
                 )}
               </div>
             )}
-            <div className="font-semibold text-slate-900">
+            <div className="font-semibold text-brand-ink">
               {t('trust.secureVerified')}
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">

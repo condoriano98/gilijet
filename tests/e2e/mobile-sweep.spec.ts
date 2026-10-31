@@ -37,7 +37,7 @@ const ROUTES = [
 // the redesign's standard, not the current site's: today `/b` has a 40 px
 // "Look up" button and the booking page a 36 px "Cancel booking". Add a route
 // here in the stage that redesigns it, and the check starts guarding it.
-const REDESIGNED_ROUTES: string[] = [];
+const REDESIGNED_ROUTES: string[] = ['/'];
 
 for (const route of ROUTES) {
   test(`MOB-001 ${route} does not scroll sideways`, async ({ page }) => {

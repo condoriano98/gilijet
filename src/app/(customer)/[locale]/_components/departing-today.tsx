@@ -21,24 +21,24 @@ export function DepartingToday({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-4 flex items-end justify-between">
+      <div className="mb-7 flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-display font-bold text-slate-900 sm:text-2xl">
+          <h2 className="text-2xl font-display font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
             Departing soon
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1.5 text-base text-brand-muted">
             Boats leaving in the next 6 hours
           </p>
         </div>
         <Link
           href="/search"
-          className="hidden text-sm font-medium text-gilifast-deep hover:underline sm:inline"
+          className="hidden text-[15px] font-semibold text-brand hover:underline sm:inline"
         >
           See all →
         </Link>
       </div>
 
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+      <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 lg:grid-cols-3">
         {departures.map((d) => (
           <DepartureCard key={d.legId} departure={d} now={now} />
         ))}
@@ -62,33 +62,33 @@ function DepartureCard({
       ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
       : minutesAway < 180
         ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
-        : 'bg-gilifast-foam text-gilifast-deep ring-1 ring-gilifast-ocean/30';
+        : 'bg-brand-periwinkle text-brand-dark';
 
   return (
     <Link
       href={`/book/${departure.legId}`}
-      className="group w-72 flex-shrink-0 snap-start"
+      className="group w-72 flex-shrink-0 snap-start sm:w-auto"
     >
-      <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+      <Card className="h-full rounded-3xl border-brand-line bg-white p-6 shadow-none transition-all hover:-translate-y-0.5 hover:shadow-ambient">
         <div
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${urgency}`}
+          className={`inline-flex items-center rounded-full px-3 py-1 text-[13px] font-semibold ${urgency}`}
         >
           Leaves in {formatRelative(minutesAway)}
         </div>
-        <div className="mt-3 text-sm font-semibold text-slate-900">
+        <div className="mt-4 text-xl font-bold tracking-tight text-brand-ink">
           {departure.origin} → {departure.destination}
         </div>
-        <div className="mt-0.5 truncate text-xs text-slate-500">
+        <div className="mt-1 truncate text-sm text-brand-muted">
           {departure.operatorName} · {departure.boatName}
         </div>
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-6 flex items-baseline justify-between">
           <div>
-            <span className="text-xs text-slate-500">from </span>
-            <span className="text-base font-bold text-gilifast-deep">
+            <span className="text-[13px] text-brand-muted">from </span>
+            <span className="text-[22px] font-extrabold text-brand">
               IDR {departure.priceIDR.toLocaleString('id-ID')}
             </span>
           </div>
-          <span className="text-xs font-semibold text-gilifast-deep group-hover:underline">
+          <span className="text-sm font-semibold text-brand group-hover:underline">
             Book →
           </span>
         </div>

@@ -84,7 +84,7 @@ function ReviewCard({ review }: { review: HomeReview }) {
   const date = new Date(review.createdAt);
   const monthYear = `${MONTHS_ID[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
   return (
-    <Card className="border-slate-200">
+    <Card className="rounded-3xl border-0 shadow-none">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between gap-3">
           <Stars rating={review.rating} />
@@ -92,10 +92,10 @@ function ReviewCard({ review }: { review: HomeReview }) {
             {review.origin} → {review.destination}
           </Badge>
         </div>
-        <blockquote className="mt-3 text-sm leading-relaxed text-slate-700 line-clamp-4">
+        <blockquote className="mt-3 text-[15px] leading-relaxed text-brand-text line-clamp-4">
           “{review.text}”
         </blockquote>
-        <div className="mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-sm text-brand-muted">
           — {review.customerFirstName}, {monthYear}
         </div>
       </CardContent>

@@ -44,6 +44,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Changed
 
+- Home page redesign (stage 1, staging only, not released): inset hero, floating search card, bento destinations, route rows, blue "Why book" band, numbered steps and a blue operator banner, with the search form restyled (the same form on `/search` looks the same; its results are restyled in stage 2). Data, links, search parameters and the heading text are unchanged; the wave dividers are gone and the home route is now checked for 44 px buttons.
 - Customer header and footer follow the redesign: a white header without the blue utility bar above it (the contact details and the static "English" label are gone from the top; both contacts stay in the footer), and a light footer without the wave band. They are now the components `SiteHeader` and `SiteFooter`. Links, consent settings, payment partners and auth buttons behave as before.
 - Marketing delivery workers can no longer both reclaim the same stuck send.
 - Payment, confirmation and operator-rejection transitions now use a conditional update, so two DOKU callbacks arriving at once can no longer both record a payment. A DOKU notification naming a currency other than IDR is now refused. A verified payment for a booking that had already expired or been cancelled is logged as an unmatched payment rather than passing silently.

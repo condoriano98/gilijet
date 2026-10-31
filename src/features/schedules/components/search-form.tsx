@@ -30,9 +30,8 @@ function todayLocalYmd(): string {
   return `${y}-${m}-${day}`;
 }
 
-const FIELD =
-  'h-14 rounded-[10px] border-2 border-slate-100 px-4 text-[15px]';
-const LABEL = 'mb-2 block text-sm font-medium text-slate-500';
+const FIELD = 'h-14 rounded-2xl border border-brand-line px-4 text-[15px]';
+const LABEL = 'mb-2 block text-sm font-medium text-brand-muted';
 
 export function SearchForm(props: SearchFormProps) {
   const router = useRouter();
@@ -78,18 +77,18 @@ export function SearchForm(props: SearchFormProps) {
   }
 
   return (
-    <form onSubmit={submit} className="p-4 sm:p-6">
+    <form onSubmit={submit} className="p-5 sm:p-7">
       {/* Trip type */}
-      <div className="mb-4 inline-flex rounded-full bg-slate-100 p-1 text-sm">
+      <div className="mb-5 inline-flex rounded-full bg-brand-surface p-1 text-sm">
         {(['one_way', 'round_trip'] as const).map((tt) => (
           <button
             key={tt}
             type="button"
             onClick={() => setTripType(tt)}
-            className={`rounded-full px-4 py-1.5 transition-colors ${
+            className={`rounded-full px-5 py-2 transition-colors ${
               tripType === tt
                 ? 'bg-white font-semibold text-brand shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-brand-muted hover:text-brand-ink'
             }`}
           >
             {tt === 'one_way' ? 'One way' : 'Return'}
@@ -99,14 +98,14 @@ export function SearchForm(props: SearchFormProps) {
 
       {/* From · swap · To */}
       <div>
-        <div className="mb-2 hidden text-sm font-medium text-slate-500 sm:flex">
+        <div className="mb-2 hidden text-sm font-medium text-brand-muted sm:flex">
           <span className="flex-1">From:</span>
           <span className="w-14 shrink-0" />
           <span className="flex-1">To:</span>
         </div>
         <div className="flex flex-col gap-3 sm:gap-0 sm:flex-row sm:items-center">
           <div className="flex-1">
-            <span className="mb-1.5 block text-sm font-medium text-slate-500 sm:hidden">
+            <span className="mb-1.5 block text-sm font-medium text-brand-muted sm:hidden">
               From:
             </span>
             <GroupedPortSelect
@@ -115,7 +114,7 @@ export function SearchForm(props: SearchFormProps) {
               onValueChange={setOrigin}
               placeholder="Any departure port"
               disabledValue={destination}
-              className="sm:rounded-r-none sm:border-r-0"
+              className="rounded-2xl border border-brand-line sm:rounded-r-none sm:border-r-0"
             />
           </div>
           <div className="relative flex shrink-0 items-center justify-center sm:w-14 sm:-mx-1 sm:z-10">
@@ -123,13 +122,13 @@ export function SearchForm(props: SearchFormProps) {
               type="button"
               onClick={swap}
               aria-label="Swap origin and destination"
-              className="flex h-11 w-11 rotate-90 items-center justify-center rounded-full bg-brand text-white shadow-md transition-colors hover:bg-brand-dark sm:rotate-0"
+              className="flex h-11 w-11 rotate-90 items-center justify-center rounded-full border border-brand-line bg-brand-periwinkle text-brand shadow-sm transition-colors hover:bg-brand hover:text-white sm:rotate-0"
             >
               <ArrowLeftRight size={18} />
             </button>
           </div>
           <div className="flex-1">
-            <span className="mb-1.5 block text-sm font-medium text-slate-500 sm:hidden">
+            <span className="mb-1.5 block text-sm font-medium text-brand-muted sm:hidden">
               To:
             </span>
             <GroupedPortSelect
@@ -138,7 +137,7 @@ export function SearchForm(props: SearchFormProps) {
               onValueChange={setDestination}
               placeholder="Pick a destination"
               disabledValue={origin}
-              className="sm:rounded-l-none sm:border-l-0"
+              className="rounded-2xl border border-brand-line sm:rounded-l-none sm:border-l-0"
             />
           </div>
         </div>
@@ -182,7 +181,7 @@ export function SearchForm(props: SearchFormProps) {
             onChange={setPassengers}
             min={1}
             max={10}
-            className="h-14 rounded-[10px] border-2 border-slate-100"
+            className="h-14 rounded-2xl border border-brand-line"
           />
         </div>
       </div>
@@ -190,7 +189,7 @@ export function SearchForm(props: SearchFormProps) {
       <Button
         type="submit"
         disabled={isPending || origin === destination}
-        className="mt-5 h-14 w-full rounded-pill bg-brand text-base font-semibold text-white hover:bg-brand-dark"
+        className="mt-6 h-14 w-full rounded-2xl bg-brand text-base font-semibold text-white hover:bg-brand-dark"
       >
         <SearchIcon size={18} className="mr-2" />
         {isPending ? 'Searching…' : 'Search'}
