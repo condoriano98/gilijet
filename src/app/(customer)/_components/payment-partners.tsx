@@ -38,7 +38,7 @@ const LOGO_METHODS: { key: string; label: string; file: string; square?: boolean
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
-      className="flex h-8 items-center justify-center rounded-md bg-white px-1.5 shadow-sm"
+      className="flex h-8 items-center justify-center rounded-md bg-white px-1.5 shadow-sm ring-1 ring-brand-line"
       title={label}
     >
       {children}

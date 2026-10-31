@@ -41,7 +41,7 @@ Legend: `[ ]` not done, `[x]` done. Artboard names are the titles on the canvas.
 
 | # | Route (`src/app/(customer)/[locale]/…`) | Artboard | D | B | K | T | V | S | Status | Specs to run | Protected elements to keep (fill the exact list before editing) | Notes from the design |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 0 | Shared: header, footer, hero, tokens, `docs/DESIGN_SYSTEM.md` | Proposed home | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | NOT STARTED | all below | consent banner, GTM loader, locale switcher, nav links | Stage 0. Header/footer are repeated inline in every artboard and must become one component each. Brand hex values live in two files today. |
+| 0 | Shared: header, footer, hero, tokens, `docs/DESIGN_SYSTEM.md` | Proposed home | [x] | [x] | [x] | [x] | [x] | [ ] | BUILT (header, footer, tokens, doc, agent) on `ui/stage-0`, not signed off | all below | consent banner, GTM loader, locale switcher, nav links | Stage 0 (2026-10-31). Hero and legal layout are built in the first stage that uses them (home, terms), not now. Header/footer are repeated inline in every artboard and must become one component each. Brand hex values live in two files today. |
 | 1 | `page.tsx` (home) | Usulan Desktop + Mobile | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | NOT STARTED | `customer-booking`, `mobile-layout`, `tab-branding`, `marketing-consent` | SearchForm fields and query params, `getPopularRoutes`/`getDepartingSoon`/`getRecentReviews` data, trust thresholds, `TrackEvent`, blog block, payment partner logos | Mockup omits the blog block and payment-partner logos: they need a place. Sample departures are fake. Open client decisions: photo vs illustration (illustration chosen 2026-10-30), bento vs uniform cards, blog on home. |
 | 2 | `search/page.tsx` | Search results | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | NOT STARTED | `customer-booking`, `round-trip-booking`, `seasonal-booking`, `mobile-layout` | `SearchForm`, `SearchFilters` params (`sortBy`, `timeSlot`, `maxPrice`), `RoundTripLegSelector`, per-leg round-trip prices, seasonal badge, rating aggregates, connections block, `TrackEvent` `search`, `href` to `/book/<legId>?passengers=` | Design draws one-way and connections only; the round-trip selector view is **not designed**. Sidebar filters replace the horizontal filter bar. |
 | 3 | `book/[legId]/page.tsx` | Book · Passenger details | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | NOT STARTED | `customer-booking`, `round-trip-booking`, `seasonal-booking`, `mobile-layout` | every passenger and contact field `name`/`id`, `contact-fields.tsx`, the booking server action, price summary client component, hold timer, hidden inputs | Round-trip variant only noted in the sidebar, **not designed**. Price lines are sample numbers. |
@@ -67,7 +67,7 @@ Legend: `[ ]` not done, `[x]` done. Artboard names are the titles on the canvas.
 | 23 | `privacy/page.tsx` | Privacy | [x] | [ ] | [ ] | [ ] | [ ] | [ ] | NOT STARTED | `marketing-consent` | full legal text, cookie and retention sections (rewritten for marketing measurement) | Same as Terms. Owner reviews privacy text separately. |
 | - | `demo/page.tsx` | not designed | - | - | - | - | - | - | SKIPPED | none | - | Dev/demo page, left out on purpose. Confirm with the owner. |
 
-Counts (update on every change): designed 23 of 23 (home + 22 pages, each at desktop and mobile), built 0, revamped 0.
+Counts (update on every change): designed 23 of 23 (home + 22 pages, each at desktop and mobile), built 0 pages (stage 0 shared chrome built, awaiting sign-off), revamped 0.
 
 ### Order of work (proposed, one stage per PR to `staging`)
 
@@ -246,3 +246,10 @@ Rules per stage: one stage at a time, staging soak of at least one working day, 
 ## Pilot result
 
 _(empty until implemented)_
+
+## Stage 0 log (2026-10-31, branch `ui/stage-0`, not committed)
+
+- **Built:** `SiteHeader` and `SiteFooter` (`src/app/(customer)/_components/`), `layout.tsx` now only composes them; tokens `brand-surface|line|text|muted` in `tailwind.config.ts`; `docs/DESIGN_SYSTEM.md`; `.claude/agents/ui-designer.md`; payment tiles got a hairline ring to stand out on the light footer. Not done on purpose: shared hero and legal layout (unused until stages 1 and 5); the `gilifast.*` aliases stay until the last stage.
+- **Removed from the chrome (as in the design):** blue utility bar (phone, email, static "English"), footer wave band. Phone and email remain in the footer. Locale switcher: there was none; case CONT-016 stays an open gap.
+- **Checks:** `pnpm lint` (0 errors, 1 old warning in `postcss.config.mjs`) and `pnpm typecheck` pass. Full Playwright suite on local Postgres with outbound keys blanked, run before the new test was added: 354 passed, 8 skipped, 0 failed (previous baseline 232 passed; the count grew with the phone-width specs). `site-chrome` re-run with the new `CONT-009b`: 11 passed (chromium). Screenshots of `/about` at 1280 and 375 px looked right: no sideways scroll, footer stacks, header shows only "Book now" and the menu on a phone.
+- **Not checked:** the `mobile` and `mobile-flow` projects were in the full run but `CONT-009b` was not run on them; the Vercel staging deployment; contrast of `brand-muted` on `brand-surface`; the signed-in header (`AuthNav` signed-in state was not viewed); no unit test was added (no logic changed). `pnpm test:unit` passes: 1307 tests.

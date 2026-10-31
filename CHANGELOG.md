@@ -14,6 +14,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Added
 
+- Redesign stage 0 (staging only, not released): `docs/DESIGN_SYSTEM.md`, the `ui-designer` agent, the `brand-surface`, `brand-line`, `brand-text` and `brand-muted` colour tokens, and test `CONT-009b` for the new footer.
 - End-to-end tests at phone width: the Playwright project `mobile-flow` runs the booking, lookup and search specs on a 375 px phone, and `mobile-sweep.spec.ts` checks 15 pages for sideways scroll and covered buttons. They found that the booking page is 16 px wider than a 375 px phone (bug B12, not fixed yet).
 - Marketing measurement groundwork (in progress, not live; every switch defaults to off): a typed event contract with GA4/Google Ads/Meta mappings, consent and attribution helpers, PII guards, and migration `2_marketing_measurement`. The migration adds `MarketingEvent`, `MarketingEventDelivery`, `BookingAttribution`, `AdSpendDaily`, `AdReachDaily` and `AdSyncRun`, all with RLS enabled. New env switches are documented in `.env.example`, which now also lists `CRON_SECRET`. Spike: `docs/spikes/in-progress/FEATURE_MARKETING_MEASUREMENT.md`.
 - Marketing events and outbox (off until `MARKETING_EVENTS_ENABLED` / `MARKETING_DELIVERY_ENABLED` are `true`):
@@ -43,6 +44,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Changed
 
+- Customer header and footer follow the redesign: a white header without the blue utility bar above it (the contact details and the static "English" label are gone from the top; both contacts stay in the footer), and a light footer without the wave band. They are now the components `SiteHeader` and `SiteFooter`. Links, consent settings, payment partners and auth buttons behave as before.
 - Marketing delivery workers can no longer both reclaim the same stuck send.
 - Payment, confirmation and operator-rejection transitions now use a conditional update, so two DOKU callbacks arriving at once can no longer both record a payment. A DOKU notification naming a currency other than IDR is now refused. A verified payment for a booking that had already expired or been cancelled is logged as an unmatched payment rather than passing silently.
 - `vercel.json` now schedules `/api/cron/poll-operator-inbox` every 5 minutes, so the operator ticket mailbox (`admin@gilifast.com`) is polled once this reaches production. It stays a dry run until `INBOX_POLL_LIVE=true` is set in the production environment, so nothing is forwarded to buyers by this change alone.

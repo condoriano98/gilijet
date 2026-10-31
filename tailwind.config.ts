@@ -30,6 +30,11 @@ const config: Config = {
           cyan: '#00AEEF',
           periwinkle: '#E1E7FF',
           ink: '#1F1F1F',
+          // Redesign surfaces and text (docs/DESIGN_SYSTEM.md)
+          surface: '#F2F5FF',
+          line: '#DDE2F0',
+          text: '#333844',
+          muted: '#4B5365',
         },
         mekari: {
           primary: '#1B5FE3',

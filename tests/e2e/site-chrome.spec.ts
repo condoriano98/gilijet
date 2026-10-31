@@ -62,6 +62,15 @@ test.describe('site chrome', () => {
     ).toBeAttached();
   });
 
+  test('CONT-009b footer keeps cookie settings and payment partners; no utility bar above the header', async ({ page }) => {
+    await page.goto('/about');
+    await expect(page.locator('footer').getByRole('button', { name: 'Cookie settings' })).toBeVisible();
+    await expect(page.locator('footer').getByText('Payment Partners')).toBeVisible();
+    await expect(page.locator('footer').getByText(/Payments by DOKU/)).toBeVisible();
+    const headerTop = await page.locator('header').first().evaluate((el) => el.getBoundingClientRect().top);
+    expect(headerTop).toBe(0);
+  });
+
   test('CONT-012 banner stays hidden after a choice', async ({ page }) => {
     // playwright.config.ts pre-sets an "essential only" choice for every spec.
     await page.goto('/');
