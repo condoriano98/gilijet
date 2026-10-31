@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient, type BookingStatus } from '@prisma/client';
 import { requireMockPayments } from './support/mock-payments';
+import { expectNoHorizontalOverflow, expectSubmitButtonsReachable } from './support/overflow';
 import { removeBookings, removeSchedules } from './support/fixtures';
 
 loadEnvConfig(process.cwd());
@@ -256,4 +257,17 @@ test('BOOK-D14 pay and checkout: an unknown reference is a 404', async ({ page }
   expect(pay?.status()).toBe(404);
   const checkout = await page.goto('/checkout/E2E-NO-SUCH-BOOKING');
   expect(checkout?.status()).toBe(404);
+});
+
+test('BOOK-M02 a booking page fits the screen and its buttons can be tapped', async ({ page }) => {
+  // Bug B12 (docs/spikes/in-progress/BUGS_QA_BASELINE_FINDINGS.md): on a 375 px
+  // phone this page is 391 px wide, so it scrolls sideways. Remove the line
+  // below when it is fixed.
+  test.fail(test.info().project.name === 'mobile-flow', 'known: /b/<reference> is 16 px wider than a 375 px phone');
+  for (const ref of [REF.pending, REF.confirmed, REF.awaiting]) {
+    await page.goto(`/b/${ref}`);
+    await expect(page.locator('body')).toContainText(ref);
+    await expectNoHorizontalOverflow(page);
+    await expectSubmitButtonsReachable(page);
+  }
 });

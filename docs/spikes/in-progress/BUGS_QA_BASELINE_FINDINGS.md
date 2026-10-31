@@ -26,6 +26,13 @@
 - **B1:** new helper `src/shared/lib/safe-next.ts` (`safeNext(raw, fallback)`) used by login, register and both Google routes; it refuses `//host`, `/\host`, any backslash, any control character and anything not starting with `/`. The older copy in `google-oauth.ts` is removed (it did not refuse the backslash form). Unit test `tests/unit/shared/lib/safe-next.test.ts`.
 - **B2:** `agreedToTerms: z.string().nullish()` in `book/[legId]/page.tsx` and in `account/register/page.tsx`. Register had the same fault: an unticked box answered "fill in all required fields" instead of the terms message (`AUTH-023b`).
 
+### Found later the same day, by the phone-width run
+
+| # | Severity | Where | What happens | Expected | Test (marker) | Likely fix |
+|---|---|---|---|---|---|---|
+| B12 | Medium (phone layout) | `b/[reference]` (booking page) | At 375 px the page is 391 px wide and scrolls sideways; the widest element is `div.flex-1.space-y-2`. Not visible at desktop width. | No horizontal scroll at 375 px. | `BOOK-M02` in `booking-detail-states.spec.ts` (`test.fail` on mobile only) | Probably a flex child without `min-w-0`, or a long unbroken word (reference or email). Fix in the booking-page stage of the redesign; do not restyle it twice. |
+| B13 | Low (design floor) | Several pages | Some buttons are below the 44 px floor the new design uses: "Look up" on `/b` is 40 px, "Cancel booking" 36 px, the "Book 1 · …" link on search 40 px. | At least 44 px. | `MOB-004` in `mobile-sweep.spec.ts`: runs only for routes listed in `REDESIGNED_ROUTES` (empty today) | The redesign sets the size; add each route to the list in its stage. This is the redesign's standard, not a regression. |
+
 ## B. Found by reading the code, not yet shown by a test
 
 Each needs a test (or a manual check) first. Do not fix on the strength of the reading alone.
@@ -59,6 +66,7 @@ Fill after each run. "Same" means the bug is still reproduced by the same test; 
 |---|---|---|---|---|---|---|---|
 | 2026-10-31 | baseline (`docs/qa-runs/2026-10-31-baseline.md`) | open | open | open | open | not tested | first run; 221 passed, 0 failed, 10 skipped |
 | 2026-10-31 | after B1, B2, B9 fixes (`docs/qa-runs/2026-10-31-after-b1-b2-b9.md`) | **fixed** | **fixed** | open | open | B8 ruled out, B9 fixed, B5-B7 not tested | unit 1307 passed; e2e 228 passed, 0 failed, 10 skipped |
+| 2026-10-31 | phone-width run (`docs/qa-runs/2026-10-31-mobile.md`) | fixed | fixed | open | open | B12 found, B13 noted | desktop 100% green; at 375 px everything passes except B12 |
 
 ## Done when
 

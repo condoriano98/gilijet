@@ -46,6 +46,21 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
       testMatch: /mobile-layout\.spec\.ts/,
     },
+    // The booking, pay and lookup specs again on a 375 px phone. They share
+    // fixtures with the desktop run, so this project starts only once chromium
+    // has finished (and is skipped if chromium fails).
+    {
+      name: 'mobile-flow',
+      use: { ...devices['Pixel 5'], viewport: { width: 375, height: 667 } },
+      dependencies: ['chromium'],
+      testMatch: [
+        /customer-booking\.spec\.ts/,
+        /round-trip-booking\.spec\.ts/,
+        /booking-.*\.spec\.ts/,
+        /home-search\.spec\.ts/,
+        /mobile-sweep\.spec\.ts/,
+      ],
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

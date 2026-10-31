@@ -81,7 +81,7 @@ Counts (update on every change): designed 23 of 23 (home + 22 pages, each at des
 ### Open items before code starts
 
 - **Bugs to re-test after each stage:** `docs/spikes/in-progress/BUGS_QA_BASELINE_FINDINGS.md` (B3, B4, B10 and B11 are fixed in the stage of their page; fill its re-test log).
-- **Precondition (owner, 2026-10-30), now met:** the AI test agent (`docs/spikes/in-progress/FEATURE_AI_TEST_AGENT.md`) is built and the baseline run is green (232 passed, 0 failed, 6 skipped; `docs/qa-runs/2026-10-31-after-b1-b2-b9.md`). Each stage below still needs a green run before it starts and a re-run after it. Mobile specs at 375 px for booking, pay and detail are still to be written, so those stages should wait for them.
+- **Precondition (owner, 2026-10-30), now met:** the AI test agent (`docs/spikes/in-progress/FEATURE_AI_TEST_AGENT.md`) is built and the baseline run is green (232 passed, 0 failed, 6 skipped; `docs/qa-runs/2026-10-31-after-b1-b2-b9.md`). Each stage below still needs a green run before it starts and a re-run after it. The booking flow also runs at 375 px now (Playwright project `mobile-flow`, `mobile-sweep.spec.ts`; `docs/qa-runs/2026-10-31-mobile.md`). In each stage, add its routes to `REDESIGNED_ROUTES` in `mobile-sweep.spec.ts` so the 44 px button floor (bug B13) starts guarding them. New bug B12: the booking page is 391 px wide on a 375 px phone; fix it in the stage of that page.
 - Owner's "implement" for the code work (docs-first rule).
 - Designs still missing: search round-trip selector, book round-trip variant, checkout QRIS and bank tabs, login error variants, account Google-only variant. (Mobile artboards now exist for every page.)
 - Whether `demo/page.tsx` stays unchanged.

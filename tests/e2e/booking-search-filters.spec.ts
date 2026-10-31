@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
+import { expectNoHorizontalOverflow } from './support/overflow';
 import { removeSchedules } from './support/fixtures';
 
 loadEnvConfig(process.cwd());
@@ -161,4 +162,10 @@ test('BOOK-S10 at phone width the results list does not scroll sideways', async 
     client: document.documentElement.clientWidth,
   }));
   expect(scroll, `search results overflow by ${scroll - client}px at 375px`).toBeLessThanOrEqual(client + 1);
+});
+
+test('BOOK-M03 the results page fits the screen', async ({ page }) => {
+  await page.goto(`/search?origin=${encodeURIComponent(ORIGIN)}&destination=${encodeURIComponent(DESTINATION)}&date=${DATE}&passengers=1`);
+  await expect(page.getByRole('link', { name: /^Book 1/ }).first()).toBeVisible({ timeout: 15_000 });
+  await expectNoHorizontalOverflow(page);
 });

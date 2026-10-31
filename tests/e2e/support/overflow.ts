@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /** Phone, tablet and desktop widths every redesigned page is checked at. */
 export const VIEWPORTS = [
@@ -29,4 +29,45 @@ export async function expectNoHorizontalOverflow(page: Page) {
   expect(scroll, `page is ${scroll}px wide in a ${client}px viewport (widest: ${widest})`).toBeLessThanOrEqual(
     client + 1,
   );
+}
+
+/** Smallest tap target the design asks for on a phone, in CSS px. */
+export const MIN_TOUCH_PX = 44;
+
+async function labelOf(button: Locator, i: number) {
+  return ((await button.innerText().catch(() => '')) || (await button.getAttribute('value')) || `#${i}`).trim();
+}
+
+/**
+ * Every visible submit button is the element that receives a tap at its centre:
+ * a sticky bar, banner or overlapping card on top of it fails here. Scrolls each
+ * button into view first, as a visitor would. All failures are reported.
+ */
+export async function expectSubmitButtonsReachable(page: Page) {
+  // A disabled button is skipped: it has `pointer-events: none`, so the point test would name the form behind it.
+  const buttons = page.locator('button[type="submit"]:visible:enabled, input[type="submit"]:visible:enabled');
+  const count = await buttons.count();
+  for (let i = 0; i < count; i++) {
+    const button = buttons.nth(i);
+    await button.scrollIntoViewIfNeeded();
+    const covering = await button.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!hit || hit === el || el.contains(hit)) return null;
+      return `${hit.tagName.toLowerCase()}.${(hit.className || '').toString().slice(0, 60)}`;
+    });
+    expect.soft(covering, `"${await labelOf(button, i)}" is covered by ${covering}`).toBeNull();
+  }
+}
+
+/** Every visible submit button is at least `MIN_TOUCH_PX` high. All failures are reported. */
+export async function expectSubmitButtonsBigEnough(page: Page) {
+  const buttons = page.locator('button[type="submit"]:visible, input[type="submit"]:visible');
+  const count = await buttons.count();
+  for (let i = 0; i < count; i++) {
+    const button = buttons.nth(i);
+    const box = await button.boundingBox();
+    const label = await labelOf(button, i);
+    expect.soft(box?.height ?? 0, `submit button "${label}" is ${box?.height}px high`).toBeGreaterThanOrEqual(MIN_TOUCH_PX);
+  }
 }

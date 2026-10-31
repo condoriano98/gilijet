@@ -14,6 +14,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Added
 
+- End-to-end tests at phone width: the Playwright project `mobile-flow` runs the booking, lookup and search specs on a 375 px phone, and `mobile-sweep.spec.ts` checks 15 pages for sideways scroll and covered buttons. They found that the booking page is 16 px wider than a 375 px phone (bug B12, not fixed yet).
 - Marketing measurement groundwork (in progress, not live; every switch defaults to off): a typed event contract with GA4/Google Ads/Meta mappings, consent and attribution helpers, PII guards, and migration `2_marketing_measurement`. The migration adds `MarketingEvent`, `MarketingEventDelivery`, `BookingAttribution`, `AdSpendDaily`, `AdReachDaily` and `AdSyncRun`, all with RLS enabled. New env switches are documented in `.env.example`, which now also lists `CRON_SECRET`. Spike: `docs/spikes/in-progress/FEATURE_MARKETING_MEASUREMENT.md`.
 - Marketing events and outbox (off until `MARKETING_EVENTS_ENABLED` / `MARKETING_DELIVERY_ENABLED` are `true`):
   - The booking lifecycle records `booking_request_created`, `begin_checkout`, `payment_failed`, `purchase`, `seat_confirmed`, `ticket_issued`, `booking_cancelled` and `refund` in the same transaction as each change.

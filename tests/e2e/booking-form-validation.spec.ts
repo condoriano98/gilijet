@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
 import { requireMockPayments } from './support/mock-payments';
+import { expectNoHorizontalOverflow, expectSubmitButtonsReachable } from './support/overflow';
 import { removeBookings, removeSchedules, flatFares } from './support/fixtures';
 
 loadEnvConfig(process.cwd());
@@ -206,4 +207,11 @@ test('BOOK-F12 an unknown departure id shows the not-found page, not a crash', a
   // Status is 200, not 404: the page streams behind loading.tsx before it calls
   // notFound() (app finding, see the QA matrix).
   await expect(page.getByText('This page could not be found.')).toBeVisible();
+});
+
+test('BOOK-M01 the booking form fits the screen and its Pay button can be tapped', async ({ page }) => {
+  await page.goto(`/book/${openLegId}?passengers=2`);
+  await expect(page.locator('#passengerName-1')).toBeVisible({ timeout: 15_000 });
+  await expectNoHorizontalOverflow(page);
+  await expectSubmitButtonsReachable(page);
 });

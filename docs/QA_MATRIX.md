@@ -2,7 +2,7 @@
 
 The case list for the AI test agents (`.claude/agents/test-generator.md`, `test-triager.md`). Plan: `docs/spikes/in-progress/FEATURE_AI_TEST_AGENT.md`. Run reports: `docs/qa-runs/`.
 
-**Status (2026-10-31):** baseline of the **current** site, run locally: **232 passed, 0 failed, 6 skipped** (4 `fixme` for bug B4, 2 opt-in DOKU); reports `docs/qa-runs/2026-10-31-baseline.md` and `2026-10-31-after-b1-b2-b9.md`. Bugs B1, B2 and B9 were fixed after the baseline; their tests are normal tests now. Case IDs start each `test()` title: `AUTH-`, `BOOK-`, `CONT-`, `OPS-`. The operator, admin and API section (4) is a map only: no new specs yet.
+**Status (2026-10-31):** baseline of the **current** site, run locally on desktop and on a 375 px phone: **354 passed, 0 failed, 8 skipped** (4 `fixme` for bug B4, 2 opt-in DOKU, 2 conditional); the desktop-only run was 232 / 0 / 6. Reports `docs/qa-runs/2026-10-31-baseline.md`, `2026-10-31-after-b1-b2-b9.md` and `2026-10-31-mobile.md`. Bugs B1, B2 and B9 were fixed after the baseline; their tests are normal tests now. Case IDs start each `test()` title: `AUTH-`, `BOOK-`, `CONT-`, `OPS-`. The operator, admin and API section (4) is a map only: no new specs yet.
 
 Coverage values: `covered-by-existing` (a spec already in the repo), `new-spec` (written 2026-10-31, uncommitted, waiting for the owner's review), `gap-needs-human` (cannot be automated: real payment, real WhatsApp or email delivery, live DOKU, taste), `gap` or `gap-proposed` (could be automated, not written yet).
 
@@ -213,6 +213,22 @@ The `/b` lookup form (find a booking by reference) is covered by `LOOK-001` to `
 2. **Cancelling an unpaid booking created a refund: confirmed by BOOK-D09b and fixed 2026-10-31** (`b/[reference]/page.tsx`: a PENDING_PAYMENT booking owes nothing back). BOOK-D09c guards the paid side. Operator-rejection and admin cancel paths were not checked for the same pattern.
 3. **No capacity check.** `engine.ts` states a departure is bookable as long as it is OPEN; no seat limit applies, so there is no "sold out" case to test.
 4. **Missing test ids:** none needed so far; the specs use ids already on the form (`#passengerName-0`, `#customerName`, `#customerEmail`, `#passengerType-n`, `#promoCode`, `#reference`), labels and roles. Candidates if selectors turn brittle during the redesign: a `data-testid` on the per-departure card on search, on the status badge on `/b/<ref>`, and on the error banner (`bg-red-50` paragraph) on the book page, which now can only be found by its text.
+
+---
+
+## 2b. Phone width (375 px)
+
+Added 2026-10-31. Report: `docs/qa-runs/2026-10-31-mobile.md`. The booking, lookup, search, form, detail and home-search specs also run on a phone through the Playwright project `mobile-flow`; these cases add the layout checks.
+
+| ID | Persona | Page/flow | Steps | Expected result | Viewports | Spec file + test title | Needs human | Coverage |
+|---|---|---|---|---|---|---|---|---|
+| MOB-001 | Guest | 15 data-free pages | Open each | No sideways scroll | 375 (and 1280) | `mobile-sweep.spec.ts` · MOB-001 | n | new-spec, passes |
+| MOB-002 | Guest | the same pages | Scroll each enabled submit button into view | The button itself receives a tap at its centre; nothing sticky or overlapping covers it | 375 (and 1280) | `mobile-sweep.spec.ts` · MOB-002 | n | new-spec, passes |
+| MOB-003 | Visitor | consent banner | Open `/about` with no consent cookie | The banner leaves at least half the screen | 375 | `mobile-sweep.spec.ts` · MOB-003 | n | new-spec, skips when marketing is off |
+| MOB-004 | Guest | redesigned pages | Submit buttons are at least 44 px high | The redesign's standard (bug B13) | 375 | `mobile-sweep.spec.ts` · MOB-004, only for routes in `REDESIGNED_ROUTES` (empty) | n | new-spec, waiting for the redesign |
+| BOOK-M01 | Guest | booking form | Open with 2 passengers | No sideways scroll; Pay reachable | 375 (and 1280) | `booking-form-validation.spec.ts` · BOOK-M01 | n | new-spec, passes |
+| BOOK-M02 | Guest | booking page, 3 statuses | Open each | No sideways scroll; buttons reachable | 375 (and 1280) | `booking-detail-states.spec.ts` · BOOK-M02 | n | new-spec, **expected failure on a phone (bug B12: 391 px wide)** |
+| BOOK-M03 | Guest | results page | Open a search with results | No sideways scroll | 375 (and 1280) | `booking-search-filters.spec.ts` · BOOK-M03 | n | new-spec, passes |
 
 ---
 
