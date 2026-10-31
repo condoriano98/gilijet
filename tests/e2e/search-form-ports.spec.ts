@@ -62,9 +62,6 @@ test.describe('search form on a first visit (consent banner open)', () => {
   for (const p of PAGES) {
     for (const size of SIZES) {
       test(`CONT-035 ${p.name} at ${size.name}: the banner does not cover From or To when the page opens`, async ({ page }) => {
-        // Known bug B14: at first sight the fixed banner covers the To field (all of it on a
-        // phone, its right half on a laptop). Flips to a failure the day it is fixed.
-        test.fail(true, 'B14: the consent banner covers the search form on a first visit');
         await page.setViewportSize({ width: size.width, height: size.height });
         await page.goto(p.url);
         await expect(page.getByTestId('consent-banner')).toBeVisible({ timeout: 15_000 });

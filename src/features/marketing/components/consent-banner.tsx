@@ -132,12 +132,12 @@ export function ConsentBanner() {
       aria-modal="false"
       aria-labelledby="gf-consent-title"
       data-testid="consent-banner"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-black/10 bg-white p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-md sm:rounded-2xl sm:border"
+      className="fixed inset-x-2 bottom-2 z-50 rounded-2xl border border-brand-line bg-white p-2 shadow-ambient sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-80 sm:p-4"
     >
       <h2 id="gf-consent-title" className="text-sm font-semibold text-brand-ink">
         {t.title}
       </h2>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t.body}</p>
+      <p className={`mt-1 text-[11px] leading-snug text-brand-muted sm:text-xs sm:leading-relaxed ${custom ? '' : 'line-clamp-1 sm:line-clamp-none'}`}>{t.body}</p>
       {custom ? (
         <div className="mt-3 space-y-2 text-sm">
           <label className="flex items-center gap-2">
@@ -153,14 +153,14 @@ export function ConsentBanner() {
           </Button>
         </div>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" className="bg-brand text-white hover:bg-brand-dark" onClick={() => decide({ analytics: true, marketing: true })}>
+        <div className="mt-1.5 flex gap-2 sm:mt-3 sm:flex-wrap">
+          <Button size="sm" className="h-8 bg-brand px-3 text-xs text-white hover:bg-brand-dark sm:h-9 sm:text-sm" onClick={() => decide({ analytics: true, marketing: true })}>
             {t.accept}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => decide({ analytics: false, marketing: false })}>
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs sm:h-9 sm:text-sm" onClick={() => decide({ analytics: false, marketing: false })}>
             {t.reject}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setCustom(true)}>
+          <Button size="sm" variant="ghost" className="h-8 px-3 text-xs sm:h-9 sm:text-sm" onClick={() => setCustom(true)}>
             {t.settings}
           </Button>
         </div>

@@ -100,7 +100,7 @@ export default async function HomePage() {
   return (
     <>
       {/* ─── HERO ─── */}
-      <section className="relative mx-5 mt-4 overflow-hidden rounded-[32px] pb-44 pt-16 sm:mx-6 sm:pb-52 sm:pt-24">
+      <section className="relative mx-5 mt-4 overflow-hidden rounded-[32px] pb-40 pt-12 sm:mx-6 sm:pb-52 sm:pt-24">
         <Image
           src="/brand/hero-home.png"
           alt="Island-hopping by fast boat across Indonesia"
