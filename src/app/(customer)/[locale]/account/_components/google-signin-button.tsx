@@ -18,14 +18,14 @@ export function GoogleSignInButton({
     <>
       <Link
         href={href}
-        className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-300 bg-white text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+        className="flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-brand-line bg-white text-base font-semibold text-brand-ink transition hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand"
       >
         <GoogleGlyph />
         {label}
       </Link>
-      <div className="relative my-3 text-center text-xs uppercase tracking-wide text-slate-400">
-        <span className="bg-white px-2 relative z-10">or</span>
-        <span className="absolute inset-x-0 top-1/2 -z-0 border-t border-slate-200" />
+      <div className="relative my-1 text-center text-xs uppercase tracking-wide text-brand-muted">
+        <span className="relative z-10 bg-white px-3">or</span>
+        <span className="absolute inset-x-0 top-1/2 -z-0 border-t border-brand-line" />
       </div>
     </>
   );

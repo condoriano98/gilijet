@@ -13,8 +13,8 @@ test.describe('review page without a session', () => {
     await expect(page).toHaveURL(/\/account\/login/);
   });
 
-  test.fixme('CONT-029b the login page reached from here has an h1', async ({ page }) => {
-    // App finding, found by the first baseline run: the sign-in title is not an h1.
+  // Bug B4 for the sign-in page, fixed in redesign stage 4.
+  test('CONT-029b the login page reached from here has an h1', async ({ page }) => {
     await page.goto('/reviews/new?bookingId=does-not-exist');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });

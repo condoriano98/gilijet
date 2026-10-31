@@ -1,5 +1,6 @@
 import { customerBookingStatusLabel } from '@/features/booking/status-label';
 import Link from 'next/link';
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import type { BookingStatus, TripType } from '@prisma/client';
@@ -13,13 +14,6 @@ import {
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/datetime';
 import { formatIDR } from '@/shared/lib/utils';
 import { getMainLeg } from '@/features/booking/helpers';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -152,196 +146,226 @@ export default async function AccountPage({
   });
   const past = bookings.filter((b) => !upcoming.includes(b));
 
+  const initials = customer.fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+
   return (
-    <div className="container py-10">
-      <div className="mx-auto max-w-4xl">
-        {/* Profile header */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Hi, {customer.fullName.split(' ')[0]}
-            </h1>
-            <p className="text-sm text-slate-600">{customer.email}</p>
+    <div className="mx-auto max-w-[1180px] px-5 pb-4 pt-6 sm:px-6">
+      {/* Profile header */}
+      <section className="relative overflow-hidden rounded-[32px] bg-brand-dark px-6 py-8 text-white sm:px-12 sm:py-10">
+        <Image
+          src="/brand/hero-home.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-[center_60%] opacity-35"
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
+          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+            <div
+              aria-hidden
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-periwinkle text-xl font-extrabold text-brand-dark sm:h-[68px] sm:w-[68px] sm:text-[26px]"
+            >
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-[34px]">
+                Hi, {customer.fullName.split(' ')[0]}
+              </h1>
+              <p className="mt-1 break-all text-[15px] text-brand-periwinkle">{customer.email}</p>
+            </div>
           </div>
           <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className="h-11 rounded-full border-[1.5px] border-white bg-transparent px-6 font-bold text-white hover:bg-white/10 hover:text-white"
+            >
               Sign out
             </Button>
           </form>
         </div>
+      </section>
 
-        {ok ? (
-          <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {ok.replace(/_/g, ' ')} ✓
-          </p>
-        ) : null}
-        {error ? (
-          <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error.replace(/_/g, ' ')}
-          </p>
-        ) : null}
+      {ok ? (
+        <p role="status" className="mt-5 rounded-[14px] bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          {ok.replace(/_/g, ' ')} ✓
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mt-5 rounded-[14px] bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {error.replace(/_/g, ' ')}
+        </p>
+      ) : null}
 
-        {/* Quick stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Upcoming trips</CardDescription>
-              <CardTitle className="text-3xl">{upcoming.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total bookings</CardDescription>
-              <CardTitle className="text-3xl">{bookings.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Quick action</CardDescription>
-              <CardContent className="px-0 pt-2 pb-0">
-                <Button asChild size="sm" className="w-full">
-                  <Link href="/">Book a new trip</Link>
-                </Button>
-              </CardContent>
-            </CardHeader>
-          </Card>
+      {/* Quick stats */}
+      <section aria-label="Quick stats" className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-[22px] border border-brand-line bg-white p-5 sm:px-6 sm:py-[22px]">
+          <div className="text-sm font-semibold text-brand-muted">Upcoming trips</div>
+          <div className="mt-1.5 font-display text-4xl font-extrabold tracking-tight text-brand sm:text-[40px]">
+            {upcoming.length}
+          </div>
+        </div>
+        <div className="rounded-[22px] border border-brand-line bg-white p-5 sm:px-6 sm:py-[22px]">
+          <div className="text-sm font-semibold text-brand-muted">Total bookings</div>
+          <div className="mt-1.5 font-display text-4xl font-extrabold tracking-tight text-brand-ink sm:text-[40px]">
+            {bookings.length}
+          </div>
+        </div>
+        <div className="flex flex-col justify-between gap-3.5 rounded-[22px] bg-brand p-5 text-white sm:px-6 sm:py-[22px]">
+          <div className="text-sm font-semibold text-brand-periwinkle">Quick action</div>
+          <Button asChild className="h-12 rounded-[14px] bg-white font-bold text-brand-dark hover:bg-brand-periwinkle">
+            <Link href="/">Book a new trip</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Upcoming */}
+      <h2 className="mt-11 font-display text-2xl font-extrabold tracking-tight text-brand-ink">
+        Upcoming trips
+      </h2>
+      {upcoming.length === 0 ? (
+        <div className="mt-4 rounded-[22px] border border-brand-line bg-white px-6 py-10 text-center text-sm text-brand-muted">
+          No upcoming trips.{' '}
+          <Link href="/" className="inline-flex min-h-11 items-center font-semibold text-brand hover:underline">
+            Find a boat →
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3.5">
+          {upcoming.map((b) => (
+            <BookingCard key={b.id} booking={b} />
+          ))}
+        </div>
+      )}
+
+      {/* History */}
+      {past.length > 0 && (
+        <>
+          <h2 className="mt-11 font-display text-2xl font-extrabold tracking-tight text-brand-ink">
+            Booking history
+          </h2>
+          <div className="mt-4 space-y-3.5">
+            {past.map((b) => {
+              const mainLeg = getMainLeg(b);
+              const canReview = Boolean(
+                b.status === 'CONFIRMED' &&
+                !b.review &&
+                mainLeg &&
+                mainLeg.departureDate.getTime() < now - REVIEW_OPENS_AFTER_DEPARTURE_MS,
+              );
+              return (
+                <BookingCard
+                  key={b.id}
+                  booking={b}
+                  canReview={canReview}
+                  hasReview={!!b.review}
+                  muted
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Profile editing */}
+      <h2 className="mt-11 font-display text-2xl font-extrabold tracking-tight text-brand-ink">
+        Profile
+      </h2>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-3xl border border-brand-line bg-white p-6 sm:p-7">
+          <h3 className="text-lg font-bold text-brand-ink">Personal details</h3>
+          <p className="mt-1 text-sm text-brand-muted">Used to prefill new bookings.</p>
+          <form action={updateProfileAction} className="mt-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                defaultValue={customer.fullName}
+                required
+                minLength={2}
+                className="h-12 rounded-2xl border-brand-line text-base"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="phoneNumber">Phone (WhatsApp preferred)</Label>
+              <Input
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                defaultValue={customer.phoneNumber ?? ''}
+                className="h-12 rounded-2xl border-brand-line text-base"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nationality">Nationality</Label>
+              <Input
+                id="nationality"
+                name="nationality"
+                defaultValue={customer.nationality ?? ''}
+                className="h-12 rounded-2xl border-brand-line text-base"
+              />
+            </div>
+            <Button type="submit" size="sm" className="h-12 rounded-[14px] bg-brand px-6 font-bold text-white hover:bg-brand-dark">
+              Save changes
+            </Button>
+          </form>
         </div>
 
-        {/* Upcoming */}
-        <h2 className="mb-3 text-lg font-bold tracking-tight">Upcoming trips</h2>
-        {upcoming.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-slate-600">
-              No upcoming trips. <Link href="/" className="text-sky-700 hover:underline">Find a boat →</Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {upcoming.map((b) => (
-              <BookingCard key={b.id} booking={b} />
-            ))}
-          </div>
-        )}
-
-        {/* History */}
-        {past.length > 0 && (
-          <>
-            <h2 className="mt-10 mb-3 text-lg font-bold tracking-tight">
-              Booking history
-            </h2>
-            <div className="space-y-3">
-              {past.map((b) => {
-                const mainLeg = getMainLeg(b);
-                const canReview = Boolean(
-                  b.status === 'CONFIRMED' &&
-                  !b.review &&
-                  mainLeg &&
-                  mainLeg.departureDate.getTime() < now - REVIEW_OPENS_AFTER_DEPARTURE_MS,
-                );
-                return (
-                  <BookingCard
-                    key={b.id}
-                    booking={b}
-                    canReview={canReview}
-                    hasReview={!!b.review}
-                    muted
-                  />
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* Profile editing */}
-        <h2 className="mt-10 mb-3 text-lg font-bold tracking-tight">Profile</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Personal details</CardTitle>
-              <CardDescription>Used to prefill new bookings.</CardDescription>
-            </CardHeader>
-            <form action={updateProfileAction}>
-              <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    defaultValue={customer.fullName}
-                    required
-                    minLength={2}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phoneNumber">Phone (WhatsApp preferred)</Label>
-                  <Input
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    type="tel"
-                    defaultValue={customer.phoneNumber ?? ''}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="nationality">Nationality</Label>
-                  <Input
-                    id="nationality"
-                    name="nationality"
-                    defaultValue={customer.nationality ?? ''}
-                  />
-                </div>
-                <Button type="submit" size="sm">
-                  Save changes
-                </Button>
-              </CardContent>
+        <div className="rounded-3xl border border-brand-line bg-white p-6 sm:p-7">
+          <h3 className="text-lg font-bold text-brand-ink">Change password</h3>
+          <p className="mt-1 text-sm text-brand-muted">
+            You&apos;ll stay signed in on this device.
+          </p>
+          {customer.passwordHash ? (
+            <form action={changePasswordAction} className="mt-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="currentPassword">Current password</Label>
+                <Input
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  className="h-12 rounded-2xl border-brand-line text-base"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="newPassword">New password</Label>
+                <Input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="h-12 rounded-2xl border-brand-line text-base"
+                />
+              </div>
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                className="h-12 rounded-[14px] border-[1.5px] border-brand px-6 font-bold text-brand hover:bg-brand-periwinkle"
+              >
+                Update password
+              </Button>
             </form>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Change password</CardTitle>
-              <CardDescription>
-                You&apos;ll stay signed in on this device.
-              </CardDescription>
-            </CardHeader>
-            {customer.passwordHash ? (
-              <form action={changePasswordAction}>
-                <CardContent className="space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="currentPassword">Current password</Label>
-                    <Input
-                      id="currentPassword"
-                      name="currentPassword"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="newPassword">New password</Label>
-                    <Input
-                      id="newPassword"
-                      name="newPassword"
-                      type="password"
-                      required
-                      minLength={8}
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  <Button type="submit" size="sm" variant="outline">
-                    Update password
-                  </Button>
-                </CardContent>
-              </form>
-            ) : (
-              <CardContent className="text-sm text-slate-600">
-                Your account uses Google sign-in. To set a password,{' '}
-                <Link href="/account/forgot-password" className="text-sky-700 hover:underline">
-                  use the forgot-password flow
-                </Link>
-                .
-              </CardContent>
-            )}
-          </Card>
+          ) : (
+            <p className="mt-5 text-sm leading-relaxed text-brand-text">
+              Your account uses Google sign-in. To set a password,{' '}
+              <Link href="/account/forgot-password" className="font-semibold text-brand underline underline-offset-2">
+                use the forgot-password flow
+              </Link>
+              .
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -393,52 +417,56 @@ function BookingCard({
 }) {
   const mainLeg = getMainLeg(booking)!;
   return (
-    <Card className={muted ? 'opacity-90' : ''}>
-      <CardContent className="flex flex-wrap items-start justify-between gap-4 p-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900">
-              {mainLeg.schedule.originPort} →{' '}
-              {mainLeg.schedule.destinationPort}
-            </span>
-            <Badge variant={statusVariant(booking.status)} className="text-xs">
-              {customerBookingStatusLabel(booking.status)}
+    <article
+      className={`flex flex-wrap items-center justify-between gap-5 rounded-[22px] border px-5 py-5 sm:px-6 ${
+        muted
+          ? 'border-brand-line bg-slate-50'
+          : 'border-brand-line bg-white shadow-ambient-sm'
+      }`}
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-[17px] font-bold text-brand-ink sm:text-lg">
+            {mainLeg.schedule.originPort} →{' '}
+            {mainLeg.schedule.destinationPort}
+          </span>
+          <Badge variant={statusVariant(booking.status)} className="text-xs">
+            {customerBookingStatusLabel(booking.status)}
+          </Badge>
+          {hasReview ? (
+            <Badge variant="outline" className="text-xs">
+              Reviewed
             </Badge>
-            {hasReview ? (
-              <Badge variant="outline" className="text-xs">
-                Reviewed
-              </Badge>
-            ) : null}
-          </div>
-          <div className="mt-1 text-sm text-slate-600">
-            {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')}{' '}
-            ·{' '}
-            <span className="font-mono">
-              {formatLocalTime(mainLeg.departureDate)}
-            </span>{' '}
-            WITA · {mainLeg.schedule.boat.name}
-          </div>
-          <div className="mt-1 font-mono text-xs text-slate-500">
-            {booking.bookingReference}
-          </div>
-          {canReview ? (
-            <Link
-              href={`/reviews/new?bookingId=${booking.id}`}
-              className="mt-2 inline-block text-sm font-medium text-amber-700 hover:underline"
-            >
-              ★ Rate your trip →
-            </Link>
           ) : null}
         </div>
-        <div className="text-right">
-          <div className="font-semibold">
-            {formatIDR(Number(booking.totalAmount))}
-          </div>
-          <Button asChild size="sm" variant="outline" className="mt-2">
-            <Link href={`/b/${booking.bookingReference}`}>View</Link>
-          </Button>
+        <div className="mt-1 text-sm text-brand-muted">
+          {formatLocalDate(mainLeg.departureDate, 'EEE, dd MMM yyyy')}{' '}
+          ·{' '}
+          <span className="font-mono">
+            {formatLocalTime(mainLeg.departureDate)}
+          </span>{' '}
+          WITA · {mainLeg.schedule.boat.name}
         </div>
-      </CardContent>
-    </Card>
+        <div className="mt-0.5 break-all font-mono text-xs text-brand-muted">
+          {booking.bookingReference}
+        </div>
+        {canReview ? (
+          <Link
+            href={`/reviews/new?bookingId=${booking.id}`}
+            className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-amber-700 hover:underline"
+          >
+            ★ Rate your trip →
+          </Link>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-5">
+        <div className="text-xl font-extrabold text-brand">
+          {formatIDR(Number(booking.totalAmount))}
+        </div>
+        <Button asChild size="sm" variant="outline" className="h-11 rounded-[14px] border-[1.5px] border-brand px-5 font-bold text-brand hover:bg-brand-periwinkle">
+          <Link href={`/b/${booking.bookingReference}`}>View</Link>
+        </Button>
+      </div>
+    </article>
   );
 }

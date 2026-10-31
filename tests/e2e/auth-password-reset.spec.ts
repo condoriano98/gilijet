@@ -122,7 +122,8 @@ test('AUTH-041 a link that was already used shows "Link expired"', async ({ page
   await page.getByLabel('Confirm password').fill(NEW_PASSWORD);
   await page.getByRole('button', { name: 'Set new password' }).click();
   await expect(page).toHaveURL(/error=expired/, { timeout: 20_000 });
-  await expect(page.getByText('Link expired')).toBeVisible();
+  // By role: Next's invisible route announcer reads the h1 out, so the text matches twice.
+  await expect(page.getByRole('heading', { name: 'Link expired' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Request a new link' })).toBeVisible();
 });
 
@@ -134,7 +135,7 @@ test('AUTH-042 a link past its hour shows "Link expired" and does not change the
   await page.getByLabel('Confirm password').fill(NEW_PASSWORD);
   await page.getByRole('button', { name: 'Set new password' }).click();
   await expect(page).toHaveURL(/error=expired/, { timeout: 20_000 });
-  await expect(page.getByText('Link expired')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Link expired' })).toBeVisible();
   const row = await prisma.customer.findUnique({ where: { email: MISMATCH } });
   expect(row?.passwordHash).toBeTruthy();
   expect(await bcrypt.compare(TEST_PASSWORD, row!.passwordHash!)).toBe(true);
@@ -146,7 +147,7 @@ test('AUTH-043 a made-up token is treated as expired', async ({ page }) => {
   await page.getByLabel('Confirm password').fill(NEW_PASSWORD);
   await page.getByRole('button', { name: 'Set new password' }).click();
   await expect(page).toHaveURL(/error=expired/, { timeout: 20_000 });
-  await expect(page.getByText('Link expired')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Link expired' })).toBeVisible();
 });
 
 test('AUTH-044 opening the reset page with no token goes to the forgot-password form', async ({ page }) => {

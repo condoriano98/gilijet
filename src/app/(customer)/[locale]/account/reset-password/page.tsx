@@ -4,13 +4,17 @@ import { createHash } from 'crypto';
 import { prisma } from '@/shared/server/db';
 import { hashPassword, setCustomerSession } from '@/shared/server/auth';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
+  AuthLayout,
+  AUTH_INPUT,
+  AUTH_LABEL,
+  AUTH_PRIMARY,
+  AUTH_SECONDARY,
+  AUTH_LINK,
+  AUTH_ALERT_ERROR,
+  AUTH_ALERT_WARN,
+  AUTH_ALERT_INFO,
+  AUTH_ALERT_OK,
+} from '@/app/(customer)/_components/auth-layout';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -74,77 +78,64 @@ export default async function ResetPasswordPage({
 
   if (error === 'expired') {
     return (
-      <div className="container py-12">
-        <div className="mx-auto max-w-md">
-          <Card>
-            <CardHeader>
-              <CardTitle>Link expired</CardTitle>
-              <CardDescription>
-                This reset link has already been used or has expired.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/account/forgot-password">Request a new link</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <AuthLayout
+        title="Link expired"
+        description="This reset link has already been used or has expired."
+      >
+        <Button asChild className={AUTH_PRIMARY}>
+          <Link href="/account/forgot-password">Request a new link</Link>
+        </Button>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="container py-12">
-      <div className="mx-auto max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Set a new password</CardTitle>
-            <CardDescription>
-              Choose a strong password with at least 8 characters.
-            </CardDescription>
-          </CardHeader>
-          <form action={resetPasswordAction}>
-            <CardContent className="space-y-4">
-              <input type="hidden" name="token" value={token ?? ''} />
+    <AuthLayout
+      title="Set a new password"
+      description="Choose a strong password with at least 8 characters."
+    >
+      <form action={resetPasswordAction} className="space-y-5">
+        <input type="hidden" name="token" value={token ?? ''} />
 
-              {error === 'invalid' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Passwords must match and be at least 8 characters.
-                </p>
-              )}
+        {error === 'invalid' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Passwords must match and be at least 8 characters.
+          </p>
+        )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password">New password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" size="lg" className="w-full">
-                Set new password
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    </div>
+        <div className="space-y-2">
+          <Label htmlFor="password" className={AUTH_LABEL}>
+            New password
+          </Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className={AUTH_INPUT}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className={AUTH_LABEL}>
+            Confirm password
+          </Label>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className={AUTH_INPUT}
+          />
+        </div>
+
+        <Button type="submit" size="lg" className={AUTH_PRIMARY}>
+          Set new password
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

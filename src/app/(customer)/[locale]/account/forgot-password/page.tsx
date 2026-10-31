@@ -5,13 +5,17 @@ import { prisma } from '@/shared/server/db';
 import { env } from '@/shared/server/env';
 import { sendPasswordResetEmail } from '@/features/messaging/email';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
+  AuthLayout,
+  AUTH_INPUT,
+  AUTH_LABEL,
+  AUTH_PRIMARY,
+  AUTH_SECONDARY,
+  AUTH_LINK,
+  AUTH_ALERT_ERROR,
+  AUTH_ALERT_WARN,
+  AUTH_ALERT_INFO,
+  AUTH_ALERT_OK,
+} from '@/app/(customer)/_components/auth-layout';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -52,64 +56,52 @@ export default async function ForgotPasswordPage({
   const { ok, error } = await searchParams;
 
   return (
-    <div className="container py-12">
-      <div className="mx-auto max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Forgot your password?</CardTitle>
-            <CardDescription>
-              Enter your email and we&apos;ll send you a reset link.
-            </CardDescription>
-          </CardHeader>
-
-          {ok === 'sent' ? (
-            <CardContent className="space-y-4">
-              <div className="rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                If an account exists for that email, you&apos;ll receive a
-                reset link shortly. Check your inbox (and spam folder).
-              </div>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/account/login">Back to sign in</Link>
-              </Button>
-            </CardContent>
-          ) : (
-            <form action={requestResetAction}>
-              <CardContent className="space-y-4">
-                {error === 'invalid' && (
-                  <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                    Please enter a valid email address.
-                  </p>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col gap-3">
-                <Button type="submit" size="lg" className="w-full">
-                  Send reset link
-                </Button>
-                <div className="text-center text-sm text-slate-600">
-                  Remember it?{' '}
-                  <Link
-                    href="/account/login"
-                    className="font-medium text-sky-700 hover:underline"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              </CardFooter>
-            </form>
+    <AuthLayout
+      title="Forgot your password?"
+      description="Enter your email and we'll send you a reset link."
+    >
+      {ok === 'sent' ? (
+        <div className="space-y-5">
+          <div className={AUTH_ALERT_OK}>
+            If an account exists for that email, you&apos;ll receive a
+            reset link shortly. Check your inbox (and spam folder).
+          </div>
+          <Button asChild variant="outline" className={AUTH_SECONDARY}>
+            <Link href="/account/login">Back to sign in</Link>
+          </Button>
+        </div>
+      ) : (
+        <form action={requestResetAction} className="space-y-5">
+          {error === 'invalid' && (
+            <p role="alert" className={AUTH_ALERT_ERROR}>
+              Please enter a valid email address.
+            </p>
           )}
-        </Card>
-      </div>
-    </div>
+          <div className="space-y-2">
+            <Label htmlFor="email" className={AUTH_LABEL}>
+              Email address
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@example.com"
+              className={AUTH_INPUT}
+            />
+          </div>
+          <Button type="submit" size="lg" className={AUTH_PRIMARY}>
+            Send reset link
+          </Button>
+          <div className="text-center text-sm text-brand-muted">
+            Remember it?{' '}
+            <Link href="/account/login" className={AUTH_LINK}>
+              Sign in
+            </Link>
+          </div>
+        </form>
+      )}
+    </AuthLayout>
   );
 }

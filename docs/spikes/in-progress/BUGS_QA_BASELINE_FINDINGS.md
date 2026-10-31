@@ -103,3 +103,9 @@ _(empty until implemented)_
 - **B4 for `best-price-guarantee`: fixed** (one `h1` and its own title; `CONT-002b` and `CONT-003b` are normal tests). Still waiting for stage 4: `account/login` and its `review/new` redirect (`CONT-029b`, `fixme`).
 - **CONT-028** (in-page anchors on terms and privacy) is possible now: every section heading has an `id`.
 - B10 (refund cutoffs typed into `/refunds` and `/change-plans`) is not fixed: the redesign kept the numbers as written.
+
+### Update 2026-10-31 (redesign stage 4)
+
+- **B4 is closed for every page** that had it (login, register, forgot, reset, review, best price, find booking): each has one `h1`.
+- **B13 closed** for the auth, account and review pages (`AUTH-092`). B13 still open for the unpaid booking page only.
+- **New, logic (not fixed):** B20, a failed sign-in loses the typed email and the `next` target (the server redirects to `/account/login?error=credentials` only). Low severity, found while writing the stage 4 baseline; needs the owner's go because it changes the action.

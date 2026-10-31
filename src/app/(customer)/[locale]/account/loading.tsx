@@ -1,44 +1,33 @@
-import { Card, CardContent, CardHeader } from '@/shared/ui/card';
-
 export default function AccountLoading() {
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="space-y-2">
-          <div className="h-9 w-48 animate-pulse rounded bg-slate-200" />
-          <div className="h-5 w-64 animate-pulse rounded bg-slate-100" />
-        </div>
+    <div className="mx-auto max-w-[1180px] px-5 pb-4 pt-6 sm:px-6">
+      <div className="space-y-6">
+        <div className="h-[132px] animate-pulse rounded-[32px] bg-brand-periwinkle sm:h-[148px]" />
 
         <div className="grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="space-y-2 pt-6">
-                <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
-                <div className="h-7 w-16 animate-pulse rounded bg-slate-200" />
-              </CardContent>
-            </Card>
+            <div key={i} className="space-y-2 rounded-[22px] border border-brand-line bg-white p-5">
+              <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
+              <div className="h-8 w-16 animate-pulse rounded bg-slate-200" />
+            </div>
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="h-6 w-32 animate-pulse rounded bg-slate-200" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-md border bg-white px-3 py-2"
-              >
-                <div className="space-y-1">
-                  <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
-                  <div className="h-3 w-48 animate-pulse rounded bg-slate-100" />
-                </div>
-                <div className="h-8 w-24 animate-pulse rounded-md bg-slate-200" />
+        <div className="space-y-3.5">
+          <div className="h-7 w-40 animate-pulse rounded bg-slate-200" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-[22px] border border-brand-line bg-white px-6 py-5"
+            >
+              <div className="space-y-1.5">
+                <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                <div className="h-3 w-56 animate-pulse rounded bg-slate-100" />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+              <div className="h-11 w-24 animate-pulse rounded-[14px] bg-slate-200" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

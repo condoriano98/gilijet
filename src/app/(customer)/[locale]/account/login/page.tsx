@@ -4,18 +4,22 @@ import { z } from 'zod';
 import { prisma } from '@/shared/server/db';
 import { verifyPassword, setCustomerSession, getCustomerSession } from '@/shared/server/auth';
 import { loginGate, recordLoginAttempt } from '@/shared/server/login-throttle';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 import { safeNext } from '@/shared/lib/safe-next';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import {
+  AuthLayout,
+  AUTH_INPUT,
+  AUTH_LABEL,
+  AUTH_PRIMARY,
+  AUTH_SECONDARY,
+  AUTH_LINK,
+  AUTH_ALERT_ERROR,
+  AUTH_ALERT_WARN,
+  AUTH_ALERT_INFO,
+  AUTH_ALERT_OK,
+} from '@/app/(customer)/_components/auth-layout';
 import { GoogleSignInButton } from '@/app/(customer)/[locale]/account/_components/google-signin-button';
 
 export const metadata = { title: 'Sign in' };
@@ -77,115 +81,114 @@ export default async function CustomerLoginPage({
   const { error, next } = await searchParams;
 
   return (
-    <div className="container py-12">
-      <div className="mx-auto max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in to Gilifast</CardTitle>
-            <CardDescription>
-              Manage bookings, see ticket history, and check in faster.
-            </CardDescription>
-          </CardHeader>
-          <form action={loginAction}>
-            <CardContent className="space-y-4">
-              <input type="hidden" name="next" value={next ?? ''} />
+    <AuthLayout
+      title="Sign in to Gilifast"
+      description="Manage bookings, see ticket history, and check in faster."
+    >
+      <form action={loginAction} className="space-y-5">
+        <input type="hidden" name="next" value={next ?? ''} />
 
-              {error === 'credentials' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Wrong email or password.
-                </p>
-              )}
-              {error === 'invalid' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Check your email and password.
-                </p>
-              )}
-              {error === 'locked' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Too many failed attempts. Please wait 15 minutes before trying again.
-                </p>
-              )}
-              {error === 'google_unavailable' && (
-                <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  Google sign-in is currently unavailable. Use email and password instead.
-                </p>
-              )}
-              {error === 'google_cancelled' && (
-                <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  Google sign-in was cancelled.
-                </p>
-              )}
-              {error === 'google_state' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Google sign-in could not be verified. Please try again.
-                </p>
-              )}
-              {error === 'google_exchange' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  We couldn&apos;t complete sign-in with Google. Please try again.
-                </p>
-              )}
-              {error === 'google_unverified' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Your Google email isn&apos;t verified. Please verify it in Google and try again.
-                </p>
-              )}
+        {error === 'credentials' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Wrong email or password.
+          </p>
+        )}
+        {error === 'invalid' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Check your email and password.
+          </p>
+        )}
+        {error === 'locked' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Too many failed attempts. Please wait 15 minutes before trying again.
+          </p>
+        )}
+        {error === 'google_unavailable' && (
+          <p role="alert" className={AUTH_ALERT_WARN}>
+            Google sign-in is currently unavailable. Use email and password instead.
+          </p>
+        )}
+        {error === 'google_cancelled' && (
+          <p role="alert" className={AUTH_ALERT_INFO}>
+            Google sign-in was cancelled.
+          </p>
+        )}
+        {error === 'google_state' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Google sign-in could not be verified. Please try again.
+          </p>
+        )}
+        {error === 'google_exchange' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            We couldn&apos;t complete sign-in with Google. Please try again.
+          </p>
+        )}
+        {error === 'google_unverified' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Your Google email isn&apos;t verified. Please verify it in Google and try again.
+          </p>
+        )}
 
-              <GoogleSignInButton next={next || undefined} />
+        <GoogleSignInButton next={next || undefined} />
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/account/forgot-password"
-                    className="text-xs text-sky-700 hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="current-password"
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-3">
-              <Button type="submit" size="lg" className="w-full">
-                Sign in
-              </Button>
-              <div className="text-center text-sm text-slate-600">
-                New to Gilifast?{' '}
-                <Link
-                  href={`/account/register${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-                  className="font-medium text-sky-700 hover:underline"
-                >
-                  Create an account
-                </Link>
-              </div>
-              <div className="text-center text-xs text-slate-500">
-                Just need a ticket?{' '}
-                <Link href="/b" className="text-sky-700 hover:underline">
-                  Look up your booking
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    </div>
+        <div className="space-y-2">
+          <Label htmlFor="email" className={AUTH_LABEL}>
+            Email
+          </Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className={AUTH_INPUT}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="password" className={AUTH_LABEL}>
+              Password
+            </Label>
+            <Link
+              href="/account/forgot-password"
+              className="inline-flex min-h-11 items-center text-[13px] font-semibold text-brand hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="current-password"
+            className={AUTH_INPUT}
+          />
+        </div>
+
+        <Button type="submit" size="lg" className={AUTH_PRIMARY}>
+          Sign in
+        </Button>
+
+        <div className="space-y-1 text-center text-sm text-brand-muted">
+          <div>
+            New to Gilifast?{' '}
+            <Link
+              href={`/account/register${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+              className={AUTH_LINK}
+            >
+              Create an account
+            </Link>
+          </div>
+          <div>
+            Just need a ticket?{' '}
+            <Link href="/b" className={AUTH_LINK}>
+              Look up your booking
+            </Link>
+          </div>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }

@@ -19,7 +19,7 @@ export function StarRating({
   const display = hover || value;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1.5">
       <input type="hidden" name={name} value={value} />
       {[1, 2, 3, 4, 5].map((n) => (
         <button
@@ -29,19 +29,19 @@ export function StarRating({
           onMouseEnter={() => setHover(n)}
           onMouseLeave={() => setHover(0)}
           onClick={() => setValue(n)}
-          className="rounded p-0.5 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <Star
             className={
               display >= n
-                ? 'h-8 w-8 fill-amber-400 stroke-amber-500'
-                : 'h-8 w-8 fill-transparent stroke-slate-300'
+                ? 'h-9 w-9 fill-amber-400 stroke-amber-500'
+                : 'h-9 w-9 fill-transparent stroke-slate-300'
             }
           />
         </button>
       ))}
       {value > 0 ? (
-        <span className="ml-2 text-sm font-medium text-slate-700">
+        <span className="ml-2 text-sm font-semibold text-brand-text">
           {value}/5
         </span>
       ) : null}

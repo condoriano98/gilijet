@@ -5,13 +5,6 @@ import { prisma } from '@/shared/server/db';
 import { requireCustomer } from '@/shared/server/auth';
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/datetime';
 import { getMainLeg } from '@/features/booking/helpers';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
@@ -112,58 +105,55 @@ export default async function NewReviewPage({
   const mainLeg = getMainLeg(booking)!;
 
   return (
-    <div className="container py-10">
-      <div className="mx-auto max-w-xl">
-        <Link
-          href="/account"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← My account
-        </Link>
+    <div className="mx-auto max-w-[620px] px-5 pb-4 pt-4 sm:px-6">
+      <Link
+        href="/account"
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
+      >
+        ← My account
+      </Link>
 
-        <Card className="mt-3">
-          <CardHeader>
-            <CardTitle>Rate your trip</CardTitle>
-            <CardDescription>
-              {mainLeg.schedule.originPort} →{' '}
-              {mainLeg.schedule.destinationPort} ·{' '}
-              {formatLocalDate(mainLeg.departureDate, 'dd MMM yyyy')} ·{' '}
-              {formatLocalTime(mainLeg.departureDate)} ·{' '}
-              {mainLeg.schedule.boat.name}
-            </CardDescription>
-          </CardHeader>
-          <form action={submitReviewAction}>
-            <CardContent className="space-y-4">
-              <input type="hidden" name="bookingId" value={booking.id} />
+      <div className="mt-2 rounded-[32px] border border-brand-line bg-white p-6 shadow-ambient sm:p-10">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-ink sm:text-[34px]">
+          Rate your trip
+        </h1>
+        <p className="mt-2 text-[15px] text-brand-muted">
+          {mainLeg.schedule.originPort} →{' '}
+          {mainLeg.schedule.destinationPort} ·{' '}
+          {formatLocalDate(mainLeg.departureDate, 'dd MMM yyyy')} ·{' '}
+          {formatLocalTime(mainLeg.departureDate)} ·{' '}
+          {mainLeg.schedule.boat.name}
+        </p>
+        <form action={submitReviewAction} className="mt-6 space-y-6">
+          <input type="hidden" name="bookingId" value={booking.id} />
 
-              {error ? (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
-                </p>
-              ) : null}
+          {error ? (
+            <p role="alert" className="rounded-[14px] bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
 
-              <div className="space-y-2">
-                <Label>Your rating</Label>
-                <StarRating name="rating" />
-              </div>
+          <div className="space-y-2">
+            <Label>Your rating</Label>
+            <StarRating name="rating" />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="text">Comments (optional)</Label>
-                <Textarea
-                  id="text"
-                  name="text"
-                  rows={4}
-                  placeholder="How was the journey? Punctual? Comfortable? Anything other travellers should know?"
-                  maxLength={2000}
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="text">Comments (optional)</Label>
+            <Textarea
+              id="text"
+              name="text"
+              rows={5}
+              placeholder="How was the journey? Punctual? Comfortable? Anything other travellers should know?"
+              maxLength={2000}
+              className="rounded-2xl border-brand-line text-base"
+            />
+          </div>
 
-              <Button type="submit" className="w-full">
-                Submit review
-              </Button>
-            </CardContent>
-          </form>
-        </Card>
+          <Button type="submit" className="h-14 w-full rounded-2xl bg-brand text-base font-bold text-white hover:bg-brand-dark">
+            Submit review
+          </Button>
+        </form>
       </div>
     </div>
   );

@@ -48,6 +48,7 @@ bump. A version is live in production once its tag is merged into `main`.
 
 ### Changed
 
+- Sign-in, account and review pages redesign (stage 4, staging only, not released): login, register, forgot and reset password in a two-panel layout with one heading each, the account page with a profile panel, stat cards and trip cards, and the review form. Fields, redirects (including the off-site refusal), error messages and the Google sign-in link are unchanged.
 - Content and legal pages redesign (stage 5, staging only, not released): about, contact, blog and article, best price, change plans, terms, privacy and refunds in the new look, with a shared legal layout and an "On this page" list. The text of the legal pages is unchanged and now guarded by a test. The best-price page gets a real heading and its own tab title.
 - Booking flow redesign (stage 3, staging only, not released): the book form, checkout, pay, find my booking, booking detail and reschedule pages in the new look, with 44 px controls and a real `h1` on `/b` and `pay`. Fields, amounts, actions and redirects are unchanged. Known open items: the Pay button shows the pre-discount total after a promo code (B17), and the round-trip booking page shows one leg (B18).
 - The cookie banner is compact: a 320 px card in the bottom-right corner on a laptop and a short bar on a phone (one line of text, the full text under "Choose"), so it no longer covers the To field of the search form on a first visit (bug B14). Buttons, texts and the consent logic are unchanged. The home hero is 16 px shorter on a phone.

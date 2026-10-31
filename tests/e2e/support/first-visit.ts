@@ -31,15 +31,24 @@ export async function tapStatus(locator: Locator, scroll: 'none' | 'center'): Pr
  * With the consent banner open (every spec starts as a first-time visitor):
  * the controls that are in view when the page opens are not covered, and every
  * control receives a tap once it is scrolled to the middle of the window.
- * All problems are reported together.
+ * All problems are reported together. `checkOpening: false` skips the first half: use it for
+ * tall forms, where the fixed banner always covers a strip at the bottom of the window until it
+ * is answered, so some field is always under it; reaching every control by scrolling still counts.
  */
-export async function expectControlsTappable(page: Page, controls: Record<string, Locator>) {
+export async function expectControlsTappable(
+  page: Page,
+  controls: Record<string, Locator>,
+  options: { checkOpening?: boolean } = {},
+) {
+  const checkOpening = options.checkOpening ?? true;
   await expect(page.getByTestId('consent-banner')).toBeVisible({ timeout: 15_000 });
   for (const [name, locator] of Object.entries(controls)) {
     await expect(locator, `${name} is on the page`).toBeVisible({ timeout: 15_000 });
     await page.evaluate(() => window.scrollTo(0, 0));
-    const opening = await tapStatus(locator, 'none');
-    expect.soft(['self', 'offscreen'], `${name} as the page opens: ${opening}`).toContain(opening);
+    if (checkOpening) {
+      const opening = await tapStatus(locator, 'none');
+      expect.soft(['self', 'offscreen'], `${name} as the page opens: ${opening}`).toContain(opening);
+    }
     const centred = await tapStatus(locator, 'center');
     expect.soft(centred, `${name} after scrolling it to the middle`).toBe('self');
   }

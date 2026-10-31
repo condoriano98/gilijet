@@ -48,6 +48,9 @@ const REDESIGNED_ROUTES: string[] = [
   '/privacy',
   '/refunds',
   '/change-plans',
+  '/account/login',
+  '/account/register',
+  '/account/forgot-password',
   '/search?destination=E2E+Nowhere&date=2090-01-01&passengers=1',
 ];
 

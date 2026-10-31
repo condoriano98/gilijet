@@ -3,18 +3,22 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { prisma } from '@/shared/server/db';
 import { hashPassword, setCustomerSession, getCustomerSession } from '@/shared/server/auth';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 import { safeNext } from '@/shared/lib/safe-next';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import {
+  AuthLayout,
+  AUTH_INPUT,
+  AUTH_LABEL,
+  AUTH_PRIMARY,
+  AUTH_SECONDARY,
+  AUTH_LINK,
+  AUTH_ALERT_ERROR,
+  AUTH_ALERT_WARN,
+  AUTH_ALERT_INFO,
+  AUTH_ALERT_OK,
+} from '@/app/(customer)/_components/auth-layout';
 import { GoogleSignInButton } from '@/app/(customer)/[locale]/account/_components/google-signin-button';
 
 export const metadata = { title: 'Create account' };
@@ -79,126 +83,128 @@ export default async function CustomerRegisterPage({
   const { error, next } = await searchParams;
 
   return (
-    <div className="container py-12">
-      <div className="mx-auto max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create your Gilifast account</CardTitle>
-            <CardDescription>
-              Save passenger details, see past trips, and skip the form on
-              future bookings.
-            </CardDescription>
-          </CardHeader>
-          <form action={registerAction}>
-            <CardContent className="space-y-4">
-              <input type="hidden" name="next" value={next ?? ''} />
+    <AuthLayout
+      title="Create your Gilifast account"
+      description="Save passenger details, see past trips, and skip the form on future bookings."
+    >
+      <form action={registerAction} className="space-y-5">
+        <input type="hidden" name="next" value={next ?? ''} />
 
-              {error === 'exists' && (
-                <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  An account with that email already exists.{' '}
-                  <Link
-                    href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-                    className="underline"
-                  >
-                    Sign in instead
-                  </Link>
-                  .
-                </p>
-              )}
-              {error === 'terms' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Please accept the Terms and Privacy Policy.
-                </p>
-              )}
-              {error === 'invalid' && (
-                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  Please fill in all required fields with valid values.
-                </p>
-              )}
+        {error === 'exists' && (
+          <p role="alert" className={AUTH_ALERT_WARN}>
+            An account with that email already exists.{' '}
+            <Link
+              href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+              className="underline"
+            >
+              Sign in instead
+            </Link>
+            .
+          </p>
+        )}
+        {error === 'terms' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Please accept the Terms and Privacy Policy.
+          </p>
+        )}
+        {error === 'invalid' && (
+          <p role="alert" className={AUTH_ALERT_ERROR}>
+            Please fill in all required fields with valid values.
+          </p>
+        )}
 
-              <GoogleSignInButton next={next || undefined} label="Sign up with Google" />
+        <GoogleSignInButton next={next || undefined} label="Sign up with Google" />
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full name</Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  required
-                  minLength={2}
-                  autoComplete="name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone (WhatsApp)</Label>
-                <Input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  type="tel"
-                  placeholder="+62 812 3456 7890"
-                  autoComplete="tel"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                />
-                <p className="text-xs text-slate-500">At least 8 characters.</p>
-              </div>
+        <div className="space-y-2">
+          <Label htmlFor="fullName" className={AUTH_LABEL}>
+            Full name
+          </Label>
+          <Input
+            id="fullName"
+            name="fullName"
+            required
+            minLength={2}
+            autoComplete="name"
+            className={AUTH_INPUT}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email" className={AUTH_LABEL}>
+            Email
+          </Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className={AUTH_INPUT}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phoneNumber" className={AUTH_LABEL}>
+            Phone (WhatsApp)
+          </Label>
+          <Input
+            id="phoneNumber"
+            name="phoneNumber"
+            type="tel"
+            placeholder="+62 812 3456 7890"
+            autoComplete="tel"
+            className={AUTH_INPUT}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password" className={AUTH_LABEL}>
+            Password
+          </Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className={AUTH_INPUT}
+          />
+          <p className="text-[13px] text-brand-muted">At least 8 characters.</p>
+        </div>
 
-              <label className="flex items-start gap-2 text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  name="agreedToTerms"
-                  value="1"
-                  required
-                  className="mt-0.5 h-4 w-4"
-                />
-                <span>
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-sky-700 hover:underline">
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="text-sky-700 hover:underline">
-                    Privacy Policy
-                  </Link>
-                  .
-                </span>
-              </label>
-            </CardContent>
-            <CardFooter className="flex-col gap-3">
-              <Button type="submit" size="lg" className="w-full">
-                Create account
-              </Button>
-              <div className="text-center text-sm text-slate-600">
-                Already have an account?{' '}
-                <Link
-                  href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-                  className="font-medium text-sky-700 hover:underline"
-                >
-                  Sign in
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    </div>
+        <label className="flex min-h-11 items-start gap-3 rounded-2xl bg-brand-surface px-4 py-3 text-sm text-brand-text">
+          <input
+            type="checkbox"
+            name="agreedToTerms"
+            value="1"
+            required
+            className="mt-0.5 h-5 w-5 shrink-0 accent-brand"
+          />
+          <span>
+            I agree to the{' '}
+            <Link href="/terms" className={AUTH_LINK}>
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className={AUTH_LINK}>
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+
+        <Button type="submit" size="lg" className={AUTH_PRIMARY}>
+          Create account
+        </Button>
+
+        <div className="text-center text-sm text-brand-muted">
+          Already have an account?{' '}
+          <Link
+            href={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+            className={AUTH_LINK}
+          >
+            Sign in
+          </Link>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }
