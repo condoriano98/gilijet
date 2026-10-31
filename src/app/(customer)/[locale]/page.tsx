@@ -113,9 +113,10 @@ export default async function HomePage() {
           className="object-cover object-[25%_center] sm:object-center"
         />
         {/* Scrim shaped to the copy: the heading and the paragraph sit in the
-            top 55%, so that stretch stays dark enough for white text, then it
-            releases so the hull and water show at full brightness. */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,34,142,0.74)_0%,rgba(0,34,142,0.62)_55%,rgba(0,34,142,0)_90%)]" />
+            top 60%, so that stretch stays dark enough for white text, then it
+            releases by 85% so the hull and water show at full brightness
+            (guarded by tests/unit/app/customer/hero-contrast.test.ts). */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,34,142,0.74)_0%,rgba(0,34,142,0.6)_62%,rgba(0,34,142,0)_85%)]" />
 
         <div className="container relative px-5 sm:px-8 lg:px-16">
           <div className="max-w-3xl text-white">

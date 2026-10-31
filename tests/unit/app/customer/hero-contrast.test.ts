@@ -15,7 +15,7 @@ describe('hero copy stays legible over the illustration', () => {
     path.join(process.cwd(), 'src', 'app', '(customer)', '[locale]', 'page.tsx'),
     'utf8',
   );
-  const hero = source.slice(0, source.indexOf('Wave divider'));
+  const hero = source.slice(0, source.indexOf('Search card'));
 
   it('keeps the scrim opaque past the middle, where the subtitle sits', () => {
     const gradient = hero.match(/linear-gradient\(to_bottom,([^)]*\)[^\]]*)\]/)?.[1];
