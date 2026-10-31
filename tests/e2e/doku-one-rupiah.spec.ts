@@ -4,7 +4,11 @@ import { test, expect } from '@playwright/test';
  * Opt-in smoke test of the real DOKU hand-off on the deployed staging site,
  * using the Rp 1 departure from `pnpm seed:one-rupiah`.
  *
- *   E2E_LIVE_DOKU=1 E2E_BASE_URL=https://<staging host> pnpm exec playwright test doku-one-rupiah
+ *   E2E_ALLOW_REMOTE=1 E2E_LIVE_DOKU=1 E2E_BASE_URL=https://<staging host> pnpm exec playwright test doku-one-rupiah
+ *
+ * Owner's rule (2026-10-31): e2e never writes to the staging database. This spec
+ * does (the booking below is created on the deployed site), so it stays off
+ * until the owner gives an explicit go for a run; `E2E_ALLOW_REMOTE=1` is that go.
  *
  * It creates a real DOKU payment session for Rp 1 and stops on DOKU's hosted
  * page. It never pays: paying Rp 1 (QRIS, or a Mandiri/BRI virtual account;
@@ -12,7 +16,7 @@ import { test, expect } from '@playwright/test';
  * left PENDING_PAYMENT and expires on its own.
  *
  * Skipped unless both variables are set, so the default suite and CI never open
- * a live DOKU session. Nothing here touches the database.
+ * a live DOKU session. The deployed site writes one PENDING_PAYMENT booking.
  */
 const base = process.env.E2E_BASE_URL ?? '';
 test.skip(

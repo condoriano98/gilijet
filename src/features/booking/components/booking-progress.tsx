@@ -24,10 +24,10 @@ export function BookingProgress({ currentStep }: { currentStep: 1 | 2 | 3 | 4 })
                   className={[
                     'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors',
                     done
-                      ? 'bg-sky-600 text-white'
+                      ? 'bg-brand text-white'
                       : active
-                        ? 'bg-sky-600 text-white ring-4 ring-sky-100'
-                        : 'border-2 border-slate-300 text-slate-400',
+                        ? 'bg-brand text-white ring-4 ring-brand-periwinkle'
+                        : 'bg-brand-periwinkle text-brand-dark',
                   ].join(' ')}
                   aria-current={active ? 'step' : undefined}
                 >
@@ -36,7 +36,7 @@ export function BookingProgress({ currentStep }: { currentStep: 1 | 2 | 3 | 4 })
                 <span
                   className={[
                     'mt-1 hidden text-xs sm:block',
-                    active ? 'font-semibold text-sky-700' : done ? 'text-slate-500' : 'text-slate-400',
+                    active ? 'font-semibold text-brand' : 'text-brand-muted',
                   ].join(' ')}
                 >
                   {step.label}
@@ -48,7 +48,7 @@ export function BookingProgress({ currentStep }: { currentStep: 1 | 2 | 3 | 4 })
                 <div
                   className={[
                     'mx-1 h-0.5 flex-1',
-                    num < currentStep ? 'bg-sky-600' : 'bg-slate-200',
+                    num < currentStep ? 'bg-brand' : 'bg-brand-line',
                   ].join(' ')}
                 />
               )}

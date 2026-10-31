@@ -70,10 +70,10 @@ export function SearchFilters({
     (maxPrice ? 1 : 0);
 
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm">
+    <div className="rounded-[22px] border border-brand-line bg-white p-5 lg:p-[22px]">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">Filters</h3>
+          <h3 className="text-base font-bold text-brand-ink">Filters</h3>
           {activeCount > 0 ? (
             <Badge variant="secondary">{activeCount} active</Badge>
           ) : null}
@@ -82,19 +82,19 @@ export function SearchFilters({
           <button
             type="button"
             onClick={clearAll}
-            className="text-xs text-sky-700 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand hover:underline"
           >
             Clear all
           </button>
         ) : null}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-1">
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+          <Label className="text-sm font-bold text-brand-ink">
             Sort by
           </Label>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {SORT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -102,10 +102,10 @@ export function SearchFilters({
                 onClick={() =>
                   pushParam({ sortBy: opt.value === 'time' ? null : opt.value })
                 }
-                className={`block w-full rounded-md border px-3 py-1.5 text-left text-sm transition-colors ${
+                className={`block min-h-11 w-full rounded-[14px] border px-3.5 py-2.5 text-left text-sm font-semibold transition-colors ${
                   sortBy === opt.value
-                    ? 'border-sky-600 bg-sky-50 font-medium text-sky-900'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-brand bg-brand-periwinkle text-brand-dark'
+                    : 'border-brand-line text-brand-text hover:border-brand/40'
                 }`}
               >
                 {opt.label}
@@ -115,10 +115,10 @@ export function SearchFilters({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+          <Label className="text-sm font-bold text-brand-ink">
             Departure time
           </Label>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-2">
             {TIME_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -128,15 +128,15 @@ export function SearchFilters({
                     timeSlot: opt.value === 'any' ? null : opt.value,
                   })
                 }
-                className={`rounded-md border px-2 py-1.5 text-left text-xs transition-colors ${
+                className={`min-h-11 rounded-[14px] border px-3 py-2 text-left text-xs transition-colors ${
                   timeSlot === opt.value
-                    ? 'border-sky-600 bg-sky-50 font-medium text-sky-900'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? 'border-brand bg-brand-periwinkle font-semibold text-brand-dark'
+                    : 'border-brand-line text-brand-text hover:border-brand/40'
                 }`}
               >
                 <div className="font-medium">{opt.label}</div>
                 {opt.hint ? (
-                  <div className="text-muted-foreground">{opt.hint}</div>
+                  <div className="text-brand-muted">{opt.hint}</div>
                 ) : null}
               </button>
             ))}
@@ -146,11 +146,11 @@ export function SearchFilters({
         <div className="space-y-2">
           <Label
             htmlFor="maxPrice"
-            className="text-xs uppercase tracking-wide text-muted-foreground"
+            className="text-sm font-bold text-brand-ink"
           >
             Max price per passenger (IDR)
           </Label>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <Input
               id="maxPrice"
               type="number"
@@ -182,8 +182,8 @@ export function SearchFilters({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="rounded-lg bg-white px-6 py-4 shadow-lg">
             <div className="flex items-center gap-3">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-brand" />
-              <span className="text-sm font-medium text-slate-700">Loading results...</span>
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-line border-t-brand" />
+              <span className="text-sm font-medium text-brand-text">Loading results...</span>
             </div>
           </div>
         </div>

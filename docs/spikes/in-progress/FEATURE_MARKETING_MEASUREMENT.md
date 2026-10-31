@@ -1,3 +1,4 @@
+
 # Phase-one marketing measurement and performance dashboard (Google Ads + Meta)
 
 **Update 2026-10-30:** stages 2 to 4 and the revision are committed (`0a1a8e1`, 2026-10-27) and, with stage 1 (`4373027`), are in `main` since PR #7. They are live in the build but every switch is off. Stage 5 (the dashboard) is still not started.

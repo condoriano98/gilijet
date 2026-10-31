@@ -2,12 +2,12 @@ import { Card, CardContent, CardHeader } from '@/shared/ui/card';
 
 export default function SearchLoading() {
   return (
-    <div className="container py-6">
-      <div className="mx-auto max-w-4xl space-y-4">
+    <div className="mx-auto max-w-[1180px] px-5 py-6 sm:px-6">
+      <div className="space-y-4">
         <div className="h-9 w-48 animate-pulse rounded bg-slate-200" />
         <div className="h-5 w-72 animate-pulse rounded bg-slate-100" />
 
-        <Card>
+        <Card className="rounded-[28px] border-brand-line shadow-none">
           <CardContent className="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-5">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="space-y-1">
@@ -20,7 +20,7 @@ export default function SearchLoading() {
 
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
+            <Card key={i} className="rounded-[22px] border-brand-line shadow-none">
               <CardHeader className="pb-2">
                 <div className="flex items-start gap-3">
                   <div className="hidden h-16 w-20 shrink-0 animate-pulse rounded-md bg-slate-200 sm:block" />

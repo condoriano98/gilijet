@@ -2,7 +2,7 @@
 
 The case list for the AI test agents (`.claude/agents/test-generator.md`, `test-triager.md`). Plan: `docs/spikes/in-progress/FEATURE_AI_TEST_AGENT.md`. Run reports: `docs/qa-runs/`.
 
-**Status (2026-10-31):** baseline of the **current** site, run locally on desktop and on a 375 px phone: **354 passed, 0 failed, 8 skipped** (4 `fixme` for bug B4, 2 opt-in DOKU, 2 conditional); the desktop-only run was 232 / 0 / 6. Reports `docs/qa-runs/2026-10-31-baseline.md`, `2026-10-31-after-b1-b2-b9.md` and `2026-10-31-mobile.md`. Bugs B1, B2 and B9 were fixed after the baseline; their tests are normal tests now. Case IDs start each `test()` title: `AUTH-`, `BOOK-`, `CONT-`, `OPS-`. The operator, admin and API section (4) is a map only: no new specs yet.
+**Status (2026-10-31):** baseline of the **current** site, run locally on desktop and on a 375 px phone: **354 passed, 0 failed, 8 skipped**; after the redesign stages 0 to 2 and the new specs: **375 passed, 0 failed, 8 skipped** (`docs/qa-runs/2026-10-31-stage-0-2.md`, which also lists what is still not covered) (4 `fixme` for bug B4, 2 opt-in DOKU, 2 conditional); the desktop-only run was 232 / 0 / 6. Reports `docs/qa-runs/2026-10-31-baseline.md`, `2026-10-31-after-b1-b2-b9.md` and `2026-10-31-mobile.md`. Bugs B1, B2 and B9 were fixed after the baseline; their tests are normal tests now. Case IDs start each `test()` title: `AUTH-`, `BOOK-`, `CONT-`, `OPS-`. The operator, admin and API section (4) is a map only: no new specs yet.
 
 Coverage values: `covered-by-existing` (a spec already in the repo), `new-spec` (written 2026-10-31, uncommitted, waiting for the owner's review), `gap-needs-human` (cannot be automated: real payment, real WhatsApp or email delivery, live DOKU, taste), `gap` or `gap-proposed` (could be automated, not written yet).
 
@@ -136,6 +136,7 @@ Columns: **Viewports** = where the case matters (`all` = 375/768/1280; the Playw
 | BOOK-S07 | Guest | Empty day | Search a date with no departures | "No departures on this date"; 0 Book links | 1280 | › BOOK-S07 a day with no departures shows the empty state | n | new-spec |
 | BOOK-S08 | Guest | Incomplete query | `/search?origin=Sanur`; `/search?destination=…` | Nudge "Pick a destination to see boats from Sanur."; destination-only lists "Boats to …" | 1280 | › BOOK-S08 an incomplete query asks for the missing port instead of failing | n | new-spec |
 | BOOK-S09 | Guest | Passengers on the Book link | `passengers=3`, Morning | Link "Book 3 · Rp 750.000" with `passengers=3` in href | 1280 | › BOOK-S09 the passenger count carries into the Book link and its total | n | new-spec |
+| BOOK-S11 | Guest | Results page structure after the stage 2 redesign | Open a search with 3 departures at 375 px | exactly one `h1`; the three sort buttons are at least 44 px high | 375 | booking-search-filters.spec.ts · `BOOK-S11 the results page has one h1 and filters that are tall enough to tap` | n | new-spec |
 | BOOK-S10 | Guest | Phone width with results | 375 px wide, 3 results listed | No horizontal scroll | 375 | › BOOK-S10 at phone width the results list does not scroll sideways | n | new-spec |
 
 ### `tests/e2e/booking-form-validation.spec.ts` (fixtures in 2088 and 2001; skips with live keys)
@@ -275,6 +276,10 @@ Default viewport for chromium project is 1280; "375" cases set the viewport insi
 | CONT-030 | logged-in customer | /reviews/new error redirects (booking_missing, not_your_booking, not_confirmed, trip_not_finished, already_reviewed) and the happy path | needs a customer and bookings | `/account?error=...` | 1280 | none yet | n | gap-fixture (deferred: needs a customer account fixture helper) |
 | CONT-031 | anonymous | About, Contact, Blog index copy and layout | read | correct and pleasant | all | none | y: wording and look | gap-needs-human |
 | CONT-032 | anonymous | text contrast, spacing, image quality | look | AA contrast, no clipping | all | none | y | gap-needs-human |
+| CONT-033 | anonymous | From and To dropdowns open and offer the same ports (home, /search, /id; laptop and phone) | Open the page, open From, then To | both open; each lists ports; the two lists are equal; Sanur and Nusa Penida are in them | 1280, 375 | search-form-ports.spec.ts · `CONT-033 <page> at <size>: From and To open and list the same ports` (6 tests) | n | new-spec |
+| CONT-034 | anonymous | /search form: picking From fills it | Open /search, pick Sanur in From | From shows Sanur, To keeps Nusa Penida | 1280 | search-form-ports.spec.ts · `CONT-034 /search: picking a port in From and To fills both fields` | n | new-spec |
+| CONT-035 | first-time visitor | consent banner open: From and To are reachable when the page opens | Open the page with no saved choice | the centre of each field is the field itself, not the banner | 1280x720, 375x812 | search-form-ports.spec.ts · `CONT-035 <page> at <size>: the banner does not cover From or To when the page opens` (6 tests, `test.fail`) | n | known-bug B14 |
+| CONT-036 | first-time visitor | the form works once the banner is answered | Phone, click "Essential only", open To | banner gone, To opens | 375 | search-form-ports.spec.ts · `CONT-036 the form still works after the banner is answered` | n | new-spec |
 
 ---
 

@@ -6,8 +6,7 @@ import type { Prisma } from '@prisma/client';
 import { formatLocalTime, formatLocalDate } from '@/shared/lib/datetime';
 import { formatIDR } from '@/shared/lib/utils';
 import { formatWithDisplay } from '@/features/pricing/fx';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Badge } from '@/shared/ui/badge';
+import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 
 // Leg with all Decimals converted to numbers (via serializeDecimals)
@@ -55,61 +54,62 @@ export function RoundTripLegSelector({
       <button
         type="button"
         onClick={onSelect}
-        className={`w-full text-left transition-all ${
-          isSelected ? 'ring-2 ring-brand' : 'hover:shadow-md'
+        aria-pressed={isSelected}
+        className={`flex w-full flex-col gap-3 rounded-[22px] border bg-white p-4 text-left transition-all sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-[18px] ${
+          isSelected
+            ? 'border-brand ring-2 ring-brand'
+            : 'border-brand-line hover:border-brand/40 hover:shadow-ambient-sm'
         }`}
       >
-        <Card className={isSelected ? 'border-brand' : ''}>
-          <CardHeader className="pb-2">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                {leg.schedule.boat.photos.length > 0 ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={leg.schedule.boat.photos[0]}
-                    alt={leg.schedule.boat.name}
-                    className="hidden h-16 w-20 shrink-0 rounded-md border object-cover sm:block"
-                  />
-                ) : null}
-                <div>
-                  <CardTitle className="text-2xl">
-                    {formatLocalTime(leg.departureDate)}
-                  </CardTitle>
-                  <CardDescription>
-                    {leg.schedule.boat.name} · {leg.schedule.durationMinutes} min
-                    {rating && rating.count > 0 ? (
-                      <>
-                        {' '}· <span className="text-amber-600">★ {rating.avg.toFixed(1)}</span>{' '}
-                        <span className="text-muted-foreground">
-                          ({rating.count} review{rating.count === 1 ? '' : 's'})
-                        </span>
-                      </>
-                    ) : null}
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">
-                  {fxDisplay.primary}
-                </div>
-                {fxDisplay.secondary ? (
-                  <div className="text-xs text-slate-500">{fxDisplay.secondary}</div>
-                ) : null}
-                <div className="text-xs text-muted-foreground">
-                  per passenger
-                </div>
-              </div>
+        <div className="flex min-w-0 items-start gap-4">
+          {leg.schedule.boat.photos.length > 0 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={leg.schedule.boat.photos[0]}
+              alt={leg.schedule.boat.name}
+              className="hidden h-16 w-20 shrink-0 rounded-2xl border border-brand-line object-cover sm:block"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <div className="text-[26px] font-extrabold leading-tight tracking-tight tabular-nums text-brand-ink">
+              {formatLocalTime(leg.departureDate)}
             </div>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="success">Direct · {leg.schedule.durationMinutes}m</Badge>
-              <Badge variant="outline">{leg.schedule.boat.category}</Badge>
-              <Badge variant="outline">{leg.schedule.boat.operator.companyName}</Badge>
-              {isSelected && <Badge className="bg-brand text-white">Selected</Badge>}
+            <div className="mt-1 text-sm text-brand-muted">
+              {leg.schedule.boat.name} · {leg.schedule.durationMinutes} min
+              {rating && rating.count > 0 ? (
+                <>
+                  {' '}· <span className="font-bold text-amber-700">★ {rating.avg.toFixed(1)}</span>{' '}
+                  <span>
+                    ({rating.count} review{rating.count === 1 ? '' : 's'})
+                  </span>
+                </>
+              ) : null}
             </div>
-          </CardContent>
-        </Card>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800">
+                Direct · {leg.schedule.durationMinutes}m
+              </span>
+              <span className="rounded-full bg-brand-periwinkle px-3 py-1 text-brand-dark">
+                {leg.schedule.boat.category}
+              </span>
+              <span className="rounded-full border border-brand-line px-3 py-1 text-brand-text">
+                {leg.schedule.boat.operator.companyName}
+              </span>
+              {isSelected && (
+                <span className="rounded-full bg-brand px-3 py-1 text-white">Selected</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="sm:text-right">
+          <div className="text-2xl font-extrabold tracking-tight text-brand">
+            {fxDisplay.primary}
+          </div>
+          {fxDisplay.secondary ? (
+            <div className="text-xs text-brand-muted">{fxDisplay.secondary}</div>
+          ) : null}
+          <div className="text-[13px] text-brand-muted">per passenger</div>
+        </div>
       </button>
     );
   };
@@ -118,15 +118,15 @@ export function RoundTripLegSelector({
     <div className="space-y-6">
       {/* Outbound legs */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Outbound</h2>
+        <h2 className="mb-4 font-display text-xl font-extrabold tracking-tight text-brand-ink">Outbound</h2>
         {outboundLegs.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          <Card className="rounded-3xl border-brand-line shadow-none">
+            <CardContent className="py-12 text-center text-sm text-brand-muted">
               No departures available
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {outboundLegs.map((leg) => (
               <LegCard
                 key={leg.id}
@@ -141,15 +141,15 @@ export function RoundTripLegSelector({
 
       {/* Return legs */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Return</h2>
+        <h2 className="mb-4 font-display text-xl font-extrabold tracking-tight text-brand-ink">Return</h2>
         {returnLegs.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          <Card className="rounded-3xl border-brand-line shadow-none">
+            <CardContent className="py-12 text-center text-sm text-brand-muted">
               No departures available
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {returnLegs.map((leg) => (
               <LegCard
                 key={leg.id}
@@ -164,13 +164,13 @@ export function RoundTripLegSelector({
 
       {/* Summary & CTA */}
       {selectedOutbound && selectedReturn && (
-        <div className="sticky bottom-0 bg-white p-4 shadow-lg rounded-t-lg">
+        <div className="sticky bottom-0 rounded-t-3xl border border-brand-line bg-white p-4 shadow-ambient sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Total for {passengers} passenger{passengers === 1 ? '' : 's'}</p>
-              <p className="text-2xl font-bold">{formatIDR(totalPrice)}</p>
+              <p className="text-sm text-brand-muted">Total for {passengers} passenger{passengers === 1 ? '' : 's'}</p>
+              <p className="text-2xl font-extrabold text-brand">{formatIDR(totalPrice)}</p>
             </div>
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="rounded-[14px] bg-brand font-bold text-white hover:bg-brand-dark">
               <Link href={bookingUrl!}>
                 Continue to Booking
               </Link>

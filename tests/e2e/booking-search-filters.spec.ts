@@ -153,6 +153,17 @@ test('BOOK-S09 the passenger count carries into the Book link and its total', as
   await expect(link).toHaveAttribute('href', /passengers=3/);
 });
 
+test('BOOK-S11 the results page has one h1 and filters that are tall enough to tap', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(searchUrl());
+  expect((await listedPrices(page)).length).toBe(3);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  for (const name of ['Departure time', 'Price (low to high)', 'Duration (shortest)']) {
+    const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+    expect(box?.height ?? 0, `"${name}" is ${box?.height}px high`).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test('BOOK-S10 at phone width the results list does not scroll sideways', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(searchUrl());

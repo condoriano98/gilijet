@@ -42,7 +42,7 @@
 ## Targets and data safety
 
 - **Default target: local** (`pnpm dev` + `seed:qa` in a local Docker Postgres). No staging write needed.
-- **Staging** (Vercel `staging`, its own database): only for a final, limited pass, and only after the owner confirms and the project ref is named (rule 4). Specs create and delete their own fixtures; none depends on data that can age out.
+- **Staging** (Vercel `staging`, its own database): **not for Playwright.** Owner's rule of 2026-10-31: e2e never writes to the staging database; `playwright.config.ts` refuses a non-local database and a non-local base URL (`E2E_ALLOW_REMOTE=1` is the owner's explicit go, used only by the opt-in DOKU spec). The owner checks staging by hand with `pnpm dev`. Specs create and delete their own fixtures; none depends on data that can age out.
 - **Production: never.** No `.env.prod`, no production URL (rule 1).
 - Gateway and messaging keys are blanked for the run; a spec skips if a live key is set.
 
@@ -106,3 +106,5 @@
 ## QC result
 
 Local run, 2026-10-31: see `docs/qa-runs/`. Checked: unit 1307 passed; e2e 232 passed, 0 failed, 6 skipped; lint and typecheck clean. Not checked: staging, production, real payment and messaging delivery, stability over several runs, browsers other than Chromium, visual quality.
+
+**Status note (2026-10-31, later):** specs now start as a first-time visitor (banner open), the runner is locked to the local database (see `docs/qa-runs/2026-10-31-stage-0-2.md` for the lessons and the list of what is not covered).

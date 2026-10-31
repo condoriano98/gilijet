@@ -82,7 +82,7 @@ pnpm seed:qa        # reset to deterministic QA data
 pnpm db:studio      # Prisma Studio
 ```
 
-**End-to-end tests (QA).** The case list is `docs/QA_MATRIX.md`; each run is reported in `docs/qa-runs/`. The `test-generator` and `test-triager` agents (`.claude/agents/`) write the specs and explain the failures; Playwright runs them. Run them against a **local** Postgres with every outbound key blanked: the recipe is in `docs/qa-runs/README.md`. Unit tests (`pnpm test:unit`) are separate and unchanged.
+**End-to-end tests (QA).** The case list is `docs/QA_MATRIX.md`; each run is reported in `docs/qa-runs/`. The `test-generator` and `test-triager` agents (`.claude/agents/`) write the specs and explain the failures; Playwright runs them. They run only against a **local** Docker Postgres with every outbound key blanked (the config enforces it and refuses Supabase): the recipe is in `docs/qa-runs/README.md`. Unit tests (`pnpm test:unit`) are separate and unchanged.
 
 ## Database
 

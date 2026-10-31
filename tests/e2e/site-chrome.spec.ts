@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { saveEssentialOnlyChoice } from './support/consent';
 
 /**
  * The header, footer, consent banner, 404 and locale prefixes that wrap every
@@ -71,8 +72,8 @@ test.describe('site chrome', () => {
     expect(headerTop).toBe(0);
   });
 
-  test('CONT-012 banner stays hidden after a choice', async ({ page }) => {
-    // playwright.config.ts pre-sets an "essential only" choice for every spec.
+  test('CONT-012 banner stays hidden after a choice', async ({ page, context, baseURL }) => {
+    await saveEssentialOnlyChoice(context, baseURL!);
     await page.goto('/');
     await expect(page.locator('header').first()).toBeVisible();
     await expect(page.getByTestId('consent-banner')).toBeHidden();
